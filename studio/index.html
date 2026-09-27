@@ -170,10 +170,39 @@
     font-size: 11px;
     color: var(--text-faint);
   }
+  .qdot{ cursor: pointer; }
   .qdot.current{ border-color: var(--amber); color: var(--amber); }
   .qdot.correct{ border-color: var(--green-dim); background: var(--green-dim); color: var(--green); }
   .qdot.clean{ border-color: var(--green); }
   .qdot.wrong{ border-color: var(--red-dim); background: var(--red-dim); color: var(--red); }
+  .qdot.exhausted{ border-color: var(--red-dim); background: rgba(239,106,106,0.12); color: var(--red); }
+
+  .nav-row{ display: flex; gap: 8px; margin-bottom: 10px; }
+  .nav-row button{ flex: 1; }
+
+  .deliver-banner{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--green);
+    flex-wrap: wrap;
+  }
+  .stuck-banner{
+    background: var(--panel-2);
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
 
   .contract-label{
     font-family: var(--mono);
@@ -268,12 +297,63 @@
 
   /* Roster */
   .roster{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+
+  .level-group{
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .level-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--panel-2);
+    cursor: pointer;
+    user-select: none;
+  }
+  .level-header:hover{ background: #262933; }
+  .level-header-left{ display: flex; align-items: center; gap: 8px; }
+  .chevron{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  .level-group.collapsed .chevron{ transform: rotate(-90deg); }
+  .level-name{ font-weight: 600; font-size: 13px; }
+  .level-count{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+  }
+  .level-sum{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .level-sum .net-pos{ color: var(--green); }
+  .level-sum .net-neg{ color: var(--red); }
+  .level-body{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+  .level-group.collapsed .level-body{ display: none; }
+
   .card{
     background: var(--panel-2);
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 10px 12px;
+    cursor: pointer;
   }
+  .card:hover{ border-color: var(--blue); }
   .card-top{
     display: flex;
     justify-content: space-between;
@@ -308,6 +388,93 @@
     border-radius: 3px;
     transition: width 0.3s ease;
   }
+
+  /* Skill modal */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(8,9,11,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 50;
+  }
+  .modal-overlay.show{ display: flex; }
+  .modal{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-top{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  .modal-name{ font-size: 17px; font-weight: 700; }
+  .modal-level{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .modal-close{
+    background: transparent;
+    border: none;
+    color: var(--text-faint);
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px;
+    cursor: pointer;
+  }
+  .modal-close:hover{ color: var(--text); }
+  .modal-sub{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .skill-section-title{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 14px 0 8px;
+  }
+  .skill-row{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 7px;
+  }
+  .skill-name{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    width: 108px;
+    flex-shrink: 0;
+  }
+  .skill-bar{
+    flex: 1;
+    display: flex;
+    gap: 3px;
+  }
+  .skill-pip{
+    flex: 1;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+  .skill-pip.filled{ background: var(--blue); border-color: var(--blue); }
+  .skill-pip.filled.primary{ background: var(--amber); border-color: var(--amber); }
 
   .toast{
     font-size: 12.5px;
@@ -373,6 +540,10 @@
   </div>
 
   <footer>contract debugger · prototype slice · <a href="../">back to Debugg</a></footer>
+</div>
+
+<div class="modal-overlay" id="skillModalOverlay">
+  <div class="modal" id="skillModal"></div>
 </div>
 
 <script>
@@ -456,6 +627,40 @@
   const NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan'];
   const OFFLINE_CAP_SECONDS = 4 * 60 * 60; // cap offline earnings at 4 hours
 
+  // Skill matrix — rolled per hire, shown on the employee panel. Not yet
+  // consumed by contract payout math (puzzles aren't tagged by
+  // language/domain yet); this is groundwork for that, per the concept doc.
+  const LANGUAGES = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly'];
+  const DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI'];
+
+  function rollSkills(){
+    const languages = {};
+    LANGUAGES.forEach(l => { languages[l] = 0; });
+    const domains = {};
+    DOMAINS.forEach(d => { domains[d] = 0; });
+
+    const primaryLang = LANGUAGES[Math.floor(Math.random() * LANGUAGES.length)];
+    const primaryDom = DOMAINS[Math.floor(Math.random() * DOMAINS.length)];
+    languages[primaryLang] = 2 + Math.floor(Math.random() * 2); // 2-3
+    domains[primaryDom] = 2 + Math.floor(Math.random() * 2);
+
+    if(Math.random() < 0.4){
+      const others = LANGUAGES.filter(l => l !== primaryLang);
+      languages[others[Math.floor(Math.random() * others.length)]] = 1;
+    }
+    if(Math.random() < 0.4){
+      const others = DOMAINS.filter(d => d !== primaryDom);
+      domains[others[Math.floor(Math.random() * others.length)]] = 1;
+    }
+
+    return { languages, domains, primaryLang, primaryDom };
+  }
+
+  function ensureSkills(p){
+    if(!p.skills) p.skills = rollSkills();
+    return p.skills;
+  }
+
   // ---------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------
@@ -468,13 +673,20 @@
       reputation: 0,
       roster: [ makeHire(0) ],
       lastTick: Date.now(),
-      activeContract: null // { lengthIndex, puzzleIdxs, current, attempts, cleanFlags, guesses, hintUsed }
+      collapsedLevels: [],
+      activeContract: null // { lengthIndex, puzzleIdxs, index, puzzles: [{attempts, status, clean, hintUsed}] }
     };
   }
 
   function makeHire(seed){
     const name = NAMES[Math.floor(Math.random() * NAMES.length)] + ' #' + (seed + 1);
-    return { id: 'p' + Date.now() + '_' + Math.floor(Math.random()*10000), name, level: 'Graduate', xp: 0 };
+    return {
+      id: 'p' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+      name,
+      level: 'Graduate',
+      xp: 0,
+      skills: rollSkills()
+    };
   }
 
   let state = null;
@@ -530,6 +742,8 @@
   const rosterCount = document.getElementById('rosterCount');
   const hireBtn = document.getElementById('hireBtn');
   const welcomeToast = document.getElementById('welcomeToast');
+  const skillModalOverlay = document.getElementById('skillModalOverlay');
+  const skillModal = document.getElementById('skillModal');
 
   function fmt(n){
     return '¤' + Math.max(0, n).toLocaleString('en-GB', { maximumFractionDigits: 0 });
@@ -551,21 +765,65 @@
     statRate.style.color = rate >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
+  function isLevelCollapsed(level){
+    return (state.collapsedLevels || []).includes(level);
+  }
+  function toggleLevel(level){
+    if(!state.collapsedLevels) state.collapsedLevels = [];
+    const i = state.collapsedLevels.indexOf(level);
+    if(i === -1) state.collapsedLevels.push(level); else state.collapsedLevels.splice(i, 1);
+    save();
+    renderRoster();
+  }
+
   function renderRoster(){
     rosterEl.innerHTML = '';
     rosterCount.textContent = state.roster.length + ' hired';
-    state.roster.forEach(p => {
-      const s = levelStats(p.level);
-      const pct = s.xpToNext === Infinity ? 100 : Math.min(100, (p.xp / s.xpToNext) * 100);
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML =
-        '<div class="card-top"><span class="card-name">' + p.name + '</span>' +
-        '<span class="card-level">' + p.level + '</span></div>' +
-        '<div class="card-stats"><span>' + s.sloc + ' SLOC/min</span><span>−¤' + s.salary + '/min</span></div>' +
-        '<div class="xp-bar"><div class="xp-fill" style="width:' + pct + '%"></div></div>';
-      rosterEl.appendChild(card);
+
+    LEVELS.forEach(level => {
+      const members = state.roster.filter(p => p.level === level);
+      if(members.length === 0) return;
+
+      const s = levelStats(level);
+      const totalSloc = members.length * s.sloc;
+      const totalSalary = members.length * s.salary;
+      const netPerMin = totalSloc * INCOME_PER_LINE - totalSalary;
+      const collapsed = isLevelCollapsed(level);
+
+      const group = document.createElement('div');
+      group.className = 'level-group' + (collapsed ? ' collapsed' : '');
+
+      const header = document.createElement('div');
+      header.className = 'level-header';
+      header.innerHTML =
+        '<div class="level-header-left"><span class="chevron">▾</span>' +
+        '<span class="level-name">' + level + '</span>' +
+        '<span class="level-count">×' + members.length + '</span></div>' +
+        '<div class="level-sum">' + totalSloc + ' SLOC/min · ' +
+        '<span class="' + (netPerMin >= 0 ? 'net-pos' : 'net-neg') + '">' +
+        (netPerMin >= 0 ? '+' : '') + '¤' + netPerMin.toFixed(0) + '/min</span></div>';
+      header.addEventListener('click', () => toggleLevel(level));
+      group.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'level-body';
+      members.forEach(p => {
+        const pct = s.xpToNext === Infinity ? 100 : Math.min(100, (p.xp / s.xpToNext) * 100);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML =
+          '<div class="card-top"><span class="card-name">' + p.name + '</span>' +
+          '<span class="card-level">' + p.level + '</span></div>' +
+          '<div class="card-stats"><span>' + s.sloc + ' SLOC/min</span><span>−¤' + s.salary + '/min</span></div>' +
+          '<div class="xp-bar"><div class="xp-fill" style="width:' + pct + '%"></div></div>';
+        card.addEventListener('click', () => openSkillModal(p.id));
+        body.appendChild(card);
+      });
+      group.appendChild(body);
+
+      rosterEl.appendChild(group);
     });
+
     hireBtn.textContent = 'Hire graduate — ' + fmt(hireCost());
     hireBtn.disabled = state.money < hireCost();
   }
@@ -578,6 +836,53 @@
     save();
     renderStats();
     renderRoster();
+  });
+
+  // ---------------------------------------------------------------------
+  // Skill modal
+  // ---------------------------------------------------------------------
+
+  function skillBarsHtml(map, primaryName){
+    return Object.keys(map).map(name => {
+      const level = map[name];
+      let pips = '';
+      for(let i = 0; i < 5; i++){
+        const filled = i < level;
+        const primary = filled && name === primaryName;
+        pips += '<div class="skill-pip' + (filled ? ' filled' + (primary ? ' primary' : '') : '') + '"></div>';
+      }
+      return '<div class="skill-row"><span class="skill-name">' + name + '</span>' +
+             '<div class="skill-bar">' + pips + '</div></div>';
+    }).join('');
+  }
+
+  function openSkillModal(id){
+    const p = state.roster.find(x => x.id === id);
+    if(!p) return;
+    const skills = ensureSkills(p);
+    save();
+    const s = levelStats(p.level);
+
+    skillModal.innerHTML =
+      '<div class="modal-top">' +
+        '<div><div class="modal-name">' + p.name + '</div>' +
+        '<div class="modal-level">' + p.level + '</div></div>' +
+        '<button class="modal-close" id="modalCloseBtn">✕</button>' +
+      '</div>' +
+      '<div class="modal-sub">' + s.sloc + ' SLOC/min · −¤' + s.salary + '/min upkeep</div>' +
+      '<div class="skill-section-title">Languages</div>' + skillBarsHtml(skills.languages, skills.primaryLang) +
+      '<div class="skill-section-title">Domains</div>' + skillBarsHtml(skills.domains, skills.primaryDom);
+
+    document.getElementById('modalCloseBtn').addEventListener('click', closeSkillModal);
+    skillModalOverlay.className = 'modal-overlay show';
+  }
+
+  function closeSkillModal(){
+    skillModalOverlay.className = 'modal-overlay';
+  }
+
+  skillModalOverlay.addEventListener('click', (e) => {
+    if(e.target === skillModalOverlay) closeSkillModal();
   });
 
   // ---------------------------------------------------------------------
@@ -615,22 +920,20 @@
 
   function startContract(lengthIndex){
     const len = CONTRACT_LENGTHS[lengthIndex];
+    const puzzleIdxs = pickPuzzleIndexes(len.count);
     state.activeContract = {
       lengthIndex,
-      puzzleIdxs: pickPuzzleIndexes(len.count),
-      current: 0,
-      attempts: [],       // attempts for current puzzle: 'wrong'/'correct'
-      cleanFlags: [],     // per completed puzzle: true/false
-      hintUsedThisPuzzle: false
+      puzzleIdxs,
+      index: 0,
+      puzzles: puzzleIdxs.map(() => ({ attempts: [], status: 'open', clean: false, hintUsed: false }))
     };
     save();
     renderActiveContract();
   }
 
-  function currentPuzzle(){
-    const c = state.activeContract;
-    return PUZZLES[c.puzzleIdxs[c.current]];
-  }
+  function activeLen(){ return CONTRACT_LENGTHS[state.activeContract.lengthIndex]; }
+  function puzzleDefAt(i){ return PUZZLES[state.activeContract.puzzleIdxs[i]]; }
+  function puzzleRecAt(i){ return state.activeContract.puzzles[i]; }
 
   function checkAnswer(puzzle, raw){
     const norm = raw.trim().toLowerCase();
@@ -654,28 +957,41 @@
 
   function renderActiveContract(){
     const c = state.activeContract;
-    const len = CONTRACT_LENGTHS[c.lengthIndex];
+    const len = activeLen();
     contractTag.textContent = len.name;
 
+    const allSolved = c.puzzles.every(p => p.status === 'solved');
+    const openCount = c.puzzles.filter(p => p.status === 'open').length;
+    const stuck = !allSolved && openCount === 0;
+
     let dots = '<div class="queue-dots">';
-    for(let i = 0; i < len.count; i++){
+    c.puzzles.forEach((rec, i) => {
       let cls = 'qdot';
       let label = i + 1;
-      if(i < c.current || (i === c.current && c.cleanFlags[i] !== undefined)){
-        cls += c.cleanFlags[i] ? ' correct clean' : ' correct';
-        label = '✓';
-      }else if(i === c.current){
-        cls += ' current';
-      }
-      dots += '<div class="' + cls + '">' + label + '</div>';
-    }
+      if(i === c.index) cls += ' current';
+      if(rec.status === 'solved'){ cls += rec.clean ? ' correct clean' : ' correct'; label = '✓'; }
+      else if(rec.status === 'exhausted'){ cls += ' exhausted'; label = '✕'; }
+      dots += '<div class="' + cls + '" data-jump="' + i + '">' + label + '</div>';
+    });
     dots += '</div>';
 
-    const puzzle = currentPuzzle();
+    let banner = '';
+    if(allSolved){
+      banner = '<div class="deliver-banner"><span>All puzzles solved.</span>' +
+        '<button class="btn-primary" id="deliverBtn">Deliver contract</button></div>';
+    }else if(stuck){
+      banner = '<div class="stuck-banner">Every puzzle is either solved or out of guesses — ' +
+        'full delivery isn\'t possible anymore. Bail to collect a partial payout for what you solved.</div>';
+    }
+
+    const rec = puzzleRecAt(c.index);
+    const puzzle = puzzleDefAt(c.index);
+    const locked = rec.status !== 'open';
+
     let tiles = '<div class="tiles">';
     for(let i = 0; i < MAX_GUESSES; i++){
       let cls = 'tile';
-      const r = c.attempts[i];
+      const r = rec.attempts[i];
       let content = '';
       if(r === 'correct'){ cls += ' correct'; content = '✓'; }
       else if(r === 'wrong'){ cls += ' wrong'; content = '✕'; }
@@ -683,9 +999,21 @@
     }
     tiles += '</div>';
 
+    let feedbackHtml = '';
+    if(rec.status === 'solved'){
+      feedbackHtml = '<div class="feedback show correct">' + (rec.clean ? 'Clean solve!' : 'Correct.') + '</div>';
+    }else if(rec.status === 'exhausted'){
+      feedbackHtml = '<div class="feedback show wrong">Out of guesses on this one.</div>';
+    }
+    let hintHtml = '';
+    if(rec.hintUsed && rec.status === 'open'){
+      hintHtml = '<div class="feedback show hint">Hint: ' + puzzle.hint + '</div>';
+    }
+
     contractBody.innerHTML =
       dots +
-      '<p class="contract-label">Puzzle ' + (c.current + 1) + ' of ' + len.count + ' — what does this print?</p>' +
+      banner +
+      '<p class="contract-label">Puzzle ' + (c.index + 1) + ' of ' + len.count + ' — what does this print?</p>' +
       '<div class="editor">' +
         '<div class="editor-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>' +
         '<span class="filename">' + puzzle.file + '</span></div>' +
@@ -693,89 +1021,77 @@
       '</div>' +
       tiles +
       '<div class="guess-row">' +
-        '<input type="text" id="guessInput" placeholder="what gets printed?" autocomplete="off">' +
-        '<button class="btn-primary" id="checkBtn">Check</button>' +
+        '<input type="text" id="guessInput" placeholder="what gets printed?" autocomplete="off"' + (locked ? ' disabled' : '') + '>' +
+        '<button class="btn-primary" id="checkBtn"' + (locked ? ' disabled' : '') + '>Check</button>' +
       '</div>' +
       '<div class="actions">' +
-        '<button class="btn-ghost" id="hintBtn">Show hint</button>' +
+        '<button class="btn-ghost" id="hintBtn"' + (locked || rec.hintUsed ? ' disabled' : '') + '>Show hint</button>' +
         '<button class="btn-ghost" id="bailBtn">Bail on contract</button>' +
       '</div>' +
-      '<div class="feedback" id="puzzleFeedback"></div>';
+      feedbackHtml + hintHtml +
+      '<div class="nav-row">' +
+        '<button class="btn-ghost" id="prevBtn"' + (c.index === 0 ? ' disabled' : '') + '>← Previous</button>' +
+        '<button class="btn-primary" id="nextBtn"' + (c.index === len.count - 1 ? ' disabled' : '') + '>Next puzzle →</button>' +
+      '</div>';
 
     const guessInput = document.getElementById('guessInput');
     const checkBtn = document.getElementById('checkBtn');
     const hintBtn = document.getElementById('hintBtn');
     const bailBtn = document.getElementById('bailBtn');
-    const feedback = document.getElementById('puzzleFeedback');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const deliverBtn = document.getElementById('deliverBtn');
 
-    function showFeedback(kind, text){
-      feedback.className = 'feedback show ' + kind;
-      feedback.textContent = text;
+    function goTo(i){
+      c.index = Math.max(0, Math.min(len.count - 1, i));
+      save();
+      renderActiveContract();
     }
+
+    contractBody.querySelectorAll('.qdot').forEach(dot => {
+      dot.addEventListener('click', () => goTo(parseInt(dot.dataset.jump, 10)));
+    });
 
     checkBtn.addEventListener('click', () => {
       const val = guessInput.value.trim();
-      if(!val) return;
+      if(!val || rec.status !== 'open') return;
+      const wasFirstAttempt = rec.attempts.length === 0;
       const correct = checkAnswer(puzzle, val);
-      c.attempts.push(correct ? 'correct' : 'wrong');
+      rec.attempts.push(correct ? 'correct' : 'wrong');
       guessInput.value = '';
 
       if(correct){
-        const clean = c.attempts.length === 1 && !c.hintUsedThisPuzzle;
-        c.cleanFlags[c.current] = clean;
-        c.current += 1;
-        c.attempts = [];
-        c.hintUsedThisPuzzle = false;
-        save();
-        if(c.current >= len.count){
-          finishContract(true);
-        }else{
-          showFeedback('correct', clean ? 'Clean! Next puzzle queued.' : 'Correct — moving on.');
-          setTimeout(renderActiveContract, 450);
-        }
-      }else if(c.attempts.length >= MAX_GUESSES){
-        save();
-        finishContract(false);
-      }else{
-        showFeedback('wrong', 'Not quite — try again.');
-        renderTilesOnly();
+        rec.status = 'solved';
+        rec.clean = wasFirstAttempt && !rec.hintUsed;
+      }else if(rec.attempts.length >= MAX_GUESSES){
+        rec.status = 'exhausted';
       }
+      save();
+      renderActiveContract();
     });
-
-    function renderTilesOnly(){
-      const tilesWrap = contractBody.querySelector('.tiles');
-      let html = '';
-      for(let i = 0; i < MAX_GUESSES; i++){
-        let cls = 'tile';
-        const r = c.attempts[i];
-        let content = '';
-        if(r === 'correct'){ cls += ' correct'; content = '✓'; }
-        else if(r === 'wrong'){ cls += ' wrong'; content = '✕'; }
-        html += '<div class="' + cls + '">' + content + '</div>';
-      }
-      tilesWrap.innerHTML = html;
-    }
-
     guessInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') checkBtn.click(); });
 
     hintBtn.addEventListener('click', () => {
-      c.hintUsedThisPuzzle = true;
+      rec.hintUsed = true;
       save();
-      showFeedback('hint', 'Hint: ' + puzzle.hint);
-      hintBtn.disabled = true;
+      renderActiveContract();
     });
 
     bailBtn.addEventListener('click', () => finishContract(false));
+    prevBtn.addEventListener('click', () => goTo(c.index - 1));
+    nextBtn.addEventListener('click', () => goTo(c.index + 1));
+    if(deliverBtn) deliverBtn.addEventListener('click', () => finishContract(true));
   }
 
   function finishContract(success){
     const c = state.activeContract;
-    const len = CONTRACT_LENGTHS[c.lengthIndex];
-    const solved = c.cleanFlags.length; // puzzles completed before finishing
+    const len = activeLen();
+    const solvedRecs = c.puzzles.filter(p => p.status === 'solved');
+    const solved = solvedRecs.length;
     let payout, repDelta, summary;
 
     if(success){
-      const cleanCount = c.cleanFlags.filter(Boolean).length;
+      const cleanCount = solvedRecs.filter(p => p.clean).length;
       const cleanFraction = cleanCount / len.count;
       payout = len.count * BASE_PAY_PER_PUZZLE * len.multiplier * (0.5 + 0.5 * cleanFraction);
       repDelta = len.count * len.multiplier * (1 + cleanFraction);
@@ -784,7 +1100,7 @@
     }else{
       payout = solved * BASE_PAY_PER_PUZZLE * 0.2;
       repDelta = -2;
-      summary = 'Contract failed after ' + solved + '/' + len.count + ' puzzles. ' +
+      summary = 'Contract ended after ' + solved + '/' + len.count + ' puzzles solved. ' +
                 'Partial payout ' + fmt(payout) + ', ' + repDelta + ' reputation.';
     }
 
@@ -808,6 +1124,13 @@
   // ---------------------------------------------------------------------
 
   load();
+
+  // Migrate anything saved by an earlier prototype shape.
+  if(state.activeContract && !Array.isArray(state.activeContract.puzzles)){
+    state.activeContract = null;
+  }
+  state.roster.forEach(ensureSkills);
+  if(!state.collapsedLevels) state.collapsedLevels = [];
 
   const now = Date.now();
   const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);
