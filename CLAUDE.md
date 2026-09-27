@@ -657,6 +657,20 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   (`DIRECTOR_SPAN`), so a 4-desk first office lines up with the point
   where you'd hire your first manager anyway. With 3 desks, the office
   becomes the first wall instead.
+- **Show the cap against current headcount**, so players can see space
+  running out before hiring is blocked:
+  - the stats bar's **Headcount** becomes "3 / 4" (people / desks), turning
+    amber when full or nearly full; work-from-home contractors are listed
+    separately (e.g. "3 / 4 + 2 remote");
+  - an **Office** panel (or a line at the top of the Studio panel) showing
+    the current office, desks used and free, rent, and lease end date,
+    with a button to see the next office options;
+  - hire buttons say why they're blocked ("no free desk — get a bigger
+    office"), as they already do for supervision limits.
+
+  Keep this visibly separate from the existing structure line
+  ("Devs 3/4", which is the supervision limit from managers). Two
+  different caps, both shown, and the lower one is what stops hiring.
 - **Tiered office options**, each with its own pricing and lease terms.
   A starting ladder (names, desk counts and prices are placeholders for
   the balance pass):
