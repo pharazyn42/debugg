@@ -375,6 +375,30 @@ site and what to measure.
   - Accounts, or an anonymous sync code? A sync code is lighter and
     avoids storing emails.
 
+#### 2c. Find a new name
+- **Why:** "debugg.ai" exists and is too similar to Debugg. Better to
+  rename before the soft launch spreads links and the name sticks.
+- **Candidates:** "dbugg" is one idea, but it's still one letter from
+  debugg.ai and sounds the same when said aloud, so it may not be
+  different enough. Worth brainstorming a few more.
+- **Before choosing, check:**
+  - the domain (.com, and maybe .dev, .io or .app);
+  - trademarks in the main markets;
+  - existing products, apps and games with the same or a similar name;
+  - GitHub and social handles.
+- **What a rename touches:**
+  - player-facing text, the page titles, the privacy page, "Debugg Ltd"
+    (e.g. "<Name> Ltd"), the README and this file;
+  - the GoatCounter site code (a new site or a renamed one);
+  - the repository name, which is also the GitHub Pages address
+    (`/debugg/`), so old links need a redirect (or move to a custom
+    domain at the same time, item 2b);
+  - the feedback links, which point at the repository's issues.
+- **Keep the internals:** the `debugg-*` storage keys, the
+  `debugg:puzzle-finished` event and names like `window.Debugg` are
+  invisible to players. Renaming them would break every save for no
+  gain, so they stay.
+
 #### 3. Languages only for now — done
 - Domains are gone from offers, the skill rule, skill match (speed,
   payout and success chance), XP, promotions (Junior 1 / Senior 3 /
