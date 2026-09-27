@@ -233,6 +233,41 @@ Replace the current flat reliability-by-level model:
   pay before you start it: e.g. the range from "all solved, none clean" to
   "all clean". Reputation gain could be shown the same way.
 
+### Contract deadlines
+- **Some contracts have a deadline:** a time limit to complete it once
+  started, shown on the board card. This is separate from offer expiry,
+  which is how long an offer waits to be accepted.
+- **Not every contract has one.** Others have no time pressure, and any
+  valid team can take as long as it needs. The mix is TBD: e.g. a share
+  of offers per tier, more common on bigger contracts, or more common as
+  reputation grows. Deadline contracts could pay a premium, so they're
+  worth the tighter staffing.
+- **Staffing becomes a real choice on deadline contracts.** Since
+  duration = SLOC target ÷ team SLOC/min, you have to pick a team fast
+  enough to finish in time. The team picker would show the estimate
+  against the deadline, e.g. "takes 8:15 · deadline 10:00 ✓", or a red
+  warning if it won't make it. That gives a reason to put more senior,
+  bigger or better-matched people on a contract, beyond payout.
+- **Deadlines vary by offer**, where there is one. Set them relative to
+  the reference time, with a random tightness (e.g. 0.8×–1.5× of what the
+  cheapest valid team would take). Some offers then need a
+  stronger-than-minimum team; tight deadlines could pay a premium.
+- **Missing the deadline**. Options to decide between:
+  - the payout shrinks the later it is;
+  - a flat late penalty;
+  - a reputation hit;
+  - the client cancels, so no payout.
+- **Interactions to design:**
+  - Retry: a failed contract retried in half the time may still blow the
+    deadline. Does a retry get extra time, or is it only worth it if it
+    fits?
+  - Learners: their 10% drag now has a visible cost.
+  - Repeat: a repeating team should only roll into contracts it can
+    finish on time. Simplest: repeats only pick contracts without a
+    deadline, or deadline ones that the team would meet.
+  - Maintenance items (in-house products) already have deadlines, so both
+    can use the same mechanic.
+
 ### In-house software products (later game)
 - **Unlocks later in the game** (e.g. by business tier or reputation): the
   studio can develop and release its own software instead of only doing
