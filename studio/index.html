@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contract Debugger</title>
+<meta name="description" content="An idle dev-studio game built on Debugg-style puzzles: clear contracts to get paid, hire and grow a team of programmers who work in the background.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    color-scheme: dark;
+    --bg: #131417;
+    --panel: #1b1d22;
+    --panel-2: #202329;
+    --line: #2c2f37;
+    --text: #e8e9ec;
+    --text-dim: #9498a3;
+    --text-faint: #5f6470;
+    --amber: #f2b84b;
+    --amber-dim: #7a5c22;
+    --green: #4fd18b;
+    --green-dim: #1f4a35;
+    --red: #ef6a6a;
+    --red-dim: #4a2222;
+    --blue: #82aaff;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    --sans: 'Sora', system-ui, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    margin: 0;
+    padding: 24px 16px 60px;
+  }
+
+  .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  header.top{
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .kicker{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 6px;
+  }
+  h1{
+    font-size: 26px;
+    margin: 0 0 6px;
+  }
+  .sub{ color: var(--text-dim); font-size: 13.5px; margin: 0; }
+
+  .stat-bar{
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    margin: 16px 0 24px;
+    flex-wrap: wrap;
+  }
+  .stat{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 110px;
+  }
+  .stat .label{
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .stat .value{
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .stat .value.money{ color: var(--green); }
+  .stat .value.rep{ color: var(--blue); }
+  .stat .value.rate{ color: var(--amber); font-size: 14px; }
+
+  .columns{
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 760px){
+    .columns{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .panel h2{
+    font-size: 15px;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel h2 .tag{
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 2px 6px;
+  }
+
+  /* Contract length picker */
+  .length-grid{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .length-card{
+    background: var(--panel-2);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text);
+    font-family: var(--sans);
+  }
+  .length-card:hover{ border-color: var(--amber); }
+  .length-card .name{ font-weight: 600; font-size: 14px; }
+  .length-card .detail{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .length-card .mult{ color: var(--amber); }
+
+  /* Active contract */
+  .queue-dots{
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .qdot{
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid var(--line);
+    background: var(--panel-2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .qdot.current{ border-color: var(--amber); color: var(--amber); }
+  .qdot.correct{ border-color: var(--green-dim); background: var(--green-dim); color: var(--green); }
+  .qdot.clean{ border-color: var(--green); }
+  .qdot.wrong{ border-color: var(--red-dim); background: var(--red-dim); color: var(--red); }
+
+  .contract-label{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .editor{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .editor-bar{
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 12px;
+    background: #17191d;
+    border-bottom: 1px solid var(--line);
+  }
+  .dot{ width: 9px; height: 9px; border-radius: 50%; }
+  .dot.r{ background: #ef6a6a; } .dot.y{ background: #f2b84b; } .dot.g{ background: #4fd18b; }
+  .filename{ font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); margin-left: 4px; }
+  pre{
+    margin: 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  code{ font-family: var(--mono); }
+  .ln{ display: inline-block; width: 1.6em; color: var(--text-faint); user-select: none; margin-right: 1em; }
+  .kw{ color: #c792ea; } .fn{ color: var(--blue); } .num{ color: #f78c6c; } .str{ color: #c3e88d; }
+
+  .tiles{ display: flex; gap: 7px; margin-bottom: 10px; }
+  .tile{
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1.5px solid var(--line);
+    background: var(--panel-2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--text-faint);
+  }
+  .tile.wrong{ border-color: var(--red-dim); background: var(--red-dim); color: var(--red); }
+  .tile.correct{ border-color: var(--green-dim); background: var(--green-dim); color: var(--green); }
+
+  .guess-row{ display: flex; gap: 8px; margin-bottom: 10px; }
+  input[type=text]{
+    flex: 1;
+    background: var(--bg);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-width: 0;
+  }
+  input[type=text]:focus{ outline: none; border-color: var(--amber); }
+  button{
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 13.5px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    padding: 10px 14px;
+  }
+  button:disabled{ opacity: 0.4; cursor: not-allowed; }
+  .btn-primary{ background: var(--amber); color: #1a1305; }
+  .btn-ghost{ background: transparent; color: var(--text-dim); border: 1.5px solid var(--line); }
+  .btn-ghost:hover{ color: var(--text); border-color: var(--text-faint); }
+  .btn-hire{ background: var(--blue); color: #0c1730; width: 100%; }
+
+  .actions{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+  .feedback{
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+  }
+  .feedback.show{ display: block; }
+  .feedback.wrong{ background: var(--red-dim); color: #ffc9c9; }
+  .feedback.correct{ background: var(--green-dim); color: #baf5d4; }
+  .feedback.hint{ background: var(--panel-2); color: var(--text-dim); border: 1px dashed var(--line); }
+  .feedback.summary{ background: var(--panel-2); border: 1px solid var(--line); color: var(--text); }
+
+  /* Roster */
+  .roster{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .card{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .card-top{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .card-name{ font-weight: 600; font-size: 13.5px; }
+  .card-level{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .card-stats{
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .xp-bar{
+    height: 5px;
+    border-radius: 3px;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .xp-fill{
+    height: 100%;
+    background: var(--blue);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .toast{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    background: var(--panel-2);
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .toast.show{ display: block; }
+
+  footer{
+    text-align: center;
+    margin-top: 26px;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+  footer a{ color: inherit; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <p class="kicker">Prototype · Idea from Debugg</p>
+    <h1>Contract Debugger</h1>
+    <p class="sub">Clear contracts yourself for the big payouts. Hire a team to keep earning while you're not looking.</p>
+  </header>
+
+  <div class="stat-bar">
+    <div class="stat">
+      <div class="label">Cash</div>
+      <div class="value money" id="statMoney">¤0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Reputation</div>
+      <div class="value rep" id="statRep">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Studio net</div>
+      <div class="value rate" id="statRate">¤0/s</div>
+    </div>
+  </div>
+
+  <div class="toast" id="welcomeToast"></div>
+
+  <div class="columns">
+    <!-- Today's Contract -->
+    <div class="panel" id="contractPanel">
+      <h2>Today's Contract <span class="tag" id="contractTag">choose one</span></h2>
+      <div id="contractBody"></div>
+    </div>
+
+    <!-- Studio -->
+    <div class="panel">
+      <h2>Studio <span class="tag" id="rosterCount">0 hired</span></h2>
+      <div class="roster" id="roster"></div>
+      <button class="btn-hire" id="hireBtn">Hire graduate — ¤0</button>
+    </div>
+  </div>
+
+  <footer>contract debugger · prototype slice · <a href="../">back to Debugg</a></footer>
+</div>
+
+<script>
+(function(){
+  // ---------------------------------------------------------------------
+  // Data model
+  // ---------------------------------------------------------------------
+
+  const PUZZLES = [
+    {
+      file: 'contract_a.py',
+      html: '<span class="ln">1</span>funcs = []\n' +
+            '<span class="ln">2</span><span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>):\n' +
+            '<span class="ln">3</span>    funcs.append(<span class="kw">lambda</span>: i)\n' +
+            '<span class="ln">4</span>\n' +
+            '<span class="ln">5</span><span class="fn">print</span>(funcs[<span class="num">0</span>]())',
+      type: 'number',
+      answer: '2',
+      hint: 'The lambda captures the variable i itself, not the value it held when it was created — and the loop keeps running after that.'
+    },
+    {
+      file: 'contract_b.py',
+      html: '<span class="ln">1</span><span class="fn">print</span>(<span class="fn">round</span>(<span class="num">0.1</span> + <span class="num">0.2</span>, <span class="num">2</span>) == <span class="num">0.3</span>)',
+      type: 'bool',
+      answer: 'true',
+      hint: 'Rounding to 2 decimal places cleans up the tiny binary floating-point error that 0.1 + 0.2 has on its own.'
+    },
+    {
+      file: 'contract_c.py',
+      html: '<span class="ln">1</span>x = <span class="str">"ab"</span>\n' +
+            '<span class="ln">2</span><span class="fn">print</span>(x * <span class="num">3</span>)',
+      type: 'string',
+      answer: 'ababab',
+      hint: 'Multiplying a string by an integer repeats the string that many times — it does not do arithmetic on it.'
+    },
+    {
+      file: 'contract_d.py',
+      html: '<span class="ln">1</span>nums = [<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>]\n' +
+            '<span class="ln">2</span><span class="fn">print</span>(nums[<span class="num">1</span>:-<span class="num">1</span>])',
+      type: 'list',
+      answer: '20,30,40',
+      hint: 'A slice start is inclusive and its end is exclusive — and a negative index counts back from the end of the list.'
+    },
+    {
+      file: 'contract_e.py',
+      html: '<span class="ln">1</span>d = {<span class="kw">True</span>: <span class="str">"yes"</span>, <span class="num">1</span>: <span class="str">"one"</span>, <span class="num">1.0</span>: <span class="str">"one point oh"</span>}\n' +
+            '<span class="ln">2</span><span class="fn">print</span>(<span class="fn">len</span>(d))',
+      type: 'number',
+      answer: '1',
+      hint: 'Dictionary keys are compared by equality and hash, not by type — and True, 1 and 1.0 are all equal to each other.'
+    },
+    {
+      file: 'contract_f.py',
+      html: '<span class="ln">1</span>x = <span class="num">10</span>\n' +
+            '<span class="ln">2</span>values = [x <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>)]\n' +
+            '<span class="ln">3</span><span class="fn">print</span>(x)',
+      type: 'number',
+      answer: '10',
+      hint: 'A comprehension gets its own local scope in Python 3 — the x inside it never leaks out to the x outside.'
+    }
+  ];
+
+  const CONTRACT_LENGTHS = [
+    { name: 'Quick Fix',     count: 1, multiplier: 1.0, key: 'quick' },
+    { name: 'Sprint',        count: 3, multiplier: 1.8, key: 'sprint' },
+    { name: 'Milestone',     count: 5, multiplier: 3.2, key: 'milestone' },
+    { name: 'Full Delivery', count: 8, multiplier: 6.0, key: 'full' }
+  ];
+
+  const BASE_PAY_PER_PUZZLE = 40;
+  const MAX_GUESSES = 4;
+
+  const LEVELS = ['Graduate', 'Junior', 'Senior', 'Principal'];
+  const LEVEL_STATS = {
+    Graduate: { sloc: 5,  salary: 2,  xpToNext: 120 },
+    Junior:   { sloc: 12, salary: 6,  xpToNext: 480 },
+    Senior:   { sloc: 30, salary: 16, xpToNext: 1500 },
+    Principal:{ sloc: 70, salary: 40, xpToNext: Infinity }
+  };
+  const INCOME_PER_LINE = 0.5; // money per SLOC
+  const NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan'];
+  const OFFLINE_CAP_SECONDS = 4 * 60 * 60; // cap offline earnings at 4 hours
+
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
+
+  const STORAGE_KEY = 'contract-debugger-state-v1';
+
+  function freshState(){
+    return {
+      money: 100,
+      reputation: 0,
+      roster: [ makeHire(0) ],
+      lastTick: Date.now(),
+      activeContract: null // { lengthIndex, puzzleIdxs, current, attempts, cleanFlags, guesses, hintUsed }
+    };
+  }
+
+  function makeHire(seed){
+    const name = NAMES[Math.floor(Math.random() * NAMES.length)] + ' #' + (seed + 1);
+    return { id: 'p' + Date.now() + '_' + Math.floor(Math.random()*10000), name, level: 'Graduate', xp: 0 };
+  }
+
+  let state = null;
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      state = raw ? JSON.parse(raw) : freshState();
+    }catch(e){
+      state = freshState();
+    }
+  }
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  function levelStats(level){ return LEVEL_STATS[level]; }
+
+  function programmerNetPerSecond(p){
+    const s = levelStats(p.level);
+    return (s.sloc * INCOME_PER_LINE - s.salary) / 60;
+  }
+  function studioNetPerSecond(){
+    return state.roster.reduce((sum, p) => sum + programmerNetPerSecond(p), 0);
+  }
+
+  function applyTick(seconds){
+    if(seconds <= 0) return;
+    state.roster.forEach(p => {
+      const s = levelStats(p.level);
+      state.money += (s.sloc * INCOME_PER_LINE - s.salary) * (seconds / 60);
+      if(s.xpToNext !== Infinity){
+        p.xp += s.sloc * (seconds / 60);
+        while(p.xp >= levelStats(p.level).xpToNext && LEVELS.indexOf(p.level) < LEVELS.length - 1){
+          p.xp -= levelStats(p.level).xpToNext;
+          p.level = LEVELS[LEVELS.indexOf(p.level) + 1];
+        }
+      }
+    });
+    if(state.money < 0) state.money = 0;
+  }
+
+  // ---------------------------------------------------------------------
+  // DOM refs
+  // ---------------------------------------------------------------------
+
+  const statMoney = document.getElementById('statMoney');
+  const statRep = document.getElementById('statRep');
+  const statRate = document.getElementById('statRate');
+  const contractTag = document.getElementById('contractTag');
+  const contractBody = document.getElementById('contractBody');
+  const rosterEl = document.getElementById('roster');
+  const rosterCount = document.getElementById('rosterCount');
+  const hireBtn = document.getElementById('hireBtn');
+  const welcomeToast = document.getElementById('welcomeToast');
+
+  function fmt(n){
+    return '¤' + Math.max(0, n).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+  }
+
+  function hireCost(){
+    return Math.round(60 * Math.pow(1.55, state.roster.length));
+  }
+
+  // ---------------------------------------------------------------------
+  // Rendering: top stats + roster
+  // ---------------------------------------------------------------------
+
+  function renderStats(){
+    statMoney.textContent = fmt(state.money);
+    statRep.textContent = Math.floor(state.reputation).toLocaleString('en-GB');
+    const rate = studioNetPerSecond();
+    statRate.textContent = (rate >= 0 ? '+' : '') + '¤' + rate.toFixed(2) + '/s';
+    statRate.style.color = rate >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  function renderRoster(){
+    rosterEl.innerHTML = '';
+    rosterCount.textContent = state.roster.length + ' hired';
+    state.roster.forEach(p => {
+      const s = levelStats(p.level);
+      const pct = s.xpToNext === Infinity ? 100 : Math.min(100, (p.xp / s.xpToNext) * 100);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<div class="card-top"><span class="card-name">' + p.name + '</span>' +
+        '<span class="card-level">' + p.level + '</span></div>' +
+        '<div class="card-stats"><span>' + s.sloc + ' SLOC/min</span><span>−¤' + s.salary + '/min</span></div>' +
+        '<div class="xp-bar"><div class="xp-fill" style="width:' + pct + '%"></div></div>';
+      rosterEl.appendChild(card);
+    });
+    hireBtn.textContent = 'Hire graduate — ' + fmt(hireCost());
+    hireBtn.disabled = state.money < hireCost();
+  }
+
+  hireBtn.addEventListener('click', () => {
+    const cost = hireCost();
+    if(state.money < cost) return;
+    state.money -= cost;
+    state.roster.push(makeHire(state.roster.length));
+    save();
+    renderStats();
+    renderRoster();
+  });
+
+  // ---------------------------------------------------------------------
+  // Contract flow
+  // ---------------------------------------------------------------------
+
+  function pickPuzzleIndexes(count){
+    const idxs = [];
+    let last = -1;
+    for(let i = 0; i < count; i++){
+      let idx;
+      do{ idx = Math.floor(Math.random() * PUZZLES.length); }while(idx === last && PUZZLES.length > 1);
+      idxs.push(idx);
+      last = idx;
+    }
+    return idxs;
+  }
+
+  function renderContractPicker(){
+    contractTag.textContent = 'choose one';
+    let html = '<div class="length-grid">';
+    CONTRACT_LENGTHS.forEach((c, i) => {
+      html += '<button class="length-card" data-len="' + i + '">' +
+        '<div class="name">' + c.name + '</div>' +
+        '<div class="detail">' + c.count + ' puzzle' + (c.count > 1 ? 's' : '') +
+        ' · <span class="mult">' + c.multiplier + 'x</span></div>' +
+        '</button>';
+    });
+    html += '</div>';
+    contractBody.innerHTML = html;
+    contractBody.querySelectorAll('.length-card').forEach(btn => {
+      btn.addEventListener('click', () => startContract(parseInt(btn.dataset.len, 10)));
+    });
+  }
+
+  function startContract(lengthIndex){
+    const len = CONTRACT_LENGTHS[lengthIndex];
+    state.activeContract = {
+      lengthIndex,
+      puzzleIdxs: pickPuzzleIndexes(len.count),
+      current: 0,
+      attempts: [],       // attempts for current puzzle: 'wrong'/'correct'
+      cleanFlags: [],     // per completed puzzle: true/false
+      hintUsedThisPuzzle: false
+    };
+    save();
+    renderActiveContract();
+  }
+
+  function currentPuzzle(){
+    const c = state.activeContract;
+    return PUZZLES[c.puzzleIdxs[c.current]];
+  }
+
+  function checkAnswer(puzzle, raw){
+    const norm = raw.trim().toLowerCase();
+    switch(puzzle.type){
+      case 'list': {
+        const stripped = raw.replace(/[^\d,-]/g, '').replace(/,+/g, ',').replace(/^,|,$/g, '');
+        return stripped === puzzle.answer;
+      }
+      case 'bool':
+        return norm === puzzle.answer;
+      case 'number': {
+        const digits = raw.match(/-?\d+/);
+        return digits && digits[0] === puzzle.answer;
+      }
+      case 'string':
+        return norm.replace(/['"]/g, '') === puzzle.answer;
+      default:
+        return false;
+    }
+  }
+
+  function renderActiveContract(){
+    const c = state.activeContract;
+    const len = CONTRACT_LENGTHS[c.lengthIndex];
+    contractTag.textContent = len.name;
+
+    let dots = '<div class="queue-dots">';
+    for(let i = 0; i < len.count; i++){
+      let cls = 'qdot';
+      let label = i + 1;
+      if(i < c.current || (i === c.current && c.cleanFlags[i] !== undefined)){
+        cls += c.cleanFlags[i] ? ' correct clean' : ' correct';
+        label = '✓';
+      }else if(i === c.current){
+        cls += ' current';
+      }
+      dots += '<div class="' + cls + '">' + label + '</div>';
+    }
+    dots += '</div>';
+
+    const puzzle = currentPuzzle();
+    let tiles = '<div class="tiles">';
+    for(let i = 0; i < MAX_GUESSES; i++){
+      let cls = 'tile';
+      const r = c.attempts[i];
+      let content = '';
+      if(r === 'correct'){ cls += ' correct'; content = '✓'; }
+      else if(r === 'wrong'){ cls += ' wrong'; content = '✕'; }
+      tiles += '<div class="' + cls + '">' + content + '</div>';
+    }
+    tiles += '</div>';
+
+    contractBody.innerHTML =
+      dots +
+      '<p class="contract-label">Puzzle ' + (c.current + 1) + ' of ' + len.count + ' — what does this print?</p>' +
+      '<div class="editor">' +
+        '<div class="editor-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>' +
+        '<span class="filename">' + puzzle.file + '</span></div>' +
+        '<pre><code>' + puzzle.html + '</code></pre>' +
+      '</div>' +
+      tiles +
+      '<div class="guess-row">' +
+        '<input type="text" id="guessInput" placeholder="what gets printed?" autocomplete="off">' +
+        '<button class="btn-primary" id="checkBtn">Check</button>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="btn-ghost" id="hintBtn">Show hint</button>' +
+        '<button class="btn-ghost" id="bailBtn">Bail on contract</button>' +
+      '</div>' +
+      '<div class="feedback" id="puzzleFeedback"></div>';
+
+    const guessInput = document.getElementById('guessInput');
+    const checkBtn = document.getElementById('checkBtn');
+    const hintBtn = document.getElementById('hintBtn');
+    const bailBtn = document.getElementById('bailBtn');
+    const feedback = document.getElementById('puzzleFeedback');
+
+    function showFeedback(kind, text){
+      feedback.className = 'feedback show ' + kind;
+      feedback.textContent = text;
+    }
+
+    checkBtn.addEventListener('click', () => {
+      const val = guessInput.value.trim();
+      if(!val) return;
+      const correct = checkAnswer(puzzle, val);
+      c.attempts.push(correct ? 'correct' : 'wrong');
+      guessInput.value = '';
+
+      if(correct){
+        const clean = c.attempts.length === 1 && !c.hintUsedThisPuzzle;
+        c.cleanFlags[c.current] = clean;
+        c.current += 1;
+        c.attempts = [];
+        c.hintUsedThisPuzzle = false;
+        save();
+        if(c.current >= len.count){
+          finishContract(true);
+        }else{
+          showFeedback('correct', clean ? 'Clean! Next puzzle queued.' : 'Correct — moving on.');
+          setTimeout(renderActiveContract, 450);
+        }
+      }else if(c.attempts.length >= MAX_GUESSES){
+        save();
+        finishContract(false);
+      }else{
+        showFeedback('wrong', 'Not quite — try again.');
+        renderTilesOnly();
+      }
+    });
+
+    function renderTilesOnly(){
+      const tilesWrap = contractBody.querySelector('.tiles');
+      let html = '';
+      for(let i = 0; i < MAX_GUESSES; i++){
+        let cls = 'tile';
+        const r = c.attempts[i];
+        let content = '';
+        if(r === 'correct'){ cls += ' correct'; content = '✓'; }
+        else if(r === 'wrong'){ cls += ' wrong'; content = '✕'; }
+        html += '<div class="' + cls + '">' + content + '</div>';
+      }
+      tilesWrap.innerHTML = html;
+    }
+
+    guessInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') checkBtn.click(); });
+
+    hintBtn.addEventListener('click', () => {
+      c.hintUsedThisPuzzle = true;
+      save();
+      showFeedback('hint', 'Hint: ' + puzzle.hint);
+      hintBtn.disabled = true;
+    });
+
+    bailBtn.addEventListener('click', () => finishContract(false));
+  }
+
+  function finishContract(success){
+    const c = state.activeContract;
+    const len = CONTRACT_LENGTHS[c.lengthIndex];
+    const solved = c.cleanFlags.length; // puzzles completed before finishing
+    let payout, repDelta, summary;
+
+    if(success){
+      const cleanCount = c.cleanFlags.filter(Boolean).length;
+      const cleanFraction = cleanCount / len.count;
+      payout = len.count * BASE_PAY_PER_PUZZLE * len.multiplier * (0.5 + 0.5 * cleanFraction);
+      repDelta = len.count * len.multiplier * (1 + cleanFraction);
+      summary = 'Contract delivered! ' + cleanCount + '/' + len.count + ' puzzles clean. ' +
+                'Paid ' + fmt(payout) + ', +' + repDelta.toFixed(1) + ' reputation.';
+    }else{
+      payout = solved * BASE_PAY_PER_PUZZLE * 0.2;
+      repDelta = -2;
+      summary = 'Contract failed after ' + solved + '/' + len.count + ' puzzles. ' +
+                'Partial payout ' + fmt(payout) + ', ' + repDelta + ' reputation.';
+    }
+
+    state.money += payout;
+    state.reputation = Math.max(0, state.reputation + repDelta);
+    state.activeContract = null;
+    save();
+    renderStats();
+
+    contractTag.textContent = 'contract over';
+    contractBody.innerHTML =
+      '<div class="feedback show summary">' + summary + '</div>' +
+      '<div class="actions" style="margin-top:12px;">' +
+        '<button class="btn-primary" id="newContractBtn">Start new contract</button>' +
+      '</div>';
+    document.getElementById('newContractBtn').addEventListener('click', renderContractPicker);
+  }
+
+  // ---------------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------------
+
+  load();
+
+  const now = Date.now();
+  const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);
+  const cappedSeconds = Math.min(elapsedSeconds, OFFLINE_CAP_SECONDS);
+  if(cappedSeconds > 5){
+    const before = state.money;
+    applyTick(cappedSeconds);
+    const earned = state.money - before;
+    if(earned > 0){
+      welcomeToast.className = 'toast show';
+      welcomeToast.textContent = 'Welcome back — your studio earned ' + fmt(earned) +
+        ' while you were away' + (elapsedSeconds > OFFLINE_CAP_SECONDS ? ' (capped at 4 hours).' : '.');
+    }
+  }
+  state.lastTick = now;
+  save();
+
+  renderStats();
+  renderRoster();
+  if(state.activeContract){
+    renderActiveContract();
+  }else{
+    renderContractPicker();
+  }
+
+  setInterval(() => {
+    const t = Date.now();
+    applyTick((t - state.lastTick) / 1000);
+    state.lastTick = t;
+    renderStats();
+    renderRoster();
+    save();
+  }, 1000);
+})();
+</script>
+</body>
+</html>
