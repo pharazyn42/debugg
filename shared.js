@@ -33,10 +33,16 @@ window.Debugg = (function(){
     }catch(e){}
   })();
 
-  const LANGS = {
+  const ALL_LANGS = {
     python: { name: 'Python', ext: 'py', indent: '    ' },
     javascript: { name: 'JavaScript', ext: 'js', indent: '  ' }
   };
+  // The languages players can see. JavaScript is switched off for the soft launch: its puzzles,
+  // sandbox runner and saves are all kept, and adding it back here brings everything back.
+  // window.DEBUGG_LANGS overrides this, so tests keep covering the hidden languages.
+  const ENABLED_LANGS = window.DEBUGG_LANGS || ['python'];
+  const LANGS = {};
+  ENABLED_LANGS.forEach(k => { if(ALL_LANGS[k]) LANGS[k] = ALL_LANGS[k]; });
 
   // Day number from the player's local calendar date (UTC maths avoids daylight-saving off-by-ones).
   function dayNumber(date){

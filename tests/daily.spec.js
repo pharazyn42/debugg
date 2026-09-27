@@ -171,3 +171,27 @@ test('moving Day 1 clears progress saved under the old day numbers', async ({ pa
   await page.reload();
   await expect(page.locator('#feedback')).toHaveClass(/correct/);
 });
+
+test('players see only Python for the soft launch', async ({ page }) => {
+  await openAt(page, 'index.html#javascript', 1, { langs: null });
+  await fresh(page);
+  await expect(page.locator('#filename')).toHaveText('day1.py');
+  await expect(page.locator('#langs')).toBeHidden();
+  // Earlier JavaScript XP is kept, just not shown.
+  await withStorage(page, { 'debugg-xp': { python: 10, javascript: 500 } });
+  await expect(page.locator('.xp-row')).toHaveCount(1);
+  await page.goto('sandbox.html#javascript');
+  await expect(page.locator('#filename')).toHaveText('main.py');
+  await expect(page.locator('#langs')).toBeHidden();
+});
+
+test('fonts load from the site itself, and nothing loads from anywhere else', async ({ page }) => {
+  const outside = [];
+  page.on('request', r => { if(!r.url().startsWith('http://localhost:4173/')) outside.push(r.url()); });
+  await openAt(page, 'index.html');
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => document.fonts.check('600 16px Sora') && document.fonts.check('400 16px "JetBrains Mono"'))).toBe(true);
+  const loaded = await page.evaluate(() => [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/"/g, '') + ' ' + f.weight));
+  expect(loaded).toEqual(expect.arrayContaining(['Sora 700', 'JetBrains Mono 400']));
+  expect(outside).toEqual([]);
+});

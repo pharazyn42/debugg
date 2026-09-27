@@ -6,10 +6,11 @@ function dayDate(n){
 }
 
 // Opens a page with the clock fixed to game day `day` (timers still run normally).
-async function openAt(page, path, day = 1){
+// JavaScript is hidden from players for now, but the tests switch it back on so it stays
+// covered; pass { langs: null } to test the site exactly as players see it.
+async function openAt(page, path, day = 1, { langs = ['python', 'javascript'] } = {}){
   await page.clock.setFixedTime(dayDate(day));
-  // Google Fonts isn't needed and may be unreachable.
-  await page.route('https://fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  if(langs) await page.addInitScript(l => { window.DEBUGG_LANGS = l; }, langs);
   if(process.env.PYODIDE_DIR){
     await page.addInitScript(() => { window.DEBUGG_PYODIDE_URL = location.origin + '/__pyodide__/'; });
   }

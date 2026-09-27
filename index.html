@@ -89,6 +89,21 @@
     border-top: 1px dashed var(--line);
   }
   .reveal .try{ margin-top: 14px; }
+  .reveal .report{ font-size: 12.5px; color: var(--text-faint); }
+  .reveal .report a{ color: inherit; }
+  footer .footer-links{ margin-top: 6px; line-height: 1.8; }
+  footer a{ color: inherit; text-decoration: underline; }
+  .beta{
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid var(--amber-dim);
+    border-radius: 4px;
+    padding: 0 4px;
+    vertical-align: 1px;
+  }
   .try a{ color: var(--amber); font-weight: 600; text-decoration: none; }
   .try a:hover{ text-decoration: underline; }
   .found{
@@ -230,8 +245,9 @@
         <p id="wildOut"></p>
       </div>
       <p class="try"><a id="tryLink" href="sandbox.html">Run it yourself in the sandbox →</a></p>
+      <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
       <div class="found" id="foundCard">
-        <p class="wild-label">Debugg Ltd</p>
+        <p class="wild-label">Debugg Ltd <span class="beta">beta</span></p>
         <p id="foundText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and get paid for every daily puzzle.</p>
         <button class="btn-ghost" id="foundBtn">Start your own company</button>
       </div>
@@ -243,11 +259,19 @@
 
   <div id="ltdBoard" hidden></div>
 
-  <footer>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span> · <a href="sandbox.html" id="sandboxLink" style="color:inherit;text-decoration:underline;">sandbox</a><span id="ltdLinkSep"> · <a href="#" id="ltdLink" style="color:inherit;text-decoration:underline;">start your own company</a></span> · <a href="#" id="resetLink" style="color:inherit;text-decoration:underline;">reset puzzles</a></footer>
+  <footer>
+    <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
+    <div class="footer-links"><a href="sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
+      <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
+      <a href="privacy.html">privacy</a><span id="ltdLinkSep"> · <a href="#" id="ltdLink">start your own company</a> <span class="beta">beta</span></span> ·
+      <a href="#" id="resetLink">reset puzzles</a></div>
+  </footer>
 </div>
 
 <script src="puzzles.js"></script>
 <script src="shared.js"></script>
+<script src="analytics.js"></script>
+<script src="backup.js"></script>
 <script>
 (function(){
   const MAX_GUESSES = 4;
@@ -349,7 +373,7 @@
   // One row per language with XP, plus the current puzzle's language (first) even at 0 XP.
   function renderXp(levelledUp){
     const all = readXp();
-    const keys = [lang].concat(Object.keys(all).filter(k => k !== lang && all[k] > 0));
+    const keys = [lang].concat(Object.keys(all).filter(k => k !== lang && all[k] > 0 && LANGS[k]));
     const prevWidths = {};
     xpEl.querySelectorAll('.xp-row').forEach(r => { prevWidths[r.dataset.lang] = r.querySelector('.xp-fill').style.width; });
     xpEl.innerHTML = '';
@@ -386,6 +410,7 @@
     state.xp = earned;
     save();
     const up = levelFor(all[lang]) > levelFor(before);
+    if(up) window.DebuggAnalytics.event('level/' + lang + '/' + levelFor(all[lang]));
     renderXp(up);
     return ' +' + earned + ' XP' + (up ? '. Level up: ' + LANGS[lang].name + ' Lv ' + levelFor(all[lang]) + '!' : '.');
   }
@@ -412,6 +437,17 @@
     flagEl = document.getElementById('flag');
   }
 
+  // A prefilled GitHub issue about this puzzle. GitHub issues are public, so it asks for nothing personal.
+  function reportUrl(){
+    const which = LANGS[lang].name + ' ' + window.Debugg.dayLabel(DAY) + (window.Debugg.isPreview(DAY) ? ' (day ' + DAY + ')' : '');
+    const firstLine = puzzle.code.split('\n').find(l => l.trim()) || '';
+    const body = '**What’s wrong?** (e.g. my answer should have counted, the explanation is wrong, a typo)\n\n\n' +
+      '**What did you answer?**\n\n\n' +
+      '---\nPuzzle: ' + which + '\nFirst line: `' + firstLine + '`\nExpected answer: `' + puzzle.display + '`\n';
+    return 'https://github.com/pharazyn42/debugg/issues/new?title=' + encodeURIComponent('Puzzle problem: ' + which) +
+      '&body=' + encodeURIComponent(body);
+  }
+
   function renderReveal(){
     document.getElementById('answerOut').textContent = puzzle.display;
     document.getElementById('explainOut').innerHTML = puzzle.explain;
@@ -419,6 +455,7 @@
     document.getElementById('wildOut').innerHTML = puzzle.inTheWild;
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
     document.getElementById('tryLink').href = 'sandbox.html?lang=' + lang + '&day=' + DAY;
+    document.getElementById('reportLink').href = reportUrl();
     document.getElementById('sandboxLink').href = 'sandbox.html#' + lang;
   }
 
@@ -512,6 +549,8 @@
   function renderLangs(){
     const nav = document.getElementById('langs');
     nav.innerHTML = '';
+    // With only one language there's nothing to switch between.
+    nav.hidden = Object.keys(LANGS).length < 2;
     Object.keys(LANGS).forEach(l => {
       const done = window.Debugg.readState(l, DAY);
       const a = document.createElement('a');
@@ -710,6 +749,13 @@
   if(asked || (saved && saved.enabled) || (!saved && read(OLD_KEY))) switchOn();
   [document.getElementById('ltdLink'), document.getElementById('foundBtn')].forEach(el =>
     el.addEventListener('click', (e) => { e.preventDefault(); switchOn(); }));
+
+  document.getElementById('backupLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.DebuggBackup.open();
+  });
+  [document.getElementById('feedbackLink'), document.getElementById('reportLink')].forEach(el =>
+    el.addEventListener('click', () => window.DebuggAnalytics.event('feedback/' + el.id.replace('Link', ''))));
 })();
 </script>
 </body>

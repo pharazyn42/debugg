@@ -2,7 +2,9 @@
 
 A Wordle-style daily game where you guess what a short, buggy Python or JavaScript snippet actually prints — no coding required, just read the code and reason it out.
 
-There's a new puzzle in each language every day at local midnight; pick a language with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving at least one puzzle a day, in any language, builds your bug streak.
+**For the soft launch the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
+
+There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving at least one puzzle a day, in any language, builds your bug streak.
 
 Each puzzle also earns XP, tracked separately for each language so you level up in each one:
 
@@ -29,9 +31,16 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 `shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, XP levels, the syntax highlighter and the base theme.
 
+## Your progress, feedback and privacy
+
+- **Backup:** everything is saved in the player's browser only. The footer's **backup** link shows a code holding all of it (puzzles, XP, streak, company, sandbox drafts) and restores from one on any device (`backup.js`).
+- **Feedback:** after each game, "Report it" opens a GitHub issue prefilled with the puzzle's language, day, first line and expected answer; the footer's **feedback** link opens a blank one. Issues are public, and reporting needs a GitHub account.
+- **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). It's off until `SITE_COUNT_URL` in that file is set to the site's GoatCounter address. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debugg Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
+- **Privacy:** `privacy.html` explains all of the above to players. Fonts are served from `fonts/` (Sora and JetBrains Mono, SIL Open Font License), not Google Fonts.
+
 ## Debugg Ltd
 
-"Start your own company" (in the footer, and after each finished puzzle) switches on **Debugg Ltd**, an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+"Start your own company" (in the footer, and after each finished puzzle) switches on **Debugg Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
 
 - **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.

@@ -26,6 +26,10 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `puzzles.js` | The puzzle bank, one list per language. |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
+| `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
+| `analytics.js` | GoatCounter page views and named events. Off until `SITE_COUNT_URL` is set. |
+| `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
+| `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
@@ -42,6 +46,12 @@ the saved company is running, when an old pre-merge save exists, or when the
 URL has `?ltd`. `DebuggLtd.start({ stats, studio, board })` renders into the
 three slots and either resumes the saved company, imports an old one, or
 founds a new one. `body.ltd-on` switches the page to the two-column layout.
+
+**Languages.** `ENABLED_LANGS` in `shared.js` is the list players see;
+it's `['python']` for the soft launch. JavaScript's puzzles, sandbox runner
+and saves are kept, and adding it back to the list restores it everywhere.
+Tests switch it on (`window.DEBUGG_LANGS`, set in `tests/helpers.js`) so it
+stays covered; pass `{ langs: null }` to `openAt` to test what players see.
 
 **The calendar.** Day 1 is 1 October 2026 (`LAUNCH` in `shared.js`). Days
 before it are preview days (0, -1, …), labelled "Preview", each with its

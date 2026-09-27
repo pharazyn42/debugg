@@ -284,6 +284,7 @@ def _debugg_run(src):
 
 <script src="puzzles.js"></script>
 <script src="shared.js"></script>
+<script src="analytics.js"></script>
 <script>
 (function(){
   const { LANGS, highlight } = window.Debugg;
@@ -400,6 +401,7 @@ def _debugg_run(src):
 
   function run(){
     if(running) return;
+    window.DebuggAnalytics.event('sandbox/run/' + lang);
     saveDraft();
     printed = 0;
     out.innerHTML = '';
@@ -577,6 +579,7 @@ def _debugg_run(src):
   function renderLangs(){
     const nav = document.getElementById('langs');
     nav.innerHTML = '';
+    nav.hidden = Object.keys(LANGS).length < 2;
     Object.keys(LANGS).forEach(l => {
       const b = document.createElement('button');
       b.className = 'lang-tab';

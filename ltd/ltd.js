@@ -59,7 +59,7 @@ window.DebuggLtd = (function(){
         '<h3>Recent</h3>' +
         '<div class="log" id="log"></div>' +
       '</div>' +
-      '<div class="company-controls">Debugg Ltd · ' +
+      '<div class="company-controls">Debugg Ltd <span class="beta">beta</span> · ' +
         '<button class="reset-btn" id="ltdPause" title="Stops the clock: no salaries and no contract progress until you switch it back on">Pause company</button>' +
         '<button class="reset-btn" id="ltdClose">Close company</button>' +
       '</div>';
@@ -81,6 +81,9 @@ window.DebuggLtd = (function(){
     const teamModal = $('teamModal'), teamModalBody = $('teamModalBody');
     const personModal = $('personModal'), personModalBody = $('personModalBody');
     let tickTimer = null;
+    let stopped = false;
+    // Stops the clock and all saving, e.g. before a backup is restored over this company.
+    stopGame = () => { stopped = true; clearInterval(tickTimer); };
 
     // ---------------------------------------------------------------------
     // Studio model
@@ -324,6 +327,7 @@ window.DebuggLtd = (function(){
       try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; }
     }
     function save(){
+      if(stopped) return;
       try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
     }
 
@@ -661,6 +665,7 @@ window.DebuggLtd = (function(){
     }
 
     let opening = null;
+    function track(path){ if(window.DebuggAnalytics) window.DebuggAnalytics.event('ltd/' + path); }
     const saved = readSave(STORAGE_KEY);
     const old = saved ? null : readSave(OLD_STORAGE_KEY);
     if(saved){
@@ -670,6 +675,7 @@ window.DebuggLtd = (function(){
         skipTime(away);
         state.enabled = true;
         state.pausedAt = null;
+        track('resumed');
         opening = 'Welcome back. Debugg Ltd was paused' + (away > 60000 ? ' for ' + fmtDuration(away, true) : '') + ', so nothing changed while you were away.';
       }
     }else if(old){
@@ -678,13 +684,16 @@ window.DebuggLtd = (function(){
       delete state.activeContract;
       state.enabled = true;
       state.pausedAt = null;
+      track('imported');
       opening = 'Your company has moved in with the daily puzzles. The desk is now today’s puzzles, one per language, and each one pays the company.';
     }else{
       const bonus = founderBonus();
       state = freshState(START_CASH + bonus);
+      track('founded');
       opening = 'You’ve founded Debugg Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
-        '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too.';
+        '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too. ' +
+        'Debugg Ltd is in beta, so its numbers may change as it’s balanced.';
     }
     if(!state.paid) state.paid = {};
     save();
@@ -1168,6 +1177,7 @@ window.DebuggLtd = (function(){
     // Pausing stops the clock: no salaries, no contract progress. The page reloads
     // without the studio, and switching it back on resumes where it left off.
     document.getElementById('ltdPause').addEventListener('click', () => {
+      track('paused');
       clearInterval(tickTimer);
       state.enabled = false;
       state.pausedAt = Date.now();
@@ -1177,7 +1187,8 @@ window.DebuggLtd = (function(){
     // Deletes the company for good. The tick is stopped first so it can't re-save it.
     document.getElementById('ltdClose').addEventListener('click', () => {
       if(!confirm('Close Debugg Ltd? Your studio, staff, cash and reputation will be deleted. Your puzzle progress, XP and streak are kept.')) return;
-      clearInterval(tickTimer);
+      track('closed');
+      stopGame();
       try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
       location.reload();
     });
@@ -1205,6 +1216,7 @@ window.DebuggLtd = (function(){
         const hire = makeHire(role);
         state.roster.push(hire);
         addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
+        track('hired/' + role.toLowerCase());
       }else if(action === 'promote'){
         const p = person(btn.dataset.id);
         const ps = p && promotionStatus(p, Date.now());
@@ -1213,6 +1225,7 @@ window.DebuggLtd = (function(){
         p.since = Date.now();
         p.worked = 0;
         addLog('ok', '★ ' + p.name + ' promoted to ' + ps.next.toLowerCase() + '.');
+        track('promoted/' + ps.next.toLowerCase());
       }else if(action === 'release'){
         const p = person(btn.dataset.id);
         if(!p || releaseProblem(p)) return;
@@ -1307,5 +1320,6 @@ window.DebuggLtd = (function(){
     }, 1000);
   }
 
-  return { start };
+  let stopGame = () => {};
+  return { start, stop: () => stopGame() };
 })();
