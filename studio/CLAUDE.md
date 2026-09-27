@@ -9,8 +9,8 @@ two or wire them together.
 
 An idle/incremental game where the core "active" mechanic is a Debugg-style
 puzzle (read a short Python snippet, guess what it prints). Sitting behind
-that is a studio-management idle layer: hire programmers, they passively
-earn money and level up while you're not looking.
+that is a studio-management idle layer: grow a tiered team of programmers
+and staff real-time contracts that keep running while you're not looking.
 
 Original design brainstorm: `../ideas/contract-debugger-concept.md`. That
 doc is the source of the overall vision — read it for the *why* behind
@@ -25,104 +25,104 @@ step, no dependencies except a Google Fonts `@import`. Open it directly in
 a browser to play, or serve via GitHub Pages (already configured — pushes
 to `main` deploy automatically to `https://pharazyn42.github.io/debugg/studio/`).
 
-State persists in `localStorage` under the key `contract-debugger-state-v1`.
-There's a small migration guard in the boot sequence that discards an
-old-shaped `activeContract` from an earlier prototype version — bump this
-key or add a similar guard if you change the state shape again.
+State persists in `localStorage` under the key `contract-debugger-state-v3`.
+The boot sequence has a small guard that drops an old-shaped
+`activeContract`; bump the key or add a similar guard if you change the
+state shape again.
 
 ## Data model (as currently implemented)
 
 ```js
-PUZZLES = [{ file, html, type, answer, hint }, ...]   // 6 puzzles today
-// type is one of 'number' | 'bool' | 'string' | 'list' — each has its own
-// answer-normalization logic in checkAnswer(). html is pre-built syntax-
-// highlighted markup (no client-side highlighter, just hand-written spans).
+PUZZLES = [{ file, html, type, answer, hint }, ...]   // 6 puzzles, Director's desk only
+CONTRACT_LENGTHS = [...]   // desk contracts: 1/3/5/8 puzzles, 1x/1.8x/3.2x/6x
 
-CONTRACT_LENGTHS = [
-  { name: 'Quick Fix',     count: 1, multiplier: 1.0 },
-  { name: 'Sprint',        count: 3, multiplier: 1.8 },
-  { name: 'Milestone',     count: 5, multiplier: 3.2 },
-  { name: 'Full Delivery', count: 8, multiplier: 6.0 }
-]
+LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly']
+DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI']
+PAIRINGS = { <lang>: [domains it can be paired with on a contract] }
+BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
 
-LEVELS = ['Graduate', 'Junior', 'Senior', 'Principal']
-LEVEL_STATS = { <level>: { sloc, salary, xpToNext } }   // per-minute figures
-
-LANGUAGES = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly']
-DOMAINS   = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI']
+ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
+PROMOTION = { Junior: {minutes:10, lang:1, dom:1}, Senior: {30, 3, 2}, Principal: {90, 5, 5} }
+TIERS = [ quick fix 1 min / 1 dev, sprint 10 min / 3-5 + senior,
+          milestone 30 min / 5-10 + principal,
+          full delivery 90 min / 10+ incl. manager, 2 principals, 3 seniors ]
 ```
 
 **Top-level state:**
 ```js
 state = {
-  money, reputation,
-  roster: [ { id, name, level, xp, skills: { languages, domains, primaryLang, primaryDom } }, ... ],
-  lastTick,             // for offline-progress catch-up on load
-  collapsedLevels: [],  // which roster level-groups are collapsed in the UI
-  activeContract: null | {
-    lengthIndex, puzzleIdxs: [...],
-    index,               // which puzzle is currently being viewed
-    puzzles: [ { attempts: [], status: 'open'|'solved'|'exhausted', clean, hintUsed }, ... ]
-  }
+  money, reputation, lastTick,
+  roster: [ { id, name, role, since, lang: {name: xp}, dom: {name: xp} } ],  // Director is roster[0]
+  board:  [ { id, tier, lang, dom } ],            // 2 offers per tier
+  jobs:   [ { id, tier, lang, dom, team: [ids], startedAt, endsAt, chance, payout, repeat } ],
+  log:    [ { kind: 'ok'|'bad'|'info', text } ],
+  collapsedLevels: [],                            // roster tree groups folded in the UI
+  activeContract: null | { lengthIndex, puzzleIdxs, index, puzzles: [{ attempts, status, clean, hintUsed }] }
 }
 ```
 
 ## What's implemented
 
-- **Contract flow**: pick a length, work through a queue of puzzles. Full
-  navigation — click any dot in the queue strip to jump to that puzzle, or
-  use Prev/Next. A puzzle that runs out of its 4 guesses locks as
-  "exhausted" rather than failing the whole contract; you can skip it and
-  work others. Once every puzzle is solved-or-exhausted with none left
-  open, a banner explains full delivery is no longer possible and points at
-  Bail. Once *all* are solved, a "Deliver contract" button appears.
-- **Clean bonus**: solving a puzzle on your very first attempt with no hint
-  used marks it "clean." Contract payout scales with the fraction of
-  puzzles solved clean (50% base + up to 50% bonus). Reputation gain scales
-  the same way.
-- **Idle roster**: hired programmers passively earn `sloc * 0.5 − salary`
-  money per minute (ticked every second), gain XP from SLOC output, and
-  auto-promote through the 4 levels when XP crosses `xpToNext`. Closing and
-  reopening the page grants offline earnings, capped at 4 hours.
-- **Hiring**: cost scales `60 * 1.55^rosterSize`, always hires a fresh
-  Graduate.
-- **Roster UI**: grouped by level in a collapsible tree (click a level
-  header to fold it), each group header shows summed SLOC/min and net
-  ¤/min for that tier. Collapse state persists.
-- **Employee skill panel**: click any employee card to open a modal showing
-  their language/domain skills as pip bars (0–5), rolled at hire time —
-  one primary language + one primary domain at level 2–3, small chance of
-  a level-1 secondary in each.
+- **Director's desk**: the player's own puzzle contracts. Pick a length and
+  work through the queue with full navigation: click any dot, or use
+  Prev/Next. A puzzle that runs out of guesses locks as "exhausted"; when
+  everything is solved, a "Deliver contract" button appears. The clean
+  bonus applies to first-try solves with no hint. This is the main source
+  of cash early on.
+- **Start-up**: you begin as the Director alone, and you double as the
+  manager. The Director gives one slot at every level, one principal slot,
+  and room for `DIRECTOR_SPAN` (4) devs, so you can hire a grad straight
+  away. Growing beyond that needs real managers.
+- **Tiered structure** (`capacity()` / `structureProblem()`):
+  - Each dev supervises up to 3 people of the level directly below.
+  - Each manager adds one slot per level, 3 principal slots, and room for
+    12 devs.
+  - Managers produce no SLOC.
+  - Hiring, promoting and "Let go" are all blocked if they would break the
+    structure, and the UI says why.
+- **Hires' starting skills**:
+  - Grads: one language at 1 bar, no domains.
+  - Juniors: at most 1 bar in up to 2 domains.
+  - Seniors: a language at 3–4 and a domain at 2–3.
+  - Principals: a language and a domain at 5.
+- **Promotions**: need both time at the current level and skill bars, plus
+  a free slot at the next level. The player confirms with a "Promote"
+  button.
+- **Contract board**: offers are tagged with a random language + domain,
+  shown on the card. Staff them via the team picker, which ticks off the
+  requirements and shows success chance, payout and salary cost. It has a
+  "Suggest a team" button. Each person can only be on one contract at a
+  time.
+  - Payout = team SLOC/min × minutes × `LINE_RATE` × tier multiplier ×
+    skill match.
+  - Success chance = average reliability by level, plus a small bonus for
+    skill match.
+  - On delivery, everyone on the team gains the tier's XP in that
+    language and domain. This is the placeholder skill-gain mechanic; it
+    doesn't yet model supervision.
+- **Repeat**: a job can be set to roll straight into a new contract of the
+  same type with the same team when it finishes. This is on by default for
+  quick fixes. Repeats keep chaining while the page is closed, up to the
+  4-hour offline cap, and stop if the team no longer meets the
+  requirements.
+- **Roster UI**: the Director card, then a collapsible tree grouped by
+  level. Each group header shows its headcount, how many are busy, SLOC/min
+  and salary/min. Collapse state persists. Clicking a card opens the
+  employee panel: all languages and domains as pip bars with XP to the next
+  bar, current assignment, and a promotion checklist.
+- **Payroll** is drawn every second, including offline (capped at 4 hours).
+  Cash can go negative.
 
 ## Known gaps — not wired in yet
 
-These are deliberate, not bugs — flagging them so work doesn't duplicate or
-assume they exist:
-
-- **Reputation does nothing.** It's tracked and displayed (up on contract
-  success, down by a flat 2 on failure/bail) but nothing reads it. Planned:
-  gate which contract lengths/tiers are available behind a reputation
-  threshold.
-- **Skills don't affect payout.** The language/domain matrix exists and
-  renders in the employee panel, but puzzles aren't tagged with a
-  language/domain, and programmer skill level isn't multiplied into
-  anything. This is the biggest gap vs. the original concept doc, which
-  wanted contract payout to depend on skill match.
-- **No "background contracts" board.** The concept doc describes idle
-  income as programmers working actual background *contracts* with a
-  target and a quality roll (chance of "shipping a bug"). What's actually
-  implemented is simpler: flat passive SLOC/min → money conversion, no
-  contract targets, no quality roll, no rework mechanic.
-- **No training/certification spend.** Money currently only buys new
-  hires. The concept doc's "Training," "Certifications," and "Studio
-  upgrades" spend categories aren't implemented.
-- **No prestige/reset mechanic.**
-- **Puzzle bank is only 6 entries**, sampled randomly (no immediate
-  repeat) — a Full Delivery contract (8 puzzles) will always repeat at
-  least 2. Needs more puzzles or a generator.
-- **Balance is untuned.** `BASE_PAY_PER_PUZZLE = 40`, `INCOME_PER_LINE =
-  0.5`, the level stat table, and the hire-cost curve are all first-guess
-  placeholder numbers, not the result of any playtesting/balancing pass.
+- **Reputation does nothing** beyond being tracked. Planned: gate contract
+  tiers behind reputation.
+- **Skill gain is a placeholder**: flat XP per delivered contract, with no
+  supervision/mentoring effect yet.
+- **No training/certification spend, studio upgrades, or prestige.**
+- **Puzzle bank is only 6 entries** (desk contracts only).
+- **Balance is untuned**: the `ROLES` stats, `LINE_RATE`, tier multipliers,
+  and hire costs are first guesses.
 
 ## Testing notes
 

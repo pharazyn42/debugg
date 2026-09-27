@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contract Debugger</title>
-<meta name="description" content="An idle dev-studio game built on Debugg-style puzzles: clear contracts to get paid, hire and grow a team of programmers who work in the background.">
+<meta name="description" content="An idle dev-studio game built on Debugg-style puzzles: start as a lone director, hire a manager, grow a tiered team and staff contracts that run in real time.">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
@@ -24,6 +24,9 @@
     --red: #ef6a6a;
     --red-dim: #4a2222;
     --blue: #82aaff;
+    --blue-dim: #22304f;
+    --violet: #c792ea;
+    --violet-dim: #3a2a4a;
     --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
     --sans: 'Sora', system-ui, sans-serif;
   }
@@ -38,7 +41,7 @@
   }
 
   .wrap{
-    max-width: 980px;
+    max-width: 1080px;
     margin: 0 auto;
   }
 
@@ -63,7 +66,7 @@
   .stat-bar{
     display: flex;
     justify-content: center;
-    gap: 22px;
+    gap: 14px;
     margin: 16px 0 24px;
     flex-wrap: wrap;
   }
@@ -90,15 +93,17 @@
     margin-top: 2px;
   }
   .stat .value.money{ color: var(--green); }
+  .stat .value.money.neg{ color: var(--red); }
   .stat .value.rep{ color: var(--blue); }
-  .stat .value.rate{ color: var(--amber); font-size: 14px; }
+  .stat .value.rate{ color: var(--red); font-size: 14px; }
 
   .columns{
     display: grid;
-    grid-template-columns: 1.3fr 1fr;
+    grid-template-columns: 1.2fr 1fr;
     gap: 18px;
+    margin-bottom: 18px;
   }
-  @media (max-width: 760px){
+  @media (max-width: 800px){
     .columns{ grid-template-columns: 1fr; }
   }
 
@@ -107,6 +112,7 @@
     border: 1px solid var(--line);
     border-radius: 12px;
     padding: 18px;
+    min-width: 0;
   }
   .panel h2{
     font-size: 15px;
@@ -115,7 +121,16 @@
     align-items: center;
     gap: 8px;
   }
-  .panel h2 .tag{
+  .panel h3{
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 18px 0 10px;
+    font-weight: 500;
+  }
+  .tag{
     font-family: var(--mono);
     font-size: 10px;
     letter-spacing: 0.08em;
@@ -125,9 +140,10 @@
     border: 1px solid var(--line);
     border-radius: 5px;
     padding: 2px 6px;
+    font-weight: 500;
   }
 
-  /* Contract length picker */
+  /* Contract length picker (Director's desk) */
   .length-grid{
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -153,7 +169,7 @@
   }
   .length-card .mult{ color: var(--amber); }
 
-  /* Active contract */
+  /* Active manual contract */
   .queue-dots{
     display: flex;
     gap: 6px;
@@ -170,11 +186,11 @@
     font-size: 11px;
     color: var(--text-faint);
   }
-  .qdot{ cursor: pointer; }
   .qdot.current{ border-color: var(--amber); color: var(--amber); }
   .qdot.correct{ border-color: var(--green-dim); background: var(--green-dim); color: var(--green); }
   .qdot.clean{ border-color: var(--green); }
   .qdot.wrong{ border-color: var(--red-dim); background: var(--red-dim); color: var(--red); }
+  .qdot{ cursor: pointer; }
   .qdot.exhausted{ border-color: var(--red-dim); background: rgba(239,106,106,0.12); color: var(--red); }
 
   .nav-row{ display: flex; gap: 8px; margin-bottom: 10px; }
@@ -277,8 +293,9 @@
   button:disabled{ opacity: 0.4; cursor: not-allowed; }
   .btn-primary{ background: var(--amber); color: #1a1305; }
   .btn-ghost{ background: transparent; color: var(--text-dim); border: 1.5px solid var(--line); }
-  .btn-ghost:hover{ color: var(--text); border-color: var(--text-faint); }
-  .btn-hire{ background: var(--blue); color: #0c1730; width: 100%; }
+  .btn-ghost:hover:not(:disabled){ color: var(--text); border-color: var(--text-faint); }
+  .btn-small{ padding: 4px 9px; font-size: 11.5px; border-radius: 6px; }
+  .btn-promote{ background: var(--green); color: #07200f; }
 
   .actions{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 
@@ -295,13 +312,40 @@
   .feedback.hint{ background: var(--panel-2); color: var(--text-dim); border: 1px dashed var(--line); }
   .feedback.summary{ background: var(--panel-2); border: 1px solid var(--line); color: var(--text); }
 
-  /* Roster */
-  .roster{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  /* Studio: structure + roster */
+  .structure{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .slot{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-variant-numeric: tabular-nums;
+  }
+  .slot.full{ color: var(--amber); border-color: var(--amber-dim); }
 
+  .roster{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  /* Roster tree: one collapsible group per level */
   .level-group{
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
+    flex-shrink: 0;
   }
   .level-header{
     display: flex;
@@ -324,11 +368,7 @@
   }
   .level-group.collapsed .chevron{ transform: rotate(-90deg); }
   .level-name{ font-weight: 600; font-size: 13px; }
-  .level-count{
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--text-faint);
-  }
+  .level-count{ font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); }
   .level-sum{
     font-family: var(--mono);
     font-size: 11px;
@@ -336,8 +376,6 @@
     text-align: right;
     white-space: nowrap;
   }
-  .level-sum .net-pos{ color: var(--green); }
-  .level-sum .net-neg{ color: var(--red); }
   .level-body{
     display: flex;
     flex-direction: column;
@@ -352,13 +390,17 @@
     border-radius: 10px;
     padding: 10px 12px;
     cursor: pointer;
+    flex-shrink: 0;
   }
   .card:hover{ border-color: var(--blue); }
+  .card.director{ border-color: var(--amber-dim); cursor: default; }
+  .card.director:hover{ border-color: var(--amber-dim); }
   .card-top{
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+    gap: 8px;
   }
   .card-name{ font-weight: 600; font-size: 13.5px; }
   .card-level{
@@ -367,7 +409,9 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--amber);
+    white-space: nowrap;
   }
+  .card-level.Manager{ color: var(--violet); }
   .card-stats{
     display: flex;
     justify-content: space-between;
@@ -376,41 +420,154 @@
     color: var(--text-dim);
     margin-bottom: 6px;
   }
-  .xp-bar{
-    height: 5px;
-    border-radius: 3px;
-    background: var(--bg);
-    overflow: hidden;
-  }
-  .xp-fill{
-    height: 100%;
-    background: var(--blue);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-  }
-
-  /* Skill modal */
-  .modal-overlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(8,9,11,0.6);
-    display: none;
+  .card-foot{
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    padding: 16px;
-    z-index: 50;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    flex-wrap: wrap;
   }
-  .modal-overlay.show{ display: flex; }
+  .status-busy{ color: var(--amber); }
+  .status-idle{ color: var(--text-dim); }
+  .promo{ font-size: 11px; color: var(--text-faint); }
+  .promo.blocked{ color: var(--amber); }
+  .foot-actions{ display: flex; gap: 6px; align-items: center; }
+
+  .hire-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .hire-btn{
+    background: var(--blue-dim);
+    border: 1.5px solid #34466e;
+    color: var(--text);
+    text-align: left;
+    padding: 9px 10px;
+  }
+  .hire-btn.mgr{ background: var(--violet-dim); border-color: #5a4270; }
+  .hire-btn:hover:not(:disabled){ border-color: var(--blue); }
+  .hire-btn .role{ font-size: 13px; }
+  .hire-btn .cost{ font-family: var(--mono); font-size: 11px; color: var(--green); font-weight: 500; }
+  .hire-btn .why{ display: block; font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); font-weight: 400; margin-top: 3px; }
+  .hire-btn:disabled{ opacity: 0.55; }
+
+  /* Contract board */
+  .board{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px;
+  }
+  .offer{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .offer-top{ display: flex; justify-content: space-between; align-items: baseline; }
+  .offer-top .name{ font-weight: 600; font-size: 14px; }
+  .offer-top .dur{ font-family: var(--mono); font-size: 11px; color: var(--amber); }
+  .chips{ display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip{
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid;
+  }
+  .chip.lang{ color: var(--blue); border-color: #34466e; background: var(--blue-dim); }
+  .chip.dom{ color: var(--violet); border-color: #5a4270; background: var(--violet-dim); }
+  .offer .detail{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .offer button{ margin-top: auto; }
+
+  .jobs{ display: flex; flex-direction: column; gap: 8px; }
+  .job{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .job-top{
+    display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+    font-size: 13px; margin-bottom: 6px;
+  }
+  .job-top .left{ display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 600; }
+  .job-top .time{ font-family: var(--mono); font-size: 12px; color: var(--amber); font-variant-numeric: tabular-nums; }
+  .progress{ height: 5px; border-radius: 3px; background: var(--bg); overflow: hidden; margin-bottom: 6px; }
+  .progress > div{ height: 100%; background: var(--amber); border-radius: 3px; }
+  .job .detail{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .empty{ font-size: 12.5px; color: var(--text-faint); }
+
+  .log{ display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .log .ok{ color: var(--green); }
+  .log .bad{ color: var(--red); }
+  .log .info{ color: var(--text-dim); }
+
+  .toast{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    background: var(--panel-2);
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .toast.show{ display: block; }
+
+  /* Team picker */
+  .modal-back{
+    position: fixed; inset: 0;
+    background: rgba(8, 9, 11, 0.72);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .modal-back[hidden]{ display: none; }
   .modal{
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 12px;
-    padding: 20px;
+    padding: 18px;
     width: 100%;
-    max-width: 380px;
-    max-height: 80vh;
-    overflow-y: auto;
+    max-width: 620px;
   }
+  .modal h2{ margin: 0 0 6px; font-size: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pick-list{ display: flex; flex-direction: column; gap: 6px; margin: 12px 0; max-height: 46vh; overflow-y: auto; }
+  .pick{
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    background: var(--panel-2);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .pick.on{ border-color: var(--amber); }
+  .pick input{ accent-color: var(--amber); width: 16px; height: 16px; margin: 0; }
+  .pick .meta{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align: right; }
+  .pick .meta .bars{ color: var(--blue); } .pick .meta .bars.dom{ color: var(--violet); }
+  .checks{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .check{ font-family: var(--mono); font-size: 11px; padding: 3px 7px; border-radius: 5px; }
+  .check.ok{ background: var(--green-dim); color: var(--green); }
+  .check.no{ background: var(--red-dim); color: #ffc9c9; }
+  .forecast{ font-family: var(--mono); font-size: 12px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.7; }
+  .forecast b{ color: var(--text); font-weight: 600; }
+  .repeat-row{ display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--text-dim); margin-bottom: 14px; cursor: pointer; }
+  .repeat-row input{ accent-color: var(--amber); width: 16px; height: 16px; margin: 0; }
+  .repeat-tag{ font-family: var(--mono); font-size: 10.5px; color: var(--green); }
+
+  /* Employee panel */
+  .modal.person{ max-width: 400px; }
   .modal-top{
     display: flex;
     justify-content: space-between;
@@ -432,14 +589,14 @@
     font-size: 18px;
     line-height: 1;
     padding: 4px;
-    cursor: pointer;
   }
   .modal-close:hover{ color: var(--text); }
   .modal-sub{
     font-family: var(--mono);
     font-size: 11px;
     color: var(--text-dim);
-    margin-bottom: 16px;
+    margin-bottom: 6px;
+    line-height: 1.6;
   }
   .skill-section-title{
     font-family: var(--mono);
@@ -450,22 +607,14 @@
     margin: 14px 0 8px;
   }
   .skill-row{
-    display: flex;
+    display: grid;
+    grid-template-columns: 118px 1fr 64px;
     align-items: center;
     gap: 10px;
     margin-bottom: 7px;
   }
-  .skill-name{
-    font-size: 12.5px;
-    color: var(--text-dim);
-    width: 108px;
-    flex-shrink: 0;
-  }
-  .skill-bar{
-    flex: 1;
-    display: flex;
-    gap: 3px;
-  }
+  .skill-name{ font-size: 12.5px; color: var(--text-dim); }
+  .skill-bar{ display: flex; gap: 3px; }
   .skill-pip{
     flex: 1;
     height: 8px;
@@ -474,19 +623,12 @@
     border: 1px solid var(--line);
   }
   .skill-pip.filled{ background: var(--blue); border-color: var(--blue); }
-  .skill-pip.filled.primary{ background: var(--amber); border-color: var(--amber); }
-
-  .toast{
-    font-size: 12.5px;
-    color: var(--text-dim);
-    background: var(--panel-2);
-    border: 1px dashed var(--line);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 14px;
-    display: none;
-  }
-  .toast.show{ display: block; }
+  .skill-pip.filled.dom{ background: var(--violet); border-color: var(--violet); }
+  .skill-pip.filled.best{ background: var(--amber); border-color: var(--amber); }
+  .skill-xp{ font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); text-align: right; }
+  .req-list{ display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+  .req-list .ok{ color: var(--green); }
+  .req-list .no{ color: var(--text-dim); }
 
   footer{
     text-align: center;
@@ -504,7 +646,7 @@
   <header class="top">
     <p class="kicker">Prototype · Idea from Debugg</p>
     <h1>Contract Debugger</h1>
-    <p class="sub">Clear contracts yourself for the big payouts. Hire a team to keep earning while you're not looking.</p>
+    <p class="sub">You're a studio of one. Solve contracts at your desk, hire your first devs, then bring in managers and grow a team that can take on the big jobs.</p>
   </header>
 
   <div class="stat-bar">
@@ -517,39 +659,60 @@
       <div class="value rep" id="statRep">0</div>
     </div>
     <div class="stat">
-      <div class="label">Studio net</div>
-      <div class="value rate" id="statRate">¤0/s</div>
+      <div class="label">Payroll</div>
+      <div class="value rate" id="statPayroll">¤0/min</div>
+    </div>
+    <div class="stat">
+      <div class="label">Headcount</div>
+      <div class="value" id="statHeads">1</div>
     </div>
   </div>
 
   <div class="toast" id="welcomeToast"></div>
 
   <div class="columns">
-    <!-- Today's Contract -->
+    <!-- Director's desk: the hands-on puzzle loop -->
     <div class="panel" id="contractPanel">
-      <h2>Today's Contract <span class="tag" id="contractTag">choose one</span></h2>
+      <h2>Your desk <span class="tag" id="contractTag">choose one</span></h2>
       <div id="contractBody"></div>
     </div>
 
     <!-- Studio -->
     <div class="panel">
-      <h2>Studio <span class="tag" id="rosterCount">0 hired</span></h2>
+      <h2>Studio <span class="tag" id="rosterCount">1 person</span></h2>
+      <div class="structure" id="structure"></div>
       <div class="roster" id="roster"></div>
-      <button class="btn-hire" id="hireBtn">Hire graduate — ¤0</button>
+      <div class="hire-grid" id="hireGrid"></div>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>Contract board <span class="tag">staff a team to take one on</span></h2>
+    <div class="board" id="board"></div>
+    <h3>In progress</h3>
+    <div class="jobs" id="jobs"></div>
+    <h3>Recent</h3>
+    <div class="log" id="log"></div>
   </div>
 
   <footer>contract debugger · prototype slice · <a href="../">back to Debugg</a></footer>
 </div>
 
-<div class="modal-overlay" id="skillModalOverlay">
-  <div class="modal" id="skillModal"></div>
+<div class="modal-back" id="teamModal" hidden>
+  <div class="modal" id="teamModalBody"></div>
+</div>
+
+<div class="modal-back" id="personModal" hidden>
+  <div class="modal person">
+    <button class="modal-close" data-action="close-person" aria-label="Close" style="float:right;">✕</button>
+    <div id="personModalBody"></div>
+  </div>
 </div>
 
 <script>
 (function(){
   // ---------------------------------------------------------------------
-  // Data model
+  // Puzzle data (Director's desk)
   // ---------------------------------------------------------------------
 
   const PUZZLES = [
@@ -616,77 +779,185 @@
   const BASE_PAY_PER_PUZZLE = 40;
   const MAX_GUESSES = 4;
 
-  const LEVELS = ['Graduate', 'Junior', 'Senior', 'Principal'];
-  const LEVEL_STATS = {
-    Graduate: { sloc: 5,  salary: 2,  xpToNext: 120 },
-    Junior:   { sloc: 12, salary: 6,  xpToNext: 480 },
-    Senior:   { sloc: 30, salary: 16, xpToNext: 1500 },
-    Principal:{ sloc: 70, salary: 40, xpToNext: Infinity }
-  };
-  const INCOME_PER_LINE = 0.5; // money per SLOC
-  const NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan'];
-  const OFFLINE_CAP_SECONDS = 4 * 60 * 60; // cap offline earnings at 4 hours
+  // ---------------------------------------------------------------------
+  // Studio model
+  // ---------------------------------------------------------------------
 
-  // Skill matrix — rolled per hire, shown on the employee panel. Not yet
-  // consumed by contract payout math (puzzles aren't tagged by
-  // language/domain yet); this is groundwork for that, per the concept doc.
-  const LANGUAGES = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly'];
+  const LANGS = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly'];
   const DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI'];
+  // Which language/domain pairings contracts can come up as (the matrix in
+  // ../ideas/contract-debugger-concept.md).
+  const PAIRINGS = {
+    'Python':     ['Web Dev', 'Games', 'Data/AI'],
+    'C/C++':      ['Games', 'Embedded/Controls', 'Safety-Critical'],
+    'JavaScript': ['Web Dev', 'Games'],
+    'Rust':       ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical'],
+    'Assembly':   ['Embedded/Controls', 'Safety-Critical']
+  };
+  const BAR_XP = [10, 50, 150, 400, 1000]; // cumulative XP needed for bars 1..5
+  const MAX_BARS = 5;
 
-  function rollSkills(){
-    const languages = {};
-    LANGUAGES.forEach(l => { languages[l] = 0; });
-    const domains = {};
-    DOMAINS.forEach(d => { domains[d] = 0; });
+  const DEV_LEVELS = ['Graduate', 'Junior', 'Senior', 'Principal'];
+  const ROLES = {
+    Director:  { sloc: 0,  salary: 0 },
+    Manager:   { sloc: 0,  salary: 8,  cost: 300 },
+    Graduate:  { sloc: 5,  salary: 2,  cost: 60,   reliability: 0.70 },
+    Junior:    { sloc: 12, salary: 5,  cost: 250,  reliability: 0.80 },
+    Senior:    { sloc: 30, salary: 12, cost: 1000, reliability: 0.90 },
+    Principal: { sloc: 70, salary: 28, cost: 4000, reliability: 0.95 }
+  };
+  const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
+  const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
 
-    const primaryLang = LANGUAGES[Math.floor(Math.random() * LANGUAGES.length)];
-    const primaryDom = DOMAINS[Math.floor(Math.random() * DOMAINS.length)];
-    languages[primaryLang] = 2 + Math.floor(Math.random() * 2); // 2-3
-    domains[primaryDom] = 2 + Math.floor(Math.random() * 2);
+  // To be promoted INTO a level: minutes at the current level, plus best
+  // language and best domain bars.
+  const PROMOTION = {
+    Junior:    { minutes: 10, lang: 1, dom: 1 },
+    Senior:    { minutes: 30, lang: 3, dom: 2 },
+    Principal: { minutes: 90, lang: 5, dom: 5 }
+  };
 
-    if(Math.random() < 0.4){
-      const others = LANGUAGES.filter(l => l !== primaryLang);
-      languages[others[Math.floor(Math.random() * others.length)]] = 1;
+  // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
+  // directly below; each manager personally covers one slot at every level
+  // (so a new studio can get started) and up to PRINCIPALS_PER_MANAGER
+  // principals, and can look after at most MANAGER_SPAN devs in total.
+  // In a start-up the Director doubles as the manager, but only has time for
+  // DIRECTOR_SPAN devs and one principal — beyond that you need real managers.
+  const MENTOR_SPAN = 3;
+  const PRINCIPALS_PER_MANAGER = 3;
+  const MANAGER_SPAN = 12;
+  const DIRECTOR_SPAN = 4;
+
+  const LINE_RATE = 2; // ¤ per SLOC delivered, before multipliers
+
+  const TIERS = [
+    { key: 'quick',     name: 'Quick Fix',     minutes: 1,  min: 1,  max: 1,  mult: 1.0, xp: 10,  rep: 0.5,
+      needs: {}, req: '1 developer, any level' },
+    { key: 'sprint',    name: 'Sprint',        minutes: 10, min: 3,  max: 5,  mult: 1.2, xp: 40,  rep: 2,
+      needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
+    { key: 'milestone', name: 'Milestone',     minutes: 30, min: 5,  max: 10, mult: 1.5, xp: 120, rep: 6,
+      needs: { Principal: 1 }, req: '5–10 devs · 1+ principal' },
+    { key: 'full',      name: 'Full Delivery', minutes: 90, min: 10, max: 20, mult: 2.0, xp: 300, rep: 20,
+      needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
+  ];
+  const OFFERS_PER_TIER = 2;
+
+  const FIRST_NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan',
+                       'Avery','Rowan','Kai','Emerson','Harper','Skyler','Parker','Sage','Hayden','Robin','Ari','Noa'];
+  const OFFLINE_CAP_SECONDS = 4 * 60 * 60;
+  const LOG_LENGTH = 8;
+
+  // ---------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------
+
+  function rand(n){ return Math.floor(Math.random() * n); }
+  function pick(arr){ return arr[rand(arr.length)]; }
+  function shuffle(arr){
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = rand(i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    if(Math.random() < 0.4){
-      const others = DOMAINS.filter(d => d !== primaryDom);
-      domains[others[Math.floor(Math.random() * others.length)]] = 1;
-    }
+    return arr;
+  }
+  function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]); }
 
-    return { languages, domains, primaryLang, primaryDom };
+  function bars(xp){
+    let b = 0;
+    while(b < MAX_BARS && (xp || 0) >= BAR_XP[b]) b++;
+    return b;
+  }
+  function xpForBars(b){ return b <= 0 ? 0 : BAR_XP[b - 1]; }
+  function barString(b){ return '■'.repeat(b) + '□'.repeat(MAX_BARS - b); }
+  function bestBars(skillMap){
+    return Object.values(skillMap).reduce((m, xp) => Math.max(m, bars(xp)), 0);
   }
 
-  function ensureSkills(p){
-    if(!p.skills) p.skills = rollSkills();
-    return p.skills;
+  function isDev(p){ return DEV_LEVELS.indexOf(p.role) >= 0; }
+  function levelRank(role){ return DEV_LEVELS.indexOf(role); }
+
+  function fmt(n){
+    const sign = n < 0 ? '−' : '';
+    return sign + '¤' + Math.abs(n).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+  }
+  function fmtClock(ms){
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return h ? h + ':' + pad(m) + ':' + pad(sec) : m + ':' + pad(sec);
+  }
+
+  // Replace a container's HTML only when it actually changes, so the
+  // one-second tick doesn't swallow clicks on buttons inside it.
+  function setHTML(el, html){
+    if(el._html !== html){
+      el.innerHTML = html;
+      el._html = html;
+    }
   }
 
   // ---------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------
 
-  const STORAGE_KEY = 'contract-debugger-state-v1';
+  const STORAGE_KEY = 'contract-debugger-state-v3';
 
   function freshState(){
+    const now = Date.now();
     return {
-      money: 100,
+      money: 150,
       reputation: 0,
-      roster: [ makeHire(0) ],
-      lastTick: Date.now(),
-      collapsedLevels: [],
-      activeContract: null // { lengthIndex, puzzleIdxs, index, puzzles: [{attempts, status, clean, hintUsed}] }
+      roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {}, dom: {} }],
+      board: makeBoard(),
+      jobs: [],             // staffed contracts in progress
+      log: [],
+      lastTick: now,
+      collapsedLevels: [],  // roster tree groups folded in the UI
+      activeContract: null  // the Director's own puzzle contract
     };
   }
 
-  function makeHire(seed){
-    const name = NAMES[Math.floor(Math.random() * NAMES.length)] + ' #' + (seed + 1);
-    return {
-      id: 'p' + Date.now() + '_' + Math.floor(Math.random() * 10000),
-      name,
-      level: 'Graduate',
-      xp: 0,
-      skills: rollSkills()
-    };
+  function makeOffer(tierIndex){
+    const lang = pick(LANGS);
+    return { id: uid('c'), tier: tierIndex, lang, dom: pick(PAIRINGS[lang]) };
+  }
+  function makeBoard(){
+    const board = [];
+    TIERS.forEach((_, i) => { for(let k = 0; k < OFFERS_PER_TIER; k++) board.push(makeOffer(i)); });
+    return board;
+  }
+
+  function makeHire(role){
+    const p = { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.',
+                role, since: Date.now(), lang: {}, dom: {} };
+    const langs = shuffle(LANGS.slice());
+    const doms = shuffle(DOMAINS.slice());
+    const set = (map, key, b) => { if(b > 0) map[key] = xpForBars(b); };
+
+    if(role === 'Graduate'){
+      // A language from uni, no domain experience.
+      set(p.lang, langs[0], 1);
+    }else if(role === 'Junior'){
+      // Up to 1 bar in at most 2 domains.
+      set(p.lang, langs[0], 1 + rand(2));
+      if(Math.random() < 0.5) set(p.lang, langs[1], 1);
+      set(p.dom, doms[0], 1);
+      if(Math.random() < 0.5) set(p.dom, doms[1], 1);
+    }else if(role === 'Senior'){
+      set(p.lang, langs[0], 3 + rand(2));
+      set(p.lang, langs[1], 1 + rand(2));
+      set(p.dom, doms[0], 2 + rand(2));
+      set(p.dom, doms[1], rand(2));
+    }else if(role === 'Principal'){
+      // At least one language and one domain at full bars.
+      set(p.lang, langs[0], 5);
+      set(p.lang, langs[1], 2 + rand(3));
+      set(p.lang, langs[2], 1 + rand(2));
+      set(p.dom, doms[0], 5);
+      set(p.dom, doms[1], 2 + rand(3));
+    }
+    return p;
   }
 
   let state = null;
@@ -703,30 +974,218 @@
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
   }
 
-  function levelStats(level){ return LEVEL_STATS[level]; }
-
-  function programmerNetPerSecond(p){
-    const s = levelStats(p.level);
-    return (s.sloc * INCOME_PER_LINE - s.salary) / 60;
+  function person(id){ return state.roster.find(p => p.id === id); }
+  function busyIds(){
+    const ids = new Set();
+    state.jobs.forEach(j => j.team.forEach(id => ids.add(id)));
+    return ids;
   }
-  function studioNetPerSecond(){
-    return state.roster.reduce((sum, p) => sum + programmerNetPerSecond(p), 0);
+  function jobFor(id){ return state.jobs.find(j => j.team.indexOf(id) >= 0); }
+
+  function addLog(kind, text){
+    state.log.unshift({ kind, text });
+    state.log.length = Math.min(state.log.length, LOG_LENGTH);
   }
 
-  function applyTick(seconds){
-    if(seconds <= 0) return;
-    state.roster.forEach(p => {
-      const s = levelStats(p.level);
-      state.money += (s.sloc * INCOME_PER_LINE - s.salary) * (seconds / 60);
-      if(s.xpToNext !== Infinity){
-        p.xp += s.sloc * (seconds / 60);
-        while(p.xp >= levelStats(p.level).xpToNext && LEVELS.indexOf(p.level) < LEVELS.length - 1){
-          p.xp -= levelStats(p.level).xpToNext;
-          p.level = LEVELS[LEVELS.indexOf(p.level) + 1];
-        }
-      }
+  // ---------------------------------------------------------------------
+  // Structure rules
+  // ---------------------------------------------------------------------
+
+  function headcounts(roster){
+    const c = { Manager: 0, Graduate: 0, Junior: 0, Senior: 0, Principal: 0, devs: 0 };
+    roster.forEach(p => {
+      if(c[p.role] !== undefined) c[p.role]++;
+      if(isDev(p)) c.devs++;
     });
-    if(state.money < 0) state.money = 0;
+    return c;
+  }
+  // The Director counts as one extra "manager seed" (one slot per level) with
+  // a smaller span of control.
+  function capacity(c){
+    const seeds = c.Manager + 1;
+    return {
+      Principal: PRINCIPALS_PER_MANAGER * c.Manager + 1,
+      Senior:    MENTOR_SPAN * c.Principal + seeds,
+      Junior:    MENTOR_SPAN * c.Senior + seeds,
+      Graduate:  MENTOR_SPAN * c.Junior + seeds,
+      devs:      MANAGER_SPAN * c.Manager + DIRECTOR_SPAN
+    };
+  }
+  // Returns why a headcount would be invalid, or null if it's fine.
+  function structureProblem(c){
+    const cap = capacity(c);
+    if(c.devs > cap.devs){
+      return c.Manager ? 'managers are at capacity — hire another manager'
+                       : 'you can only look after ' + DIRECTOR_SPAN + ' devs — hire a manager';
+    }
+    if(c.Principal > cap.Principal) return 'no principal slot — hire another manager';
+    if(c.Senior > cap.Senior) return 'no senior slot — needs another principal';
+    if(c.Junior > cap.Junior) return 'no junior slot — needs another senior';
+    if(c.Graduate > cap.Graduate) return 'no grad slot — needs another junior';
+    return null;
+  }
+  function problemWith(change){
+    const c = headcounts(state.roster);
+    Object.keys(change).forEach(k => {
+      c[k] += change[k];
+      if(DEV_LEVELS.indexOf(k) >= 0) c.devs += change[k];
+    });
+    return structureProblem(c);
+  }
+
+  function hireProblem(role){
+    return problemWith({ [role]: 1 });
+  }
+  function releaseProblem(p){
+    if(jobFor(p.id)) return 'on a contract';
+    const why = problemWith({ [p.role]: -1 });
+    return why ? 'would leave the team unsupervised' : null;
+  }
+
+  function promotionStatus(p, now){
+    const r = levelRank(p.role);
+    if(r < 0 || r === DEV_LEVELS.length - 1) return null;
+    const next = DEV_LEVELS[r + 1];
+    const req = PROMOTION[next];
+    const missing = [];
+    const minsLeft = req.minutes - (now - p.since) / 60000;
+    if(minsLeft > 0) missing.push(Math.ceil(minsLeft) + 'm tenure');
+    if(bestBars(p.lang) < req.lang) missing.push('a language at ' + req.lang);
+    if(bestBars(p.dom) < req.dom) missing.push('a domain at ' + req.dom);
+    const blocked = missing.length ? null : problemWith({ [p.role]: -1, [next]: 1 });
+    return { next, missing, blocked, ready: !missing.length && !blocked };
+  }
+
+  // ---------------------------------------------------------------------
+  // Staffed contracts
+  // ---------------------------------------------------------------------
+
+  function eligibleFor(tier, p){
+    if(p.role === 'Director') return false;
+    if(p.role === 'Manager') return !!tier.needs.Manager;
+    return true;
+  }
+
+  function evaluateTeam(tier, offer, members){
+    const devs = members.filter(isDev);
+    const managers = members.filter(p => p.role === 'Manager').length;
+    const atLeast = level => devs.filter(d => levelRank(d.role) >= levelRank(level)).length;
+    const checks = [];
+
+    const sizeLabel = tier.min === tier.max ? tier.min + ' person' + (tier.min > 1 ? 's' : '')
+                    : tier.key === 'full' ? tier.min + '+ people'
+                    : tier.min + '–' + tier.max + ' people';
+    checks.push({ label: sizeLabel + ' (' + members.length + ')', ok: members.length >= tier.min && members.length <= tier.max });
+    if(tier.needs.Manager) checks.push({ label: tier.needs.Manager + '+ manager', ok: managers >= tier.needs.Manager });
+    if(tier.needs.Principal) checks.push({ label: tier.needs.Principal + '+ principal', ok: atLeast('Principal') >= tier.needs.Principal });
+    if(tier.needs.Senior){
+      // Extra principals can fill senior seats.
+      const need = tier.needs.Senior + (tier.needs.Principal || 0);
+      checks.push({ label: tier.needs.Senior + '+ senior' + (tier.needs.Principal ? ' (beyond the principals)' : ' or above'),
+                    ok: atLeast('Senior') >= need });
+    }
+    if(!devs.length) checks.push({ label: 'at least one developer', ok: false });
+
+    const valid = checks.every(c => c.ok);
+    const sloc = devs.reduce((s, d) => s + ROLES[d.role].sloc, 0);
+    const skill = devs.length
+      ? devs.reduce((s, d) => s + (bars(d.lang[offer.lang]) + bars(d.dom[offer.dom])) / (2 * MAX_BARS), 0) / devs.length
+      : 0;
+    const matched = devs.filter(d => bars(d.lang[offer.lang]) > 0 && bars(d.dom[offer.dom]) > 0).length;
+    const reliability = devs.length ? devs.reduce((s, d) => s + ROLES[d.role].reliability, 0) / devs.length : 0;
+    const chance = devs.length ? Math.min(0.98, reliability + 0.05 * (matched / devs.length)) : 0;
+    const payout = Math.round(sloc * tier.minutes * LINE_RATE * tier.mult * (1 + skill));
+    const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * tier.minutes;
+
+    return { checks, valid, sloc, chance, payout, salaryCost };
+  }
+
+  function startJob(offerId, memberIds, repeat){
+    const offerIdx = state.board.findIndex(o => o.id === offerId);
+    if(offerIdx < 0) return false;
+    const offer = state.board[offerIdx];
+    const tier = TIERS[offer.tier];
+    const busy = busyIds();
+    const members = memberIds.map(person).filter(p => p && !busy.has(p.id) && eligibleFor(tier, p));
+    if(members.length !== memberIds.length) return false;
+    const ev = evaluateTeam(tier, offer, members);
+    if(!ev.valid) return false;
+
+    const now = Date.now();
+    state.jobs.push(newJob(offer, memberIds.slice(), now, ev, !!repeat));
+    state.board[offerIdx] = makeOffer(offer.tier);
+    save();
+    return true;
+  }
+
+  function newJob(offer, team, startedAt, ev, repeat){
+    return {
+      id: offer.id, tier: offer.tier, lang: offer.lang, dom: offer.dom,
+      team, startedAt, endsAt: startedAt + TIERS[offer.tier].minutes * 60000,
+      chance: ev.chance, payout: ev.payout, repeat
+    };
+  }
+
+  function settleJob(job){
+    const tier = TIERS[job.tier];
+    const tag = tier.name + ' (' + job.lang + ' / ' + job.dom + ')';
+    if(Math.random() < job.chance){
+      state.money += job.payout;
+      state.reputation += tier.rep;
+      job.team.forEach(id => {
+        const p = person(id);
+        if(!p || !isDev(p)) return;
+        p.lang[job.lang] = (p.lang[job.lang] || 0) + tier.xp;
+        p.dom[job.dom] = (p.dom[job.dom] || 0) + tier.xp;
+      });
+      addLog('ok', '✓ ' + tag + ' delivered — ' + fmt(job.payout) + ', +' + tier.xp + ' XP to the team.');
+    }else{
+      state.reputation = Math.max(0, state.reputation - tier.rep / 2);
+      addLog('bad', '✕ ' + tag + ' failed — no payout.');
+    }
+  }
+
+  // A repeating job rolls straight into a fresh contract of the same type
+  // (new random language/domain) with the same team, starting the moment
+  // the last one ended — so it keeps working while the page is closed.
+  function restartJob(job){
+    const members = job.team.map(person);
+    const tier = TIERS[job.tier];
+    const offer = makeOffer(job.tier);
+    const ev = members.every(Boolean) ? evaluateTeam(tier, offer, members) : null;
+    if(!ev || !ev.valid){
+      addLog('info', tier.name + ' repeat stopped — the team no longer fits the requirements.');
+      return;
+    }
+    state.jobs.push(newJob(offer, job.team, job.endsAt, ev, true));
+  }
+
+  function resolveDueJobs(now){
+    // Repeats don't chain further back than the offline cap.
+    const repeatCutoff = now - OFFLINE_CAP_SECONDS * 1000;
+    let finished = 0;
+    for(;;){
+      const due = state.jobs.filter(j => j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
+      if(!due.length) break;
+      const job = due[0];
+      state.jobs = state.jobs.filter(j => j !== job);
+      settleJob(job);
+      finished++;
+      if(job.repeat && job.endsAt >= repeatCutoff) restartJob(job);
+    }
+    return finished;
+  }
+
+  function setRepeat(jobId, on){
+    const job = state.jobs.find(j => j.id === jobId);
+    if(job) job.repeat = on;
+  }
+
+  function payrollPerMinute(){
+    return state.roster.reduce((s, p) => s + ROLES[p.role].salary, 0);
+  }
+  function paySalaries(seconds){
+    if(seconds > 0) state.money -= payrollPerMinute() * seconds / 60;
   }
 
   // ---------------------------------------------------------------------
@@ -735,158 +1194,464 @@
 
   const statMoney = document.getElementById('statMoney');
   const statRep = document.getElementById('statRep');
-  const statRate = document.getElementById('statRate');
+  const statPayroll = document.getElementById('statPayroll');
+  const statHeads = document.getElementById('statHeads');
   const contractTag = document.getElementById('contractTag');
   const contractBody = document.getElementById('contractBody');
+  const structureEl = document.getElementById('structure');
   const rosterEl = document.getElementById('roster');
   const rosterCount = document.getElementById('rosterCount');
-  const hireBtn = document.getElementById('hireBtn');
+  const hireGrid = document.getElementById('hireGrid');
+  const boardEl = document.getElementById('board');
+  const jobsEl = document.getElementById('jobs');
+  const logEl = document.getElementById('log');
   const welcomeToast = document.getElementById('welcomeToast');
-  const skillModalOverlay = document.getElementById('skillModalOverlay');
-  const skillModal = document.getElementById('skillModal');
-
-  function fmt(n){
-    return '¤' + Math.max(0, n).toLocaleString('en-GB', { maximumFractionDigits: 0 });
-  }
-
-  function hireCost(){
-    return Math.round(60 * Math.pow(1.55, state.roster.length));
-  }
+  const teamModal = document.getElementById('teamModal');
+  const teamModalBody = document.getElementById('teamModalBody');
+  const personModal = document.getElementById('personModal');
+  const personModalBody = document.getElementById('personModalBody');
 
   // ---------------------------------------------------------------------
-  // Rendering: top stats + roster
+  // Rendering: stats, studio, board
   // ---------------------------------------------------------------------
 
   function renderStats(){
     statMoney.textContent = fmt(state.money);
+    statMoney.classList.toggle('neg', state.money < 0);
     statRep.textContent = Math.floor(state.reputation).toLocaleString('en-GB');
-    const rate = studioNetPerSecond();
-    statRate.textContent = (rate >= 0 ? '+' : '') + '¤' + rate.toFixed(2) + '/s';
-    statRate.style.color = rate >= 0 ? 'var(--green)' : 'var(--red)';
+    statPayroll.textContent = '−¤' + payrollPerMinute() + '/min';
+    statHeads.textContent = state.roster.length;
   }
-
-  function isLevelCollapsed(level){
-    return (state.collapsedLevels || []).includes(level);
-  }
-  function toggleLevel(level){
-    if(!state.collapsedLevels) state.collapsedLevels = [];
-    const i = state.collapsedLevels.indexOf(level);
-    if(i === -1) state.collapsedLevels.push(level); else state.collapsedLevels.splice(i, 1);
-    save();
-    renderRoster();
-  }
-
-  function renderRoster(){
-    rosterEl.innerHTML = '';
-    rosterCount.textContent = state.roster.length + ' hired';
-
-    LEVELS.forEach(level => {
-      const members = state.roster.filter(p => p.level === level);
-      if(members.length === 0) return;
-
-      const s = levelStats(level);
-      const totalSloc = members.length * s.sloc;
-      const totalSalary = members.length * s.salary;
-      const netPerMin = totalSloc * INCOME_PER_LINE - totalSalary;
-      const collapsed = isLevelCollapsed(level);
-
-      const group = document.createElement('div');
-      group.className = 'level-group' + (collapsed ? ' collapsed' : '');
-
-      const header = document.createElement('div');
-      header.className = 'level-header';
-      header.innerHTML =
-        '<div class="level-header-left"><span class="chevron">▾</span>' +
-        '<span class="level-name">' + level + '</span>' +
-        '<span class="level-count">×' + members.length + '</span></div>' +
-        '<div class="level-sum">' + totalSloc + ' SLOC/min · ' +
-        '<span class="' + (netPerMin >= 0 ? 'net-pos' : 'net-neg') + '">' +
-        (netPerMin >= 0 ? '+' : '') + '¤' + netPerMin.toFixed(0) + '/min</span></div>';
-      header.addEventListener('click', () => toggleLevel(level));
-      group.appendChild(header);
-
-      const body = document.createElement('div');
-      body.className = 'level-body';
-      members.forEach(p => {
-        const pct = s.xpToNext === Infinity ? 100 : Math.min(100, (p.xp / s.xpToNext) * 100);
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML =
-          '<div class="card-top"><span class="card-name">' + p.name + '</span>' +
-          '<span class="card-level">' + p.level + '</span></div>' +
-          '<div class="card-stats"><span>' + s.sloc + ' SLOC/min</span><span>−¤' + s.salary + '/min</span></div>' +
-          '<div class="xp-bar"><div class="xp-fill" style="width:' + pct + '%"></div></div>';
-        card.addEventListener('click', () => openSkillModal(p.id));
-        body.appendChild(card);
-      });
-      group.appendChild(body);
-
-      rosterEl.appendChild(group);
-    });
-
-    hireBtn.textContent = 'Hire graduate — ' + fmt(hireCost());
-    hireBtn.disabled = state.money < hireCost();
-  }
-
-  hireBtn.addEventListener('click', () => {
-    const cost = hireCost();
-    if(state.money < cost) return;
-    state.money -= cost;
-    state.roster.push(makeHire(state.roster.length));
-    save();
-    renderStats();
-    renderRoster();
-  });
 
   // ---------------------------------------------------------------------
-  // Skill modal
+  // Employee panel
   // ---------------------------------------------------------------------
 
-  function skillBarsHtml(map, primaryName){
-    return Object.keys(map).map(name => {
-      const level = map[name];
+  let inspectId = null;
+
+  function skillRowsHTML(names, map, kind){
+    const top = names.reduce((m, n) => Math.max(m, bars(map[n])), 0);
+    return names.map(name => {
+      const xp = map[name] || 0;
+      const b = bars(xp);
       let pips = '';
-      for(let i = 0; i < 5; i++){
-        const filled = i < level;
-        const primary = filled && name === primaryName;
-        pips += '<div class="skill-pip' + (filled ? ' filled' + (primary ? ' primary' : '') : '') + '"></div>';
+      for(let i = 0; i < MAX_BARS; i++){
+        const filled = i < b;
+        pips += '<div class="skill-pip' + (filled ? ' filled ' + kind + (b === top ? ' best' : '') : '') + '"></div>';
       }
-      return '<div class="skill-row"><span class="skill-name">' + name + '</span>' +
-             '<div class="skill-bar">' + pips + '</div></div>';
+      const xpText = b >= MAX_BARS ? 'max' : Math.floor(xp) + '/' + BAR_XP[b];
+      return '<div class="skill-row"><span class="skill-name">' + esc(name) + '</span>' +
+             '<div class="skill-bar">' + pips + '</div><span class="skill-xp">' + xpText + ' xp</span></div>';
     }).join('');
   }
 
-  function openSkillModal(id){
-    const p = state.roster.find(x => x.id === id);
-    if(!p) return;
-    const skills = ensureSkills(p);
+  function renderPersonModal(now){
+    if(!inspectId) return;
+    const p = person(inspectId);
+    if(!p){ closePersonModal(); return; }
+    const role = ROLES[p.role];
+    const job = jobFor(p.id);
+    const tenure = Math.floor((now - p.since) / 60000);
+
+    let body = '';
+    if(isDev(p)){
+      body += '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, p.lang, 'lang') +
+              '<div class="skill-section-title">Domains</div>' + skillRowsHTML(DOMAINS, p.dom, 'dom');
+      const ps = promotionStatus(p, now);
+      if(ps){
+        const req = PROMOTION[ps.next];
+        const minsLeft = Math.ceil(req.minutes - (now - p.since) / 60000);
+        const row = (ok, text) => '<div class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ ' : '○ ') + text + '</div>';
+        body += '<div class="skill-section-title">Promotion to ' + ps.next + '</div><div class="req-list">' +
+          row(minsLeft <= 0, req.minutes + ' min as ' + p.role.toLowerCase() + (minsLeft > 0 ? ' (' + minsLeft + 'm to go)' : '')) +
+          row(bestBars(p.lang) >= req.lang, 'A language at ' + req.lang + ' bar' + (req.lang > 1 ? 's' : '')) +
+          row(bestBars(p.dom) >= req.dom, 'A domain at ' + req.dom + ' bar' + (req.dom > 1 ? 's' : '')) +
+          (ps.blocked ? '<div class="no" style="color:var(--amber)">⚠ ' + esc(ps.blocked) + '</div>' : '') +
+          '</div>';
+      }else{
+        body += '<div class="skill-section-title">Promotion</div><div class="req-list"><div class="ok">Top of the ladder.</div></div>';
+      }
+    }else{
+      body += '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
+              'Managers don’t write code. Each one looks after up to ' + MANAGER_SPAN + ' devs and ' +
+              PRINCIPALS_PER_MANAGER + ' principals, and one is needed on every full delivery.</div></div>';
+    }
+
+    setHTML(personModalBody,
+      '<div class="modal-top"><div><div class="modal-name">' + esc(p.name) + '</div>' +
+      '<div class="modal-level">' + p.role + '</div></div></div>' +
+      '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−¤' + role.salary + '/min upkeep · ' +
+      tenure + 'm in role<br>' +
+      (job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ' / ' + esc(job.dom) + ') — ' + fmtClock(job.endsAt - now) + ' left'
+           : 'Idle') + '</div>' +
+      body);
+  }
+
+  function openPersonModal(id){
+    inspectId = id;
+    personModal.hidden = false;
+    renderPersonModal(Date.now());
+  }
+  function closePersonModal(){
+    inspectId = null;
+    personModal.hidden = true;
+    setHTML(personModalBody, '');
+  }
+
+  personModal.addEventListener('click', (e) => {
+    if(e.target === personModal || e.target.closest('[data-action=close-person]')) closePersonModal();
+  });
+
+  function renderStudio(now){
+    const c = headcounts(state.roster);
+    const cap = capacity(c);
+    const slot = (label, have, max) =>
+      '<span class="slot' + (max > 0 && have >= max ? ' full' : '') + '">' + label + ' ' + have + '/' + max + '</span>';
+    setHTML(structureEl,
+      '<span class="slot">Managers ' + c.Manager + '</span>' +
+      slot('Principals', c.Principal, cap.Principal) +
+      slot('Seniors', c.Senior, cap.Senior) +
+      slot('Juniors', c.Junior, cap.Junior) +
+      slot('Grads', c.Graduate, cap.Graduate) +
+      slot('Devs', c.devs, cap.devs));
+
+    rosterCount.textContent = state.roster.length + (state.roster.length === 1 ? ' person' : ' people');
+
+    const director = state.roster.find(p => p.role === 'Director');
+    const c0 = headcounts(state.roster);
+    let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +
+               '<span class="card-level">Director</span></div>' +
+               '<div class="card-foot"><span>' + (c0.Manager
+                 ? 'Solving puzzles at your desk. Your managers look after the team.'
+                 : 'Solving puzzles at your desk, and managing the start-up yourself (up to ' + DIRECTOR_SPAN + ' devs).') +
+               '</span></div></div>';
+
+    ROSTER_GROUPS.forEach(level => {
+      const members = state.roster.filter(p => p.role === level);
+      if(!members.length) return;
+      const sloc = members.length * ROLES[level].sloc;
+      const salary = members.length * ROLES[level].salary;
+      const busy = members.filter(p => jobFor(p.id)).length;
+      const collapsed = state.collapsedLevels.indexOf(level) >= 0;
+      html += '<div class="level-group' + (collapsed ? ' collapsed' : '') + '">' +
+        '<div class="level-header" data-action="toggle-level" data-level="' + level + '">' +
+          '<div class="level-header-left"><span class="chevron">▾</span>' +
+          '<span class="level-name">' + level + (members.length > 1 ? 's' : '') + '</span>' +
+          '<span class="level-count">×' + members.length + ' · ' + busy + ' busy</span></div>' +
+          '<div class="level-sum">' + (sloc ? sloc + ' SLOC/min · ' : '') + '−¤' + salary + '/min</div>' +
+        '</div><div class="level-body">' +
+        members.map(p => cardHTML(p, now)).join('') +
+        '</div></div>';
+    });
+    setHTML(rosterEl, html);
+    renderPersonModal(now);
+
+    let hire = '';
+    HIRE_ORDER.forEach(role => {
+      const why = hireProblem(role);
+      const cost = ROLES[role].cost;
+      const broke = state.money < cost;
+      hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') + '" data-action="hire" data-role="' + role + '"' +
+              (why || broke ? ' disabled' : '') + '>' +
+              '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost">' + fmt(cost) + '</span>' +
+              '<span class="why">' + (why ? esc(why) : broke ? 'not enough cash' : ROLES[role].salary + '/min salary') + '</span>' +
+              '</button>';
+    });
+    setHTML(hireGrid, hire);
+  }
+
+  function cardHTML(p, now){
+    const role = ROLES[p.role];
+    const job = jobFor(p.id);
+    const status = job
+      ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) + ' / ' + esc(job.dom) +
+        (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
+      : '<span class="status-idle">Idle</span>';
+
+    let promo = '';
+    const ps = promotionStatus(p, now);
+    if(ps){
+      if(ps.ready){
+        promo = '<button class="btn-small btn-promote" data-action="promote" data-id="' + p.id + '">Promote to ' + ps.next + '</button>';
+      }else if(ps.blocked){
+        promo = '<span class="promo blocked">Ready for ' + ps.next + ', but ' + esc(ps.blocked) + '</span>';
+      }else{
+        promo = '<span class="promo">→ ' + ps.next + ': needs ' + ps.missing.join(', ') + '</span>';
+      }
+    }
+    const releaseWhy = releaseProblem(p);
+    const release = '<button class="btn-small btn-ghost" data-action="release" data-id="' + p.id + '"' +
+                    (releaseWhy ? ' disabled title="Can’t let go: ' + esc(releaseWhy) + '"' : '') + '>Let go</button>';
+
+    return '<div class="card" data-action="inspect" data-id="' + p.id + '">' +
+      '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span>' +
+      '<span class="card-level ' + p.role + '">' + p.role + '</span></div>' +
+      '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
+      '<span>−¤' + role.salary + '/min</span></div>' +
+      '<div class="card-foot">' + status + '<span class="foot-actions">' + release + '</span></div>' +
+      (promo ? '<div class="card-foot" style="margin-top:6px;">' + promo + '</div>' : '') +
+      '</div>';
+  }
+
+  // Short "best language / best domain" summary for a roster card; the full
+  // breakdown is in the employee panel.
+  function topSkillsText(p){
+    const best = map => Object.keys(map).sort((a, b) => map[b] - map[a]).find(k => bars(map[k]) > 0);
+    const lang = best(p.lang), dom = best(p.dom);
+    return [lang ? esc(lang) + ' ' + bars(p.lang[lang]) : null,
+            dom ? esc(dom) + ' ' + bars(p.dom[dom]) : 'no domain'].filter(Boolean).join(' · ');
+  }
+
+  function renderBoard(){
+    let html = '';
+    state.board.forEach(o => {
+      const t = TIERS[o.tier];
+      html += '<div class="offer">' +
+        '<div class="offer-top"><span class="name">' + t.name + '</span><span class="dur">' + t.minutes + ' min</span></div>' +
+        '<div class="chips"><span class="chip lang">' + esc(o.lang) + '</span><span class="chip dom">' + esc(o.dom) + '</span></div>' +
+        '<div class="detail">' + t.req + '</div>' +
+        '<div class="detail">+' + t.xp + ' XP in ' + esc(o.lang) + ' &amp; ' + esc(o.dom) + ' on delivery</div>' +
+        '<button class="btn-ghost btn-small" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
+        '</div>';
+    });
+    setHTML(boardEl, html);
+  }
+
+  // The job list is rebuilt only when jobs start/stop or their repeat flag
+  // changes; the countdowns and progress bars are updated in place each tick
+  // so the repeat toggles stay clickable.
+  function renderJobs(now){
+    const jobs = state.jobs.slice().sort((a, b) => a.endsAt - b.endsAt);
+    if(!jobs.length){
+      setHTML(jobsEl, '<div class="empty">Nobody is on a contract right now.</div>');
+    }else{
+      setHTML(jobsEl, jobs.map(j => {
+        const t = TIERS[j.tier];
+        return '<div class="job">' +
+          '<div class="job-top"><span class="left">' + t.name +
+          ' <span class="chip lang">' + esc(j.lang) + '</span><span class="chip dom">' + esc(j.dom) + '</span></span>' +
+          '<span class="time" data-time="' + j.id + '"></span></div>' +
+          '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
+          '<div class="detail">' + j.team.map(id => { const p = person(id); return p ? esc(p.name) : '?'; }).join(', ') +
+          ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) + ' on delivery</div>' +
+          '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
+          (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>' +
+          '</div>';
+      }).join(''));
+      jobs.forEach(j => {
+        const time = jobsEl.querySelector('[data-time="' + j.id + '"]');
+        const bar = jobsEl.querySelector('[data-bar="' + j.id + '"]');
+        const pct = Math.min(100, ((now - j.startedAt) / (j.endsAt - j.startedAt)) * 100);
+        if(time) time.textContent = fmtClock(j.endsAt - now) + ' left';
+        if(bar) bar.style.width = pct.toFixed(1) + '%';
+      });
+    }
+    setHTML(logEl, state.log.length
+      ? state.log.map(l => '<div class="' + l.kind + '">' + esc(l.text) + '</div>').join('')
+      : '<div class="empty">Nothing delivered yet.</div>');
+  }
+
+  jobsEl.addEventListener('change', (e) => {
+    const id = e.target.dataset && e.target.dataset.repeat;
+    if(!id) return;
+    setRepeat(id, e.target.checked);
     save();
-    const s = levelStats(p.level);
+    renderAll();
+  });
 
-    skillModal.innerHTML =
-      '<div class="modal-top">' +
-        '<div><div class="modal-name">' + p.name + '</div>' +
-        '<div class="modal-level">' + p.level + '</div></div>' +
-        '<button class="modal-close" id="modalCloseBtn">✕</button>' +
+  function renderAll(){
+    const now = Date.now();
+    renderStats();
+    renderStudio(now);
+    renderBoard();
+    renderJobs(now);
+  }
+
+  // ---------------------------------------------------------------------
+  // Team picker
+  // ---------------------------------------------------------------------
+
+  let picker = null; // { offerId, selected: Set, repeat }
+
+  function openPicker(offerId){
+    const offer = state.board.find(o => o.id === offerId);
+    // Quick fixes default to repeating so a grad keeps earning unattended.
+    picker = { offerId, selected: new Set(), repeat: !!offer && TIERS[offer.tier].key === 'quick' };
+    teamModal.hidden = false;
+    renderPicker();
+  }
+  function closePicker(){
+    picker = null;
+    teamModal.hidden = true;
+    teamModalBody.innerHTML = '';
+  }
+
+  function pickerContext(){
+    const offer = state.board.find(o => o.id === picker.offerId);
+    if(!offer) return null;
+    const tier = TIERS[offer.tier];
+    const busy = busyIds();
+    const pool = state.roster.filter(p => eligibleFor(tier, p) && !busy.has(p.id));
+    // Drop any selection that's no longer available.
+    picker.selected.forEach(id => { if(!pool.some(p => p.id === id)) picker.selected.delete(id); });
+    return { offer, tier, pool, busyCount: state.roster.filter(p => eligibleFor(tier, p) && busy.has(p.id)).length };
+  }
+
+  function suggestTeam(tier, offer, pool){
+    const fit = p => bars(p.lang[offer.lang]) + bars(p.dom[offer.dom]);
+    const byFit = pool.slice().sort((a, b) => fit(b) - fit(a) || levelRank(b.role) - levelRank(a.role));
+    const chosen = [];
+    const take = (pred, n) => {
+      for(const p of byFit){
+        if(n <= 0) break;
+        if(chosen.indexOf(p) < 0 && pred(p)){ chosen.push(p); n--; }
+      }
+    };
+    if(tier.needs.Manager) take(p => p.role === 'Manager', tier.needs.Manager);
+    if(tier.needs.Principal) take(p => p.role === 'Principal', tier.needs.Principal);
+    if(tier.needs.Senior){
+      const have = () => chosen.filter(p => levelRank(p.role) >= levelRank('Senior')).length;
+      const need = tier.needs.Senior + (tier.needs.Principal || 0);
+      take(p => p.role === 'Senior', need - have());
+      take(p => p.role === 'Principal', need - have());
+    }
+    // Fill the rest with the most junior people first — that's who needs the XP.
+    const filler = pool.filter(isDev).sort((a, b) => levelRank(a.role) - levelRank(b.role) || fit(b) - fit(a));
+    for(const p of filler){
+      if(chosen.length >= tier.min) break;
+      if(chosen.indexOf(p) < 0) chosen.push(p);
+    }
+    return chosen.map(p => p.id);
+  }
+
+  function renderPicker(){
+    if(!picker) return;
+    const ctx = pickerContext();
+    if(!ctx){ closePicker(); return; }
+    const { offer, tier, pool, busyCount } = ctx;
+    const members = pool.filter(p => picker.selected.has(p.id));
+    const ev = evaluateTeam(tier, offer, members);
+
+    const order = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
+    const rows = pool.slice().sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role)).map(p => {
+      const on = picker.selected.has(p.id);
+      const meta = isDev(p)
+        ? '<span class="bars">' + barString(bars(p.lang[offer.lang])) + '</span> <span class="bars dom">' + barString(bars(p.dom[offer.dom])) + '</span>'
+        : 'no SLOC';
+      return '<label class="pick' + (on ? ' on' : '') + '">' +
+        '<input type="checkbox" data-pick="' + p.id + '"' + (on ? ' checked' : '') + '>' +
+        '<span><b>' + esc(p.name) + '</b> · ' + p.role + '</span>' +
+        '<span class="meta">' + meta + '</span></label>';
+    }).join('');
+
+    teamModalBody.innerHTML =
+      '<h2>' + tier.name + ' <span class="chip lang">' + esc(offer.lang) + '</span><span class="chip dom">' + esc(offer.dom) + '</span>' +
+      ' <span class="tag">' + tier.minutes + ' min</span></h2>' +
+      '<div class="offer"><div class="detail" style="border:none;padding:0;">Needs ' + tier.req +
+      '. Bars shown are each person’s ' + esc(offer.lang) + ' / ' + esc(offer.dom) + ' skill.</div></div>' +
+      '<div class="pick-list">' + (rows || '<div class="empty">Nobody free who can take this on.</div>') + '</div>' +
+      (busyCount ? '<div class="empty" style="margin-bottom:10px;">' + busyCount + ' more busy on other contracts.</div>' : '') +
+      '<div class="checks">' + ev.checks.map(c => '<span class="check ' + (c.ok ? 'ok' : 'no') + '">' + (c.ok ? '✓ ' : '✕ ') + esc(c.label) + '</span>').join('') + '</div>' +
+      '<div class="forecast">' +
+        'Success chance <b>' + Math.round(ev.chance * 100) + '%</b> · Payout <b>' + fmt(ev.payout) + '</b> · ' +
+        'Salaries over the job <b>' + fmt(ev.salaryCost) + '</b><br>' +
+        'Everyone gains <b>+' + tier.xp + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered.' +
       '</div>' +
-      '<div class="modal-sub">' + s.sloc + ' SLOC/min · −¤' + s.salary + '/min upkeep</div>' +
-      '<div class="skill-section-title">Languages</div>' + skillBarsHtml(skills.languages, skills.primaryLang) +
-      '<div class="skill-section-title">Domains</div>' + skillBarsHtml(skills.domains, skills.primaryDom);
-
-    document.getElementById('modalCloseBtn').addEventListener('click', closeSkillModal);
-    skillModalOverlay.className = 'modal-overlay show';
+      '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
+        'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' +
+      '<div class="actions">' +
+        '<button class="btn-primary" data-action="pick-start"' + (ev.valid ? '' : ' disabled') + '>Start contract</button>' +
+        '<button class="btn-ghost" data-action="pick-suggest">Suggest a team</button>' +
+        '<button class="btn-ghost" data-action="pick-cancel">Cancel</button>' +
+      '</div>';
   }
 
-  function closeSkillModal(){
-    skillModalOverlay.className = 'modal-overlay';
-  }
-
-  skillModalOverlay.addEventListener('click', (e) => {
-    if(e.target === skillModalOverlay) closeSkillModal();
+  teamModal.addEventListener('change', (e) => {
+    if(picker && e.target.hasAttribute('data-picker-repeat')){
+      picker.repeat = e.target.checked;
+      return;
+    }
+    const id = e.target.dataset && e.target.dataset.pick;
+    if(!id || !picker) return;
+    if(e.target.checked) picker.selected.add(id); else picker.selected.delete(id);
+    renderPicker();
+  });
+  teamModal.addEventListener('click', (e) => {
+    if(e.target === teamModal){ closePicker(); return; }
+    const btn = e.target.closest('[data-action]');
+    if(!btn || !picker) return;
+    const action = btn.dataset.action;
+    if(action === 'pick-cancel'){
+      closePicker();
+    }else if(action === 'pick-suggest'){
+      const ctx = pickerContext();
+      if(!ctx) return;
+      picker.selected = new Set(suggestTeam(ctx.tier, ctx.offer, ctx.pool));
+      renderPicker();
+    }else if(action === 'pick-start'){
+      if(startJob(picker.offerId, Array.from(picker.selected), picker.repeat)){
+        closePicker();
+        renderAll();
+      }else{
+        renderPicker();
+      }
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if(e.key !== 'Escape') return;
+    if(picker) closePicker();
+    if(inspectId) closePersonModal();
   });
 
   // ---------------------------------------------------------------------
-  // Contract flow
+  // Studio actions
+  // ---------------------------------------------------------------------
+
+  document.querySelector('.wrap').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if(!btn || btn.disabled) return;
+    const action = btn.dataset.action;
+
+    if(action === 'hire'){
+      const role = btn.dataset.role;
+      const cost = ROLES[role].cost;
+      if(state.money < cost || hireProblem(role)) return;
+      state.money -= cost;
+      const hire = makeHire(role);
+      state.roster.push(hire);
+      addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
+    }else if(action === 'promote'){
+      const p = person(btn.dataset.id);
+      const ps = p && promotionStatus(p, Date.now());
+      if(!ps || !ps.ready) return;
+      p.role = ps.next;
+      p.since = Date.now();
+      addLog('ok', '★ ' + p.name + ' promoted to ' + ps.next.toLowerCase() + '.');
+    }else if(action === 'release'){
+      const p = person(btn.dataset.id);
+      if(!p || releaseProblem(p)) return;
+      if(!confirm('Let ' + p.name + ' go?')) return;
+      state.roster = state.roster.filter(x => x.id !== p.id);
+      addLog('info', p.name + ' has left the studio.');
+    }else if(action === 'staff'){
+      openPicker(btn.dataset.offer);
+      return;
+    }else if(action === 'inspect'){
+      openPersonModal(btn.dataset.id);
+      return;
+    }else if(action === 'toggle-level'){
+      const level = btn.dataset.level;
+      const i = state.collapsedLevels.indexOf(level);
+      if(i < 0) state.collapsedLevels.push(level); else state.collapsedLevels.splice(i, 1);
+    }else{
+      return;
+    }
+    save();
+    renderAll();
+  });
+
+  // ---------------------------------------------------------------------
+  // Director's desk: manual puzzle contracts
   // ---------------------------------------------------------------------
 
   function pickPuzzleIndexes(count){
@@ -1108,7 +1873,7 @@
     state.reputation = Math.max(0, state.reputation + repDelta);
     state.activeContract = null;
     save();
-    renderStats();
+    renderAll();
 
     contractTag.textContent = 'contract over';
     contractBody.innerHTML =
@@ -1120,16 +1885,15 @@
   }
 
   // ---------------------------------------------------------------------
-  // Boot
+  // Boot + tick
   // ---------------------------------------------------------------------
 
   load();
 
-  // Migrate anything saved by an earlier prototype shape.
+  // Guard against saves from before the puzzle-navigation contract shape.
   if(state.activeContract && !Array.isArray(state.activeContract.puzzles)){
     state.activeContract = null;
   }
-  state.roster.forEach(ensureSkills);
   if(!state.collapsedLevels) state.collapsedLevels = [];
 
   const now = Date.now();
@@ -1137,19 +1901,20 @@
   const cappedSeconds = Math.min(elapsedSeconds, OFFLINE_CAP_SECONDS);
   if(cappedSeconds > 5){
     const before = state.money;
-    applyTick(cappedSeconds);
-    const earned = state.money - before;
-    if(earned > 0){
+    paySalaries(cappedSeconds);
+    const finished = resolveDueJobs(now);
+    const delta = state.money - before;
+    if(finished || delta !== 0){
       welcomeToast.className = 'toast show';
-      welcomeToast.textContent = 'Welcome back — your studio earned ' + fmt(earned) +
-        ' while you were away' + (elapsedSeconds > OFFLINE_CAP_SECONDS ? ' (capped at 4 hours).' : '.');
+      welcomeToast.textContent = 'Welcome back — ' +
+        (finished ? finished + ' contract' + (finished > 1 ? 's' : '') + ' wrapped up while you were away. ' : '') +
+        'Net change: ' + fmt(delta) + (elapsedSeconds > OFFLINE_CAP_SECONDS ? ' (payroll capped at 4 hours).' : '.');
     }
   }
   state.lastTick = now;
   save();
 
-  renderStats();
-  renderRoster();
+  renderAll();
   if(state.activeContract){
     renderActiveContract();
   }else{
@@ -1158,10 +1923,10 @@
 
   setInterval(() => {
     const t = Date.now();
-    applyTick((t - state.lastTick) / 1000);
+    paySalaries((t - state.lastTick) / 1000);
     state.lastTick = t;
-    renderStats();
-    renderRoster();
+    if(resolveDueJobs(t) && picker) renderPicker();
+    renderAll();
     save();
   }, 1000);
 })();

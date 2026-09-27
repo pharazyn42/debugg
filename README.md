@@ -24,9 +24,13 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 `ideas/contract-debugger-concept.md` sketches a separate idle-game concept that grew out of Debugg's puzzle mechanic. It's a distinct project, not a direction for this game — kept here as a note, not wired into anything.
 
-A first playable slice of that concept lives at `studio/index.html` (served at `/studio/` on GitHub Pages once enabled). It implements:
-- Contracts as a queue of 1/3/5/8 puzzles with a length-scaled payout multiplier, all-or-nothing delivery, and a "clean" bonus for solving on the first guess with no hint.
-- A studio of hired programmers who level up (Graduate → Junior → Senior → Principal) and earn passive income per second, including offline progress on return (capped at 4 hours).
-- A small starter bank of 6 single-answer Python puzzles, sampled randomly per contract.
+A first playable slice of that concept lives at `studio/index.html` (served at `/studio/` on GitHub Pages once enabled). You start as a lone Director who also manages the start-up:
+- **Your desk:** you solve puzzle contracts yourself for cash.
+- **Your first hires:** hire up to 4 devs yourself; after that you need real managers.
+- **A tiered team:** each person supervises up to 3 at the level below. Promotions need both time served and skill bars.
+- **The contract board:** staff contracts of 1, 10, 30 or 90 minutes. Each has team requirements and shows its random language and domain.
+- **Repeat:** a team can keep taking the same kind of contract, even while you're away.
+
+`studio/CLAUDE.md` has the full current design.
 
 It's a prototype slice, not balanced or feature-complete — see the open questions in the concept doc for what's still to design.
