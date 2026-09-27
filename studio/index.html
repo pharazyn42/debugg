@@ -849,8 +849,8 @@
   // Each contract is a SLOC target. It takes target ÷ (team SLOC/min)
   // minutes, and pays for the SLOC delivered. `minutes` is the reference
   // time for the reference team (`refSloc` SLOC/min — the cheapest team
-  // that meets the requirements, e.g. a lone grad on a quick fix, or a
-  // senior + 2 grads on a sprint); the target is refSloc × minutes, ±15%.
+  // that meets the requirements, e.g. a lone grad on a hotfix, or a
+  // senior + 2 grads on a patch); the target is refSloc × minutes, ±15%.
   // Bigger or more senior teams finish sooner.
   //
   // XP is earned per minute spent on the contract (xpPerMin, ~1–1.5), so
@@ -862,22 +862,26 @@
   // by 1 + SKILL_SPEED × (lang bars + domain bars) / 10 for that contract's
   // language and domain — so a full 5+5 match doubles their output.
   const SKILL_SPEED = 1.0;
-  const MIN_JOB_MS = 5000; // floor, so a principal on a quick fix isn't instant
+  const MIN_JOB_MS = 5000; // floor, so a principal on a hotfix isn't instant
   // A failed contract can be retried once in RETRY_TIME of the time for
   // RETRY_PAYOUT of the payout.
   const RETRY_TIME = 0.5;
   const RETRY_PAYOUT = 0.75;
 
+  // Contract types are named after release types, smallest first:
+  // hotfix → patch → minor release → major release.
   const TIERS = [
-    { key: 'quick',     name: 'Quick Fix',     minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 1.0,  rep: 0.5,
+    { key: 'hotfix', name: 'Hotfix',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 1.0,  rep: 0.5,
       needs: {}, req: '1 developer, any level' },
-    { key: 'sprint',    name: 'Sprint',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 1.2,  rep: 2,
+    { key: 'patch', name: 'Patch',         minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 1.2,  rep: 2,
       needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
-    { key: 'milestone', name: 'Milestone',     minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 1.33, rep: 6,
+    { key: 'minor', name: 'Minor release', minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 1.33, rep: 6,
       needs: { Principal: 1 }, req: '5–10 devs · 1+ principal' },
-    { key: 'full',      name: 'Full Delivery', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 1.5,  rep: 20,
+    { key: 'major', name: 'Major release', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 1.5,  rep: 20,
       needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
   ];
+  // 1 = quick fix / sprint / milestone / full delivery (same rules, old names).
+  const TIERS_VERSION = 3;
   const OFFERS_PER_TIER = 2;
   // Unstaffed offers are replaced after `offerLife` minutes, so the board
   // keeps turning over even if nobody on staff can take what's on it.
@@ -964,6 +968,7 @@
       log: [],
       lastTick: now,
       collapsedLevels: [],  // roster tree groups folded in the UI
+      tiersVersion: TIERS_VERSION,
       activeContract: null  // the Director's own puzzle contract
     };
   }
@@ -1154,7 +1159,7 @@
     const checks = [];
 
     const sizeLabel = tier.min === tier.max ? tier.min + ' person' + (tier.min > 1 ? 's' : '')
-                    : tier.key === 'full' ? tier.min + '+ people'
+                    : tier.key === 'major' ? tier.min + '+ people'
                     : tier.min + '–' + tier.max + ' people';
     checks.push({ label: sizeLabel + ' (' + members.length + ')', ok: members.length >= tier.min && members.length <= tier.max });
     if(tier.needs.Manager) checks.push({ label: tier.needs.Manager + '+ manager', ok: managers >= tier.needs.Manager });
@@ -1413,7 +1418,7 @@
     }else{
       body += '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
               'Managers don’t write code. Each one looks after up to ' + MANAGER_SPAN + ' devs and ' +
-              PRINCIPALS_PER_MANAGER + ' principals, and one is needed on every full delivery.</div></div>';
+              PRINCIPALS_PER_MANAGER + ' principals, and one is needed on every major release.</div></div>';
     }
 
     setHTML(personModalBody,
@@ -1635,8 +1640,8 @@
 
   function openPicker(offerId){
     const offer = state.board.find(o => o.id === offerId);
-    // Quick fixes default to repeating so a grad keeps earning unattended.
-    picker = { offerId, selected: new Set(), repeat: !!offer && TIERS[offer.tier].key === 'quick' };
+    // Hotfixes default to repeating so a grad keeps earning unattended.
+    picker = { offerId, selected: new Set(), repeat: !!offer && TIERS[offer.tier].key === 'hotfix' };
     teamModal.hidden = false;
     renderPicker();
   }
@@ -1652,7 +1657,7 @@
     const tier = TIERS[offer.tier];
     const busy = busyIds();
     const free = state.roster.filter(p => eligibleFor(tier, p) && !busy.has(p.id));
-    // Learners can join team contracts, but not a solo quick fix.
+    // Learners can join team contracts, but not a solo hotfix.
     const pool = tier.max > 1 ? free : free.filter(p => qualifiedFor(p, offer));
     const unqualified = free.filter(p => pool.indexOf(p) < 0);
     // Drop any selection that's no longer available.
@@ -2101,6 +2106,13 @@
     state.activeContract = null;
   }
   if(!state.collapsedLevels) state.collapsedLevels = [];
+  // Version 1 saves used quick fix / sprint / milestone / full delivery,
+  // which map one-for-one onto hotfix / patch / minor / major (same tier
+  // indices), so only the board needs refreshing to pick up the new names.
+  if((state.tiersVersion || 1) < TIERS_VERSION){
+    state.board = makeBoard();
+    state.tiersVersion = TIERS_VERSION;
+  }
   // Offers from before contracts had a SLOC target.
   if(state.board.some(o => !o.sloc)) state.board = makeBoard();
   state.board.forEach(o => { if(!o.expiresAt) o.expiresAt = Date.now() + TIERS[o.tier].offerLife * 60000; });

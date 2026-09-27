@@ -22,13 +22,13 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Other ideas
 
-`ideas/contract-debugger-concept.md` sketches an idle-game concept that grew out of Debugg's puzzle mechanic. The plan is for it to become an optional "studio mode" on this site. Debugg stays playable as a plain daily puzzle; players who opt in get a studio-management game built around the same puzzles. See `studio/CLAUDE.md` for the roadmap.
+`ideas/contract-debugger-concept.md` sketches an idle-game concept that grew out of Debugg's puzzle mechanic. The plan is for Debugg and Contract Debugger to become one game. It opens as a puzzle game with four release tiers: a daily Hotfix ("what does this output?"), a twice-weekly Patch ("spot the bug"), a weekly Minor release ("modify this to output this") and a monthly Major release ("write code to output this"). An option turns on the studio-management game around them. See `studio/CLAUDE.md` for the roadmap.
 
 A first playable slice of that concept lives at `studio/index.html` (served at `/studio/` on GitHub Pages once enabled). You start as a lone Director who also manages the start-up:
 - **Your desk:** you solve puzzle contracts yourself for cash.
 - **Your first hires:** hire up to 4 devs yourself; after that you need real managers.
 - **A tiered team:** each person supervises up to 3 at the level below. Promotions need both time served and skill bars.
-- **The contract board:** staff contracts of 1, 10, 30 or 90 minutes. Each has team requirements and shows its random language and domain.
+- **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team). Each has team requirements and shows its random language and domain.
 - **Repeat:** a team can keep taking the same kind of contract, even while you're away.
 
 `studio/CLAUDE.md` has the full current design.

@@ -4,11 +4,12 @@ Context for continuing work on this game. It currently lives in `studio/`,
 separate from `../index.html` ("Debugg", the daily Wordle-style puzzle).
 
 **Direction (agreed, not built yet):** Debugg and Contract Debugger become
-one product on one site. Debugg's daily puzzle is the base game and can be
-played standalone forever; Contract Debugger is an opt-in "studio mode"
-layered on top, where the daily puzzles become the Director's desk. See
-roadmap items 3b and 3c. Until that work starts, keep the two codebases
-independent: don't half-merge them.
+one game on one site. It opens as the puzzle game: the four release-tier
+puzzles (Hotfix / Patch / Minor / Major, item 3b), which can be played on
+their own forever. An option turns on the rest of the game (the studio,
+team and contract board) around them, and the puzzles become the
+Director's desk. See roadmap items 3b and 3c. Until that work starts, keep
+the two codebases independent: don't half-merge them.
 
 ## What this is
 
@@ -49,9 +50,11 @@ BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
 PROMOTION = { Junior: {minutes:60, lang:1, dom:1}, Senior: {8h, 3, 2}, Principal: {3 days, 5, 5} }  // contract time only
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
-TIERS = [ quick fix ~5 SLOC / 1 dev, sprint ~400 SLOC / 3-5 + senior,
-          milestone ~2,700 SLOC / 5-10 + principal,
-          full delivery ~22,500 SLOC / 10+ incl. manager, 2 principals, 3 seniors ]
+TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
+          minor release ~2,700 SLOC / 5-10 + principal,
+          major release ~22,500 SLOC / 10+ incl. manager, 2 principals, 3 seniors ]
+// Renamed from quick fix / sprint / milestone / full delivery (same rules,
+// same indices); TIERS_VERSION lets the boot sequence refresh old boards.
 // each tier: minutes + refSloc (reference time for the cheapest valid team);
 // an offer's SLOC target = refSloc × minutes ± SLOC_SPREAD (15%)
 ```
@@ -110,7 +113,7 @@ state = {
   - **Skill rule**: a dev "knows the stack" for a contract if they have at
     least one bar in its language or its domain (`qualifiedFor()`; managers
     are exempt).
-    - Solo quick fixes need someone who knows the stack.
+    - Solo hotfixes need someone who knows the stack.
     - On team contracts, devs who don't can join as **learners**. They
       write no code and each costs the team `LEARNER_DRAG` (10%) of its
       output in mentoring time. There must be at least one dev who knows
@@ -131,10 +134,10 @@ state = {
     contract's language and domain. A full 5+5 match doubles their output.
 
     The reference team, with no matching skills, takes the nominal time:
-    - a lone grad on a quick fix: ~1 min;
-    - senior + 2 grads on a sprint: ~10 min;
-    - principal + 4 grads on a milestone: ~30 min;
-    - 2 principals + 3 seniors + 4 grads + a manager on a full delivery:
+    - a lone grad on a hotfix: ~1 min;
+    - senior + 2 grads on a patch: ~10 min;
+    - principal + 4 grads on a minor release: ~30 min;
+    - 2 principals + 3 seniors + 4 grads + a manager on a major release:
       ~90 min.
 
     More senior, bigger or better-matched teams finish sooner. The picker
@@ -158,7 +161,7 @@ state = {
 - **Repeat**: a job can be set to roll straight into a new contract of the
   same type with the same team when it finishes. The new contract is chosen
   so the whole team qualifies under the skill rule. This is on by default for
-  quick fixes. Repeats keep chaining while the page is closed, up to the
+  hotfixes. Repeats keep chaining while the page is closed, up to the
   4-hour offline cap, and stop if the team no longer meets the
   requirements.
 - **Roster UI**: the Director card, then a collapsible tree grouped by
@@ -244,15 +247,15 @@ Do these first: every later feature touches the job engine, and changes currentl
   - the employee panel.
 
   Promotion requirements then need re-stating in language bars only.
-- **Quick fixes should cover every language**, so a lone dev always has
+- **Hotfixes should cover every language**, so a lone dev always has
   something they can take. That avoids the deadlock where nobody on staff
-  knows the language of either quick fix on the board. Offer expiry and
+  knows the language of either hotfix on the board. Offer expiry and
   repeat-picks-a-doable-contract currently paper over this. For example,
   keep one quick-fix offer per language on the board, or let the player
-  pick the language when staffing a quick fix.
+  pick the language when staffing a hotfix.
 - **Domains come back later as an unlock**, further into the game (e.g.
   tied to reputation or a business tier):
-  - Some team contracts (sprint and up) are then tagged with a domain.
+  - Some team contracts (minor releases and up) are then tagged with a domain.
   - Domain **specialists** are a separate kind of hire.
   - A contract with a domain must have a specialist in that domain on the
     team.
@@ -261,7 +264,7 @@ Do these first: every later feature touches the job engine, and changes currentl
 - Save migration: existing saves have `dom` skill maps and domain-tagged
   offers/jobs. Either strip them or bump the storage key.
 
-#### 3b. One puzzle engine; Patch / Minor / Major releases
+#### 3b. One puzzle engine; Hotfix / Patch / Minor / Major releases
 - **One puzzle engine for both modes.** It covers:
   - answer checking;
   - 4 guesses;
@@ -274,21 +277,25 @@ Do these first: every later feature touches the job engine, and changes currentl
   the same work.
 - **The desk's contract types become release tiers on a calendar.**
   Each is one puzzle per period, and each tier is a different, harder
-  kind of puzzle. Sprint is dropped.
+  kind of puzzle. These are the same four names the contract board uses.
 
   | Tier | Refreshes | Replaces | The puzzle |
   |---|---|---|---|
-  | **Patch** | daily | Quick Fix | **"What does this output?"** Read a snippet and predict its output (today's Debugg mechanic). |
+  | **Hotfix** | daily | Quick Fix | **"What does this output?"** Read a snippet and predict its output (today's Debugg mechanic). |
+  | **Patch** | twice a week (e.g. Mon & Thu) | Sprint | **"Spot the bug."** Given code, the intended output and the actual (wrong) output, click the line that causes the bug. |
   | **Minor release** | weekly | Milestone | **"Modify this to output this."** Given code and a target output, edit the code so it produces it. |
   | **Major release** | monthly | Full Delivery | **"Write some code to output this."** Write code from scratch that produces a target output. |
 
   Everyone gets the same puzzle each period (date-seeded), and each can
   be completed once per period. Standalone Debugg's daily puzzle *is* the
-  Patch.
+  Hotfix ("today's hotfix").
 - This replaces the old item 11 ("daily desk contracts").
-- **Content load** is about 365 Patches + 52 Minor + 12 Major, so roughly
-  430 puzzles a year. Patches are still the bulk, so a puzzle generator or
-  a large authored bank is still needed for them.
+- **Content load** is about 365 Hotfixes + 104 Patches + 52 Minor + 12
+  Major, so roughly 530 puzzles a year. Hotfixes are still the bulk, so a
+  puzzle generator or a large authored bank is still needed for them.
+- **Hotfixes and Patches need no code execution.** Hotfix answers are
+  matched against the expected output. A Patch answer is a line number,
+  which also makes it quick to play on a phone.
 - **Minor and Major releases need code execution** to check answers:
   - Run the player's code in the browser, e.g. with **Pyodide** (Python
     in WebAssembly, loadable from jsDelivr), and compare stdout to the
@@ -314,33 +321,52 @@ Do these first: every later feature touches the job engine, and changes currentl
     limited submissions? Is there a guess limit at all?
   - Hints for the code tiers: what are they, and how do they affect the
     clean bonus? The same question applies to the two hint levels on
-    Patches.
-  - Do Minor/Major releases appear in standalone mode too, or only in
-    studio mode?
+    Hotfixes and Patches.
+  - (Decided) All four tiers are part of the puzzle game itself, with or
+    without the studio switched on (see 3c).
+  - (Decided) In "spot the bug", a wrong click counts as a guess, the
+    same as a wrong Hotfix answer. The guess limit is still to set (4, to
+    match?).
   - What happens to the desk's payout multipliers and partial-payout
     rules, now that each tier is a single puzzle?
-  - Do the staffed contract board types (currently Quick Fix / Sprint /
-    Milestone / Full Delivery) also get renamed to the release tiers, and
-    is Sprint dropped there too? This answer only covered the desk.
+  - (Decided) The staffed contract board uses the same four names:
+    Hotfix / Patch / Minor release / Major release, renamed from Quick
+    Fix / Sprint / Milestone / Full Delivery with the same rules. Done in
+    the game already; the desk still uses its old names until this item
+    is built.
 
-#### 3c. Studio mode on the main site
-- **Debugg opens as the plain daily puzzle.** Nothing else is shown unless
-  the player opts in.
-- **A toggle (e.g. "Run a studio") turns on Contract Debugger around it**:
-  - the stats bar;
-  - the Director's desk (the Patch / Minor / Major puzzles from 3b);
+#### 3c. One game: puzzles first, studio optional
+- **Debugg and Contract Debugger are the same game.** The site opens
+  straight into the puzzle game: all four release tiers from 3b.
+  - Hotfix: daily.
+  - Patch: twice a week.
+  - Minor release: weekly.
+  - Major release: monthly.
+
+  There's no separate "plain Debugg" any more. Someone who only wants the
+  puzzles plays these and never needs to see anything else.
+- **An option turns on the rest of the game** around the puzzles:
+  - the stats bar (cash, reputation, payroll, headcount);
   - the studio roster, hiring and the contract board;
   - idle progress.
-- **One site, one save origin.** The standalone puzzle and studio mode
-  share progress (streaks, today's solve). `/studio/` becomes a redirect
-  to the main site with studio mode on.
+
+  With it on, the puzzles are the Director's desk: solving them pays
+  cash and reputation.
+- **One set of puzzle progress.** The puzzles are the same with the studio
+  on or off, so there's one record of which ones are done this
+  day/week/month, and one set of streaks. Switching the studio on later
+  simply starts paying for puzzles solved from then on. Today's solved
+  Hotfix is already done, whichever mode it was solved in.
+- **One site, one save origin.** `/studio/` becomes a redirect to the main
+  site with the studio switched on.
 - **Open questions:**
-  - If someone opts in after weeks of daily play, does their history
-    count for anything (e.g. starting cash or reputation)?
-  - Does switching studio mode off pause the studio (no salaries, no
-    progress) or keep it running unseen?
-  - Does solving today's puzzle in standalone mode count as today's
-    Patch if they turn studio mode on later that day?
+  - If someone turns the studio on after weeks of puzzle play, does their
+    history count for anything (e.g. starting cash or reputation for
+    their streak)?
+  - Does switching the studio off pause it (no salaries, no progress) or
+    keep it running unseen?
+  - What's the game called: Debugg, Contract Debugger, or Debugg with
+    "Contract Debugger" as the name of the studio option?
 - **Depends on 3b.** It's also why tests and versioning (1, 2) are for the
   whole product, not per game.
 
@@ -420,7 +446,7 @@ Replace the current flat reliability-by-level model:
 
 #### 7. Current contract in the employee panel
 - Clicking an employee should show the contract they're working on.
-  Today the panel only has a one-line "On Sprint (Rust / Web Dev) — 4:12
+  Today the panel only has a one-line "On Minor release (Rust / Web Dev) — 4:12
   left". It should show the full contract:
   - type, language and domain;
   - teammates;
@@ -451,7 +477,7 @@ Replace the current flat reliability-by-level model:
 The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)
 
 #### 11. (Moved) Daily desk contracts
-- Folded into item 3b (Patch / Minor / Major release cadence).
+- Folded into item 3b (Hotfix / Patch / Minor / Major releases).
 
 #### 12. Reputation gates contract tiers
 - Reputation is tracked but does nothing yet. Gate the bigger contract
@@ -510,7 +536,7 @@ Big systems that depend on the earlier phases.
   studio can develop and release its own software instead of only doing
   client contracts.
 - **Building it is a big project.** It needs a full team (at least
-  full-delivery sized) and a large amount of work, several full-delivery
+  major-release sized) and a large amount of work, several major-release
   sized chunks of SLOC, before the first release. Possibly split into
   phases (prototype → beta → 1.0), each needing the team to deliver. That
   ties up a lot of staff for a long time, with no income from it until
