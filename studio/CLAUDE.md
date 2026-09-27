@@ -233,6 +233,72 @@ Replace the current flat reliability-by-level model:
   pay before you start it: e.g. the range from "all solved, none clean" to
   "all clean". Reputation gain could be shown the same way.
 
+### In-house software products (later game)
+- **Unlocks later in the game** (e.g. by business tier or reputation): the
+  studio can develop and release its own software instead of only doing
+  client contracts.
+- **Building it is a big project.** It needs a full team (at least
+  full-delivery sized) and a large amount of work, several full-delivery
+  sized chunks of SLOC, before the first release. Possibly split into
+  phases (prototype → beta → 1.0), each needing the team to deliver. That
+  ties up a lot of staff for a long time, with no income from it until
+  release.
+- **Once released, it earns passive income** (sales or subscriptions),
+  scaled by user count and user satisfaction.
+- **It needs maintenance.** Now and then a released product raises work
+  items, which appear on the contract board alongside client contracts:
+  - bug fixes;
+  - feature requests;
+  - updates (e.g. a new platform or dependency version);
+  - service/support requests.
+
+  They're staffed like contracts (SLOC target, team requirements,
+  language), but they don't pay. They cost salary and staff time, and
+  they protect the product's income.
+- **Maintenance items have a deadline.** If a bug or requested feature
+  takes too long, the users get annoyed:
+  - satisfaction drops;
+  - income falls;
+  - users leave;
+  - reputation may take a hit.
+
+  Fast fixes could give a small satisfaction boost. So products compete
+  with client contracts for your team: neglect them and they decay.
+- **Maintenance teams.** After release, you can assign a dedicated
+  maintenance team to a product:
+  - **It picks up work automatically.** Any maintenance item the product
+    raises goes straight to the team, so the player doesn't staff each
+    one.
+  - **It's committed.** Its members join the product's core in-house team
+    and can't be put on client contracts while assigned. It's a lasting
+    trade-off, not a per-job choice.
+  - **It can be a small "shell" team.** It can be much smaller than the
+    original development team, as small as one person. The trade-off is
+    speed: a small team works through items slowly (it's still
+    SLOC-driven), so some may miss their deadline. A bigger team keeps
+    users happier but ties up more staff.
+  - Without a maintenance team, items appear on the contract board to
+    staff by hand.
+  - Open questions:
+    - Does the team still need to meet each item's requirements (e.g. a
+      senior for a bigger feature), or is a one-person team allowed to be
+      slow at everything?
+    - Do items queue for the team, or can it split to work several at
+      once?
+    - Can you add to or reassign the team freely, or is there a cost or
+      lock-in period?
+    - Do team members keep earning XP and contract time towards
+      promotion?
+- Design questions:
+  - Is the product's language fixed at the start (so its maintenance
+    always needs that language)?
+  - Do satisfaction and user count recover over time?
+  - Can a product be sunset or sold?
+  - How many products can you run at once?
+- Fits with: offer expiry (maintenance items are expiring offers with
+  consequences), the business tiers, and the later domain unlock (a
+  product could have a domain too).
+
 ### Semantic versioning and proper releases
 - Adopt semantic versioning (MAJOR.MINOR.PATCH):
   - MAJOR: save-breaking or big design changes, i.e. whenever the storage
