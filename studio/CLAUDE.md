@@ -124,6 +124,64 @@ state = {
 - **Balance is untuned**: the `ROLES` stats, `LINE_RATE`, tier multipliers,
   and hire costs are first guesses.
 
+## Future development
+
+Agreed direction, not built yet. Roughly in no particular order.
+
+### Training for language and domain skills
+- Add a way to spend money (and/or time off contracts) to train a person's
+  language or domain skills directly, alongside the XP earned from
+  delivered contracts.
+- Open questions:
+  - Is training a one-off purchase per bar, a timed course during which
+    the person is unavailable for contracts, or both?
+  - Should cost scale with the target bar?
+  - Should there be a cap so training can't replace real contract
+    experience (e.g. training only up to bar 3)?
+
+### Business tiers and multiple sites
+- Show a business-tier label that grows with headcount: Start-up →
+  Small business → … → something massive (e.g. Multinational).
+- Thresholds and names are TBD. The current Director-as-manager phase is
+  the "Start-up" tier.
+- Moving up a tier could unlock things: more contract-board slots, bigger
+  contract types, new hire types.
+- At larger tiers, add an option to expand to multiple sites (offices).
+  Each site would plausibly have its own headcount capacity and managers,
+  possibly a regional speciality (e.g. an embedded-heavy site). How sites
+  interact with team staffing (can a team span sites?) is TBD.
+
+### Daily desk contracts
+- The puzzle contracts at the Director's desk should refresh once a day,
+  with only one contract of each type (Quick Fix, Sprint, Milestone, Full
+  Delivery) playable per day. The aim is to bring players back daily,
+  like the main Debugg game.
+- This needs:
+  - a per-day seed so everyone gets the same puzzles that day;
+  - tracking which types have been played today;
+  - a "come back tomorrow" state;
+  - a much bigger puzzle bank than 6.
+
+### Success chance and speed scale with level and skill match
+Replace the current flat reliability-by-level model:
+- **Success chance** depends on both dev level and how well their skills
+  suit the contract's language/domain. Reference point for a Graduate:
+  - 25% when their skills don't match;
+  - 50% base;
+  - 75% when they do match.
+- **Each level up** raises both the success chance and the delivery speed
+  (a principal finishes faster and more reliably than a grad on the same
+  job).
+- **Speed**: contract duration should shrink with team level and skill
+  match, rather than being fixed per tier.
+- **Teams**: exact curves are TBD, as is how per-person chances combine for
+  a team (average, weighted by SLOC, or weakest link).
+
+### Show potential contract values on the desk
+- The Director's desk contract picker should show what each contract could
+  pay before you start it: e.g. the range from "all solved, none clean" to
+  "all clean". Reputation gain could be shown the same way.
+
 ## Testing notes
 
 There's no test suite. When changing game logic, the fastest way to verify
