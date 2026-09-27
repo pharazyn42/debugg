@@ -56,7 +56,7 @@ TIERS = [ quick fix ~5 SLOC / 1 dev, sprint ~400 SLOC / 3-5 + senior,
 state = {
   money, reputation, lastTick,
   roster: [ { id, name, role, since, worked, lang: {name: xp}, dom: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
-  board:  [ { id, tier, lang, dom, sloc } ],      // 2 offers per tier; sloc = work target
+  board:  [ { id, tier, lang, dom, sloc, expiresAt } ],  // 2 offers per tier; sloc = work target
   jobs:   [ { id, tier, lang, dom, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
@@ -102,18 +102,31 @@ state = {
   requirements and shows success chance, payout and salary cost. It has a
   "Suggest a team" button. Each person can only be on one contract at a
   time.
+  - **Skill rule**: a dev can only be put on a contract if they have at
+    least one bar in its language or its domain (`qualifiedFor()`; managers
+    are exempt). In the picker, unqualified people show greyed out, and a
+    board card warns when nobody on staff qualifies.
+  - **Offer expiry**: untaken offers are replaced after `offerLife`
+    minutes (3 / 15 / 45 / 120 by tier), so the board keeps turning over;
+    an offer open in the picker is never swapped out.
   - **SLOC drives time**: each offer is a SLOC target, shown on the card.
     Duration is the target divided by the team's combined SLOC/min
-    (managers add none), with a 5-second floor. The reference team takes
-    the nominal time:
+    (managers add none), with a 5-second floor.
+
+    Each dev's SLOC/min on a contract is boosted by skill match:
+    × (1 + `SKILL_SPEED` × (lang bars + domain bars) / 10) for that
+    contract's language and domain. A full 5+5 match doubles their output.
+
+    The reference team, with no matching skills, takes the nominal time:
     - a lone grad on a quick fix: ~1 min;
     - senior + 2 grads on a sprint: ~10 min;
     - principal + 4 grads on a milestone: ~30 min;
     - 2 principals + 3 seniors + 4 grads + a manager on a full delivery:
       ~90 min.
 
-    More senior or bigger teams finish sooner. The picker shows team
-    SLOC/min and the resulting time.
+    More senior, bigger or better-matched teams finish sooner. The picker
+    shows each person's SLOC/min on that contract, plus the team total with
+    the skill-match boost and the resulting time.
   - Payout = SLOC target × `LINE_RATE` × tier multiplier × skill match. So
     a contract pays the same whoever does it; faster teams simply earn more
     per minute and pay less salary per contract.
@@ -130,7 +143,8 @@ state = {
     until the player picks Retry or Drop. Repeating jobs retry
     automatically, since it's the better deal per minute.
 - **Repeat**: a job can be set to roll straight into a new contract of the
-  same type with the same team when it finishes. This is on by default for
+  same type with the same team when it finishes. The new contract is chosen
+  so the whole team qualifies under the skill rule. This is on by default for
   quick fixes. Repeats keep chaining while the page is closed, up to the
   4-hour offline cap, and stop if the team no longer meets the
   requirements.
@@ -201,9 +215,8 @@ Replace the current flat reliability-by-level model:
 - **Each level up** raises both the success chance and the delivery speed
   (a principal finishes faster and more reliably than a grad on the same
   job).
-- **Speed**: duration already shrinks with dev level, via SLOC/min (see
-  "SLOC drives time" above). Still to do: skill match should also speed
-  things up, e.g. matched devs get a SLOC/min bonus on that contract.
+- **Speed**: done. Duration shrinks with dev level and with skill match,
+  via effective SLOC/min (see "SLOC drives time" above).
 - **Teams**: exact curves are TBD, as is how per-person chances combine for
   a team (average, weighted by SLOC, or weakest link).
 
@@ -211,6 +224,68 @@ Replace the current flat reliability-by-level model:
 - The Director's desk contract picker should show what each contract could
   pay before you start it: e.g. the range from "all solved, none clean" to
   "all clean". Reputation gain could be shown the same way.
+
+### Per-hire speed multiplier
+- Each new hire rolls a random, permanent speed multiplier that scales
+  their SLOC/min (e.g. 0.7×–1.3×, range TBD). It's stored on the person
+  and never changes, including on promotion; it stacks with the level's
+  base SLOC and the skill-match boost.
+- The point is that a slow hire stays slow forever, which gives the
+  player a real reason to let people go and rehire.
+- It needs to be visible on the roster card and employee panel. Maybe
+  also on hire, e.g. "fast / average / slow". That could suggest hiring
+  shows a candidate before you pay.
+
+### Show what makes up the success chance
+- When staffing a contract (team picker), break the success chance down
+  into its contributing factors instead of only the final %, e.g.:
+  - each person's base reliability for their level;
+  - the skill-match bonus;
+  - any cap.
+
+  This ties in with the planned level/skill success rework above.
+
+### Current contract in the employee panel
+- Clicking an employee should show the contract they're working on.
+  Today the panel only has a one-line "On Sprint (Rust / Web Dev) — 4:12
+  left". It should show the full contract:
+  - type, language and domain;
+  - teammates;
+  - progress (SLOC done / target, time left);
+  - success chance and payout;
+  - repeat status;
+  - the failed/retry state.
+
+### Office space: desks, contractors, and buildings (later game)
+- Another progression limiter. On-site staff need a desk. You start with
+  one free room with a small number of desks (e.g. 4).
+- **Contractors** work from home, so they need no desk, but cost more
+  (higher salary and/or hire cost). They're a way past the desk cap
+  before you can afford space.
+- Over time you rent offices, buy rooms, then whole buildings, each adding
+  desks. This fits with the business tiers and multiple sites in the
+  section above; sites could be where buildings live.
+- Open questions:
+  - Do contractors count towards the supervision structure and manager
+    span?
+  - Can they be promoted?
+  - Do they gain XP at the same rate?
+
+### Visualise the team and the office
+- Some visual representation of the studio: people at desks in
+  rooms/buildings, grouped by team or level. It could show who's working
+  on what and empty desks. It would pair naturally with the office-space
+  mechanic.
+
+### SLOC production animation
+- Animate SLOC being produced, e.g. a running counter or lines of code
+  ticking up on active contracts, or little bursts from each busy
+  person, so the idle layer feels alive rather than just progress bars.
+
+### Total SLOC/min in the top stats bar
+- Add a studio-wide SLOC/min stat next to Cash, Reputation, Payroll and
+  Headcount. Open question: count only people currently on contracts,
+  or show "active / potential"?
 
 ## Testing notes
 
