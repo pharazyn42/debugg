@@ -798,7 +798,7 @@
   // Studio model
   // ---------------------------------------------------------------------
 
-  const LANGS = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly'];
+  const LANGS = ['Python', 'C/C++', 'JavaScript', 'Rust'];
   const DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI'];
   // Which language/domain pairings contracts can come up as (the matrix in
   // ../ideas/contract-debugger-concept.md).
@@ -806,8 +806,7 @@
     'Python':     ['Web Dev', 'Games', 'Data/AI'],
     'C/C++':      ['Games', 'Embedded/Controls', 'Safety-Critical'],
     'JavaScript': ['Web Dev', 'Games'],
-    'Rust':       ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical'],
-    'Assembly':   ['Embedded/Controls', 'Safety-Critical']
+    'Rust':       ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical']
   };
   const BAR_XP = [10, 50, 150, 400, 1000]; // cumulative XP needed for bars 1..5
   const MAX_BARS = 5;
@@ -2113,6 +2112,17 @@
     state.board = makeBoard();
     state.tiersVersion = TIERS_VERSION;
   }
+  // Assembly was dropped as a language: fold anyone's Assembly XP into
+  // C/C++ (the closest fit), and move running jobs and offers across too.
+  state.roster.forEach(p => {
+    if(p.lang && p.lang.Assembly){
+      p.lang['C/C++'] = Math.max(p.lang['C/C++'] || 0, p.lang.Assembly);
+      delete p.lang.Assembly;
+    }
+  });
+  state.jobs.forEach(j => { if(j.lang === 'Assembly') j.lang = 'C/C++'; });
+  state.board.forEach((o, i) => { if(o.lang === 'Assembly') state.board[i] = makeOffer(o.tier); });
+
   // Offers from before contracts had a SLOC target.
   if(state.board.some(o => !o.sloc)) state.board = makeBoard();
   state.board.forEach(o => { if(!o.expiresAt) o.expiresAt = Date.now() + TIERS[o.tier].offerLife * 60000; });

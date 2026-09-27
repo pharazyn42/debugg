@@ -43,7 +43,7 @@ state shape again.
 PUZZLES = [{ file, html, type, answer, hint }, ...]   // 6 puzzles, Director's desk only
 CONTRACT_LENGTHS = [...]   // desk contracts: 1/3/5/8 puzzles, 1x/1.8x/3.2x/6x
 
-LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust', 'Assembly']
+LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old saves fold it into C/C++
 DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI']
 PAIRINGS = { <lang>: [domains it can be paired with on a contract] }
 BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
@@ -682,6 +682,34 @@ Big systems that depend on the earlier phases.
 - Tech Debt (17b) and Merge Conflict (17c) are the first two of these
   events. They should all share one event system: trigger, target,
   effect, duration, log message.
+
+#### 17f. Multi-language contracts
+- Later in the game, some contracts need more than one language, e.g. a
+  Python back end with a JavaScript front end, or a Rust service with
+  Python tooling. Hotfixes stay single-language; multi-language contracts
+  start at Patch or Minor release and are likelier on bigger contracts.
+- **The work is split by language**: the offer shows each language's
+  share of the SLOC target, e.g. "2,700 SLOC: 60% Python, 40%
+  JavaScript".
+- **Staffing**: someone on the team must know each language (the skill
+  rule applies per language), so these contracts push towards broader
+  teams or multi-skilled people. Learners can learn any of the languages
+  from a teammate who knows it.
+- **Speed**, with two ways to model it:
+  - *Simple*: each dev contributes to the language(s) they know, and the
+    contract takes as long as the slowest language's share. A team
+    strong in Python but with one JavaScript junior is held up by the
+    JavaScript half.
+  - *Richer*: the player (or "Suggest a team") assigns each dev to a
+    language. More control, more UI.
+- **XP**: each dev earns XP in the language(s) they actually worked on.
+- **Payout**: a premium over single-language contracts of the same size,
+  to reward covering the spread.
+- **Unlock**: tied to reputation or business tier. It fits alongside
+  domains returning (item 16); a contract could end up with several
+  languages and a domain.
+- Open questions: how many languages at most (2? 3?), and which pairings
+  make sense (reuse or extend `PAIRINGS`)?
 
 #### 18. Multiple sites, rooms and buildings
 - The multi-site half of item 13 and the buildings half of item 15,
