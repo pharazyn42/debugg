@@ -337,6 +337,10 @@ Do these first: every later feature touches the job engine, and changes currentl
     is built.
 
 #### 3c. One game: puzzles first, studio optional
+- **Build plan: `../ideas/debugg-ltd-merge-plan.md`.** It does this item
+  before the rest of 3b: the desk starts as Debugg's existing daily
+  puzzles (one per language per day, i.e. the Hotfix tier), and the
+  Patch / Minor / Major tiers come after the merge.
 - **Debugg and Debugg Ltd are the same game.** The site opens
   straight into the puzzle game: all four release tiers from 3b.
   - Hotfix: daily.
