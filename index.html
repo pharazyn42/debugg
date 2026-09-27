@@ -250,6 +250,40 @@
   }
   .com{ color: var(--text-faint); font-style: italic; }
 
+  .xp{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 18px;
+  }
+  .xp-row{
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .xp-row.current{ color: var(--text-dim); }
+  .xp-lang{ letter-spacing: 0.06em; text-transform: uppercase; }
+  .xp-row.current .xp-lang{ color: var(--text); }
+  .xp-level{ color: var(--amber); font-weight: 600; }
+  .xp-bar{
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+    overflow: hidden;
+  }
+  .xp-fill{
+    height: 100%;
+    background: var(--amber);
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .xp-num{ font-variant-numeric: tabular-nums; }
+  .xp-row.levelup .xp-level{ animation: pop 0.5s ease 2; }
+
   footer{
     text-align: center;
     margin-top: 22px;
@@ -265,7 +299,7 @@
   <header>
     <p class="kicker" id="kicker">Debugg</p>
     <h1>What does this print?</h1>
-    <p class="sub">Read the snippet, then guess what the last line prints. You've got 4 guesses.</p>
+    <p class="sub">Read the snippet, then guess what the last line prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
@@ -274,6 +308,8 @@
     <span class="hint-dot" id="hintDot2"></span>
     <span class="hint-track-label">hints used</span>
   </div>
+
+  <div class="xp" id="xp"></div>
 
   <div class="editor">
     <div class="editor-bar">
@@ -336,6 +372,7 @@
   const nextWrap = document.getElementById('nextWrap');
   const nextInEl = document.getElementById('nextIn');
   const resetLink = document.getElementById('resetLink');
+  const xpEl = document.getElementById('xp');
 
   // Day number from the player's local calendar date (UTC maths avoids daylight-saving off-by-ones).
   function dayNumber(date){
@@ -347,6 +384,12 @@
   const puzzle = PUZZLES[(DAY - 1) % PUZZLES.length];
   const STATE_KEY = 'debugg-day' + DAY;
   const STREAK_KEY = 'debugg-streak';
+  const XP_KEY = 'debugg-xp';
+
+  const LANGS = {
+    python: { name: 'Python', ext: 'py' }
+  };
+  const lang = LANGS[puzzle.lang] ? puzzle.lang : 'python';
 
   let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
   let flagEl = null;
@@ -378,6 +421,83 @@
   function currentStreak(){
     const s = readStreak();
     return s.lastDay >= DAY - 1 ? s.count : 0;
+  }
+
+  // --- XP -------------------------------------------------------------------
+  // XP is tracked separately per language: { python: 120, ... }.
+  // A solve earns 100/75/50/25 XP for guess 1/2/3/4; each hint takes off a quarter of the base.
+  // Failing or revealing still earns a little for finishing and reading the explanation.
+  const SOLVE_XP = [100, 75, 50, 25];
+  const HINT_MULTIPLIER = [1, 0.75, 0.5];
+  const FINISH_XP = 10;
+
+  function puzzleXp(won, guesses, hintLevel){
+    if(!won) return FINISH_XP;
+    return Math.round(SOLVE_XP[guesses - 1] * HINT_MULTIPLIER[hintLevel || 0]);
+  }
+
+  function readXp(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(XP_KEY));
+      if(raw && typeof raw === 'object') return raw;
+    }catch(e){}
+    return {};
+  }
+  function writeXp(x){
+    try{ localStorage.setItem(XP_KEY, JSON.stringify(x)); }catch(e){}
+  }
+
+  // Level n starts at 100 * (n-1) * n / 2 XP: 0, 100, 300, 600, 1000, …
+  // so each level needs 100 more XP than the one before.
+  function levelStart(n){ return 100 * (n - 1) * n / 2; }
+  function levelFor(xp){
+    let n = 1;
+    while(xp >= levelStart(n + 1)) n++;
+    return n;
+  }
+
+  // One row per language with XP, plus the current puzzle's language (first) even at 0 XP.
+  function renderXp(levelledUp){
+    const all = readXp();
+    const keys = [lang].concat(Object.keys(all).filter(k => k !== lang && all[k] > 0));
+    const prevWidths = {};
+    xpEl.querySelectorAll('.xp-row').forEach(r => { prevWidths[r.dataset.lang] = r.querySelector('.xp-fill').style.width; });
+    xpEl.innerHTML = '';
+    keys.forEach(k => {
+      const xp = all[k] || 0;
+      const lv = levelFor(xp);
+      const start = levelStart(lv), next = levelStart(lv + 1);
+      const row = document.createElement('div');
+      row.dataset.lang = k;
+      row.className = 'xp-row' + (k === lang ? ' current' : '') + (k === lang && levelledUp ? ' levelup' : '');
+      row.innerHTML = '<span class="xp-lang"></span><span class="xp-level"></span>' +
+        '<div class="xp-bar"><div class="xp-fill"></div></div><span class="xp-num"></span>';
+      row.querySelector('.xp-lang').textContent = LANGS[k] ? LANGS[k].name : k;
+      row.querySelector('.xp-level').textContent = 'Lv ' + lv;
+      // Start from the old width (0 after a level up) so the bar visibly fills.
+      const fill = row.querySelector('.xp-fill');
+      const width = Math.round((xp - start) / (next - start) * 100) + '%';
+      fill.style.width = levelledUp && k === lang ? '0%' : (prevWidths[k] || width);
+      requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = width; }));
+      row.querySelector('.xp-num').textContent = xp + ' / ' + next + ' XP';
+      xpEl.appendChild(row);
+    });
+  }
+
+  // Awards this puzzle's XP once; state.xp records what was given so a reload can't award it twice.
+  // Returns a note for the feedback line.
+  function awardXp(){
+    if(typeof state.xp === 'number') return '';
+    const earned = puzzleXp(state.solved, state.attempts.length, state.hintLevel);
+    const all = readXp();
+    const before = all[lang] || 0;
+    all[lang] = before + earned;
+    writeXp(all);
+    state.xp = earned;
+    save();
+    const up = levelFor(all[lang]) > levelFor(before);
+    renderXp(up);
+    return ' +' + earned + ' XP' + (up ? '. Level up: ' + LANGS[lang].name + ' Lv ' + levelFor(all[lang]) + '!' : '.');
   }
 
   // --- Code rendering -------------------------------------------------------
@@ -537,13 +657,13 @@
 
     if(correct){
       state.solved = true;
-      showFeedback('correct', 'Correct: ' + puzzle.display + '.' + hintSuffix());
       lockIn();
       finishRun(true);
+      showFeedback('correct', 'Correct: ' + puzzle.display + hintSuffix() + '.' + awardXp());
     }else if(state.attempts.length >= MAX_GUESSES){
-      showFeedback('wrong', 'Out of guesses. Here\'s the answer:' + hintSuffix());
       lockIn();
       finishRun(false);
+      showFeedback('wrong', 'Out of guesses' + hintSuffix() + '. The answer\'s below.' + awardXp());
     }else{
       save();
       showFeedback('wrong', puzzle.nudge);
@@ -576,9 +696,9 @@
     // pad remaining tiles as wrong for a clean stop
     while(state.attempts.length < MAX_GUESSES) state.attempts.push('wrong');
     renderTiles();
-    showFeedback('wrong', 'Revealed. No streak today.' + hintSuffix());
     lockIn();
     finishRun(false);
+    showFeedback('wrong', 'Revealed' + hintSuffix() + '. No streak today.' + awardXp());
   });
 
   // Clears every saved day and the streak.
@@ -591,7 +711,7 @@
   });
 
   kickerEl.textContent = 'Debugg · Day ' + DAY;
-  filenameEl.textContent = 'day' + DAY + '.py';
+  filenameEl.textContent = 'day' + DAY + '.' + LANGS[lang].ext;
   renderCode();
   renderReveal();
   load();
@@ -602,12 +722,16 @@
     hintBtn.hidden = true;
     hint2Btn.hidden = state.hintLevel >= 2;
   }
+  renderXp(false);
+  // Games finished before XP existed get their XP now.
   if(state.solved){
     lockIn();
-    showFeedback('correct', 'Solved: ' + puzzle.display + '.' + hintSuffix());
+    const note = awardXp();
+    showFeedback('correct', 'Solved: ' + puzzle.display + hintSuffix() + '.' + (note || ' +' + state.xp + ' XP.'));
   }else if(state.revealed){
     lockIn();
-    showFeedback('wrong', 'Revealed.' + hintSuffix());
+    const note = awardXp();
+    showFeedback('wrong', 'Revealed' + hintSuffix() + '.' + (note || ' +' + state.xp + ' XP.'));
   }else if(state.hintLevel >= 1){
     showHints(state.hintLevel);
   }
