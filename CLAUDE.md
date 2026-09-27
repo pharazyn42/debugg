@@ -27,7 +27,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
-| `analytics.js` | GoatCounter page views and named events. Off until `SITE_COUNT_URL` is set. |
+| `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
 | `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
 | `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
@@ -60,6 +60,18 @@ once players have real progress**. If it does move, `shared.js` notices
 (it remembers the date in `debugg-epoch`) and clears per-day progress, the
 streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
 drafts.
+
+**The weekly rotation.** Each weekday has a difficulty (Monday 1 to Friday
+5), and Saturday and Sunday share one weekend puzzle (a stand-in 5 until
+the code challenges exist), saved under Saturday's day number: its
+*slot* (`slotDay()`). The schedule is computed from Day 1 in every
+browser: each slot takes the first unused puzzle of its difficulty in
+`puzzles.js` order, else the nearest difficulty (easier first), and
+everything's reused once all are used. Streaks run slot to slot, so the
+weekend counts once. XP for a perfect solve follows the day (`BASE_XP`:
+60, 80, 100, 120, 150, weekend 200), and so does desk pay. Adding puzzles
+to the end only changes future days (and days that had fallen back), so
+it's safe to add them before they're due.
 
 **Saves.** Puzzle progress is `debugg-day<N>` (Python) and
 `debugg-<lang>-day<N>`, plus `debugg-xp`, `debugg-streak` and `debugg-lang`.
@@ -307,10 +319,9 @@ site and what to measure.
     to their first puzzle); time to the first hire, manager, senior and
     principal; how many pause or close; cash and headcount over time. The
     balance pass (item 10) needs exactly this.
-- **Step 1 is built** (`analytics.js`, GoatCounter, events listed in
-  `privacy.html`). **To do:** create the GoatCounter account and set
-  `SITE_COUNT_URL` in `analytics.js`; until then it's off. The notes below
-  are the reasoning behind it.
+- **Step 1 is done and live** (`analytics.js`, GoatCounter at
+  https://debugg.goatcounter.com, events listed in `privacy.html`). The
+  notes below are the reasoning behind it.
 - **Step 1, visitor analytics with no backend.** Add a privacy-friendly,
   cookie-free analytics script to the pages. Candidates (check current
   pricing and limits before choosing):
@@ -453,8 +464,12 @@ for its contracts; they no longer name puzzles.
     streak**: only the daily puzzle does. The track has its own progress
     (which lessons are done) and doesn't pay in Debugg Ltd, which stays
     daily.
-- **Data and engine changes:**
-  - Each puzzle gets `format` and `difficulty` (1–5, or `weekend`), plus
+- **Built so far:** every puzzle has a `difficulty`; the calendar,
+  weekend slot, day labels ("Day 8 · Thursday · tricky") and XP by day are
+  live (see "The weekly rotation" above). Every day still uses "what does
+  this output", and the weekend uses a hard one.
+- **Data and engine changes still to do:**
+  - Each puzzle gets a `format`, plus
     the fields its format needs: `options`, the blank, `lines` (to
     shuffle), `bugLine`, `target`, `tests`, `locked` lines, an edit
     limit.

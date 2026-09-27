@@ -6,7 +6,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   page.on('dialog', d => d.accept());
   await openAt(page, 'index.html#python');
   await fresh(page);
-  await guess(page, (await puzzleFor(page, 'python', 1)).display);
+  await guess(page, (await puzzleFor(page, 'python', 7)).display);
   await page.click('#ltdLink');
   // ¤150 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
   await expect(page.locator('#statMoney')).toHaveText('¤250');
@@ -63,14 +63,14 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
     body: 'window.goatcounter = { count: e => (window.__sent = window.__sent || []).push(e.path) };'
   }));
   await fresh(page);
-  await guess(page, (await puzzleFor(page, 'python', 1)).display);  // 100 XP: level 2
+  await guess(page, (await puzzleFor(page, 'python', 7)).display);  // 100 XP: level 2
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
   await page.click('[data-action=hire][data-role=Graduate]');
   await page.click('#backupLink');
   await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
     'level/python/2',
-    'puzzle/python/day-1/solved-in-1',
+    'puzzle/python/day-7/solved-in-1',
     'ltd/founded',
     'ltd/hired/graduate',
     'backup/opened'

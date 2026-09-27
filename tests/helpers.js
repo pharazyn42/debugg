@@ -1,6 +1,7 @@
 // Shared helpers for the browser tests.
 
-// Local noon on game day n (Day 1 is 1 October 2026; days before it are previews: 0, -1, …).
+// Local noon on game day n (Day 1 is Thursday 1 October 2026; days before it are previews: 0, -1, …).
+// Days 3–4, 10–11… are weekends; Day 5 is a Monday and Day 7 a Wednesday.
 function dayDate(n){
   return new Date(2026, 9, n, 12, 0, 0);
 }
@@ -8,9 +9,12 @@ function dayDate(n){
 // Opens a page with the clock fixed to game day `day` (timers still run normally).
 // JavaScript is hidden from players for now, but the tests switch it back on so it stays
 // covered; pass { langs: null } to test the site exactly as players see it.
-async function openAt(page, path, day = 1, { langs = ['python', 'javascript'] } = {}){
+// Day 7 (a Wednesday, 100 XP for a perfect solve) is the default.
+async function openAt(page, path, day = 7, { langs = ['python', 'javascript'] } = {}){
   await page.clock.setFixedTime(dayDate(day));
   if(langs) await page.addInitScript(l => { window.DEBUGG_LANGS = l; }, langs);
+  // Tests never count as real visits (the analytics test switches it on against a stand-in).
+  await page.addInitScript(() => { if(!('DEBUGG_GOATCOUNTER' in window)) window.DEBUGG_GOATCOUNTER = ''; });
   if(process.env.PYODIDE_DIR){
     await page.addInitScript(() => { window.DEBUGG_PYODIDE_URL = location.origin + '/__pyodide__/'; });
   }

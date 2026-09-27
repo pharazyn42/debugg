@@ -51,25 +51,85 @@ window.Debugg = (function(){
   }
   function today(){ return dayNumber(new Date()); }
   function isPreview(day){ return day < 1; }
-  // "Day 5", or "Preview" before launch.
-  function dayLabel(day){ return day < 1 ? 'Preview' : 'Day ' + day; }
+  // "Day 5", or "Preview" before launch. A weekend puzzle is "Days 3–4".
+  function dayLabel(day){
+    if(day < 1) return 'Preview';
+    return isWeekend(day) ? 'Days ' + slotDay(day) + '–' + (slotDay(day) + 1) : 'Day ' + day;
+  }
+
+  // --- The weekly rotation ------------------------------------------------------
+  // Monday is the easiest (difficulty 1) and Friday the hardest (5). Saturday and Sunday share one
+  // weekend puzzle: it's saved under Saturday's day number (its "slot"), and solving it on either
+  // day counts for both. Until the weekend code challenges exist, the weekend gets a hard puzzle.
+  const DIFFICULTY_NAMES = { 1: 'warm-up', 2: 'easy', 3: 'medium', 4: 'tricky', 5: 'hard' };
+  const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // XP for a first-guess, no-hint solve, by day. Extra guesses and hints scale it down.
+  const BASE_XP = { 1: 60, 2: 80, 3: 100, 4: 120, 5: 150, weekend: 200 };
+  const WEEKEND_STAND_IN = 5;
+
+  function weekdayOf(day){ return new Date(LAUNCH + (day - 1) * DAY_MS).getUTCDay(); }  // 0 is Sunday
+  function isWeekend(day){ const w = weekdayOf(day); return w === 0 || w === 6; }
+  // The day a puzzle belongs to: Sunday shares Saturday's.
+  function slotDay(day){ return weekdayOf(day) === 0 ? day - 1 : day; }
+  function previousSlot(day){ return slotDay(slotDay(day) - 1); }
+  // 1–5 for Monday to Friday, or 'weekend'.
+  function dayKind(day){ return isWeekend(day) ? 'weekend' : weekdayOf(day); }
+  function baseXp(day){ return BASE_XP[dayKind(day)]; }
+  // e.g. "Thursday · tricky" or "Weekend · hard".
+  function dayTitle(day){
+    const kind = dayKind(day);
+    return kind === 'weekend' ? 'Weekend · ' + DIFFICULTY_NAMES[WEEKEND_STAND_IN]
+                              : WEEKDAY_NAMES[kind] + ' · ' + DIFFICULTY_NAMES[kind];
+  }
   function launchDate(){
     const d = new Date(LAUNCH);
     return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   }
 
-  // Each language has its own daily puzzle, cycling through that language's list.
   function puzzlesFor(lang){
     return window.DEBUGG_PUZZLES.filter(p => p.lang === lang);
   }
-  function puzzleFor(lang, day){
+
+  // The schedule, from Day 1: each slot takes the first unused puzzle (in puzzles.js order) of its
+  // day's difficulty, or the nearest difficulty if none is left (easier first on a tie). Once every
+  // puzzle has been used, they're all available again. It's worked out the same way in every
+  // browser, so everyone gets the same puzzle on the same date. Adding puzzles to the end of the
+  // list only changes days that would otherwise have fallen back to another difficulty.
+  const schedules = {};
+  function scheduled(lang, slot){
     const list = puzzlesFor(lang);
-    // Preview days count backwards from the end of the list.
-    return list[(((day - 1) % list.length) + list.length) % list.length];
+    const sch = schedules[lang] || (schedules[lang] = { next: 1, used: new Set(), bySlot: {} });
+    for(; sch.next <= slot; sch.next++){
+      const d = sch.next;
+      if(slotDay(d) !== d) continue;  // Sundays share Saturday's puzzle
+      if(sch.used.size >= list.length) sch.used.clear();
+      const kind = dayKind(d);
+      const want = kind === 'weekend' ? WEEKEND_STAND_IN : kind;
+      let pick = null;
+      for(let delta = 0; !pick && delta <= 4; delta++){
+        for(const t of delta ? [want - delta, want + delta] : [want]){
+          pick = list.find(p => !sch.used.has(p) && (p.difficulty || 3) === t);
+          if(pick) break;
+        }
+      }
+      sch.used.add(pick);
+      sch.bySlot[d] = pick;
+    }
+    return sch.bySlot[slot];
+  }
+
+  function puzzleFor(lang, day){
+    const slot = slotDay(day);
+    if(slot >= 1) return scheduled(lang, slot);
+    // Preview days (before Day 1) count backwards from the end of the list.
+    const list = puzzlesFor(lang);
+    return list[(((slot - 1) % list.length) + list.length) % list.length];
   }
 
   // Python keeps the original key so progress saved before languages existed still loads.
+  // Keyed by slot, so a weekend puzzle has one save for Saturday and Sunday.
   function stateKey(lang, day){
+    day = slotDay(day);
     return lang === 'python' ? 'debugg-day' + day : 'debugg-' + lang + '-day' + day;
   }
   function readState(lang, day){
@@ -150,6 +210,7 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  return { LANGS, dayNumber, today, isPreview, dayLabel, launchDate, puzzlesFor, puzzleFor, stateKey, readState, isFinished,
+  return { LANGS, dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
+           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished,
            readXp, levelStart, levelFor, highlight, escapeHtml };
 })();

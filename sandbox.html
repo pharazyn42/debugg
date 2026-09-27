@@ -525,16 +525,20 @@ def _debugg_run(src):
   // Puzzles you can load: any from an earlier day, plus today's once you've finished it,
   // so the sandbox can't spoil today's answer. Each puzzle is listed once, at its latest day.
   function unlockedPuzzles(l){
-    const list = window.Debugg.puzzlesFor(l);
-    const seen = new Set();
+    const D = window.Debugg;
+    const today = D.slotDay(DAY);
+    const seenDays = new Set(), seenPuzzles = new Set();
     const res = [];
     // Before launch, "earlier days" are only today's preview.
     for(let d = DAY; d >= Math.min(1, DAY); d--){
-      if(d === DAY && !window.Debugg.isFinished(l, d)) continue;
-      const idx = (d - 1) % list.length;
-      if(seen.has(idx)) continue;
-      seen.add(idx);
-      res.push({ day: d, puzzle: list[idx] });
+      const slot = D.slotDay(d);  // a weekend's two days share one puzzle
+      if(seenDays.has(slot)) continue;
+      seenDays.add(slot);
+      if(slot === today && !D.isFinished(l, slot)) continue;
+      const puzzle = D.puzzleFor(l, slot);
+      if(seenPuzzles.has(puzzle)) continue;
+      seenPuzzles.add(puzzle);
+      res.push({ day: slot, puzzle });
     }
     return res;
   }
@@ -550,7 +554,7 @@ def _debugg_run(src):
       const o = document.createElement('option');
       o.value = it.day;
       const firstLine = it.puzzle.code.split('\n').find(l => l.trim() && !/^\s*(#|\/\/)/.test(l)) || '';
-      o.textContent = window.Debugg.dayLabel(it.day) + (it.day === DAY ? ' (today)' : '') + ': ' + (firstLine.length > 38 ? firstLine.slice(0, 37) + '…' : firstLine);
+      o.textContent = window.Debugg.dayLabel(it.day) + (it.day === window.Debugg.slotDay(DAY) ? ' (today)' : '') + ': ' + (firstLine.length > 38 ? firstLine.slice(0, 37) + '…' : firstLine);
       pick.appendChild(o);
     });
     pick.disabled = !items.length;
