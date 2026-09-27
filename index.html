@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debugg</title>
+<meta name="description" content="A Wordle-style daily game where you guess what a short, buggy snippet of Python actually prints.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    color-scheme: dark;
+    --bg: #131417;
+    --panel: #1b1d22;
+    --panel-2: #202329;
+    --line: #2c2f37;
+    --text: #e8e9ec;
+    --text-dim: #9498a3;
+    --text-faint: #5f6470;
+    --amber: #f2b84b;
+    --amber-dim: #7a5c22;
+    --green: #4fd18b;
+    --green-dim: #1f4a35;
+    --red: #ef6a6a;
+    --red-dim: #4a2222;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    --sans: 'Sora', system-ui, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    margin: 0;
+    padding-inline: 16px;
+    padding-block: 32px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .wrap{ width: 100%; max-width: 560px; }
+
+  header{ text-align: center; margin-bottom: 22px; }
+  .kicker{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 8px;
+  }
+  h1{
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 28px;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .sub{
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .tiles{
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 18px 0 20px;
+  }
+  .tile{
+    width: 34px; height: 34px;
+    border-radius: 7px;
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-faint);
+    transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .tile.wrong{ border-color: var(--red-dim); background: var(--red-dim); color: var(--red); }
+  .tile.correct{ border-color: var(--green-dim); background: var(--green-dim); color: var(--green); }
+  .tile.pop{ animation: pop 0.28s ease; }
+  @keyframes pop{ 0%{ transform: scale(1); } 40%{ transform: scale(1.15); } 100%{ transform: scale(1); } }
+
+  .hint-track{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: -8px 0 20px;
+  }
+  .hint-dot{
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: background 0.2s ease;
+  }
+  .hint-dot.used{ background: var(--amber); }
+  .hint-track-label{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-left: 2px;
+  }
+
+  .editor{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .editor-bar{
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .dot{ width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r{ background: #ef6a6a; } .dot.y{ background: #f2b84b; } .dot.g{ background: #4fd18b; }
+  .filename{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-left: 6px;
+  }
+  pre{
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  code{ font-family: var(--mono); }
+  .ln{
+    display: inline-block;
+    width: 1.6em;
+    color: var(--text-faint);
+    user-select: none;
+    margin-right: 1.1em;
+  }
+  .kw{ color: #c792ea; }
+  .fn{ color: #82aaff; }
+  .str{ color: #c3e88d; }
+  .num{ color: #f78c6c; }
+  .flagged{
+    display: inline-block;
+    border-bottom: 2px dashed transparent;
+  }
+  .flagged.on{ border-color: var(--amber); }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  label{
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .guess-row{ display: flex; gap: 8px; }
+  input[type=text]{
+    flex: 1;
+    background: var(--bg);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-width: 0;
+  }
+  input[type=text]:focus{ outline: none; border-color: var(--amber); }
+  button{
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    padding: 11px 16px;
+  }
+  .btn-primary{ background: var(--amber); color: #1a1305; }
+  .btn-primary:disabled{ opacity: 0.45; cursor: not-allowed; }
+  .btn-ghost{
+    background: transparent;
+    color: var(--text-dim);
+    border: 1.5px solid var(--line);
+  }
+  .btn-ghost:hover{ color: var(--text); border-color: var(--text-faint); }
+
+  .actions{ display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  .feedback{
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 9px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    display: none;
+  }
+  .feedback.show{ display: block; }
+  .feedback.wrong{ background: var(--red-dim); color: #ffc9c9; }
+  .feedback.correct{ background: var(--green-dim); color: #baf5d4; }
+  .feedback.hint{ background: var(--panel-2); color: var(--text-dim); border: 1px dashed var(--line); }
+
+  .reveal{
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 9px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    display: none;
+  }
+  .reveal.show{ display: block; }
+  .reveal b{ color: var(--text); }
+  .reveal code{ background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; color: var(--amber); }
+
+  footer{
+    text-align: center;
+    margin-top: 22px;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">Debugg · Day 1</p>
+    <h1>What does this print?</h1>
+    <p class="sub">Read the snippet, then guess what the last line prints. You've got 4 guesses.</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+  <div class="hint-track" id="hintTrack">
+    <span class="hint-dot" id="hintDot1"></span>
+    <span class="hint-dot" id="hintDot2"></span>
+    <span class="hint-track-label">hints used</span>
+  </div>
+
+  <div class="editor">
+    <div class="editor-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="filename">day1.py</span>
+    </div>
+    <pre><code><span class="ln">1</span><span class="kw">def</span> <span class="fn">add_item</span>(item, <span class="flagged" id="flag1">lst=[]</span>):
+<span class="ln">2</span>    lst.append(item)
+<span class="ln">3</span>    <span class="kw">return</span> lst
+<span class="ln">4</span>
+<span class="ln">5</span>add_item(<span class="num">1</span>)
+<span class="ln">6</span><span class="fn">print</span>(<span class="fn">add_item</span>(<span class="num">2</span>))</code></pre>
+  </div>
+
+  <div class="panel">
+    <label for="guess">Your guess</label>
+    <div class="guess-row">
+      <input type="text" id="guess" placeholder="what gets printed?" autocomplete="off">
+      <button class="btn-primary" id="submit">Check</button>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="hintBtn">Show hint</button>
+      <button class="btn-ghost" id="hint2Btn" hidden>Show another hint</button>
+      <button class="btn-ghost" id="revealBtn">Reveal answer</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="reveal" id="reveal">
+      <p><b>Answer:</b> <code>[1, 2]</code> — not <code>[2]</code>.</p>
+      <p>Default argument values are evaluated <b>once</b>, when the function is defined — not on every call. Since <code>lst=[]</code> is only created a single time, the list from the first call (line 5) is still sitting there when the second call runs, so it grows instead of starting fresh.</p>
+      <p><b>Fix:</b> use <code>lst=None</code> and create the list inside the function: <code>if lst is None: lst = []</code>.</p>
+    </div>
+  </div>
+
+  <footer>bug streak: <span id="streak">0</span> · <a href="#" id="resetLink" style="color:inherit;text-decoration:underline;">reset</a></footer>
+</div>
+
+<script>
+(function(){
+  const MAX_GUESSES = 4;
+
+  const tilesEl = document.getElementById('tiles');
+  const guessInput = document.getElementById('guess');
+  const submitBtn = document.getElementById('submit');
+  const hintBtn = document.getElementById('hintBtn');
+  const hint2Btn = document.getElementById('hint2Btn');
+  const hintDot1 = document.getElementById('hintDot1');
+  const hintDot2 = document.getElementById('hintDot2');
+  const revealBtn = document.getElementById('revealBtn');
+  const feedbackEl = document.getElementById('feedback');
+  const revealEl = document.getElementById('reveal');
+  const flag1 = document.getElementById('flag1');
+  const streakEl = document.getElementById('streak');
+  const resetLink = document.getElementById('resetLink');
+
+  const HINT_1 = 'Hint 1: look closely at lst=[] in the function signature — how many times does that line actually run?';
+  const HINT_2 = 'Hint 2: a default argument value is created once, when the function is defined — not fresh on every call. So the list from the first call is still there when the second call runs.';
+
+  let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
+
+  function load(){
+    try{
+      const raw = localStorage.getItem('debugg-day1');
+      if(raw) state = Object.assign(state, JSON.parse(raw));
+    }catch(e){}
+  }
+  function save(){
+    try{ localStorage.setItem('debugg-day1', JSON.stringify(state)); }catch(e){}
+  }
+  function getStreak(){
+    try{ return parseInt(localStorage.getItem('debugg-streak') || '0', 10); }catch(e){ return 0; }
+  }
+  function setStreak(n){
+    try{ localStorage.setItem('debugg-streak', String(n)); }catch(e){}
+  }
+
+  function renderTiles(){
+    tilesEl.innerHTML = '';
+    for(let i = 0; i < MAX_GUESSES; i++){
+      const t = document.createElement('div');
+      t.className = 'tile';
+      const result = state.attempts[i];
+      if(result === 'correct'){ t.classList.add('correct'); t.textContent = '✓'; }
+      else if(result === 'wrong'){ t.classList.add('wrong'); t.textContent = '✕'; }
+      tilesEl.appendChild(t);
+    }
+  }
+
+  function popLastTile(){
+    const idx = state.attempts.length - 1;
+    const tile = tilesEl.children[idx];
+    if(tile){ tile.classList.add('pop'); setTimeout(() => tile.classList.remove('pop'), 280); }
+  }
+
+  function showFeedback(kind, text){
+    feedbackEl.className = 'feedback show ' + kind;
+    feedbackEl.textContent = text;
+  }
+
+  function updateHintDots(level){
+    hintDot1.classList.toggle('used', level >= 1);
+    hintDot2.classList.toggle('used', level >= 2);
+  }
+
+  function hintSuffix(){
+    if(state.hintLevel === 0) return '';
+    if(state.hintLevel === 1) return ' (1 hint used)';
+    return ' (2 hints used)';
+  }
+
+  function showHints(level){
+    feedbackEl.className = 'feedback show hint';
+    feedbackEl.innerHTML = '';
+    const p1 = document.createElement('p');
+    p1.style.margin = '0';
+    p1.textContent = HINT_1;
+    feedbackEl.appendChild(p1);
+    if(level >= 2){
+      const p2 = document.createElement('p');
+      p2.style.margin = '8px 0 0';
+      p2.textContent = HINT_2;
+      feedbackEl.appendChild(p2);
+    }
+  }
+
+  function lockIn(){
+    guessInput.disabled = true;
+    submitBtn.disabled = true;
+    flag1.classList.add('on');
+    revealEl.classList.add('show');
+    state.revealed = true;
+    save();
+  }
+
+  // Single accepted answer for this puzzle: the list [1, 2].
+  // Strip everything but digits and commas so "[1, 2]", "1,2", "1 2" all match.
+  function checkGuess(text){
+    const stripped = text.replace(/[^\d,]/g, '').replace(/,+/g, ',').replace(/^,|,$/g, '');
+    return stripped === '1,2';
+  }
+
+  function finishRun(won){
+    let streak = getStreak();
+    streak = won ? streak + 1 : 0;
+    setStreak(streak);
+    streakEl.textContent = streak;
+  }
+
+  submitBtn.addEventListener('click', () => {
+    const val = guessInput.value.trim();
+    if(!val || state.solved || state.revealed) return;
+
+    const correct = checkGuess(val);
+    state.attempts.push(correct ? 'correct' : 'wrong');
+    renderTiles();
+    popLastTile();
+    guessInput.value = '';
+
+    if(correct){
+      state.solved = true;
+      showFeedback('correct', 'Correct — [1, 2]. The default list carries over from the first call.' + hintSuffix());
+      lockIn();
+      finishRun(true);
+    }else if(state.attempts.length >= MAX_GUESSES){
+      showFeedback('wrong', 'Out of guesses. Here\'s the answer:' + hintSuffix());
+      lockIn();
+      finishRun(false);
+    }else{
+      showFeedback('wrong', 'Not quite — think about when that default list gets created.');
+    }
+  });
+
+  guessInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') submitBtn.click();
+  });
+
+  hintBtn.addEventListener('click', () => {
+    state.hintLevel = 1;
+    save();
+    showHints(1);
+    updateHintDots(1);
+    hintBtn.hidden = true;
+    hint2Btn.hidden = false;
+  });
+
+  hint2Btn.addEventListener('click', () => {
+    state.hintLevel = 2;
+    save();
+    showHints(2);
+    updateHintDots(2);
+    hint2Btn.hidden = true;
+  });
+
+  revealBtn.addEventListener('click', () => {
+    if(state.solved || state.revealed) return;
+    if(state.attempts.length < MAX_GUESSES){
+      // pad remaining tiles as skipped/wrong for a clean stop
+      while(state.attempts.length < MAX_GUESSES) state.attempts.push('wrong');
+      renderTiles();
+    }
+    showFeedback('wrong', 'Revealed — no streak today.' + hintSuffix());
+    lockIn();
+    finishRun(false);
+  });
+
+  resetLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    try{
+      localStorage.removeItem('debugg-day1');
+      localStorage.removeItem('debugg-streak');
+    }catch(err){}
+    state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
+    guessInput.disabled = false;
+    submitBtn.disabled = false;
+    guessInput.value = '';
+    flag1.classList.remove('on');
+    revealEl.classList.remove('show');
+    feedbackEl.classList.remove('show');
+    hintBtn.hidden = false;
+    hint2Btn.hidden = true;
+    updateHintDots(0);
+    renderTiles();
+    streakEl.textContent = '0';
+  });
+
+  load();
+  renderTiles();
+  streakEl.textContent = getStreak();
+  updateHintDots(state.hintLevel || 0);
+  if(state.hintLevel >= 1){
+    hintBtn.hidden = true;
+    hint2Btn.hidden = state.hintLevel >= 2;
+  }
+  if(state.hintLevel >= 1 && !state.solved && !state.revealed){
+    showHints(state.hintLevel);
+  }
+  if(state.solved){
+    guessInput.disabled = true; submitBtn.disabled = true;
+    flag1.classList.add('on');
+    showFeedback('correct', 'Solved — [1, 2]. The default list carries over from the first call.' + hintSuffix());
+  }else if(state.revealed){
+    guessInput.disabled = true; submitBtn.disabled = true;
+    flag1.classList.add('on');
+    revealEl.classList.add('show');
+    showFeedback('wrong', 'Revealed.' + hintSuffix());
+  }
+})();
+</script>
+</body>
+</html>
