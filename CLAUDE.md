@@ -613,6 +613,52 @@ Replace the current flat reliability-by-level model:
   those shift the numbers. Known symptom: a grad on repeat now nets
   ~¤400/hour, which makes early hires cheap relative to income.
 
+#### 10b. Look and feel
+A design pass over the whole site: the daily puzzles, Debugg Ltd, the
+sandbox and the privacy page. Today it's a functional prototype look:
+dark theme only, mostly text, and Debugg Ltd in particular is dense.
+
+- **Start with an audit.** Screenshot every screen at desktop and phone
+  width (puzzle before and after a game, the sandbox, founding the
+  company, the studio with a few staff, the team picker, the employee
+  panel, the board), list what feels off, and agree a direction before
+  changing anything.
+- **Visual identity.** A logo or wordmark for Debugg, a favicon, and a
+  social share image. Settle the colour palette, type scale, spacing
+  and icon style as design tokens in `base.css`, and have `ltd/ltd.css`
+  and the sandbox use them rather than their own values.
+- **The daily puzzle.** The first impression and the end-of-game screen
+  matter most:
+  - a clear result summary;
+  - a Wordle-style share card (guesses and hints as squares, no
+    spoilers);
+  - the streak and XP level-ups made to feel like rewards.
+- **Debugg Ltd.** Less wall-of-text and more at-a-glance:
+  - icons or colour for roles and languages;
+  - visual progress for promotions and skill bars;
+  - clearer hierarchy in the stats bar, roster and contract board;
+  - a better-balanced two-column layout next to the puzzle;
+  - a first-time walkthrough of hiring and staffing a hotfix.
+- **Light theme.** Follow the device's light/dark setting, with a toggle.
+- **Motion.** Subtle transitions (tiles, level-ups, contracts
+  completing), respecting "reduce motion". Pairs with items 20 and 21.
+- **Accessibility.**
+  - colour contrast;
+  - visible keyboard focus and full keyboard play;
+  - screen-reader labels (especially the tiles, hint dots and pip
+    bars);
+  - not relying on colour alone (red/green tiles need their ✓/✕).
+- **Phone.** Tap-target sizes, and how the studio sits under the puzzle
+  on a narrow screen.
+- Open questions:
+  - What specifically feels off today, and are there games or sites whose
+    look you'd like to be closer to?
+  - Keep the "code editor / terminal" flavour, or go friendlier and more
+    playful?
+  - Before or after the soft launch? A quick pass on the daily puzzle's
+    first impression and share card could come first; Debugg Ltd can
+    follow.
+
 ### Phase 3 — Retention and mid-game growth
 
 The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)
