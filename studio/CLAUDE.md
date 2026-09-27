@@ -102,10 +102,18 @@ state = {
   requirements and shows success chance, payout and salary cost. It has a
   "Suggest a team" button. Each person can only be on one contract at a
   time.
-  - **Skill rule**: a dev can only be put on a contract if they have at
+  - **Skill rule**: a dev "knows the stack" for a contract if they have at
     least one bar in its language or its domain (`qualifiedFor()`; managers
-    are exempt). In the picker, unqualified people show greyed out, and a
-    board card warns when nobody on staff qualifies.
+    are exempt).
+    - Solo quick fixes need someone who knows the stack.
+    - On team contracts, devs who don't can join as **learners**. They
+      write no code and each costs the team `LEARNER_DRAG` (10%) of its
+      output in mentoring time. There must be at least one dev who knows
+      the stack per learner. Learners earn XP as normal on delivery. This
+      is the only way to gain a first bar in a new language or domain.
+    - The picker labels learners (and greys out non-learners on quick
+      fixes), and "Suggest a team" only adds learners when short-handed.
+    - A board card warns when nobody on staff knows the stack.
   - **Offer expiry**: untaken offers are replaced after `offerLife`
     minutes (3 / 15 / 45 / 120 by tier), so the board keeps turning over;
     an offer open in the picker is never swapped out.

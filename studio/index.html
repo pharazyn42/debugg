@@ -1136,8 +1136,13 @@
     return ROLES[d.role].sloc * (1 + SKILL_SPEED * matchFit(d, offer));
   }
 
-  // A dev can only work a contract if they have at least one bar in its
-  // language or its domain. Managers don't write code, so they're exempt.
+  // A dev "knows the stack" for a contract if they have at least one bar in
+  // its language or its domain. Managers don't write code, so they're exempt.
+  // Devs who don't can only join a team as learners: they write nothing,
+  // each one costs the team LEARNER_DRAG of its output in mentoring time,
+  // and there must be at least one dev who knows the stack per learner.
+  // It's the only way to pick up a first bar in something new.
+  const LEARNER_DRAG = 0.10;
   function qualifiedFor(p, offer){
     return !isDev(p) || bars(p.lang[offer.lang]) > 0 || bars(p.dom[offer.dom]) > 0;
   }
@@ -1161,12 +1166,21 @@
                     ok: atLeast('Senior') >= need });
     }
     if(!devs.length) checks.push({ label: 'at least one developer', ok: false });
-    checks.push({ label: 'every dev knows ' + offer.lang + ' or ' + offer.dom,
-                  ok: devs.every(d => qualifiedFor(d, offer)) });
+    const knowers = devs.filter(d => qualifiedFor(d, offer));
+    const learners = devs.length - knowers.length;
+    if(tier.max === 1){
+      checks.push({ label: 'knows ' + offer.lang + ' or ' + offer.dom + ' (no learning solo)', ok: learners === 0 });
+    }else{
+      checks.push({ label: 'someone knows ' + offer.lang + ' or ' + offer.dom, ok: knowers.length > 0 });
+      if(learners) checks.push({ label: 'learners (' + learners + ') ≤ devs who know the stack (' + knowers.length + ')',
+                                 ok: learners <= knowers.length });
+    }
 
     const valid = checks.every(c => c.ok);
-    const baseSloc = devs.reduce((s, d) => s + ROLES[d.role].sloc, 0);
-    const sloc = Math.round(devs.reduce((s, d) => s + devSlocOn(d, offer), 0) * 10) / 10;
+    const drag = Math.max(0, 1 - LEARNER_DRAG * learners);
+    const baseSloc = knowers.reduce((s, d) => s + ROLES[d.role].sloc, 0);
+    const matchedSloc = knowers.reduce((s, d) => s + devSlocOn(d, offer), 0);
+    const sloc = Math.round(matchedSloc * drag * 10) / 10;
     const skill = devs.length ? devs.reduce((s, d) => s + matchFit(d, offer), 0) / devs.length : 0;
     const matched = devs.filter(d => bars(d.lang[offer.lang]) > 0 && bars(d.dom[offer.dom]) > 0).length;
     const reliability = devs.length ? devs.reduce((s, d) => s + ROLES[d.role].reliability, 0) / devs.length : 0;
@@ -1176,7 +1190,7 @@
     const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
     const xp = tier.xpPerMin * ms / 60000;
 
-    return { checks, valid, baseSloc, sloc, ms, chance, payout, salaryCost, xp };
+    return { checks, valid, baseSloc, matchedSloc, learners, sloc, ms, chance, payout, salaryCost, xp };
   }
 
   function startJob(offerId, memberIds, repeat){
@@ -1638,8 +1652,9 @@
     const tier = TIERS[offer.tier];
     const busy = busyIds();
     const free = state.roster.filter(p => eligibleFor(tier, p) && !busy.has(p.id));
-    const pool = free.filter(p => qualifiedFor(p, offer));
-    const unqualified = free.filter(p => !qualifiedFor(p, offer));
+    // Learners can join team contracts, but not a solo quick fix.
+    const pool = tier.max > 1 ? free : free.filter(p => qualifiedFor(p, offer));
+    const unqualified = free.filter(p => pool.indexOf(p) < 0);
     // Drop any selection that's no longer available.
     picker.selected.forEach(id => { if(!pool.some(p => p.id === id)) picker.selected.delete(id); });
     return { offer, tier, pool, unqualified, busyCount: state.roster.filter(p => eligibleFor(tier, p) && busy.has(p.id)).length };
@@ -1663,11 +1678,19 @@
       take(p => p.role === 'Senior', need - have());
       take(p => p.role === 'Principal', need - have());
     }
-    // Fill the rest with the most junior people first — that's who needs the XP.
-    const filler = pool.filter(isDev).sort((a, b) => levelRank(a.role) - levelRank(b.role) || fit(b) - fit(a));
+    // Fill the rest with the most junior people who know the stack first —
+    // that's who needs the XP — then learners, if still short and there are
+    // enough people who know the stack to mentor them.
+    const knows = p => qualifiedFor(p, offer);
+    const filler = pool.filter(isDev).sort((a, b) =>
+      (knows(b) - knows(a)) || levelRank(a.role) - levelRank(b.role) || fit(b) - fit(a));
     for(const p of filler){
       if(chosen.length >= tier.min) break;
-      if(chosen.indexOf(p) < 0) chosen.push(p);
+      if(chosen.indexOf(p) >= 0) continue;
+      const devs = chosen.filter(isDev);
+      const learners = devs.filter(d => !knows(d)).length;
+      if(!knows(p) && learners + 1 > devs.length - learners) continue;
+      chosen.push(p);
     }
     return chosen.map(p => p.id);
   }
@@ -1685,7 +1708,8 @@
       const on = picker.selected.has(p.id);
       const meta = isDev(p)
         ? '<span class="bars">' + barString(bars(p.lang[offer.lang])) + '</span> <span class="bars dom">' + barString(bars(p.dom[offer.dom])) + '</span>' +
-          ' · ' + (Math.round(devSlocOn(p, offer) * 10) / 10) + ' SLOC/min'
+          (qualifiedFor(p, offer) ? ' · ' + (Math.round(devSlocOn(p, offer) * 10) / 10) + ' SLOC/min'
+                                  : ' · <span style="color:var(--amber)">learner, −' + Math.round(LEARNER_DRAG * 100) + '% team</span>')
         : 'no SLOC';
       return '<label class="pick' + (on ? ' on' : '') + '">' +
         '<input type="checkbox" data-pick="' + p.id + '"' + (on ? ' checked' : '') + '>' +
@@ -1695,7 +1719,7 @@
       '<label class="pick unqualified">' +
         '<input type="checkbox" disabled>' +
         '<span><b>' + esc(p.name) + '</b> · ' + p.role + '</span>' +
-        '<span class="meta">no ' + esc(offer.lang) + ' or ' + esc(offer.dom) + ' skill</span></label>'
+        '<span class="meta">no ' + esc(offer.lang) + ' or ' + esc(offer.dom) + ' skill — can only learn in a team</span></label>'
     ).join('');
 
     teamModalBody.innerHTML =
@@ -1710,7 +1734,11 @@
         'Success chance <b>' + Math.round(ev.chance * 100) + '%</b> · Payout <b>' + fmt(ev.payout) + '</b> · ' +
         'Salaries over the job <b>' + fmt(ev.salaryCost) + '</b><br>' +
         'Team output <b>' + ev.sloc + ' SLOC/min</b>' +
-          (ev.sloc > ev.baseSloc ? ' (' + ev.baseSloc + ' base, +' + Math.round((ev.sloc / ev.baseSloc - 1) * 100) + '% from skill match)' : '') +
+          (ev.matchedSloc > ev.baseSloc || ev.learners
+            ? ' (' + ev.baseSloc + ' base' +
+              (ev.matchedSloc > ev.baseSloc ? ', +' + Math.round((ev.matchedSloc / ev.baseSloc - 1) * 100) + '% skill match' : '') +
+              (ev.learners ? ', −' + Math.round(LEARNER_DRAG * ev.learners * 100) + '% for ' + ev.learners + ' learner' + (ev.learners > 1 ? 's' : '') : '') + ')'
+            : '') +
           ' → takes <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b><br>' +
         'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
       '</div>' +
