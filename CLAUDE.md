@@ -649,8 +649,47 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
     experience (e.g. training only up to bar 3)?
 
 #### 15. Office space: desks, contractors, and buildings
-- Another progression limiter. On-site staff need a desk. You start with
-  one free room with a small number of desks (e.g. 4).
+- Another progression limiter. On-site staff need a desk.
+- **The first office caps headcount.** You start in one free room with 3
+  or 4 desks. Hiring is blocked once it's full ("no free desk — get a
+  bigger office") until you take on the next office. This sits alongside
+  the supervision limits: the Director can already only look after 4 devs
+  (`DIRECTOR_SPAN`), so a 4-desk first office lines up with the point
+  where you'd hire your first manager anyway. With 3 desks, the office
+  becomes the first wall instead.
+- **Tiered office options**, each with its own pricing and lease terms.
+  A starting ladder (names, desk counts and prices are placeholders for
+  the balance pass):
+
+  | Office | Desks | How you pay |
+  |---|---|---|
+  | Spare room (start) | 3–4 | Free |
+  | Co-working hot desks | ~8 | Rent per desk, no deposit, leave any time. Flexible but the priciest per desk. |
+  | Small office | ~15 | Lease: a deposit, then rent. Short lease = higher rent, long lease = cheaper but an early-exit fee. |
+  | Office floor | ~40 | Longer lease, bigger deposit, lowest rent per desk. |
+  | Building | 100+ | Buy outright (big one-off cost, no rent), or lease. Late game; ties into multiple sites (item 18). |
+
+  - **Rent is an ongoing cost like payroll**: drawn every second, shown
+    next to Payroll in the stats bar, and paid while offline (within the
+    offline cap). It stops while the company is paused.
+  - **Leases**: the deposit comes back when a lease ends normally; ending
+    it early costs a fee. Taking a bigger office while on a lease means
+    paying off or subletting the old one (to decide).
+  - You can't move to an office smaller than your on-site headcount.
+- **Contracts are hidden until your office can hold the team.** A
+  contract type only appears on the board once your desks (plus
+  work-from-home contractors) can fit its minimum team. Today that's:
+  - Hotfix: 1 dev;
+  - Patch: 3;
+  - Minor release: 5;
+  - Major release: 10+, including a manager.
+
+  In the starting room, only Hotfixes (and Patches, with 3+ desks) show.
+  Hidden groups could appear on the board as locked placeholders
+  ("Minor releases: needs an office for 5") so players can see what's
+  coming, rather than vanishing entirely. Decide how this combines with
+  reputation gating (item 12): perhaps a contract type needs both the
+  space and the reputation.
 - **Contractors** work from home, so they need no desk, but cost more
   (higher salary and/or hire cost). They're a way past the desk cap
   before you can afford space.
@@ -658,10 +697,15 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   desks. This fits with the business tiers (item 13) and multiple sites
   (item 18); sites could be where buildings live.
 - Open questions:
+  - Does the Director take a desk? Do managers?
+  - First office: 3 or 4 desks?
   - Do contractors count towards the supervision structure and manager
     span?
   - Can they be promoted?
   - Do they gain XP at the same rate?
+  - Save migration: companies that already have more staff than the first
+    office holds need a sensible starting office (e.g. the smallest one
+    that fits, free for a grace period).
 
 #### 15b. Shared event system
 - One system for everything that randomly (or conditionally) happens to
