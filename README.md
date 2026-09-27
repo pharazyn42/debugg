@@ -1,12 +1,28 @@
 # Debugg
 
-A Wordle-style daily game where you guess what a short, buggy Python snippet actually prints — no coding required, just read the code and reason it out.
+A Wordle-style daily game where you guess what a short, buggy Python or JavaScript snippet actually prints — no coding required, just read the code and reason it out.
 
-Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result.
+There's a new puzzle in each language every day at local midnight; pick a language with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving at least one puzzle a day, in any language, builds your bug streak.
+
+Each puzzle also earns XP, tracked separately for each language so you level up in each one:
+
+| Solved on guess | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| No hints | 100 | 75 | 50 | 25 |
+| 1 hint | 75 | 56 | 38 | 19 |
+| 2 hints | 50 | 38 | 25 | 13 |
+
+Running out of guesses or revealing the answer still earns 10 XP. Level 2 starts at 100 XP, and each level after that needs 100 more than the last (300, 600, 1000, …).
 
 ## Playing
 
 Open `index.html` directly, or visit the GitHub Pages site once enabled (see below).
+
+## Adding a puzzle
+
+Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 was 27 September 2026), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+
+To add a new language, add it to `LANGS` and `SYNTAX` in `index.html` (name, file extension, keywords, comment and string syntax), then add puzzles with that `lang`.
 
 ## Deploying with GitHub Pages
 
@@ -17,8 +33,11 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Roadmap
 
-- Rotate in a new puzzle each day instead of always showing Day 1.
-- Move puzzle content into a small JSON/data file so new days can be added without touching the page code.
+- Add a sandbox where players can write and run their own code snippets.
+- Add new puzzle types alongside "what does this print?":
+  - **Fix it:** modify the given code so it produces the correct output.
+  - **Write it:** write code from scratch that produces a given output.
+- Add progression that keeps people coming back, building on the daily bug streak and language levels, e.g. unlockable puzzle packs or harder tiers, and achievements.
 
 ## Other ideas
 
