@@ -1,5 +1,13 @@
 /* Styles shared by the daily puzzle (index.html) and the sandbox (sandbox.html). */
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Fonts are served from this site (fonts/), not Google Fonts, so visitors' IP addresses aren't
+   sent to a third party. Sora and JetBrains Mono are under the SIL Open Font License (see fonts/). */
+@font-face{ font-family: 'Sora'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/sora-latin-500-normal.woff2') format('woff2'); }
+@font-face{ font-family: 'Sora'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/sora-latin-600-normal.woff2') format('woff2'); }
+@font-face{ font-family: 'Sora'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/sora-latin-700-normal.woff2') format('woff2'); }
+@font-face{ font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face{ font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); }
+@font-face{ font-family: 'JetBrains Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2'); }
+@font-face{ font-family: 'JetBrains Mono'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2'); }
 
 :root{
   color-scheme: dark;
@@ -161,6 +169,7 @@ button{
   gap: 6px;
   margin: 0 0 4px;
 }
+.langs[hidden]{ display: none; }
 .lang-tab{
   font-family: var(--mono);
   font-size: 12px;
@@ -185,3 +194,35 @@ footer{
   font-size: 12px;
   font-family: var(--mono);
 }
+
+/* Dialogs (the save backup window) */
+dialog{
+  width: min(520px, calc(100vw - 32px));
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+dialog::backdrop{ background: rgba(8, 9, 11, 0.72); }
+dialog h2{ font-size: 17px; margin: 0 0 8px; }
+dialog p{ font-size: 13.5px; line-height: 1.55; color: var(--text-dim); margin: 0 0 14px; }
+dialog label{ margin-top: 4px; }
+dialog textarea{
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  resize: vertical;
+  word-break: break-all;
+}
+dialog textarea:focus{ outline: none; border-color: var(--amber); }
+.backup-actions{ display: flex; gap: 8px; align-items: center; margin: 10px 0 16px; flex-wrap: wrap; }
+.backup-actions:last-child{ margin-bottom: 0; }
+.backup-note{ font-size: 12.5px; color: var(--green); }
+.backup-error{ color: var(--red) !important; margin: 6px 0 0 !important; min-height: 0; }
+.backup-error:empty{ display: none; }

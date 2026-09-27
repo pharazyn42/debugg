@@ -2,7 +2,9 @@
 
 A Wordle-style daily game where you guess what a short, buggy Python or JavaScript snippet actually prints — no coding required, just read the code and reason it out.
 
-There's a new puzzle in each language every day at local midnight; pick a language with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving at least one puzzle a day, in any language, builds your bug streak.
+**For the soft launch the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
+
+There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving at least one puzzle a day, in any language, builds your bug streak.
 
 Each puzzle also earns XP, tracked separately for each language so you level up in each one:
 
@@ -29,9 +31,16 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 `shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, XP levels, the syntax highlighter and the base theme.
 
+## Your progress, feedback and privacy
+
+- **Backup:** everything is saved in the player's browser only. The footer's **backup** link shows a code holding all of it (puzzles, XP, streak, company, sandbox drafts) and restores from one on any device (`backup.js`).
+- **Feedback:** after each game, "Report it" opens a GitHub issue prefilled with the puzzle's language, day, first line and expected answer; the footer's **feedback** link opens a blank one. Issues are public, and reporting needs a GitHub account.
+- **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). It's off until `SITE_COUNT_URL` in that file is set to the site's GoatCounter address. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debugg Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
+- **Privacy:** `privacy.html` explains all of the above to players. Fonts are served from `fonts/` (Sora and JetBrains Mono, SIL Open Font License), not Google Fonts.
+
 ## Debugg Ltd
 
-"Start your own company" (in the footer, and after each finished puzzle) switches on **Debugg Ltd**, an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+"Start your own company" (in the footer, and after each finished puzzle) switches on **Debugg Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
 
 - **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
@@ -46,7 +55,7 @@ The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on
 
 ## Adding a puzzle
 
-Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 was 27 September 2026), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 is 1 October 2026; days before it show a "Preview" puzzle), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
 
 To add a new language, add it to `LANGS` and `SYNTAX` in `shared.js` (name, file extension, indent, keywords, comment and string syntax), then add puzzles with that `lang`.
 
@@ -71,9 +80,12 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 
 ## Roadmap
 
-- **Release tiers:** alongside the daily puzzle (the Hotfix), add a twice-weekly Patch ("spot the bug": click the line that causes it), a weekly Minor release ("modify this code to output this") and a monthly Major release ("write code that outputs this"). The code tiers can build on the sandbox's editor and runners: run the player's code, then compare what it prints. In Debugg Ltd, bigger tiers pay more.
+- **Switch on analytics (to do before launch):** create a free GoatCounter account at goatcounter.com, pick a site code (e.g. `debugg`), and put its count address (e.g. `https://debugg.goatcounter.com/count`) in `SITE_COUNT_URL` in `analytics.js`. Everything else is already built; until then nothing is counted.
+- **Puzzle formats and the weekly rotation** (decided; see item 3b in `CLAUDE.md`): still one puzzle a day per language, but its format and difficulty follow the week. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debugg Ltd desk pay) rises with difficulty.
+- **Learn track:** lessons per language played in order at any time, teaching one concept each with a "try this next" for the sandbox. Lessons earn XP but don't count towards the streak. Monday's daily puzzles are learn-level too.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.
-- **Debugg Ltd:** its own roadmap is in `CLAUDE.md` (tests are done; next are versioning and the balance pass).
+- **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debugg Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `CLAUDE.md`.
+- **Debugg Ltd:** its own roadmap is in `CLAUDE.md`. Tests are done. Next are versioning and the balance pass, and a big company stats panel is planned (item 15d).
 
 ## Other ideas
 

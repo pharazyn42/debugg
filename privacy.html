@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debugg Privacy</title>
+<meta name="description" content="What Debugg stores and sends: your progress stays in your browser, and visits are counted without cookies.">
+<link rel="stylesheet" href="base.css">
+<style>
+  .wrap{ max-width: 640px; }
+  header{ text-align: left; }
+  h1{ font-size: 24px; }
+  h2{ font-size: 16px; margin: 26px 0 8px; }
+  p, li{ color: var(--text-dim); font-size: 14.5px; line-height: 1.65; }
+  ul{ padding-left: 20px; margin: 0; }
+  li{ margin-bottom: 6px; }
+  a{ color: var(--amber); }
+  code{ font-size: 13px; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Debugg</p>
+    <h1>Privacy</h1>
+    <p class="sub">Short version: your progress stays in your browser, and visits are counted without cookies or anything that identifies you.</p>
+  </header>
+
+  <h2>What’s saved, and where</h2>
+  <p>Your puzzle progress, XP, streak, company and sandbox drafts are saved in your own browser (local storage). They’re never sent anywhere. Clearing your browsing data deletes them, so use the <b>backup</b> link to keep a copy. The backup code contains only this progress.</p>
+
+  <h2>Counting visits</h2>
+  <p>Debugg uses <a href="https://www.goatcounter.com" target="_blank" rel="noopener">GoatCounter</a> to count visits. It sets no cookies, doesn’t track you across sites, and doesn’t store your IP address. As well as page views, it counts a few anonymous events so the puzzles can be improved:</p>
+  <ul>
+    <li>a puzzle finished: its language and day, whether it was solved, and how many guesses and hints it took;</li>
+    <li>reaching a new level;</li>
+    <li>in Debugg Ltd: founding, pausing, resuming or closing a company, and hiring or promoting (just the role);</li>
+    <li>opening or using the backup, the feedback links, and running code in the sandbox (just the language).</li>
+  </ul>
+  <p>What you type, like your answers and your sandbox code, is never sent.</p>
+
+  <h2>Other services</h2>
+  <ul>
+    <li>The site is hosted on <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a>, which, like any web host, sees your IP address when you load a page.</li>
+    <li>Running Python in the sandbox downloads Python (Pyodide) from the <a href="https://www.jsdelivr.com/" target="_blank" rel="noopener">jsDelivr</a> network the first time.</li>
+    <li>The fonts are served from this site, not Google Fonts.</li>
+    <li>The <b>feedback</b> and <b>report</b> links open a GitHub issue. GitHub issues are public, so don’t include anything personal.</li>
+  </ul>
+
+  <footer><a href="index.html">back to Debugg</a></footer>
+</div>
+</body>
+</html>

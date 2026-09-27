@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
 
-const at = (h, m = 0) => new Date(2026, 8, 27, h, m, 0);
+const at = (h, m = 0) => new Date(2026, 9, 1, h, m, 0);  // Day 1
 const ltd = page => readJson(page, 'debugg-ltd');
 
 async function found(page){

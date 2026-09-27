@@ -10,9 +10,7 @@ module.exports = defineConfig({
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   use: {
     baseURL: 'http://localhost:4173/',
-    browserName: 'chromium',
-    // Google Fonts isn't needed for the tests and may be unreachable.
-    ignoreHTTPSErrors: true
+    browserName: 'chromium'
   },
   webServer: {
     command: 'node tests/serve.js',

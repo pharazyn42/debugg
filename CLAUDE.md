@@ -16,7 +16,7 @@ simplified from that doc in places (noted below).
 
 ## Where things live
 
-No build step and no runtime dependencies (besides Google Fonts, and Pyodide
+No build step and no runtime dependencies (besides GoatCounter once switched on, and Pyodide
 from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 `https://pharazyn42.github.io/debugg/`.
 
@@ -26,6 +26,10 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `puzzles.js` | The puzzle bank, one list per language. |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
+| `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
+| `analytics.js` | GoatCounter page views and named events. Off until `SITE_COUNT_URL` is set. |
+| `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
+| `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
@@ -42,6 +46,20 @@ the saved company is running, when an old pre-merge save exists, or when the
 URL has `?ltd`. `DebuggLtd.start({ stats, studio, board })` renders into the
 three slots and either resumes the saved company, imports an old one, or
 founds a new one. `body.ltd-on` switches the page to the two-column layout.
+
+**Languages.** `ENABLED_LANGS` in `shared.js` is the list players see;
+it's `['python']` for the soft launch. JavaScript's puzzles, sandbox runner
+and saves are kept, and adding it back to the list restores it everywhere.
+Tests switch it on (`window.DEBUGG_LANGS`, set in `tests/helpers.js`) so it
+stays covered; pass `{ langs: null }` to `openAt` to test what players see.
+
+**The calendar.** Day 1 is 1 October 2026 (`LAUNCH` in `shared.js`). Days
+before it are preview days (0, -1, …), labelled "Preview", each with its
+own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
+once players have real progress**. If it does move, `shared.js` notices
+(it remembers the date in `debugg-epoch`) and clears per-day progress, the
+streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
+drafts.
 
 **Saves.** Puzzle progress is `debugg-day<N>` (Python) and
 `debugg-<lang>-day<N>`, plus `debugg-xp`, `debugg-streak` and `debugg-lang`.
@@ -94,8 +112,8 @@ state = {
 
 ## What's implemented
 
-- **The desk is the daily puzzles**, one per language per day (the Hotfix
-  tier of 3b). Each one finished while the company is running pays
+- **The desk is the daily puzzles**, one per language per day (see 3b
+  for the planned formats and weekly rotation). Each one finished while the company is running pays
   `CASH_PER_XP` per XP it earned (¤200 for a first-guess, no-hint solve,
   ¤20 for a reveal) and 1 reputation per 20 XP. Solves get +10% per streak
   day beyond the first, up to +50%. Only today's puzzles pay, each once
@@ -266,6 +284,73 @@ Do these first: every later feature touches the job engine, and changes currentl
     instead of branch deploys;
   - or keep `main` as the released branch and do work on a `dev` branch.
 
+#### 2b. Hosting, players and analytics
+The site is static files on GitHub Pages, and everything a player does is
+saved only in their own browser. So today there's no way to know how many
+people play, how far they get, or where they drop off, and a player can't
+move their progress to another device. This item decides how to host the
+site and what to measure.
+
+- **What we want to know.**
+  - **Visitors:** daily and weekly visitors, new vs returning, where they
+    came from (referrers), device and screen size, and which pages they
+    use (daily puzzle, sandbox, the studio).
+  - **Puzzles:** for each day and language, how many started, solved,
+    failed or revealed; the guess distribution (like Wordle's share
+    graph); hint use; and the most common wrong answers. Wrong answers
+    show where a puzzle is ambiguous or the answer matching is too
+    strict.
+  - **Progression:** how many players reach each XP level per language,
+    and how fast; streak lengths and where streaks break; day-1, day-7
+    and day-30 return rates.
+  - **Debugg Ltd:** how many players found a company (and when, relative
+    to their first puzzle); time to the first hire, manager, senior and
+    principal; how many pause or close; cash and headcount over time. The
+    balance pass (item 10) needs exactly this.
+- **Step 1 is built** (`analytics.js`, GoatCounter, events listed in
+  `privacy.html`). **To do:** create the GoatCounter account and set
+  `SITE_COUNT_URL` in `analytics.js`; until then it's off. The notes below
+  are the reasoning behind it.
+- **Step 1, visitor analytics with no backend.** Add a privacy-friendly,
+  cookie-free analytics script to the pages. Candidates (check current
+  pricing and limits before choosing):
+  - GoatCounter (free for non-commercial use, open source);
+  - Cloudflare Web Analytics (free);
+  - Plausible (paid, or self-hosted);
+  - Umami (self-hosted).
+
+  Most of these also record **custom events**, which would cover a lot of
+  the puzzle and progression numbers above: fire one on
+  `debugg:puzzle-finished` (language, day, solved, guesses, hints), on
+  level-ups, on founding a company, and on the studio's milestones.
+  GitHub Pages gives no visitor stats of its own, so this is the quickest
+  win.
+- **Step 2, a small backend for what analytics can't do.**
+  - Shared puzzle stats shown to players after a game ("62% solved this,
+    most in 2 guesses").
+  - Accounts or a sync code, so progress and companies move between
+    devices and survive clearing the browser.
+  - Later: leaderboards, or comparing companies.
+
+  Options: a serverless function plus a small database (Cloudflare
+  Workers + D1 or KV, Supabase, Firebase), which can sit alongside the
+  static site. Hosting could stay on GitHub Pages with the backend on its
+  own domain, or move to a host that does both (Cloudflare Pages, Netlify
+  or Vercel).
+- **Privacy.** Cookie-free, aggregate analytics usually needs no consent
+  banner. Anything tied to a person (accounts, synced saves) needs a
+  privacy notice and a way to delete your data. Never send wrong answers
+  or code typed into the sandbox with anything that identifies the player.
+- **Also:** a custom domain (GitHub Pages supports one), and keeping the
+  game fully playable if analytics or the backend is blocked or down.
+- **Open questions:**
+  - Is the goal only to understand players, or also player-facing
+    features (shared stats, sync, leaderboards)? The second needs step 2.
+  - Is a small monthly cost acceptable, or should everything stay on
+    free tiers?
+  - Accounts, or an anonymous sync code? A sync code is lighter and
+    avoids storing emails.
+
 #### 3. Languages only for now; domains become a later-game unlock
 - **Remove domain specialities from the early game.** Contracts, hires and
   skills use programming languages only. That means dropping the domain
@@ -295,89 +380,123 @@ Do these first: every later feature touches the job engine, and changes currentl
 - Save migration: existing saves have `dom` skill maps and domain-tagged
   offers/jobs. Either strip them or bump the storage key.
 
-#### 3b. One puzzle engine; Hotfix / Patch / Minor / Major releases
-- **One puzzle engine for both modes.** It covers:
-  - answer checking;
-  - 4 guesses;
-  - two-level hints tracked with dots, as in Debugg;
-  - the explained answer when you run out;
-  - streaks.
+#### 3b. Puzzle formats and the weekly rotation
+Decided with the player-owner; replaces the earlier plan of Hotfix /
+Patch / Minor / Major puzzle tiers on separate daily, twice-weekly,
+weekly and monthly calendars. The contract board keeps those four names
+for its contracts; they no longer name puzzles.
 
-  Puzzles move out of the pages into a data file. Debugg's own roadmap
-  (move puzzle content into JSON, rotate daily instead of always Day 1) is
-  the same work.
-- **The desk's contract types become release tiers on a calendar.**
-  Each is one puzzle per period, and each tier is a different, harder
-  kind of puzzle. These are the same four names the contract board uses.
+- **One puzzle a day, per language.** Its format and difficulty follow
+  the weekday: Monday is the easiest, Friday the hardest, and the weekend
+  is one bigger code challenge. One daily puzzle means one streak and one
+  thing to do, as today. Everyone gets the same puzzle on the same date.
+- **Every format is in the rotation.** The formats, grouped by how the
+  answer is checked:
 
-  | Tier | Refreshes | Replaces | The puzzle |
-  |---|---|---|---|
-  | **Hotfix** | daily | Quick Fix | **"What does this output?"** Read a snippet and predict its output (today's Debugg mechanic). |
-  | **Patch** | twice a week (e.g. Mon & Thu) | Sprint | **"Spot the bug."** Given code, the intended output and the actual (wrong) output, click the line that causes the bug. |
-  | **Minor release** | weekly | Milestone | **"Modify this to output this."** Given code and a target output, edit the code so it produces it. |
-  | **Major release** | monthly | Full Delivery | **"Write some code to output this."** Write code from scratch that produces a target output. |
+  | Format | How it plays | Checked by |
+  |---|---|---|
+  | **What does this output?** (built) | Type what the snippet prints. | Matching the typed text |
+  | **Multiple choice output** | Pick what it prints from 4 options. | The option picked |
+  | **Fill the blank** | One gap in the code; pick or type what goes there to get the target output. | The option or text |
+  | **What's the value of `x`?** | The value of a variable at a marked line. | Matching the typed text |
+  | **How many times does this run?** | Loop counts, calls. | A number |
+  | **Will it error?** | "Runs fine", or which error it raises (`TypeError`, `IndexError`…). | The option picked |
+  | **Order the lines** | Drag shuffled lines into a working program (a "Parsons problem"). | The order |
+  | **Spot the bug** | Given the code, what it should print and what it does print: tap the line causing it. | The line tapped |
+  | **Spot the difference** | Two near-identical snippets print different things: tap the difference that matters. | The part tapped |
+  | **Fix it** | Edit the code so it prints the target. Locked lines or an edit limit stop `print("target")`. | Running it |
+  | **Make it pass** | A function plus visible test cases: fix it until all pass. Hidden tests too. | Running it against tests |
+  | **Write it** | Write code from scratch that prints the target. | Running it against hidden tests |
+  | **Which is faster?** | Pick between two versions. Rare, and only where the answer is clear-cut. | The option picked |
+  | **Code golf** | Produce the target in as few characters as possible. | Running it; best length |
 
-  Everyone gets the same puzzle each period (date-seeded), and each can
-  be completed once per period. The daily puzzle *is* the Hotfix
-  ("today's hotfix"), and it's built: `puzzles.js`, one per language per
-  day, and it's already the desk (3c). The sandbox (`sandbox.html`)
-  already has the in-browser runners the Minor/Major tiers need.
-- This replaces the old item 11 ("daily desk contracts").
-- **Content load** is about 365 Hotfixes + 104 Patches + 52 Minor + 12
-  Major, so roughly 530 puzzles a year. Hotfixes are still the bulk, so a
-  puzzle generator or a large authored bank is still needed for them.
-- **Hotfixes and Patches need no code execution.** Hotfix answers are
-  matched against the expected output. A Patch answer is a line number,
-  which also makes it quick to play on a phone.
-- **Minor and Major releases need code execution** to check answers:
-  - Run the player's code in the browser, e.g. with **Pyodide** (Python
-    in WebAssembly, loadable from jsDelivr), and compare stdout to the
-    target.
-  - Run it in a **Web Worker with a timeout**, so an infinite loop can be
-    killed without freezing the page.
-  - Pyodide is a large download (~10 MB), so load it lazily, only when a
-    Minor/Major puzzle is opened.
-  - Alternatives: a lighter in-browser Python (Skulpt, Brython), or making
-    these tiers JavaScript, which runs natively.
-- **Guard against cheating**, since `print("<target>")` trivially produces
-  any output. Options:
-  - **Hidden test cases**: the puzzle defines a function to modify or
-    write, and it's checked against several inputs, not just the one shown
-    (most robust).
-  - **Constraints**: locked lines that can't be edited, an edit budget
-    for Minor releases (e.g. change at most N lines or characters), or
-    banned constructs (e.g. no string literal equal to the target).
-  - Probably a mix: Minor releases use locked lines plus an edit budget;
-    Major releases use hidden test cases.
-- Open questions:
-  - What counts as an "attempt" for the code tiers? Unlimited runs but
-    limited submissions? Is there a guess limit at all?
-  - Hints for the code tiers: what are they, and how do they affect the
-    clean bonus? The same question applies to the two hint levels on
-    Hotfixes and Patches.
-  - (Decided) All four tiers are part of the puzzle game itself, with or
-    without the studio switched on (see 3c).
-  - (Decided) In "spot the bug", a wrong click counts as a guess, the
-    same as a wrong Hotfix answer. The guess limit is still to set (4, to
-    match?).
-  - (Decided for the Hotfix) Desk pay is per XP earned; see "What's
-    implemented". Bigger tiers should pay more per puzzle.
-  - (Decided) The staffed contract board uses the same four names:
-    Hotfix / Patch / Minor release / Major release, renamed from Quick
-    Fix / Sprint / Milestone / Full Delivery with the same rules.
+- **The week** (a starting rotation; tune it with play data):
+
+  | Day | Difficulty | Formats |
+  |---|---|---|
+  | Monday | 1, learn level | multiple choice output, fill the blank, what's the value of `x` |
+  | Tuesday | 2 | what does this output, how many times does this run |
+  | Wednesday | 3 | what does this output, will it error, order the lines |
+  | Thursday | 4 | spot the bug, spot the difference, which is faster |
+  | Friday | 5, hardest | hard output (several interacting quirks), fix it |
+  | Weekend | challenge | make it pass, write it, occasionally code golf |
+
+  The **weekend challenge** is one puzzle for Saturday and Sunday
+  together: solving it on either day keeps the streak for both.
+- **Guesses and hints vary by format.**
+  - Typed and tap formats (output, value, count, spot the bug, spot the
+    difference, fill the blank when typed): 4 guesses, 2 hints, as today.
+  - Choice formats (multiple choice, will it error, which is faster, fill
+    the blank from options): 2 guesses, 1 hint, so they aren't trial and
+    error.
+  - Order the lines: 3 checks, 1 hint (e.g. it fixes the first line).
+  - Code formats (fix it, make it pass, write it, code golf): unlimited
+    runs in the editor, but 4 submissions; hints are nudges ("look at the
+    loop bounds"), up to 2.
+- **XP follows difficulty**, and in Debugg Ltd desk pay follows XP (¤2 per
+  XP, as now), so harder days are worth more to the company too. A
+  starting scale for a first-attempt, no-hint solve: Monday 60, Tuesday
+  80, Wednesday 100, Thursday 120, Friday 150, weekend 200. Extra guesses
+  and hints scale it down by the same fractions as today, and a failed or
+  revealed puzzle still gives 10.
+- **Learn** is both:
+  - the **Monday** puzzles, which are learn-level; and
+  - a separate **Learn track**: lessons per language, played in order at
+    any time, not tied to the calendar. Each lesson teaches one concept
+    with a proper explanation and a "try this next" for the sandbox. Path:
+    values and printing, strings, lists and arrays, loops, functions,
+    dictionaries and objects, then the common traps the daily puzzles
+    are about. Lessons use the easy formats (multiple choice, fill the
+    blank, value of `x`, output).
+  - Lessons earn **XP** in that language (less than a daily puzzle, e.g.
+    20 each), so beginners level up, but **don't count towards the
+    streak**: only the daily puzzle does. The track has its own progress
+    (which lessons are done) and doesn't pay in Debugg Ltd, which stays
+    daily.
+- **Data and engine changes:**
+  - Each puzzle gets `format` and `difficulty` (1–5, or `weekend`), plus
+    the fields its format needs: `options`, the blank, `lines` (to
+    shuffle), `bugLine`, `target`, `tests`, `locked` lines, an edit
+    limit.
+  - The calendar picks, for each date, the next unused puzzle in that
+    weekday's pool, date-seeded so everyone matches, falling back to the
+    nearest difficulty if a pool runs out. Today's day-number saves keep
+    working; the weekend puzzle is saved once for both days.
+  - The page shows the day and format, e.g. "Monday · warm-up · multiple
+    choice" or "Friday · hard".
+  - One renderer and answer checker per format. The code formats reuse
+    the sandbox's workers (Pyodide for Python, a fresh Web Worker for
+    JavaScript), pulled out of `sandbox.html` into a shared runner, and
+    load Pyodide only when a code puzzle opens.
+  - Rate the existing 29 puzzles (all "what does this output") by
+    difficulty. Most are Tuesday to Thursday; Monday, Friday and the
+    other formats need writing.
+- **Content load**, per language: 52 of each weekday and 52 weekend
+  challenges a year (about 310), plus the Learn track (around 40–60
+  lessons to start). A generator for the simpler formats (value of `x`,
+  how many times, output of small expressions) would help with volume.
+- **Open questions:**
+  - Build order: which formats first? Suggested: multiple choice and
+    spot the bug (no code execution, quick to build), then fill the
+    blank, value, count, will it error, order the lines, then the code
+    formats.
+  - Code golf needs shared leaderboards (item 2b) to be much fun, so it
+    may wait for a backend.
+  - Does a weekend challenge that's solved on Saturday leave anything
+    for Sunday (e.g. a bonus golf round)?
 
 #### 3c. One game: puzzles first, studio optional — done
-- Built from `ideas/debugg-ltd-merge-plan.md`, ahead of the rest of 3b:
-  the desk is the daily puzzles (the Hotfix tier), and the Patch / Minor /
-  Major tiers are still to come. See "Where things live" and "What's
+- Built from `ideas/debugg-ltd-merge-plan.md`, ahead of 3b: the desk is
+  the daily puzzles (today all "what does this output"), and the other
+  formats in the weekly rotation are still to come. See "Where things live" and "What's
   implemented" for how it works.
 - Decisions made along the way:
   - A founder's bonus rewards puzzle history (¤1 per XP, up to ¤1,000).
   - The Director's puzzle levels boost contract success in that language.
   - Past days' puzzles never pay; the desk stays daily.
   - Switching the studio off pauses it.
-- When the other tiers arrive they apply in both modes, with one record
-  of progress, and pay the company more than a Hotfix.
+- When the other formats arrive they apply in both modes, with one record
+  of progress. Desk pay follows XP, so harder days pay the company more.
 
 ### Phase 2 — Make the core loop feel right
 
@@ -486,7 +605,7 @@ Replace the current flat reliability-by-level model:
 The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)
 
 #### 11. (Moved) Daily desk contracts
-- Folded into item 3b (Hotfix / Patch / Minor / Major releases).
+- Folded into item 3b (puzzle formats and the weekly rotation).
 
 #### 12. Reputation gates contract tiers
 - Reputation is tracked but does nothing yet. Gate the bigger contract
@@ -575,6 +694,72 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
     until …".
 - The first event built on the shared event system (15b): a good,
   self-contained test of it before the late-game events.
+
+#### 15d. Company stats and records
+The company keeps almost no history: cash, reputation, and an 8-line log.
+Track lifetime stats, show them on a **Stats** panel (a button next to
+Pause / Close company), and use them later for achievements and prestige
+(item 19). Stats go in the save under `state.stats`, counted as things
+happen (not rebuilt from the log). Saves from before the stats existed
+start at zero, apart from the numbers that can be worked out from the
+roster.
+
+- **Company overview:**
+  - date founded and days since; days the company has been active (a
+    tick or a desk puzzle that day); total time running, time paused,
+    and time away (offline catch-up);
+  - lifetime cash earned, split by source (desk puzzles, each contract
+    tier, retries) and lifetime cash spent (salaries, hiring);
+  - net profit, best day, worst day, and cash earned in the last 7 days;
+  - peak cash, lowest cash (and how long it was negative), and peak
+    reputation;
+  - current and peak headcount, and headcount by level;
+  - the founder's bonus received, and whether the company came from an
+    import.
+- **The desk (your puzzles):**
+  - desk puzzles paid, by language; desk income, and its share of all
+    income;
+  - perfect solves, average guesses and hints, and reveals;
+  - the streak bonus earned in total, and the longest streak while the
+    company was running.
+- **Contracts:**
+  - offers taken, delivered, failed, retried, dropped, and lost after a
+    failed retry, each by tier;
+  - success rate by tier, language and domain, compared with the
+    forecast chance, to show whether you're lucky or unlucky;
+  - total SLOC delivered, by tier, language and domain;
+  - the biggest payout, fastest delivery by tier, and longest job;
+  - repeats: contracts started by repeat, the longest unbroken repeat
+    chain, repeats stopped because the team no longer fitted, and
+    offline repeats;
+  - offers that expired untaken, by tier.
+- **People:**
+  - hired by role, let go, and promoted (to each level), plus the
+    average time to each promotion;
+  - total salaries paid, by level;
+  - learners placed, and first bars gained through learning;
+  - skill bars gained, by language and domain;
+  - the longest-serving employee.
+- **Per employee** (on the employee panel):
+  - hired on, and roles held, with dates;
+  - contracts delivered and failed, SLOC written, cash earned for the
+    company, and salary paid to them;
+  - time on contracts vs on the bench;
+  - their favourite language and domain (most XP gained).
+- **The Director:** puzzle levels over time, and the success boost from
+  them in total (how many extra deliveries it probably caused).
+- **Records and milestones:** the date of each first (first hire,
+  manager, senior, principal, patch, minor release, major release,
+  ¤10,000 in cash, 10 staff…). These become achievements later.
+- **Charts** (later): cash, reputation and headcount over time, stored
+  as one sample per hour or day so the save stays small.
+- **Open questions:**
+  - How much history to keep: all-time counters are small, but daily
+    series grow, so cap them (e.g. the last 90 days) or bucket them.
+  - Should any of this be shared (item 2b), e.g. comparing your company
+    with others, or a leaderboard?
+  - Does "Close company" keep a summary of past companies (a hall of
+    fame), which prestige (item 19) could build on?
 
 ### Phase 4 — Late game
 
@@ -777,7 +962,7 @@ Big systems that depend on the earlier phases.
 
 `npm test` runs the Playwright suite in `tests/` against a small static
 server (`tests/serve.js`). Tests fix the date with
-`page.clock.setFixedTime` (Day 1 is 27 September 2026) and simulate time
+`page.clock.setFixedTime` (Day 1 is 1 October 2026; `dayDate(n)` in `tests/helpers.js`, with 0 and below for preview days) and simulate time
 passing by editing saves and moving the clock. The sandbox's Python tests
 need Pyodide: from the CDN, or set `PYODIDE_DIR` to an unpacked `pyodide`
 npm package when there's no internet. Switching language on the puzzle page
