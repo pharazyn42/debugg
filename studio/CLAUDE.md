@@ -233,6 +233,49 @@ Replace the current flat reliability-by-level model:
   pay before you start it: e.g. the range from "all solved, none clean" to
   "all clean". Reputation gain could be shown the same way.
 
+### Semantic versioning and proper releases
+- Adopt semantic versioning (MAJOR.MINOR.PATCH):
+  - MAJOR: save-breaking or big design changes, i.e. whenever the storage
+    key has to be bumped;
+  - MINOR: new mechanics;
+  - PATCH: fixes and balance tweaks.
+- **Show the version in the game** (e.g. the footer) and store it in the
+  save, so a save can be migrated deliberately rather than by ad-hoc
+  shape guards.
+- **Keep a `CHANGELOG.md`** with a section per release; the per-commit
+  notes so far could seed it.
+- **Cut releases with git tags and GitHub Releases** (e.g.
+  `studio-v0.x.y`, prefixed because this repo also holds Debugg).
+- **Separate "released" from "in progress".** Today every push to `main`
+  deploys straight to GitHub Pages. Options:
+  - deploy only on a tag or release, via a GitHub Actions Pages workflow
+    instead of branch deploys;
+  - or keep `main` as the released branch and do work on a `dev` branch.
+
+### Tests
+- There's no test suite; changes have been verified by driving the page
+  by hand in a browser. Worth adding:
+  - **Unit tests for the game logic.** This first needs the pure
+    functions pulled out of `index.html`'s single `<script>` into a
+    module the page and tests can both import (e.g. `studio/game.js`).
+    That's plain ES modules, still no build step. Targets:
+    - structure/capacity rules;
+    - promotion status;
+    - `evaluateTeam` (requirements, learners, SLOC/time, payout, chance);
+    - `resolveDueJobs` (repeat, retry, offline chaining and cap);
+    - skill-rule qualification;
+    - offer expiry;
+    - the desk puzzle answer checking.
+  - **End-to-end tests with Playwright**: load the page, hire, staff a
+    contract, fast-forward time by editing the save, and check the
+    results. These replace the manual browser checks done so far.
+  - **Deterministic randomness**: inject a seeded RNG (and a clock) so
+    tests can force success/failure and specific offers.
+- Run the tests in **GitHub Actions** on every push and PR, and require
+  them to pass before a release is cut or deployed.
+- Pairs naturally with the "shared idle engine" idea in
+  `../ideas/bbq-idle-concept.md` — the same extraction serves both.
+
 ### Languages only for now; domains become a later-game unlock
 - **Remove domain specialities from the early game.** Contracts, hires and
   skills use programming languages only. That means dropping the domain
