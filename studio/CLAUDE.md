@@ -166,54 +166,99 @@ state = {
 
 ## Known gaps — not wired in yet
 
-- **Reputation does nothing** beyond being tracked. Planned: gate contract
-  tiers behind reputation.
-- **Skill gain is a placeholder**: flat XP per delivered contract, with no
-  supervision/mentoring effect yet.
-- **No training/certification spend, studio upgrades, or prestige.**
-- **Puzzle bank is only 6 entries** (desk contracts only).
-- **Balance is untuned**: the `ROLES` stats, `LINE_RATE`, tier multipliers,
-  and hire costs are first guesses.
+- **Reputation does nothing** beyond being tracked (roadmap item 12).
+- **Skill gain is a placeholder**: a flat XP rate with no supervision
+  effect (item 22).
+- **No training spend, studio upgrades, or prestige** (items 14, 15, 19).
+- **Puzzle bank is only 6 entries** (desk contracts only; item 11).
+- **Balance is untuned** (item 10).
 
 ## Future development
 
-Agreed direction, not built yet. Roughly in no particular order.
+Agreed direction, not built yet, in the planned implementation order.
+Item numbers are for reference; re-prioritise freely.
 
-### Training for language and domain skills
-- Add a way to spend money (and/or time off contracts) to train a person's
-  language or domain skills directly, alongside the XP earned from
-  delivered contracts.
-- Open questions:
-  - Is training a one-off purchase per bar, a timed course during which
-    the person is unavailable for contracts, or both?
-  - Should cost scale with the target bar?
-  - Should there be a cap so training can't replace real contract
-    experience (e.g. training only up to bar 3)?
+### Phase 1 — Foundations
 
-### Business tiers and multiple sites
-- Show a business-tier label that grows with headcount: Start-up →
-  Small business → … → something massive (e.g. Multinational).
-- Thresholds and names are TBD. The current Director-as-manager phase is
-  the "Start-up" tier.
-- Moving up a tier could unlock things: more contract-board slots, bigger
-  contract types, new hire types.
-- At larger tiers, add an option to expand to multiple sites (offices).
-  Each site would plausibly have its own headcount capacity and managers,
-  possibly a regional speciality (e.g. an embedded-heavy site). How sites
-  interact with team staffing (can a team span sites?) is TBD.
+Do these first: every later feature touches the job engine, and changes currently ship untested straight to players.
 
-### Daily desk contracts
-- The puzzle contracts at the Director's desk should refresh once a day,
-  with only one contract of each type (Quick Fix, Sprint, Milestone, Full
-  Delivery) playable per day. The aim is to bring players back daily,
-  like the main Debugg game.
-- This needs:
-  - a per-day seed so everyone gets the same puzzles that day;
-  - tracking which types have been played today;
-  - a "come back tomorrow" state;
-  - a much bigger puzzle bank than 6.
+#### 1. Tests
+- There's no test suite; changes have been verified by driving the page
+  by hand in a browser. Worth adding:
+  - **Unit tests for the game logic.** This first needs the pure
+    functions pulled out of `index.html`'s single `<script>` into a
+    module the page and tests can both import (e.g. `studio/game.js`).
+    That's plain ES modules, still no build step. Targets:
+    - structure/capacity rules;
+    - promotion status;
+    - `evaluateTeam` (requirements, learners, SLOC/time, payout, chance);
+    - `resolveDueJobs` (repeat, retry, offline chaining and cap);
+    - skill-rule qualification;
+    - offer expiry;
+    - the desk puzzle answer checking.
+  - **End-to-end tests with Playwright**: load the page, hire, staff a
+    contract, fast-forward time by editing the save, and check the
+    results. These replace the manual browser checks done so far.
+  - **Deterministic randomness**: inject a seeded RNG (and a clock) so
+    tests can force success/failure and specific offers.
+- Run the tests in **GitHub Actions** on every push and PR, and require
+  them to pass before a release is cut or deployed.
+- Pairs naturally with the "shared idle engine" idea in
+  `../ideas/bbq-idle-concept.md` — the same extraction serves both.
 
-### Success chance and speed scale with level and skill match
+#### 2. Semantic versioning and proper releases
+- Adopt semantic versioning (MAJOR.MINOR.PATCH):
+  - MAJOR: save-breaking or big design changes, i.e. whenever the storage
+    key has to be bumped;
+  - MINOR: new mechanics;
+  - PATCH: fixes and balance tweaks.
+- **Show the version in the game** (e.g. the footer) and store it in the
+  save, so a save can be migrated deliberately rather than by ad-hoc
+  shape guards.
+- **Keep a `CHANGELOG.md`** with a section per release; the per-commit
+  notes so far could seed it.
+- **Cut releases with git tags and GitHub Releases** (e.g.
+  `studio-v0.x.y`, prefixed because this repo also holds Debugg).
+- **Separate "released" from "in progress".** Today every push to `main`
+  deploys straight to GitHub Pages. Options:
+  - deploy only on a tag or release, via a GitHub Actions Pages workflow
+    instead of branch deploys;
+  - or keep `main` as the released branch and do work on a `dev` branch.
+
+#### 3. Languages only for now; domains become a later-game unlock
+- **Remove domain specialities from the early game.** Contracts, hires and
+  skills use programming languages only. That means dropping the domain
+  half of:
+  - offers and the skill rule (`qualifiedFor()`);
+  - skill-match speed and payout (`matchFit()`);
+  - XP;
+  - promotion requirements (`PROMOTION.dom`);
+  - starting skills (`makeHire()`);
+  - the employee panel.
+
+  Promotion requirements then need re-stating in language bars only.
+- **Quick fixes should cover every language**, so a lone dev always has
+  something they can take. That avoids the deadlock where nobody on staff
+  knows the language of either quick fix on the board. Offer expiry and
+  repeat-picks-a-doable-contract currently paper over this. For example,
+  keep one quick-fix offer per language on the board, or let the player
+  pick the language when staffing a quick fix.
+- **Domains come back later as an unlock**, further into the game (e.g.
+  tied to reputation or a business tier):
+  - Some team contracts (sprint and up) are then tagged with a domain.
+  - Domain **specialists** are a separate kind of hire.
+  - A contract with a domain must have a specialist in that domain on the
+    team.
+  - Open questions: do specialists write code too, are they promotable,
+    and does domain experience grow on regular devs or only specialists?
+- Save migration: existing saves have `dom` skill maps and domain-tagged
+  offers/jobs. Either strip them or bump the storage key.
+
+### Phase 2 — Make the core loop feel right
+
+Small-to-medium changes the player feels every session. Do the balance pass last, after the changes that shift the numbers.
+
+#### 4a. Success chance scales with level and skill match
 Replace the current flat reliability-by-level model:
 - **Success chance** depends on both dev level and how well their skills
   suit the contract's language/domain. Reference point for a Graduate:
@@ -224,16 +269,31 @@ Replace the current flat reliability-by-level model:
   (a principal finishes faster and more reliably than a grad on the same
   job).
 - **Speed**: done. Duration shrinks with dev level and with skill match,
-  via effective SLOC/min (see "SLOC drives time" above).
+  via effective SLOC/min (see "SLOC drives time" under What's implemented).
 - **Teams**: exact curves are TBD, as is how per-person chances combine for
   a team (average, weighted by SLOC, or weakest link).
 
-### Show potential contract values on the desk
-- The Director's desk contract picker should show what each contract could
-  pay before you start it: e.g. the range from "all solved, none clean" to
-  "all clean". Reputation gain could be shown the same way.
+#### 4b. Show what makes up the success chance
+- When staffing a contract (team picker), break the success chance down
+  into its contributing factors instead of only the final %, e.g.:
+  - each person's base reliability for their level;
+  - the skill-match bonus;
+  - any cap.
 
-### Contract deadlines
+  This ties in with the success-chance rework (4a).
+
+#### 5. Per-hire speed multiplier
+- Each new hire rolls a random, permanent speed multiplier that scales
+  their SLOC/min (e.g. 0.7×–1.3×, range TBD). It's stored on the person
+  and never changes, including on promotion; it stacks with the level's
+  base SLOC and the skill-match boost.
+- The point is that a slow hire stays slow forever, which gives the
+  player a real reason to let people go and rehire.
+- It needs to be visible on the roster card and employee panel. Maybe
+  also on hire, e.g. "fast / average / slow". That could suggest hiring
+  shows a candidate before you pay.
+
+#### 6. Contract deadlines
 - **Some contracts have a deadline:** a time limit to complete it once
   started, shown on the board card. This is separate from offer expiry,
   which is how long an offer waits to be accepted.
@@ -268,7 +328,102 @@ Replace the current flat reliability-by-level model:
   - Maintenance items (in-house products) already have deadlines, so both
     can use the same mechanic.
 
-### In-house software products (later game)
+#### 7. Current contract in the employee panel
+- Clicking an employee should show the contract they're working on.
+  Today the panel only has a one-line "On Sprint (Rust / Web Dev) — 4:12
+  left". It should show the full contract:
+  - type, language and domain;
+  - teammates;
+  - progress (SLOC done / target, time left);
+  - success chance and payout;
+  - repeat status;
+  - the failed/retry state.
+
+#### 8. Total SLOC/min in the top stats bar
+- Add a studio-wide SLOC/min stat next to Cash, Reputation, Payroll and
+  Headcount. Open question: count only people currently on contracts,
+  or show "active / potential"?
+
+#### 9. Show potential contract values on the desk
+- The Director's desk contract picker should show what each contract could
+  pay before you start it: e.g. the range from "all solved, none clean" to
+  "all clean". Reputation gain could be shown the same way.
+
+#### 10. Balance pass
+- Hire costs, salaries, `LINE_RATE`, tier multipliers, XP rates and
+  promotion timers are all first guesses. Do a proper pass once the
+  success-chance rework, speed multiplier and deadlines are in, since
+  those shift the numbers. Known symptom: a grad on repeat now nets
+  ~¤400/hour, which makes early hires cheap relative to income.
+
+### Phase 3 — Retention and mid-game growth
+
+Reasons to come back daily, and the first progression layers beyond hiring. The puzzle bank for daily desk contracts is content work that can start in parallel with anything.
+
+#### 11. Daily desk contracts
+- The puzzle contracts at the Director's desk should refresh once a day,
+  with only one contract of each type (Quick Fix, Sprint, Milestone, Full
+  Delivery) playable per day. The aim is to bring players back daily,
+  like the main Debugg game.
+- This needs:
+  - a per-day seed so everyone gets the same puzzles that day;
+  - tracking which types have been played today;
+  - a "come back tomorrow" state;
+  - a much bigger puzzle bank than 6.
+
+#### 12. Reputation gates contract tiers
+- Reputation is tracked but does nothing yet. Gate the bigger contract
+  types (and later unlocks) behind reputation thresholds, so the player's
+  own desk performance opens up the studio's ceiling — as the original
+  concept doc intended.
+
+#### 13. Business tiers and multiple sites
+- Show a business-tier label that grows with headcount: Start-up →
+  Small business → … → something massive (e.g. Multinational).
+- Thresholds and names are TBD. The current Director-as-manager phase is
+  the "Start-up" tier.
+- Moving up a tier could unlock things: more contract-board slots, bigger
+  contract types, new hire types.
+- At larger tiers, add an option to expand to multiple sites (offices).
+  Each site would plausibly have its own headcount capacity and managers,
+  possibly a regional speciality (e.g. an embedded-heavy site). How sites
+  interact with team staffing (can a team span sites?) is TBD.
+
+#### 14. Training for language (and later domain) skills
+- Add a way to spend money (and/or time off contracts) to train a person's
+  language or domain skills directly, alongside the XP earned from
+  delivered contracts.
+- Open questions:
+  - Is training a one-off purchase per bar, a timed course during which
+    the person is unavailable for contracts, or both?
+  - Should cost scale with the target bar?
+  - Should there be a cap so training can't replace real contract
+    experience (e.g. training only up to bar 3)?
+
+#### 15. Office space: desks, contractors, and buildings
+- Another progression limiter. On-site staff need a desk. You start with
+  one free room with a small number of desks (e.g. 4).
+- **Contractors** work from home, so they need no desk, but cost more
+  (higher salary and/or hire cost). They're a way past the desk cap
+  before you can afford space.
+- Over time you rent offices, buy rooms, then whole buildings, each adding
+  desks. This fits with the business tiers and multiple sites in item
+  13; sites could be where buildings live.
+- Open questions:
+  - Do contractors count towards the supervision structure and manager
+    span?
+  - Can they be promoted?
+  - Do they gain XP at the same rate?
+
+### Phase 4 — Late game
+
+Big systems that depend on the earlier phases.
+
+#### 16. Domains return as an unlock with specialist hires
+- See item 3: the "Domains come back later as an unlock" part. Needs
+  reputation gating (12) or business tiers (13) to unlock it.
+
+#### 17. In-house software products and maintenance teams
 - **Unlocks later in the game** (e.g. by business tier or reputation): the
   studio can develop and release its own software instead of only doing
   client contracts.
@@ -334,139 +489,34 @@ Replace the current flat reliability-by-level model:
   consequences), the business tiers, and the later domain unlock (a
   product could have a domain too).
 
-### Semantic versioning and proper releases
-- Adopt semantic versioning (MAJOR.MINOR.PATCH):
-  - MAJOR: save-breaking or big design changes, i.e. whenever the storage
-    key has to be bumped;
-  - MINOR: new mechanics;
-  - PATCH: fixes and balance tweaks.
-- **Show the version in the game** (e.g. the footer) and store it in the
-  save, so a save can be migrated deliberately rather than by ad-hoc
-  shape guards.
-- **Keep a `CHANGELOG.md`** with a section per release; the per-commit
-  notes so far could seed it.
-- **Cut releases with git tags and GitHub Releases** (e.g.
-  `studio-v0.x.y`, prefixed because this repo also holds Debugg).
-- **Separate "released" from "in progress".** Today every push to `main`
-  deploys straight to GitHub Pages. Options:
-  - deploy only on a tag or release, via a GitHub Actions Pages workflow
-    instead of branch deploys;
-  - or keep `main` as the released branch and do work on a `dev` branch.
+#### 18. Multiple sites, rooms and buildings
+- The multi-site half of item 13 and the buildings half of item 15,
+  built once those basics exist.
 
-### Tests
-- There's no test suite; changes have been verified by driving the page
-  by hand in a browser. Worth adding:
-  - **Unit tests for the game logic.** This first needs the pure
-    functions pulled out of `index.html`'s single `<script>` into a
-    module the page and tests can both import (e.g. `studio/game.js`).
-    That's plain ES modules, still no build step. Targets:
-    - structure/capacity rules;
-    - promotion status;
-    - `evaluateTeam` (requirements, learners, SLOC/time, payout, chance);
-    - `resolveDueJobs` (repeat, retry, offline chaining and cap);
-    - skill-rule qualification;
-    - offer expiry;
-    - the desk puzzle answer checking.
-  - **End-to-end tests with Playwright**: load the page, hire, staff a
-    contract, fast-forward time by editing the save, and check the
-    results. These replace the manual browser checks done so far.
-  - **Deterministic randomness**: inject a seeded RNG (and a clock) so
-    tests can force success/failure and specific offers.
-- Run the tests in **GitHub Actions** on every push and PR, and require
-  them to pass before a release is cut or deployed.
-- Pairs naturally with the "shared idle engine" idea in
-  `../ideas/bbq-idle-concept.md` — the same extraction serves both.
+#### 19. Prestige
+- "Acquisition": cash out the studio for a permanent multiplier and pick
+  a specialisation for the next run (see the original concept doc). Only
+  worth building once there's a long game to reset.
 
-### Languages only for now; domains become a later-game unlock
-- **Remove domain specialities from the early game.** Contracts, hires and
-  skills use programming languages only. That means dropping the domain
-  half of:
-  - offers and the skill rule (`qualifiedFor()`);
-  - skill-match speed and payout (`matchFit()`);
-  - XP;
-  - promotion requirements (`PROMOTION.dom`);
-  - starting skills (`makeHire()`);
-  - the employee panel.
+### Polish — slot in whenever there is slack
 
-  Promotion requirements then need re-stating in language bars only.
-- **Quick fixes should cover every language**, so a lone dev always has
-  something they can take. That avoids the deadlock where nobody on staff
-  knows the language of either quick fix on the board. Offer expiry and
-  repeat-picks-a-doable-contract currently paper over this. For example,
-  keep one quick-fix offer per language on the board, or let the player
-  pick the language when staffing a quick fix.
-- **Domains come back later as an unlock**, further into the game (e.g.
-  tied to reputation or a business tier):
-  - Some team contracts (sprint and up) are then tagged with a domain.
-  - Domain **specialists** are a separate kind of hire.
-  - A contract with a domain must have a specialist in that domain on the
-    team.
-  - Open questions: do specialists write code too, are they promotable,
-    and does domain experience grow on regular devs or only specialists?
-- Save migration: existing saves have `dom` skill maps and domain-tagged
-  offers/jobs. Either strip them or bump the storage key.
+#### 20. SLOC production animation
+- Animate SLOC being produced, e.g. a running counter or lines of code
+  ticking up on active contracts, or little bursts from each busy
+  person, so the idle layer feels alive rather than just progress bars.
 
-### Per-hire speed multiplier
-- Each new hire rolls a random, permanent speed multiplier that scales
-  their SLOC/min (e.g. 0.7×–1.3×, range TBD). It's stored on the person
-  and never changes, including on promotion; it stacks with the level's
-  base SLOC and the skill-match boost.
-- The point is that a slow hire stays slow forever, which gives the
-  player a real reason to let people go and rehire.
-- It needs to be visible on the roster card and employee panel. Maybe
-  also on hire, e.g. "fast / average / slow". That could suggest hiring
-  shows a candidate before you pay.
-
-### Show what makes up the success chance
-- When staffing a contract (team picker), break the success chance down
-  into its contributing factors instead of only the final %, e.g.:
-  - each person's base reliability for their level;
-  - the skill-match bonus;
-  - any cap.
-
-  This ties in with the planned level/skill success rework above.
-
-### Current contract in the employee panel
-- Clicking an employee should show the contract they're working on.
-  Today the panel only has a one-line "On Sprint (Rust / Web Dev) — 4:12
-  left". It should show the full contract:
-  - type, language and domain;
-  - teammates;
-  - progress (SLOC done / target, time left);
-  - success chance and payout;
-  - repeat status;
-  - the failed/retry state.
-
-### Office space: desks, contractors, and buildings (later game)
-- Another progression limiter. On-site staff need a desk. You start with
-  one free room with a small number of desks (e.g. 4).
-- **Contractors** work from home, so they need no desk, but cost more
-  (higher salary and/or hire cost). They're a way past the desk cap
-  before you can afford space.
-- Over time you rent offices, buy rooms, then whole buildings, each adding
-  desks. This fits with the business tiers and multiple sites in the
-  section above; sites could be where buildings live.
-- Open questions:
-  - Do contractors count towards the supervision structure and manager
-    span?
-  - Can they be promoted?
-  - Do they gain XP at the same rate?
-
-### Visualise the team and the office
+#### 21. Visualise the team and the office
 - Some visual representation of the studio: people at desks in
   rooms/buildings, grouped by team or level. It could show who's working
   on what and empty desks. It would pair naturally with the office-space
   mechanic.
 
-### SLOC production animation
-- Animate SLOC being produced, e.g. a running counter or lines of code
-  ticking up on active contracts, or little bursts from each busy
-  person, so the idle layer feels alive rather than just progress bars.
-
-### Total SLOC/min in the top stats bar
-- Add a studio-wide SLOC/min stat next to Cash, Reputation, Payroll and
-  Headcount. Open question: count only people currently on contracts,
-  or show "active / potential"?
+#### 22. Skill gain through supervision
+- XP is currently a flat rate per contract minute. The design intent is
+  that skills grow "under supervision", so e.g. XP could scale with how
+  much more skilled the rest of the team is in that language, and/or
+  with the ratio of learners to experienced devs. Revisit after the
+  learner rule, training and languages-only changes have settled.
 
 ## Testing notes
 
