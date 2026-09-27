@@ -19,3 +19,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 - Rotate in a new puzzle each day instead of always showing Day 1.
 - Move puzzle content into a small JSON/data file so new days can be added without touching the page code.
+
+## Other ideas
+
+`ideas/contract-debugger-concept.md` sketches a separate idle-game concept that grew out of Debugg's puzzle mechanic. It's a distinct project, not a direction for this game — kept here as a note, not wired into anything.
