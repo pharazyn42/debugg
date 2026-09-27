@@ -18,6 +18,17 @@ Running out of guesses or revealing the answer still earns 10 XP. Level 2 starts
 
 Open `index.html` directly, or visit the GitHub Pages site once enabled (see below).
 
+## Sandbox
+
+`sandbox.html` is a scratchpad for writing and running your own Python or JavaScript, linked from the daily page's footer. After each game, a "Run it yourself" link opens that day's puzzle in it so you can experiment with the code. You can also load any puzzle from an earlier day, or today's once you've finished it, so the sandbox can't spoil today's answer.
+
+- **Python** runs on [Pyodide](https://pyodide.org/) (CPython compiled to WebAssembly), downloaded from jsDelivr on the first Python run (about 13 MB, then cached). Opening the page from disk still needs the internet for this.
+- **JavaScript** runs in a fresh Web Worker each time, with `console.log` output formatted much like Node's.
+- Both run off the main page, so code that runs too long (10 seconds for Python, 5 for JavaScript) is stopped instead of freezing the tab.
+- Drafts are saved per language in your browser.
+
+`shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, the syntax highlighter and the base theme.
+
 ## Adding a puzzle
 
 Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 was 27 September 2026), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
@@ -33,10 +44,11 @@ To add a new language, add it to `LANGS` and `SYNTAX` in `index.html` (name, fil
 
 ## Roadmap
 
-- Add a sandbox where players can write and run their own code snippets.
 - Add new puzzle types alongside "what does this print?":
   - **Fix it:** modify the given code so it produces the correct output.
   - **Write it:** write code from scratch that produces a given output.
+
+  Both can build on the sandbox's editor and runners: run the player's code, then compare what it prints.
 - Add progression that keeps people coming back, building on the daily bug streak and language levels, e.g. unlockable puzzle packs or harder tiers, and achievements.
 
 ## Other ideas
