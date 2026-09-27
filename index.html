@@ -83,11 +83,15 @@
 
   .reveal p{ margin: 0 0 10px; }
   .reveal p:last-child{ margin-bottom: 0; }
-  .wild{
+  .takeaway{
     margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--line);
+    padding: 10px 12px;
+    border-left: 3px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    background: var(--bg);
   }
+  .takeaway p{ margin: 0; color: var(--text); }
+  .takeaway .section-label{ margin-bottom: 4px; }
   .reveal .try{ margin-top: 14px; }
   .reveal .report{ font-size: 12.5px; color: var(--text-faint); }
   .reveal .report a{ color: inherit; }
@@ -147,7 +151,7 @@
   }
   body.ltd-on .found, body.ltd-on #ltdLinkSep{ display: none; }
 
-  .wild-label{
+  .section-label{
     font-family: var(--mono);
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -240,14 +244,14 @@
       <p><b>Answer:</b> <code id="answerOut"></code></p>
       <p id="explainOut"></p>
       <p><b>Fix:</b> <span id="fixOut"></span></p>
-      <div class="wild">
-        <p class="wild-label">In the wild</p>
-        <p id="wildOut"></p>
+      <div class="takeaway">
+        <p class="section-label">Takeaway</p>
+        <p id="takeawayOut"></p>
       </div>
       <p class="try"><a id="tryLink" href="sandbox.html">Run it yourself in the sandbox →</a></p>
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
       <div class="found" id="foundCard">
-        <p class="wild-label">Debugg Ltd <span class="beta">beta</span></p>
+        <p class="section-label">Debugg Ltd <span class="beta">beta</span></p>
         <p id="foundText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and get paid for every daily puzzle.</p>
         <button class="btn-ghost" id="foundBtn">Start your own company</button>
       </div>
@@ -452,7 +456,7 @@
     document.getElementById('answerOut').textContent = puzzle.display;
     document.getElementById('explainOut').innerHTML = puzzle.explain;
     document.getElementById('fixOut').innerHTML = puzzle.fix;
-    document.getElementById('wildOut').innerHTML = puzzle.inTheWild;
+    document.getElementById('takeawayOut').innerHTML = puzzle.takeaway;
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
     document.getElementById('tryLink').href = 'sandbox.html?lang=' + lang + '&day=' + DAY;
     document.getElementById('reportLink').href = reportUrl();

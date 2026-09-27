@@ -12,7 +12,7 @@
 //   hints      two hints, gentle then strong
 //   explain    why it prints what it does (HTML)
 //   fix        how to write it properly (HTML)
-//   inTheWild  real-world context: an incident, what the bug can cause, or an interesting fact (HTML)
+//   takeaway   the general rule to remember, in a sentence or two (HTML)
 window.DEBUGG_PUZZLES = [
   {
     lang: 'python',
@@ -32,7 +32,7 @@ print(add_item(2))`,
     ],
     explain: 'Default argument values are evaluated <b>once</b>, when the function is defined, not on every call. Since <code>lst=[]</code> is only created a single time, the list from the first call (line 5) is still there when the second call runs, so it grows instead of starting fresh.',
     fix: 'Use <code>lst=None</code> and create the list inside the function: <code>if lst is None: lst = []</code>.',
-    inTheWild: 'Linters flag this pattern on sight: Pylint calls it <code>W0102 dangerous-default-value</code> and flake8-bugbear calls it <code>B006</code>. In a long-running web server, a shared default list or dict can quietly carry one request\'s data into the next.'
+    takeaway: 'Default values are created once, when the function is defined. Never use a mutable default like <code>[]</code> or <code>{}</code>: default to <code>None</code> and create it inside.'
   },
   {
     lang: 'python',
@@ -48,7 +48,7 @@ print(total == 0.3)`,
     ],
     explain: 'Floats are stored in binary, and 0.1, 0.2 and 0.3 have no exact binary form, just like 1/3 has no exact decimal form. Each is stored as the nearest value that fits, and the tiny errors don\'t cancel out: <code>0.1 + 0.2</code> is <code>0.30000000000000004</code>.',
     fix: 'Compare with a tolerance: <code>math.isclose(total, 0.3)</code>. For money, use <code>decimal.Decimal</code> or whole cents.',
-    inTheWild: 'On 25 February 1991, a Patriot missile battery in Dhahran, Saudi Arabia failed to intercept an incoming Scud missile, and 28 US soldiers were killed. The system counted time in tenths of a second, and 0.1 can\'t be stored exactly in binary. After about 100 hours of running, the error had grown to around a third of a second, long enough for a Scud to travel more than half a kilometre.'
+    takeaway: 'Floats are close approximations, so never compare them with <code>==</code>. Use <code>math.isclose()</code>, or <code>Decimal</code> for money.'
   },
   {
     lang: 'python',
@@ -66,7 +66,7 @@ print(total)`,
     ],
     explain: '<code>range(1, 7)</code> gives 1, 2, 3, 4, 5, 6. The end value is <b>excluded</b>, so the loop covers six days, not seven: 1 + 2 + 3 + 4 + 5 + 6 = 21. The comment says one thing, the code does another.',
     fix: 'Use <code>range(1, 8)</code>, or loop over the thing itself (<code>for day in week:</code>) so there\'s no end value to get wrong.',
-    inTheWild: 'On 31 December 2008, every 30GB Microsoft Zune froze as it started up. Its clock code looped through the days of each year and didn\'t handle day 366 of a leap year, so the loop never ended. Microsoft\'s official fix was to let the battery run flat and wait until 1 January.'
+    takeaway: '<code>range(start, stop)</code> includes <code>start</code> but stops before <code>stop</code>: <code>range(1, 7)</code> is 1 to 6.'
   },
   {
     lang: 'python',
@@ -88,7 +88,7 @@ print(verify(True, False))`,
     ],
     explain: 'The hash is fine, so line 2\'s check passes. Line 4 then returns <code>"ok"</code> no matter what, and nothing after a <code>return</code> runs. The signature check on lines 5 and 6 is dead code, so a bad signature gets approved.',
     fix: 'Move <code>return "ok"</code> to the end, after every check. Many linters flag code after a return as unreachable.',
-    inTheWild: 'In February 2014 Apple patched "goto fail" (CVE-2014-1266). A single duplicated <code>goto fail;</code> line in the TLS code of iOS and macOS jumped past the final signature check, so forged certificates were accepted on supposedly secure connections. As here, the check after the stray line looked fine. It just never ran.'
+    takeaway: 'Nothing after a <code>return</code> runs. Do every check first, and return success last.'
   },
   {
     lang: 'python',
@@ -105,7 +105,7 @@ print(grid)`,
     ],
     explain: 'Multiplying a list repeats its <b>references</b>, not copies of what\'s inside. <code>[[0] * 3] * 3</code> builds one row and puts it in the grid three times. Setting <code>grid[0][0]</code> changes that one shared row, so every row shows the change.',
     fix: 'Build a new row each time: <code>grid = [[0] * 3 for _ in range(3)]</code>.',
-    inTheWild: 'This exact trap has its own entry in Python\'s official Programming FAQ: "How do I create a multidimensional list?" It\'s a classic in game boards and matrices, where one move seems to happen on every row at once.'
+    takeaway: 'Multiplying a list repeats references to the same item. Build nested lists with a comprehension: <code>[[0] * 3 for _ in range(3)]</code>.'
   },
   {
     lang: 'python',
@@ -120,7 +120,7 @@ print(grid)`,
     ],
     explain: 'Python 3 uses <b>round half to even</b> (also called banker\'s rounding): an exact .5 goes to whichever neighbour is even. So <code>round(0.5)</code> is 0, <code>round(1.5)</code> is 2 and <code>round(2.5)</code> is 2, for a total of 4, not the 6 you\'d get by always rounding up.',
     fix: 'If you need halves to always round up, use <code>decimal.Decimal</code> with <code>ROUND_HALF_UP</code>. Otherwise, half-to-even is usually what you want.',
-    inTheWild: 'Why round to even? Always rounding .5 up pushes totals slightly upward, and repeated millions of times, that bias adds up. In 1982 the Vancouver Stock Exchange launched a new index at 1000 and recalculated it thousands of times a day, cutting off extra decimals instead of rounding them. By November 1983 it read about 524. Recalculated properly, it should have been about 1098.'
+    takeaway: 'Python rounds exact halves to the even number (banker’s rounding): <code>round(2.5)</code> is 2 and <code>round(3.5)</code> is 4.'
   },
   {
     lang: 'python',
@@ -137,7 +137,7 @@ print(name)`,
     ],
     explain: 'Python strings are <b>immutable</b>: no method can change them in place. <code>name.upper()</code> builds a new string <code>"DEBUGG"</code> and returns it, but nothing stores it. <code>name</code> still points at the original lowercase string.',
     fix: 'Keep the result: <code>name = name.upper()</code>.',
-    inTheWild: 'Ignoring a return value is common enough that languages have added guards against it. C++17 has the <code>[[nodiscard]]</code> attribute and Rust has <code>#[must_use]</code>, both of which make the compiler warn when a result is thrown away. In Rust, ignoring a <code>Result</code> from something that can fail gives a warning by default.'
+    takeaway: 'Strings can’t be changed in place. String methods return a new string, so keep the result: <code>name = name.upper()</code>.'
   },
   {
     lang: 'python',
@@ -155,7 +155,7 @@ print(is_leap(1900))`,
     ],
     explain: '1900 divides evenly by 4, so the function returns <code>True</code>. But the real rule has two more steps: century years are only leap years if they also divide by 400. So 2000 was a leap year, but 1900 wasn\'t.',
     fix: '<code>return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)</code>, or use <code>calendar.isleap(year)</code>.',
-    inTheWild: 'Excel still thinks 29 February 1900 existed. Lotus 1-2-3 had this bug, and Microsoft copied it on purpose so Excel could open Lotus spreadsheets with the same dates. It\'s kept to this day for backward compatibility, so Excel\'s date numbers before March 1900 are off by one.'
+    takeaway: 'A year is a leap year if it divides by 4, except century years, which must also divide by 400. Or use <code>calendar.isleap()</code>.'
   },
   {
     lang: 'python',
@@ -174,7 +174,7 @@ print(nums)`,
     ],
     explain: 'The loop tracks its <b>position</b> in the list. At position 1 it finds a 2 and removes it, so everything shifts left: the second 2 moves into position 1. The loop then moves on to position 2, which is now the 3. The second 2 is never checked.',
     fix: 'Build a new list instead of changing the one you\'re looping over: <code>nums = [n for n in nums if n != 2]</code>.',
-    inTheWild: 'Java won\'t let this slide: changing most collections while a for-each loop is walking them throws a <code>ConcurrentModificationException</code>. Python lists don\'t check, so the loop just silently skips items. It\'s the kind of bug that hides in data-cleaning code until two bad values end up next to each other.'
+    takeaway: 'Don’t add or remove items in a list while looping over it. Build a new list instead, or loop over a copy (<code>nums[:]</code>).'
   },
   {
     lang: 'python',
@@ -190,7 +190,7 @@ print(minutes_late // 2)`,
     ],
     explain: '<code>//</code> is <b>floor</b> division: it rounds down to the next whole number. For positive numbers that looks like chopping off the decimals, but for negatives "down" means further from zero: -3.5 becomes -4, not -3.',
     fix: 'If you want to round toward zero, use <code>int(minutes_late / 2)</code> or <code>math.trunc</code>.',
-    inTheWild: 'Languages disagree here. C, C++ and Java round integer division toward zero and would give -3. Python floors and gives -4. Guido van Rossum explained why in his 2010 post "Why Python\'s Integer Division Floors": it means <code>a % b</code> always has the same sign as <code>b</code>, so wrapping things like clock times works with negative numbers.'
+    takeaway: '<code>//</code> rounds down, towards minus infinity, not towards zero. For negative numbers that means further from zero.'
   },
   {
     lang: 'python',
@@ -206,7 +206,7 @@ print([f() for f in funcs])`,
     ],
     explain: 'The lambdas don\'t save i\'s value. They look it up <b>when called</b> (this is called late binding). All three are called on line 2, after the loop has finished, and by then i is 2. So each one returns 2.',
     fix: 'Capture the current value with a default argument: <code>lambda i=i: i</code>.',
-    inTheWild: 'Python\'s official FAQ has an entry for this one too: "Why do lambdas defined in a loop with different values all return the same result?" JavaScript had the same trap with <code>var</code> in loops. ES2015\'s <code>let</code> fixed it by creating a fresh variable for each loop iteration.'
+    takeaway: 'A lambda or inner function looks variables up when it runs, not when it’s made. Capture the current value with a default: <code>lambda i=i: i</code>.'
   },
   {
     lang: 'python',
@@ -221,7 +221,7 @@ print([f() for f in funcs])`,
     ],
     explain: 'Strings compare <b>character by character</b>, like words in a dictionary. The first characters are "1" and "9", and "1" comes first, so the comparison is decided there: <code>"10"</code> is less than <code>"9"</code>. The numbers they look like don\'t matter.',
     fix: 'Convert first: <code>int("10") > int("9")</code>.',
-    inTheWild: 'Sort numbered files as plain text and file10 lands before file2. That\'s why Windows Explorer and macOS Finder use "natural sort" for file names, comparing runs of digits as numbers. Version numbers have the same trap: as strings, "3.10" is less than "3.9", which is one reason Python\'s packaging tools parse versions instead of comparing text.'
+    takeaway: 'Strings compare character by character, like words in a dictionary, not by the numbers they contain. Convert with <code>int()</code> first.'
   },
   {
     lang: 'python',
@@ -237,7 +237,7 @@ print(d)`,
     ],
     explain: '<code>1</code>, <code>1.0</code> and <code>True</code> are all equal and have the same hash, so the dict treats them as <b>one key</b>. Each later entry overwrites the value, but the dict keeps the key from the first entry. You end up with key <code>1</code> and value <code>"bool"</code>.',
     fix: 'Don\'t mix numbers and booleans as keys. If you really need them apart, use strings or tuples like <code>("bool", True)</code>.',
-    inTheWild: 'In Python, <code>bool</code> is a subclass of <code>int</code>, and has been since booleans were added in Python 2.3 (PEP 285). That\'s also why <code>True + True</code> is 2, and why <code>sum()</code> over a list of booleans counts the Trues.'
+    takeaway: 'Dict keys that are equal are the same key, and in Python <code>True == 1 == 1.0</code>.'
   },
   {
     lang: 'python',
@@ -258,7 +258,7 @@ print(save())`,
     ],
     explain: '<code>finally</code> <b>always</b> runs, even after <code>try</code> has returned. The try block gets ready to return <code>"saved"</code>, then finally runs and returns <code>"cancelled"</code> instead, which replaces it. If the try block had raised an exception, the return in finally would have silently swallowed that too.',
     fix: 'Never <code>return</code> from a <code>finally</code> block. Use finally only for cleanup, like closing files.',
-    inTheWild: 'This is risky enough that Python 3.14 now warns about it: PEP 765 makes <code>return</code>, <code>break</code> and <code>continue</code> that leave a <code>finally</code> block a <code>SyntaxWarning</code>, because they can silently hide both return values and exceptions.'
+    takeaway: '<code>finally</code> always runs, and a <code>return</code> inside it replaces any other result, even an exception. Use <code>finally</code> only for clean-up.'
   },
   // The next four came from Debugg Ltd's original desk.
   {
@@ -275,7 +275,7 @@ print(round(total, 2) == 0.3)`,
     ],
     explain: '<code>0.1 + 0.2</code> is <code>0.30000000000000004</code>, but <code>round(total, 2)</code> gives the float closest to 0.30, which is exactly the same float Python uses for the literal <code>0.3</code>. So this comparison is <code>True</code>. Rounding hid the error this time, but it isn\'t a general fix.',
     fix: 'Compare with a tolerance (<code>math.isclose(total, 0.3)</code>), or use <code>decimal.Decimal</code> for money. Rounding can still surprise you: <code>round(2.675, 2)</code> is 2.67, because 2.675 is stored as slightly less than 2.675.',
-    inTheWild: 'Python\'s <code>decimal</code> module exists for exactly this. Its documentation uses the same kind of example: in decimal, <code>0.1 + 0.1 + 0.1 - 0.3</code> is exactly zero, while in binary floating point it\'s 5.55e-17. Finance and billing code typically uses decimals or whole cents for this reason.'
+    takeaway: 'Rounding can hide a float error but doesn’t remove it. Compare floats with <code>math.isclose()</code>.'
   },
   {
     lang: 'python',
@@ -291,7 +291,7 @@ print(quantity * 2)`,
     ],
     explain: '<code>quantity</code> is the <b>string</b> <code>"3"</code>, not the number 3, because <code>input()</code> always returns text. Multiplying a string by a whole number repeats it, so <code>"3" * 2</code> is <code>"33"</code>. No error, just the wrong answer.',
     fix: 'Convert the input first: <code>quantity = int(input())</code>.',
-    inTheWild: 'In Python 2, <code>input()</code> ran whatever the user typed as Python code, which was a security hole, so most programs used <code>raw_input()</code> instead. Python 3 (PEP 3111) made <code>input()</code> always return a plain string, which is safe but means every number has to be converted. JavaScript has its own version of this bug: <code>"3" * 2</code> is 6 there, but <code>"3" + 2</code> is "32".'
+    takeaway: '<code>input()</code> always returns a string. Convert it with <code>int()</code> or <code>float()</code> before doing maths.'
   },
   {
     lang: 'python',
@@ -307,7 +307,7 @@ print(nums[1:-1])`,
     ],
     explain: 'A slice <b>includes its start and excludes its end</b>. Index 1 is 20, and <code>-1</code> counts back from the end, so it\'s 50. The slice starts at 20 and stops just before 50: <code>[20, 30, 40]</code>. In other words, <code>nums[1:-1]</code> drops the first and last items.',
     fix: 'This one is correct Python. It\'s a common way to trim both ends. For the last item, use <code>nums[-1]</code>. To include it in a slice, leave the end off: <code>nums[1:]</code>.',
-    inTheWild: 'Half-open ranges (start included, end excluded) are deliberate. Edsger Dijkstra argued for them in his 1982 note "Why numbering should start at zero" (EWD831): they make the length of a range just <code>end - start</code>, and let ranges that touch share an endpoint without overlapping. Python\'s <code>range</code> and slices follow the same rule.'
+    takeaway: 'Slices include the start and exclude the end, and negative indexes count back from the end: <code>nums[1:-1]</code> drops the first and last items.'
   },
   {
     lang: 'python',
@@ -324,7 +324,7 @@ print(x)`,
     ],
     explain: 'In Python 3, a list comprehension gets its <b>own scope</b>, so its loop variable <code>x</code> is separate from the <code>x</code> on line 1. The comprehension runs with x = 0, 1, 2, but the outer <code>x</code> is untouched and still 10.',
     fix: 'Nothing to fix in Python 3, but reusing a name like this is confusing. Give the loop variable its own name: <code>[n * n for n in range(3)]</code>.',
-    inTheWild: 'In Python 2 this printed 2: list comprehension variables leaked into the surrounding code and overwrote variables with the same name. Python 3 fixed that, which is one of the quieter changes that broke old code during the migration. A plain <code>for</code> loop still leaks its variable in Python 3, by design.'
+    takeaway: 'A comprehension’s loop variable stays inside the comprehension. A plain <code>for</code> loop’s variable doesn’t: it’s still there after the loop.'
   },
 
   // --- JavaScript ---------------------------------------------------------------
@@ -343,7 +343,7 @@ console.log(scores);`,
     ],
     explain: 'With no compare function, <code>sort()</code> converts every item to a <b>string</b> and sorts them in dictionary order. As strings, <code>"10"</code> comes before <code>"9"</code> because <code>"1"</code> comes before <code>"9"</code>. So the order is 1, 10, 9.',
     fix: 'Pass a compare function: <code>scores.sort((a, b) =&gt; a - b)</code>.',
-    inTheWild: 'This has been the rule since the first edition of the ECMAScript spec in 1997, and it can\'t change without breaking old websites. Typed arrays like <code>Int32Array</code> came much later, and their <code>sort()</code> does sort numbers numerically.'
+    takeaway: '<code>sort()</code> compares items as strings unless you give it a compare function. For numbers use <code>sort((a, b) =&gt; a - b)</code>.'
   },
   {
     lang: 'javascript',
@@ -359,7 +359,7 @@ console.log(typeof user);`,
     ],
     explain: '<code>typeof null</code> is <code>"object"</code>, even though <code>null</code> isn\'t an object. It\'s a bug from JavaScript\'s first version that was never fixed. That\'s why a check like <code>typeof x === "object"</code> lets <code>null</code> through, and the code then crashes on <code>x.name</code>.',
     fix: 'Check for null directly: <code>user === null</code>, or <code>user !== null &amp;&amp; typeof user === "object"</code> for "a real object".',
-    inTheWild: 'The first JavaScript engine stored a small type tag with every value, and the tag for objects was 0. <code>null</code> was stored as a null pointer, which is all zeros, so it read as an object. A proposal to make <code>typeof null</code> return <code>"null"</code> was considered for ES2015 but rejected because it broke too much existing code.'
+    takeaway: '<code>typeof null</code> is <code>"object"</code>, a leftover bug from JavaScript’s first version. Check for null with <code>=== null</code>.'
   },
   {
     lang: 'javascript',
@@ -376,7 +376,7 @@ console.log(price + shipping - shipping);`,
     ],
     explain: 'Work left to right. <code>+</code> with a string <b>joins</b> text, so <code>"5" + 2</code> is <code>"52"</code>. But <code>-</code> only means subtraction, so JavaScript converts <code>"52"</code> to a number: <code>52 - 2</code> is <code>50</code>. Two operators that look like opposites treat strings completely differently.',
     fix: 'Convert input as soon as you read it: <code>const price = Number(input.value);</code>',
-    inTheWild: 'A form input\'s <code>.value</code> is always a string, even for <code>&lt;input type="number"&gt;</code>, so "add to cart" totals like "10" + "5" = "105" are a classic web bug. Gary Bernhardt\'s 2012 lightning talk "Wat" made JavaScript\'s type conversions famous, with examples like <code>[] + {}</code>.'
+    takeaway: '<code>+</code> joins strings, but <code>-</code>, <code>*</code> and <code>/</code> convert to numbers. Convert input with <code>Number()</code> as soon as you read it.'
   },
   {
     lang: 'javascript',
@@ -392,7 +392,7 @@ console.log(nums);`,
     ],
     explain: '<code>map</code> calls the function with <b>(value, index, array)</b>, and <code>parseInt</code>\'s second argument is the number base. So you get <code>parseInt("1", 0)</code>, which is 1 (base 0 means "work it out"), <code>parseInt("7", 1)</code>, which is NaN (base 1 isn\'t valid), and <code>parseInt("11", 2)</code>, which is 3 (11 in binary).',
     fix: '<code>["1", "7", "11"].map(Number)</code>, or <code>.map(s =&gt; parseInt(s, 10))</code>.',
-    inTheWild: 'This one is a JavaScript classic, and the lesson goes beyond <code>parseInt</code>: passing a function straight to <code>map</code> is only safe if it ignores extra arguments. It can also break later, when a library adds an optional second parameter to a function you were passing this way.'
+    takeaway: '<code>map()</code> calls your function with (value, index, array). Only pass a function straight in if it ignores the extra arguments.'
   },
   {
     lang: 'javascript',
@@ -411,7 +411,7 @@ console.log(fns.map(f => f()));`,
     ],
     explain: '<code>var</code> creates <b>one</b> <code>i</code> for the whole function. Each arrow function reads <code>i</code> when it\'s <b>called</b>, not when it\'s created. They\'re all called on line 5, after the loop has finished, and the loop only stops once <code>i</code> reaches 3.',
     fix: 'Use <code>let</code>: <code>for (let i = 0; i &lt; 3; i++)</code> gives each loop iteration its own <code>i</code>.',
-    inTheWild: 'Before <code>let</code> arrived in ES2015, the standard workaround was to wrap the loop body in a function that runs immediately (an "IIFE") just to get a fresh variable each time. The classic version of this bug is click handlers made in a loop, where every button reports the last index.'
+    takeaway: '<code>var</code> makes one variable for the whole function. <code>let</code> gives each loop iteration its own, so use <code>let</code> in loops.'
   },
   {
     lang: 'javascript',
@@ -432,7 +432,7 @@ console.log(getConfig());`,
     ],
     explain: 'JavaScript inserts missing semicolons for you, and a line break straight after <code>return</code> ends the statement. So this is really <code>return;</code>, which returns <code>undefined</code>. The <code>{ debug: true }</code> below is never reached. It\'s parsed as a block, not an object.',
     fix: 'Keep the opening brace on the same line: <code>return {</code>.',
-    inTheWild: 'This is one of the main reasons JavaScript style guides put opening braces on the same line, and Douglas Crockford warns about it in "JavaScript: The Good Parts" (2008). Code formatters like Prettier don\'t change what the code means, but they lay it out so the problem is easy to see.'
+    takeaway: 'A line break straight after <code>return</code> ends the statement. Always start the returned value on the same line as <code>return</code>.'
   },
   {
     lang: 'javascript',
@@ -452,7 +452,7 @@ if (input == false) {
     ],
     explain: '<code>==</code> converts both sides to the same type before comparing. <code>false</code> becomes 0 and <code>"0"</code> becomes 0, so they\'re equal. That\'s despite <code>"0"</code> being a non-empty string, which counts as true in an <code>if (input)</code>. So a real value gets treated as empty.',
     fix: 'Use <code>===</code>, which never converts: <code>input === ""</code>.',
-    inTheWild: '<code>==</code>\'s conversion rules are confusing enough that ESLint has a built-in rule, <code>eqeqeq</code>, to require <code>===</code>, and most JavaScript style guides turn it on. Users whose answer is genuinely "0", like a quantity or a count, are the usual victims.'
+    takeaway: '<code>==</code> converts types before comparing, with surprising results. Use <code>===</code>, which never converts.'
   },
   {
     lang: 'javascript',
@@ -469,7 +469,7 @@ console.log(xmas.getFullYear());`,
     ],
     explain: 'Months in <code>Date</code> run from <b>0 to 11</b>, so 12 is one past December. Instead of raising an error, <code>Date</code> rolls the extra month into the next year, giving 25 January 2027. Days and years are counted normally, which makes this easy to miss.',
     fix: 'Use 11 for December: <code>new Date(2026, 11, 25)</code>, or pass an ISO string like <code>"2026-12-25"</code>.',
-    inTheWild: 'JavaScript copied this from Java\'s <code>java.util.Date</code>, because JavaScript was made to look like Java. Java deprecated most of that class in 1997, but JavaScript kept it. The newer <code>Temporal</code> date API finally numbers months from 1.'
+    takeaway: '<code>Date</code> months run from 0 (January) to 11 (December), and out-of-range values roll over into the next month or year.'
   },
   {
     lang: 'javascript',
@@ -485,7 +485,7 @@ console.log(orderId);`,
     ],
     explain: 'Every JavaScript number is a 64-bit float, and whole numbers are only exact up to <b>2⁵³</b> (9007199254740992). Past that, the gaps between numbers you can store grow larger than 1, so <code>9007199254740993</code> gets rounded to the nearest one that fits. No error, just a different number.',
     fix: 'Keep big IDs as strings, or use <code>BigInt</code>: <code>9007199254740993n</code>.',
-    inTheWild: 'Twitter hit this when tweet IDs grew past 2⁵³: JavaScript clients parsing the JSON quietly got the wrong IDs. Twitter\'s API added an <code>id_str</code> field with the ID as a string. JavaScript later added <code>BigInt</code> in ES2020 for exact large whole numbers.'
+    takeaway: 'JavaScript numbers are exact only up to 2<sup>53</sup> (<code>Number.MAX_SAFE_INTEGER</code>). Keep bigger IDs as strings, or use <code>BigInt</code>.'
   },
   {
     lang: 'javascript',
@@ -503,7 +503,7 @@ console.log(user.roles);`,
     ],
     explain: '<code>{ ...user }</code> makes a <b>shallow</b> copy: a new outer object, but its properties still point at the same values. <code>guest.roles</code> is the very same array as <code>user.roles</code>, so pushing to one changes both, and the admin now has a guest role too.',
     fix: 'Copy the nested array too (<code>{ ...user, roles: [...user.roles] }</code>) or deep-copy with <code>structuredClone(user)</code>.',
-    inTheWild: 'Deep copying used to mean a library or the lossy <code>JSON.parse(JSON.stringify(x))</code> trick, which drops dates, functions and <code>undefined</code>. <code>structuredClone()</code> was available in all major browsers by 2022 and does it properly. In state libraries like Redux, a shallow copy like this one is a classic cause of screens that don\'t update.'
+    takeaway: 'Spread (<code>{ ...obj }</code>) is a shallow copy: nested arrays and objects are still shared. Use <code>structuredClone()</code> for a deep copy.'
   },
   {
     lang: 'javascript',
@@ -524,6 +524,6 @@ console.log(hasNegative([3, -1, 2]));`,
     ],
     explain: 'The <code>return true</code> is inside the <b>arrow function</b>, so it only ends that call, for the item -1. <code>forEach</code> ignores return values and keeps going, then <code>hasNegative</code> reaches its own <code>return false</code>. The negative number was found, and the result was thrown away.',
     fix: 'Use <code>some</code>, which stops at the first match: <code>return nums.some(n =&gt; n &lt; 0);</code>',
-    inTheWild: 'There\'s no way to stop a <code>forEach</code> early except throwing an error. That\'s why arrays have <code>some</code>, <code>every</code> and <code>find</code>, which all stop as soon as they have an answer. A plain <code>for...of</code> loop, where <code>return</code> works as expected, is another fix.'
+    takeaway: '<code>return</code> inside <code>forEach</code> only ends that one callback. To stop early, use <code>some()</code>, <code>find()</code> or a <code>for...of</code> loop.'
   }
 ];

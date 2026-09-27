@@ -4,7 +4,7 @@ A Wordle-style daily game where you guess what a short, buggy Python or JavaScri
 
 **For the soft launch the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
 
-There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving at least one puzzle a day, in any language, builds your bug streak.
+There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving at least one puzzle a day, in any language, builds your bug streak.
 
 Each puzzle also earns XP, tracked separately for each language so you level up in each one:
 
@@ -80,6 +80,7 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 
 ## Roadmap
 
+- **Switch on analytics (to do before launch):** create a free GoatCounter account at goatcounter.com, pick a site code (e.g. `debugg`), and put its count address (e.g. `https://debugg.goatcounter.com/count`) in `SITE_COUNT_URL` in `analytics.js`. Everything else is already built; until then nothing is counted.
 - **Puzzle formats and the weekly rotation** (decided; see item 3b in `CLAUDE.md`): still one puzzle a day per language, but its format and difficulty follow the week. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debugg Ltd desk pay) rises with difficulty.
 - **Learn track:** lessons per language played in order at any time, teaching one concept each with a "try this next" for the sandbox. Lessons earn XP but don't count towards the streak. Monday's daily puzzles are learn-level too.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.

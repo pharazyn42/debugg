@@ -27,7 +27,7 @@ for(const lang of LANGS){
       await expect(page.locator('#feedback')).toHaveClass(/wrong/);
       await guess(page, p.display);
       await expect(page.locator('#feedback'), `day ${day}: ${p.display}`).toHaveClass(/correct/);
-      await expect(page.locator('#wildOut')).not.toBeEmpty();
+      await expect(page.locator('#takeawayOut')).not.toBeEmpty();
     }
   });
 }

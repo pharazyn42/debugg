@@ -307,6 +307,10 @@ site and what to measure.
     to their first puzzle); time to the first hire, manager, senior and
     principal; how many pause or close; cash and headcount over time. The
     balance pass (item 10) needs exactly this.
+- **Step 1 is built** (`analytics.js`, GoatCounter, events listed in
+  `privacy.html`). **To do:** create the GoatCounter account and set
+  `SITE_COUNT_URL` in `analytics.js`; until then it's off. The notes below
+  are the reasoning behind it.
 - **Step 1, visitor analytics with no backend.** Add a privacy-friendly,
   cookie-free analytics script to the pages. Candidates (check current
   pricing and limits before choosing):
