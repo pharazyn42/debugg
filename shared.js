@@ -39,6 +39,24 @@ window.Debugg = (function(){
     return !!(s && (s.solved || s.revealed));
   }
 
+  // --- XP and levels -------------------------------------------------------------
+  // Puzzle XP is stored per language key: { python: 120, javascript: 40 }.
+  function readXp(){
+    try{
+      const raw = JSON.parse(localStorage.getItem('debugg-xp'));
+      if(raw && typeof raw === 'object') return raw;
+    }catch(e){}
+    return {};
+  }
+  // Level n starts at 100 * (n-1) * n / 2 XP: 0, 100, 300, 600, 1000, …
+  // so each level needs 100 more XP than the one before.
+  function levelStart(n){ return 100 * (n - 1) * n / 2; }
+  function levelFor(xp){
+    let n = 1;
+    while(xp >= levelStart(n + 1)) n++;
+    return n;
+  }
+
   // --- Syntax highlighting -----------------------------------------------------
   // Keywords and comment/string syntax for the tiny highlighter, per language.
   const SYNTAX = {
@@ -91,5 +109,6 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  return { LANGS, dayNumber, today, puzzlesFor, puzzleFor, stateKey, readState, isFinished, highlight, escapeHtml };
+  return { LANGS, dayNumber, today, puzzlesFor, puzzleFor, stateKey, readState, isFinished,
+           readXp, levelStart, levelFor, highlight, escapeHtml };
 })();

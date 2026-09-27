@@ -1,47 +1,64 @@
-# Debugg Ltd (formerly Contract Debugger)
+# Debugg and Debugg Ltd
 
-Context for continuing work on this game. It currently lives in `studio/`,
-separate from `../index.html` ("Debugg", the daily Wordle-style puzzle).
+Context for continuing work on this repo. **Debugg** is the daily puzzle game:
+read a short Python or JavaScript snippet and guess what it prints. **Debugg
+Ltd** is the optional idle studio-management game around it, switched on with
+"Start your own company". With it on, the daily puzzles are the Director's
+desk and pay the company. The README covers the player-facing rules; this file
+is the design and implementation notes, mostly for Debugg Ltd.
 
-**Direction (agreed, not built yet):** Debugg and Debugg Ltd (this idle
-game, previously called Contract Debugger) become one game on one site,
-called Debugg. It opens as the puzzle game: the four release-tier
-puzzles (Hotfix / Patch / Minor / Major, item 3b), which can be played on
-their own forever. An option turns on the rest of the game (the studio,
-team and contract board) around them, and the puzzles become the
-Director's desk. See roadmap items 3b and 3c. Until that work starts, keep
-the two codebases independent: don't half-merge them.
+The merge of the two (item 3c) is done; `ideas/debugg-ltd-merge-plan.md` is
+the plan it was built from. Original design brainstorm for the studio:
+`ideas/contract-debugger-concept.md`. That doc is the source of the overall
+vision; read it for the *why* behind mechanics that aren't built yet. This
+file is the *current state* of the implementation, which has diverged and
+simplified from that doc in places (noted below).
 
-## What this is
+## Where things live
 
-An idle/incremental game where the core "active" mechanic is a Debugg-style
-puzzle (read a short Python snippet, guess what it prints). Sitting behind
-that is a studio-management idle layer: grow a tiered team of programmers
-and staff real-time contracts that keep running while you're not looking.
+No build step and no runtime dependencies (besides Google Fonts, and Pyodide
+from jsDelivr in the sandbox). GitHub Pages deploys `main` to
+`https://pharazyn42.github.io/debugg/`.
 
-Original design brainstorm: `../ideas/contract-debugger-concept.md`. That
-doc is the source of the overall vision — read it for the *why* behind
-mechanics that aren't built yet. This file is the *current state* of the
-actual implementation, which has diverged/simplified from that doc in a few
-places (noted below).
+| File | What it is |
+|---|---|
+| `index.html` | The daily puzzle page. It also holds the slots the studio renders into, and the loader that switches the studio on. |
+| `puzzles.js` | The puzzle bank, one list per language. |
+| `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
+| `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
+| `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
+| `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
+| `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
 
-## Everything lives in one file
+**How the puzzle page and the studio connect.** One way only. When a daily
+puzzle ends, `index.html` fires `debugg:puzzle-finished` with
+`{ lang, day, solved, guesses, hintLevel, xp, streak }`, and `ltd.js` pays for
+it (see "The desk" below). The studio reads puzzle XP through
+`Debugg.readXp()` for the Director's skills. The puzzle page never depends on
+the studio.
 
-`studio/index.html` — a single self-contained HTML/CSS/JS file, no build
-step, no dependencies except a Google Fonts `@import`. Open it directly in
-a browser to play, or serve via GitHub Pages (already configured — pushes
-to `main` deploy automatically to `https://pharazyn42.github.io/debugg/studio/`).
+**Switching on.** The loader at the bottom of `index.html` loads `ltd/` when
+the saved company is running, when an old pre-merge save exists, or when the
+URL has `?ltd`. `DebuggLtd.start({ stats, studio, board })` renders into the
+three slots and either resumes the saved company, imports an old one, or
+founds a new one. `body.ltd-on` switches the page to the two-column layout.
 
-State persists in `localStorage` under the key `contract-debugger-state-v3`.
-The boot sequence has a small guard that drops an old-shaped
-`activeContract`; bump the key or add a similar guard if you change the
-state shape again.
+**Saves.** Puzzle progress is `debugg-day<N>` (Python) and
+`debugg-<lang>-day<N>`, plus `debugg-xp`, `debugg-streak` and `debugg-lang`.
+The company is `debugg-ltd`. Pre-merge studio saves
+(`contract-debugger-state-v3`) are imported once into `debugg-ltd` (dropping
+the old desk's `activeContract`), then removed. The boot sequence in
+`ltd.js` also carries the older shape guards (tier renames, Assembly,
+SLOC targets); add a similar guard if the state shape changes again.
 
 ## Data model (as currently implemented)
 
 ```js
-PUZZLES = [{ file, html, type, answer, hint }, ...]   // 6 puzzles, Director's desk only
-CONTRACT_LENGTHS = [...]   // desk contracts: 1/3/5/8 puzzles, 1x/1.8x/3.2x/6x
+// The desk
+CASH_PER_XP = 2, XP_PER_REP = 20          // desk pay per puzzle XP earned
+STREAK_BONUS_PER_DAY = 0.10, STREAK_BONUS_CAP = 0.50   // on solves, per streak day beyond the first
+START_CASH = 150, FOUNDER_BONUS_CAP = 1000             // + ¤1 per puzzle XP at founding
+DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance per puzzle level above 1
 
 LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old saves fold it into C/C++
 DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI']
@@ -70,18 +87,33 @@ state = {
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
-  activeContract: null | { lengthIndex, puzzleIdxs, index, puzzles: [{ attempts, status, clean, hintUsed }] }
+  enabled, pausedAt,                              // false / a time while the player has it paused
+  paid: { 'python-5': true, … }                   // desk puzzles already paid for (last 14 days)
 }
 ```
 
 ## What's implemented
 
-- **Director's desk**: the player's own puzzle contracts. Pick a length and
-  work through the queue with full navigation: click any dot, or use
-  Prev/Next. A puzzle that runs out of guesses locks as "exhausted"; when
-  everything is solved, a "Deliver contract" button appears. The clean
-  bonus applies to first-try solves with no hint. This is the main source
-  of cash early on.
+- **The desk is the daily puzzles**, one per language per day (the Hotfix
+  tier of 3b). Each one finished while the company is running pays
+  `CASH_PER_XP` per XP it earned (¤200 for a first-guess, no-hint solve,
+  ¤20 for a reveal) and 1 reputation per 20 XP. Solves get +10% per streak
+  day beyond the first, up to +50%. Only today's puzzles pay, each once
+  (the `paid` ledger), and puzzles finished before the company existed
+  don't pay. Replaced the old unlimited desk (1/3/5/8-puzzle contracts from
+  a bank of 6), so the staffed side now carries the early economy; a lone
+  grad on a hotfix already pays for itself.
+- **Founding**: a new company gets ¤150 plus a founder's bonus of ¤1 per
+  puzzle XP already earned, up to ¤1,000.
+- **The Director's languages are the player's puzzle levels** (read live
+  from `debugg-xp`). Each level above 1 adds 1% success chance to contracts
+  in that language, up to +10%, shown on the Director's card and in the
+  team picker. Only languages with puzzles (Python, JavaScript) count.
+- **Pause / Close**: pausing stores `pausedAt` and reloads without the
+  studio; resuming shifts every clock in the save (`lastTick`, jobs,
+  offers, `since`) forward by the paused time, so nothing happens while
+  paused. Closing deletes `debugg-ltd`. The page's "reset puzzles" keeps
+  the company.
 - **Start-up**: you begin as the Director alone, and you double as the
   manager. The Director gives one slot at every level, one principal slot,
   and room for `DIRECTOR_SPAN` (4) devs, so you can hire a grad straight
@@ -179,7 +211,6 @@ state = {
 - **Skill gain is a placeholder**: a flat XP rate with no supervision
   effect (item 22).
 - **No training spend, studio upgrades, or prestige** (items 14, 15, 19).
-- **Puzzle bank is only 6 entries** (desk contracts only; item 3b).
 - **Balance is untuned** (item 10).
 
 ## Future development
@@ -192,28 +223,27 @@ Item numbers are for reference; re-prioritise freely.
 Do these first: every later feature touches the job engine, and changes currently ship untested straight to players.
 
 #### 1. Tests
-- There's no test suite; changes have been verified by driving the page
-  by hand in a browser. Worth adding:
+- **Done:** Playwright end-to-end tests in `tests/` cover the daily
+  puzzles, the sandbox and Debugg Ltd (founding, desk pay, the Director's
+  boost, hiring, offline contract resolution, pause/resume, close, save
+  import, the `/studio/` redirect), and run in GitHub Actions on every PR.
+  Tests fix the clock with `page.clock.setFixedTime` and fast-forward by
+  editing the save. Still worth adding:
   - **Unit tests for the game logic.** This first needs the pure
-    functions pulled out of `index.html`'s single `<script>` into a
-    module the page and tests can both import (e.g. `studio/game.js`).
+    functions pulled out of `ltd/ltd.js` into a module the page and
+    tests can both import (e.g. `ltd/engine.js`).
     That's plain ES modules, still no build step. Targets:
     - structure/capacity rules;
     - promotion status;
     - `evaluateTeam` (requirements, learners, SLOC/time, payout, chance);
     - `resolveDueJobs` (repeat, retry, offline chaining and cap);
     - skill-rule qualification;
-    - offer expiry;
-    - the desk puzzle answer checking.
-  - **End-to-end tests with Playwright**: load the page, hire, staff a
-    contract, fast-forward time by editing the save, and check the
-    results. These replace the manual browser checks done so far.
+    - offer expiry.
   - **Deterministic randomness**: inject a seeded RNG (and a clock) so
     tests can force success/failure and specific offers.
-- Run the tests in **GitHub Actions** on every push and PR, and require
-  them to pass before a release is cut or deployed.
+- Require the tests to pass before a release is cut or deployed (item 2).
 - Pairs naturally with the "shared idle engine" idea in
-  `../ideas/bbq-idle-concept.md` — the same extraction serves both.
+  `ideas/bbq-idle-concept.md` — the same extraction serves both.
 
 #### 2. Semantic versioning and proper releases
 - Adopt semantic versioning (MAJOR.MINOR.PATCH):
@@ -288,8 +318,10 @@ Do these first: every later feature touches the job engine, and changes currentl
   | **Major release** | monthly | Full Delivery | **"Write some code to output this."** Write code from scratch that produces a target output. |
 
   Everyone gets the same puzzle each period (date-seeded), and each can
-  be completed once per period. Standalone Debugg's daily puzzle *is* the
-  Hotfix ("today's hotfix").
+  be completed once per period. The daily puzzle *is* the Hotfix
+  ("today's hotfix"), and it's built: `puzzles.js`, one per language per
+  day, and it's already the desk (3c). The sandbox (`sandbox.html`)
+  already has the in-browser runners the Minor/Major tiers need.
 - This replaces the old item 11 ("daily desk contracts").
 - **Content load** is about 365 Hotfixes + 104 Patches + 52 Minor + 12
   Major, so roughly 530 puzzles a year. Hotfixes are still the bulk, so a
@@ -328,56 +360,24 @@ Do these first: every later feature touches the job engine, and changes currentl
   - (Decided) In "spot the bug", a wrong click counts as a guess, the
     same as a wrong Hotfix answer. The guess limit is still to set (4, to
     match?).
-  - What happens to the desk's payout multipliers and partial-payout
-    rules, now that each tier is a single puzzle?
+  - (Decided for the Hotfix) Desk pay is per XP earned; see "What's
+    implemented". Bigger tiers should pay more per puzzle.
   - (Decided) The staffed contract board uses the same four names:
     Hotfix / Patch / Minor release / Major release, renamed from Quick
-    Fix / Sprint / Milestone / Full Delivery with the same rules. Done in
-    the game already; the desk still uses its old names until this item
-    is built.
+    Fix / Sprint / Milestone / Full Delivery with the same rules.
 
-#### 3c. One game: puzzles first, studio optional
-- **Build plan: `../ideas/debugg-ltd-merge-plan.md`.** It does this item
-  before the rest of 3b: the desk starts as Debugg's existing daily
-  puzzles (one per language per day, i.e. the Hotfix tier), and the
-  Patch / Minor / Major tiers come after the merge.
-- **Debugg and Debugg Ltd are the same game.** The site opens
-  straight into the puzzle game: all four release tiers from 3b.
-  - Hotfix: daily.
-  - Patch: twice a week.
-  - Minor release: weekly.
-  - Major release: monthly.
-
-  There's no separate "plain Debugg" any more. Someone who only wants the
-  puzzles plays these and never needs to see anything else.
-- **An option labelled "Start your own company" turns on Debugg Ltd**,
-  the rest of the game, around the puzzles:
-  - the stats bar (cash, reputation, payroll, headcount);
-  - the studio roster, hiring and the contract board;
-  - idle progress.
-
-  With it on, the puzzles are the Director's desk: solving them pays
-  cash and reputation.
-- **One set of puzzle progress.** The puzzles are the same with the studio
-  on or off, so there's one record of which ones are done this
-  day/week/month, and one set of streaks. Switching the studio on later
-  simply starts paying for puzzles solved from then on. Today's solved
-  Hotfix is already done, whichever mode it was solved in.
-- **One site, one save origin.** `/studio/` becomes a redirect to the main
-  site with the studio switched on.
-- **Open questions:**
-  - If someone turns the studio on after weeks of puzzle play, does their
-    history count for anything (e.g. starting cash or reputation for
-    their streak)?
-  - Does switching the studio off pause it (no salaries, no progress) or
-    keep it running unseen?
-  - (Decided) The game, and the main page, is called **Debugg**. The
-    optional idle/studio part is **Debugg Ltd**, switched on with a
-    "Start your own company" option. The studio page's visible title
-    already uses the new name. The storage key and file names still say
-    contract-debugger; they'll change when 3c merges things.
-- **Depends on 3b.** It's also why tests and versioning (1, 2) are for the
-  whole product, not per game.
+#### 3c. One game: puzzles first, studio optional — done
+- Built from `ideas/debugg-ltd-merge-plan.md`, ahead of the rest of 3b:
+  the desk is the daily puzzles (the Hotfix tier), and the Patch / Minor /
+  Major tiers are still to come. See "Where things live" and "What's
+  implemented" for how it works.
+- Decisions made along the way:
+  - A founder's bonus rewards puzzle history (¤1 per XP, up to ¤1,000).
+  - The Director's puzzle levels boost contract success in that language.
+  - Past days' puzzles never pay; the desk stays daily.
+  - Switching the studio off pauses it.
+- When the other tiers arrive they apply in both modes, with one record
+  of progress, and pay the company more than a Hotfix.
 
 ### Phase 2 — Make the core loop feel right
 
@@ -469,10 +469,10 @@ Replace the current flat reliability-by-level model:
   Headcount. Open question: count only people currently on contracts,
   or show "active / potential"?
 
-#### 9. Show potential contract values on the desk
-- The Director's desk contract picker should show what each contract could
-  pay before you start it: e.g. the range from "all solved, none clean" to
-  "all clean". Reputation gain could be shown the same way.
+#### 9. Show what the desk pays
+- Show what today's puzzles can pay before you play them, e.g. "up to ¤200
+  (+20% streak)" next to the desk title, and which ones have been paid
+  today.
 
 #### 10. Balance pass
 - Hire costs, salaries, `LINE_RATE`, tier multipliers, XP rates and
@@ -775,9 +775,10 @@ Big systems that depend on the earlier phases.
 
 ## Testing notes
 
-There's no test suite. When changing game logic, the fastest way to verify
-correctness is a headless Playwright script driving the page directly
-(`file://.../studio/index.html`) and asserting on DOM state/text — that's
-how the puzzle-navigation and roster-tree features were verified during
-development. Chromium is available; no `playwright install` needed if the
-environment already has it configured.
+`npm test` runs the Playwright suite in `tests/` against a small static
+server (`tests/serve.js`). Tests fix the date with
+`page.clock.setFixedTime` (Day 1 is 27 September 2026) and simulate time
+passing by editing saves and moving the clock. The sandbox's Python tests
+need Pyodide: from the CDN, or set `PYODIDE_DIR` to an unpacked `pyodide`
+npm package when there's no internet. Switching language on the puzzle page
+reloads it, so wait for the new puzzle (e.g. its filename) before acting.

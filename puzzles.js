@@ -260,6 +260,73 @@ print(save())`,
     fix: 'Never <code>return</code> from a <code>finally</code> block. Use finally only for cleanup, like closing files.',
     inTheWild: 'This is risky enough that Python 3.14 now warns about it: PEP 765 makes <code>return</code>, <code>break</code> and <code>continue</code> that leave a <code>finally</code> block a <code>SyntaxWarning</code>, because they can silently hide both return values and exceptions.'
   },
+  // The next four came from Debugg Ltd's original desk.
+  {
+    lang: 'python',
+    code: `total = 0.1 + 0.2
+print(round(total, 2) == 0.3)`,
+    flag: { line: 2, text: 'round(total, 2)' },
+    answers: ['true'],
+    display: 'True',
+    nudge: 'Not quite. What does rounding to 2 places do to 0.30000000000000004?',
+    hints: [
+      '0.1 + 0.2 is 0.30000000000000004. What is that rounded to 2 decimal places?',
+      'Rounded to 2 places it becomes 0.3, the very same float as the literal 0.3, so they compare equal.'
+    ],
+    explain: '<code>0.1 + 0.2</code> is <code>0.30000000000000004</code>, but <code>round(total, 2)</code> gives the float closest to 0.30, which is exactly the same float Python uses for the literal <code>0.3</code>. So this comparison is <code>True</code>. Rounding hid the error this time, but it isn\'t a general fix.',
+    fix: 'Compare with a tolerance (<code>math.isclose(total, 0.3)</code>), or use <code>decimal.Decimal</code> for money. Rounding can still surprise you: <code>round(2.675, 2)</code> is 2.67, because 2.675 is stored as slightly less than 2.675.',
+    inTheWild: 'Python\'s <code>decimal</code> module exists for exactly this. Its documentation uses the same kind of example: in decimal, <code>0.1 + 0.1 + 0.1 - 0.3</code> is exactly zero, while in binary floating point it\'s 5.55e-17. Finance and billing code typically uses decimals or whole cents for this reason.'
+  },
+  {
+    lang: 'python',
+    code: `quantity = "3"  # from input()
+print(quantity * 2)`,
+    flag: { line: 2, text: 'quantity * 2' },
+    answers: ['33'],
+    display: '33',
+    nudge: 'Not quite. quantity is a string. What does * do to a string?',
+    hints: [
+      'input() always gives you a string. What happens when you multiply a string by a number?',
+      'Multiplying a string repeats it: "3" * 2 is "33", not 6.'
+    ],
+    explain: '<code>quantity</code> is the <b>string</b> <code>"3"</code>, not the number 3, because <code>input()</code> always returns text. Multiplying a string by a whole number repeats it, so <code>"3" * 2</code> is <code>"33"</code>. No error, just the wrong answer.',
+    fix: 'Convert the input first: <code>quantity = int(input())</code>.',
+    inTheWild: 'In Python 2, <code>input()</code> ran whatever the user typed as Python code, which was a security hole, so most programs used <code>raw_input()</code> instead. Python 3 (PEP 3111) made <code>input()</code> always return a plain string, which is safe but means every number has to be converted. JavaScript has its own version of this bug: <code>"3" * 2</code> is 6 there, but <code>"3" + 2</code> is "32".'
+  },
+  {
+    lang: 'python',
+    code: `nums = [10, 20, 30, 40, 50]
+print(nums[1:-1])`,
+    flag: { line: 2, text: 'nums[1:-1]' },
+    answers: ['20,30,40'],
+    display: '[20, 30, 40]',
+    nudge: 'Not quite. Which end of a slice is included, and where does -1 point?',
+    hints: [
+      'A slice includes its start and stops before its end. Which item is at index -1?',
+      'Index 1 is 20 and index -1 is 50, the last item. The slice stops before 50, giving 20, 30, 40.'
+    ],
+    explain: 'A slice <b>includes its start and excludes its end</b>. Index 1 is 20, and <code>-1</code> counts back from the end, so it\'s 50. The slice starts at 20 and stops just before 50: <code>[20, 30, 40]</code>. In other words, <code>nums[1:-1]</code> drops the first and last items.',
+    fix: 'This one is correct Python. It\'s a common way to trim both ends. For the last item, use <code>nums[-1]</code>. To include it in a slice, leave the end off: <code>nums[1:]</code>.',
+    inTheWild: 'Half-open ranges (start included, end excluded) are deliberate. Edsger Dijkstra argued for them in his 1982 note "Why numbering should start at zero" (EWD831): they make the length of a range just <code>end - start</code>, and let ranges that touch share an endpoint without overlapping. Python\'s <code>range</code> and slices follow the same rule.'
+  },
+  {
+    lang: 'python',
+    code: `x = 10
+squares = [x * x for x in range(3)]
+print(x)`,
+    flag: { line: 2, text: 'for x in range(3)' },
+    answers: ['10'],
+    display: '10',
+    nudge: 'Not quite. Does the x inside the list comprehension change the x outside it?',
+    hints: [
+      'A list comprehension has its own loop variable. Is it the same x as the one on line 1?',
+      'In Python 3, a comprehension\'s loop variable stays inside it, so the outer x is still 10.'
+    ],
+    explain: 'In Python 3, a list comprehension gets its <b>own scope</b>, so its loop variable <code>x</code> is separate from the <code>x</code> on line 1. The comprehension runs with x = 0, 1, 2, but the outer <code>x</code> is untouched and still 10.',
+    fix: 'Nothing to fix in Python 3, but reusing a name like this is confusing. Give the loop variable its own name: <code>[n * n for n in range(3)]</code>.',
+    inTheWild: 'In Python 2 this printed 2: list comprehension variables leaked into the surrounding code and overwrote variables with the same name. Python 3 fixed that, which is one of the quieter changes that broke old code during the migration. A plain <code>for</code> loop still leaks its variable in Python 3, by design.'
+  },
+
   // --- JavaScript ---------------------------------------------------------------
   {
     lang: 'javascript',

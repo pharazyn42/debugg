@@ -1,5 +1,17 @@
 # Merge plan: Debugg + Debugg Ltd
 
+> **Status: built.** Everything up to step 7 is done. Step 8, the other
+> release tiers, is still to come. The open questions at the end were
+> settled as recommended: founder's bonus yes, the Director's levels
+> boost success, past puzzles don't pay, switching off pauses. Two
+> differences from the plan below:
+> - **No preview flag.** The whole merge went into one pull request, and
+>   the PR was the gate instead.
+> - **Streak bonus detail.** It counts streak days beyond the first, so a
+>   first-day solve gets no bonus.
+>
+> `CLAUDE.md` describes how it works now.
+
 How to turn the two games into one. Debugg's daily puzzles become the
 Director's desk, and a "Start your own company" option switches on Debugg
 Ltd (the studio, team and contract board) around them.

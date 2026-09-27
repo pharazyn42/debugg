@@ -27,13 +27,40 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - Both run off the main page, so code that runs too long (10 seconds for Python, 5 for JavaScript) is stopped instead of freezing the tab.
 - Drafts are saved per language in your browser.
 
-`shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, the syntax highlighter and the base theme.
+`shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, XP levels, the syntax highlighter and the base theme.
+
+## Debugg Ltd
+
+"Start your own company" (in the footer, and after each finished puzzle) switches on **Debugg Ltd**, an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+
+- **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
+- **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
+- **You, the Director:** your puzzle level in each language is the Director's skill in it. Every level above 1 adds 1% success chance to contracts in that language, up to +10%.
+- **The studio:** hire up to 4 devs yourself, then managers; each person supervises up to 3 at the level below. Promotions need time on contracts and skill bars.
+- **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team). Teams can repeat contracts, and work carries on while the page is closed (up to 4 hours).
+- **Pause company** stops the clock completely (no salaries, no progress) until you switch it back on. **Close company** deletes it; puzzle progress, XP and the streak are kept. The footer's "reset puzzles" does the opposite: it keeps the company.
+
+The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
+
+`ideas/debugg-ltd-merge-plan.md` is the plan this was built from, and `CLAUDE.md` has the studio's full design and roadmap.
 
 ## Adding a puzzle
 
 Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 was 27 September 2026), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
 
-To add a new language, add it to `LANGS` and `SYNTAX` in `index.html` (name, file extension, keywords, comment and string syntax), then add puzzles with that `lang`.
+To add a new language, add it to `LANGS` and `SYNTAX` in `shared.js` (name, file extension, indent, keywords, comment and string syntax), then add puzzles with that `lang`.
+
+## Tests
+
+Browser tests (Playwright) cover the daily puzzles, the sandbox and Debugg Ltd, and run in GitHub Actions on every pull request:
+
+```sh
+npm install
+npx playwright install chromium   # first time only
+npm test
+```
+
+The sandbox's Python tests download Pyodide from the CDN. Without internet access, point `PYODIDE_DIR` at an unpacked copy of the `pyodide` npm package and the test server hosts it instead.
 
 ## Deploying with GitHub Pages
 
@@ -44,26 +71,10 @@ To add a new language, add it to `LANGS` and `SYNTAX` in `index.html` (name, fil
 
 ## Roadmap
 
-- Add new puzzle types alongside "what does this print?":
-  - **Fix it:** modify the given code so it produces the correct output.
-  - **Write it:** write code from scratch that produces a given output.
-
-  Both can build on the sandbox's editor and runners: run the player's code, then compare what it prints.
-- Add progression that keeps people coming back, building on the daily bug streak and language levels, e.g. unlockable puzzle packs or harder tiers, and achievements.
+- **Release tiers:** alongside the daily puzzle (the Hotfix), add a twice-weekly Patch ("spot the bug": click the line that causes it), a weekly Minor release ("modify this code to output this") and a monthly Major release ("write code that outputs this"). The code tiers can build on the sandbox's editor and runners: run the player's code, then compare what it prints. In Debugg Ltd, bigger tiers pay more.
+- **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.
+- **Debugg Ltd:** its own roadmap is in `CLAUDE.md` (tests are done; next are versioning and the balance pass).
 
 ## Other ideas
 
-`ideas/contract-debugger-concept.md` sketches an idle-game concept that grew out of Debugg's puzzle mechanic. The plan is for Debugg and that idle game, now called **Debugg Ltd**, to become one game, called Debugg. It opens as a puzzle game with four release tiers: a daily Hotfix ("what does this output?"), a twice-weekly Patch ("spot the bug"), a weekly Minor release ("modify this to output this") and a monthly Major release ("write code to output this"). A "Start your own company" option turns on Debugg Ltd, the studio-management game, around them. See `studio/CLAUDE.md` for the roadmap.
-
-A first playable slice of that concept lives at `studio/index.html` (served at `/studio/` on GitHub Pages once enabled). You start as a lone Director who also manages the start-up:
-- **Your desk:** you solve puzzle contracts yourself for cash.
-- **Your first hires:** hire up to 4 devs yourself; after that you need real managers.
-- **A tiered team:** each person supervises up to 3 at the level below. Promotions need both time served and skill bars.
-- **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team). Each has team requirements and shows its random language and domain.
-- **Repeat:** a team can keep taking the same kind of contract, even while you're away.
-
-`studio/CLAUDE.md` has the full current design.
-
-`ideas/bbq-idle-concept.md` sketches another separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now.
-
-It's a prototype slice, not balanced or feature-complete — see the open questions in the concept doc for what's still to design.
+`ideas/contract-debugger-concept.md` is the original brainstorm that Debugg Ltd grew out of. `ideas/bbq-idle-concept.md` sketches a separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now.
