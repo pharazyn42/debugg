@@ -89,16 +89,9 @@ window.DebuggLtd = (function(){
     // Studio model
     // ---------------------------------------------------------------------
 
+    // Contracts, skills and XP are by language only for now. Domains (Web Dev, Games,
+    // Embedded…) are planned to return later as an unlock with specialist hires.
     const LANGS = ['Python', 'C/C++', 'JavaScript', 'Rust'];
-    const DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI'];
-    // Which language/domain pairings contracts can come up as (the matrix in
-    // ../ideas/contract-debugger-concept.md).
-    const PAIRINGS = {
-      'Python':     ['Web Dev', 'Games', 'Data/AI'],
-      'C/C++':      ['Games', 'Embedded/Controls', 'Safety-Critical'],
-      'JavaScript': ['Web Dev', 'Games'],
-      'Rust':       ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical']
-    };
     const BAR_XP = [10, 50, 150, 400, 1000]; // cumulative XP needed for bars 1..5
     const MAX_BARS = 5;
 
@@ -115,12 +108,11 @@ window.DebuggLtd = (function(){
     const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
 
     // To be promoted INTO a level: minutes spent working on contracts at the
-    // current level (bench time doesn't count), plus best language and best
-    // domain bars.
+    // current level (bench time doesn't count), plus bars in their best language.
     const PROMOTION = {
-      Junior:    { minutes: 60,       lang: 1, dom: 1 },  // 1 hour
-      Senior:    { minutes: 8 * 60,   lang: 3, dom: 2 },  // 8 hours
-      Principal: { minutes: 72 * 60,  lang: 5, dom: 5 }   // 3 days
+      Junior:    { minutes: 60,       lang: 1 },  // 1 hour
+      Senior:    { minutes: 8 * 60,   lang: 3 },  // 8 hours
+      Principal: { minutes: 72 * 60,  lang: 5 }   // 3 days
     };
 
     // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
@@ -149,9 +141,11 @@ window.DebuggLtd = (function(){
     // slightly more XP per minute to reward teamwork.
     const SLOC_SPREAD = 0.15;
     // Skill match speeds a dev up on a contract: their SLOC/min is multiplied
-    // by 1 + SKILL_SPEED × (lang bars + domain bars) / 10 for that contract's
-    // language and domain — so a full 5+5 match doubles their output.
+    // by 1 + SKILL_SPEED × (bars in the contract's language) / 5 — so a dev at
+    // full bars in it works at double speed.
     const SKILL_SPEED = 1.0;
+    // …and adds up to this much success chance (a full-bars team gets all of it).
+    const SKILL_CHANCE = 0.05;
     const MIN_JOB_MS = 5000; // floor, so a principal on a hotfix isn't instant
     // A failed contract can be retried once in RETRY_TIME of the time for
     // RETRY_PAYOUT of the payout.
@@ -161,20 +155,26 @@ window.DebuggLtd = (function(){
     // Contract types are named after release types, smallest first:
     // hotfix → patch → minor release → major release.
     const TIERS = [
-      { key: 'hotfix', name: 'Hotfix',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 1.0,  rep: 0.5,
+      { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 1.0,  rep: 0.5,
         needs: {}, req: '1 developer, any level' },
-      { key: 'patch', name: 'Patch',         minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 1.2,  rep: 2,
+      { key: 'patch', name: 'Patch',          plural: 'Patches',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 1.2,  rep: 2,
         needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
-      { key: 'minor', name: 'Minor release', minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 1.33, rep: 6,
+      { key: 'minor', name: 'Minor release',  plural: 'Minor releases', minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 1.33, rep: 6,
         needs: { Principal: 1 }, req: '5–10 devs · 1+ principal' },
-      { key: 'major', name: 'Major release', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 1.5,  rep: 20,
+      { key: 'major', name: 'Major release',  plural: 'Major releases', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 1.5,  rep: 20,
         needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
     ];
     // 1 = quick fix / sprint / milestone / full delivery (same rules, old names).
     const TIERS_VERSION = 3;
+    // 1 = offers tagged with a language and a domain; 2 = language only, with a
+    // hotfix in every language.
+    const BOARD_VERSION = 2;
+    // Hotfixes: one per language, always, so a lone dev always has one they can
+    // take. Every other contract type: this many offers, in random languages.
     const OFFERS_PER_TIER = 2;
     // Unstaffed offers are replaced after `offerLife` minutes, so the board
-    // keeps turning over even if nobody on staff can take what's on it.
+    // keeps turning over even if nobody on staff can take what's on it. A
+    // replacement hotfix keeps its language.
 
     const FIRST_NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan',
                          'Avery','Rowan','Kai','Emerson','Harper','Skyler','Parker','Sage','Hayden','Robin','Ari','Noa'];
@@ -254,69 +254,76 @@ window.DebuggLtd = (function(){
       return {
         money,
         reputation: 0,
-        roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {}, dom: {} }],
+        roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {} }],
         board: makeBoard(),
         jobs: [],             // staffed contracts in progress
         log: [],
         lastTick: now,
         collapsedLevels: [],  // roster tree groups folded in the UI
+        collapsedTiers: [],   // contract board groups folded in the UI
         tiersVersion: TIERS_VERSION,
+        boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
         paid: {}              // desk puzzles already paid for, e.g. { 'python-5': true }
       };
     }
 
-    function makeOffer(tierIndex){
+    function isHotfix(tierIndex){ return TIERS[tierIndex].key === 'hotfix'; }
+
+    function makeOffer(tierIndex, lang){
       const tier = TIERS[tierIndex];
-      const lang = pick(LANGS);
       const spread = 1 - SLOC_SPREAD + Math.random() * 2 * SLOC_SPREAD;
-      return { id: uid('c'), tier: tierIndex, lang, dom: pick(PAIRINGS[lang]),
+      return { id: uid('c'), tier: tierIndex, lang: lang || pick(LANGS),
                sloc: Math.max(1, Math.round(tier.refSloc * tier.minutes * spread)),
                expiresAt: Date.now() + tier.offerLife * 60000 };
     }
+    // The offer that takes a taken or expired one's place: hotfixes keep their language.
+    function replacementFor(o){
+      return makeOffer(o.tier, isHotfix(o.tier) ? o.lang : null);
+    }
     // Swap out expired offers — except one the player has open in the team
-    // picker, so it doesn't vanish mid-choice.
+    // picker, so it doesn't vanish mid-choice — and make sure there's a hotfix
+    // in every language.
     function refreshBoard(now){
       state.board.forEach((o, i) => {
-        if(o.expiresAt <= now && !(picker && picker.offerId === o.id)) state.board[i] = makeOffer(o.tier);
+        if(o.expiresAt <= now && !(picker && picker.offerId === o.id)) state.board[i] = replacementFor(o);
+      });
+      const hotfix = TIERS.findIndex(t => t.key === 'hotfix');
+      LANGS.forEach(lang => {
+        if(!state.board.some(o => o.tier === hotfix && o.lang === lang)) state.board.push(makeOffer(hotfix, lang));
       });
     }
 
     function makeBoard(){
       const board = [];
-      TIERS.forEach((_, i) => { for(let k = 0; k < OFFERS_PER_TIER; k++) board.push(makeOffer(i)); });
+      TIERS.forEach((_, i) => {
+        if(isHotfix(i)) LANGS.forEach(lang => board.push(makeOffer(i, lang)));
+        else for(let k = 0; k < OFFERS_PER_TIER; k++) board.push(makeOffer(i));
+      });
       return board;
     }
 
     function makeHire(role){
       const p = { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.',
-                  role, since: Date.now(), lang: {}, dom: {} };
+                  role, since: Date.now(), lang: {} };
       const langs = shuffle(LANGS.slice());
-      const doms = shuffle(DOMAINS.slice());
-      const set = (map, key, b) => { if(b > 0) map[key] = xpForBars(b); };
+      const set = (b, i) => { if(b > 0) p.lang[langs[i]] = xpForBars(b); };
 
       if(role === 'Graduate'){
-        // A language from uni, no domain experience.
-        set(p.lang, langs[0], 1);
+        // One language from uni.
+        set(1, 0);
       }else if(role === 'Junior'){
-        // Up to 1 bar in at most 2 domains.
-        set(p.lang, langs[0], 1 + rand(2));
-        if(Math.random() < 0.5) set(p.lang, langs[1], 1);
-        set(p.dom, doms[0], 1);
-        if(Math.random() < 0.5) set(p.dom, doms[1], 1);
+        set(1 + rand(2), 0);
+        if(Math.random() < 0.5) set(1, 1);
       }else if(role === 'Senior'){
-        set(p.lang, langs[0], 3 + rand(2));
-        set(p.lang, langs[1], 1 + rand(2));
-        set(p.dom, doms[0], 2 + rand(2));
-        set(p.dom, doms[1], rand(2));
+        set(3 + rand(2), 0);
+        set(1 + rand(2), 1);
       }else if(role === 'Principal'){
-        // At least one language and one domain at full bars.
-        set(p.lang, langs[0], 5);
-        set(p.lang, langs[1], 2 + rand(3));
-        set(p.lang, langs[2], 1 + rand(2));
-        set(p.dom, doms[0], 5);
-        set(p.dom, doms[1], 2 + rand(3));
+        // At least one language at full bars.
+        set(5, 0);
+        set(2 + rand(3), 1);
+        set(1 + rand(2), 2);
       }
       return p;
     }
@@ -408,7 +415,6 @@ window.DebuggLtd = (function(){
       const left = req.minutes * 60000 - (p.worked || 0);
       if(left > 0) missing.push(fmtDuration(left) + ' more contract time');
       if(bestBars(p.lang) < req.lang) missing.push('a language at ' + req.lang);
-      if(bestBars(p.dom) < req.dom) missing.push('a domain at ' + req.dom);
       const blocked = missing.length ? null : problemWith({ [p.role]: -1, [next]: 1 });
       return { next, missing, blocked, ready: !missing.length && !blocked };
     }
@@ -441,23 +447,23 @@ window.DebuggLtd = (function(){
       return true;
     }
 
-    // 0..1: how well a dev knows this contract's language and domain.
+    // 0..1: how well a dev knows this contract's language.
     function matchFit(d, offer){
-      return (bars(d.lang[offer.lang]) + bars(d.dom[offer.dom])) / (2 * MAX_BARS);
+      return bars(d.lang[offer.lang]) / MAX_BARS;
     }
     function devSlocOn(d, offer){
       return ROLES[d.role].sloc * (1 + SKILL_SPEED * matchFit(d, offer));
     }
 
     // A dev "knows the stack" for a contract if they have at least one bar in
-    // its language or its domain. Managers don't write code, so they're exempt.
+    // its language. Managers don't write code, so they're exempt.
     // Devs who don't can only join a team as learners: they write nothing,
     // each one costs the team LEARNER_DRAG of its output in mentoring time,
     // and there must be at least one dev who knows the stack per learner.
     // It's the only way to pick up a first bar in something new.
     const LEARNER_DRAG = 0.10;
     function qualifiedFor(p, offer){
-      return !isDev(p) || bars(p.lang[offer.lang]) > 0 || bars(p.dom[offer.dom]) > 0;
+      return !isDev(p) || bars(p.lang[offer.lang]) > 0;
     }
 
     function evaluateTeam(tier, offer, members){
@@ -482,9 +488,9 @@ window.DebuggLtd = (function(){
       const knowers = devs.filter(d => qualifiedFor(d, offer));
       const learners = devs.length - knowers.length;
       if(tier.max === 1){
-        checks.push({ label: 'knows ' + offer.lang + ' or ' + offer.dom + ' (no learning solo)', ok: learners === 0 });
+        checks.push({ label: 'knows ' + offer.lang + ' (no learning solo)', ok: learners === 0 });
       }else{
-        checks.push({ label: 'someone knows ' + offer.lang + ' or ' + offer.dom, ok: knowers.length > 0 });
+        checks.push({ label: 'someone knows ' + offer.lang, ok: knowers.length > 0 });
         if(learners) checks.push({ label: 'learners (' + learners + ') ≤ devs who know the stack (' + knowers.length + ')',
                                    ok: learners <= knowers.length });
       }
@@ -495,10 +501,10 @@ window.DebuggLtd = (function(){
       const matchedSloc = knowers.reduce((s, d) => s + devSlocOn(d, offer), 0);
       const sloc = Math.round(matchedSloc * drag * 10) / 10;
       const skill = devs.length ? devs.reduce((s, d) => s + matchFit(d, offer), 0) / devs.length : 0;
-      const matched = devs.filter(d => bars(d.lang[offer.lang]) > 0 && bars(d.dom[offer.dom]) > 0).length;
       const reliability = devs.length ? devs.reduce((s, d) => s + ROLES[d.role].reliability, 0) / devs.length : 0;
       const boost = devs.length ? directorBoost(offer.lang) : 0;
-      const chance = devs.length ? Math.min(0.98, reliability + 0.05 * (matched / devs.length) + boost) : 0;
+      // Skill match adds up to +5%, scaled by the team's average bars in the language.
+      const chance = devs.length ? Math.min(0.98, reliability + SKILL_CHANCE * skill + boost) : 0;
       const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
       const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * (1 + skill));
       const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
@@ -520,7 +526,7 @@ window.DebuggLtd = (function(){
 
       const now = Date.now();
       state.jobs.push(newJob(offer, memberIds.slice(), now, ev, !!repeat));
-      state.board[offerIdx] = makeOffer(offer.tier);
+      state.board[offerIdx] = replacementFor(offer);
       save();
       return true;
     }
@@ -529,7 +535,7 @@ window.DebuggLtd = (function(){
     // attempt: 1 for the original run, 2 for the retry.
     function newJob(offer, team, startedAt, ev, repeat){
       return {
-        id: offer.id, tier: offer.tier, lang: offer.lang, dom: offer.dom,
+        id: offer.id, tier: offer.tier, lang: offer.lang,
         sloc: offer.sloc, teamSloc: ev.sloc,
         team, startedAt, endsAt: startedAt + ev.ms,
         chance: ev.chance, payout: ev.payout, repeat, status: 'running', attempt: 1
@@ -537,7 +543,7 @@ window.DebuggLtd = (function(){
     }
 
     function isRunning(job){ return (job.status || 'running') === 'running'; }
-    function jobTag(job){ return TIERS[job.tier].name + ' (' + job.lang + ' / ' + job.dom + ')'; }
+    function jobTag(job){ return TIERS[job.tier].name + ' (' + job.lang + ')'; }
     function retryPayout(job){ return Math.round(job.payout * RETRY_PAYOUT); }
     function retryMs(job){ return (job.endsAt - job.startedAt) * RETRY_TIME; }
 
@@ -559,7 +565,6 @@ window.DebuggLtd = (function(){
           const p = person(id);
           if(!p || !isDev(p)) return;
           p.lang[job.lang] = (p.lang[job.lang] || 0) + xp;
-          p.dom[job.dom] = (p.dom[job.dom] || 0) + xp;
         });
         addLog('ok', '✓ ' + jobTag(job) + retry + ' delivered — ' + fmt(job.payout) + ', +' + fmtXp(xp) + ' XP to the team.');
         return true;
@@ -580,7 +585,7 @@ window.DebuggLtd = (function(){
     }
 
     // A repeating job rolls straight into a fresh contract of the same type
-    // (new random language/domain) with the same team, starting the moment
+    // (a new random language) with the same team, starting the moment
     // the last one ended — so it keeps working while the page is closed.
     function restartJob(job){
       const members = job.team.map(person);
@@ -779,8 +784,7 @@ window.DebuggLtd = (function(){
 
       let body = '';
       if(isDev(p)){
-        body += '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, p.lang, 'lang') +
-                '<div class="skill-section-title">Domains</div>' + skillRowsHTML(DOMAINS, p.dom, 'dom');
+        body += '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, p.lang, 'lang');
         const ps = promotionStatus(p, now);
         if(ps){
           const req = PROMOTION[ps.next];
@@ -791,7 +795,6 @@ window.DebuggLtd = (function(){
             row(worked >= needMs, fmtDuration(needMs) + ' on contracts as ' + p.role.toLowerCase() +
                 (worked < needMs ? ' (' + fmtDuration(worked, true) + ' so far)' : '')) +
             row(bestBars(p.lang) >= req.lang, 'A language at ' + req.lang + ' bar' + (req.lang > 1 ? 's' : '')) +
-            row(bestBars(p.dom) >= req.dom, 'A domain at ' + req.dom + ' bar' + (req.dom > 1 ? 's' : '')) +
             (ps.blocked ? '<div class="no" style="color:var(--amber)">⚠ ' + esc(ps.blocked) + '</div>' : '') +
             '</div>';
         }else{
@@ -809,7 +812,7 @@ window.DebuggLtd = (function(){
         '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−¤' + role.salary + '/min upkeep · ' +
         fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts<br>' +
         (job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
-         : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ' / ' + esc(job.dom) + ') — ' + fmtClock(job.endsAt - now) + ' left'
+         : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ') — ' + fmtClock(job.endsAt - now) + ' left'
              : 'Idle') + '</div>' +
         body);
     }
@@ -898,7 +901,7 @@ window.DebuggLtd = (function(){
       const status = job && !isRunning(job)
         ? '<span class="promo blocked">' + TIERS[job.tier].name + ' failed — retry or drop it below</span>'
         : job
-        ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) + ' / ' + esc(job.dom) +
+        ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
         : '<span class="status-idle">Idle</span>';
 
@@ -927,32 +930,48 @@ window.DebuggLtd = (function(){
         '</div>';
     }
 
-    // Short "best language / best domain" summary for a roster card; the full
+    // Short summary of a dev's two best languages for a roster card; the full
     // breakdown is in the employee panel.
     function topSkillsText(p){
-      const best = map => Object.keys(map).sort((a, b) => map[b] - map[a]).find(k => bars(map[k]) > 0);
-      const lang = best(p.lang), dom = best(p.dom);
-      return [lang ? esc(lang) + ' ' + bars(p.lang[lang]) : null,
-              dom ? esc(dom) + ' ' + bars(p.dom[dom]) : 'no domain'].filter(Boolean).join(' · ');
+      const known = Object.keys(p.lang).filter(k => bars(p.lang[k]) > 0)
+        .sort((a, b) => p.lang[b] - p.lang[a]).slice(0, 2);
+      return known.length ? known.map(k => esc(k) + ' ' + bars(p.lang[k])).join(' · ') : 'no languages yet';
     }
 
+    // The board is a tree like the roster: one foldable group per contract type,
+    // with its offers sorted by language. Folded groups are remembered in the save.
     function renderBoard(){
       let html = '';
-      state.board.forEach(o => {
-        const t = TIERS[o.tier];
-        html += '<div class="offer">' +
-          '<div class="offer-top"><span class="name">' + t.name + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
-          '<div class="chips"><span class="chip lang">' + esc(o.lang) + '</span><span class="chip dom">' + esc(o.dom) + '</span></div>' +
-          '<div class="detail">' + t.req + '</div>' +
-          (state.roster.some(p => isDev(p) && qualifiedFor(p, o)) ? ''
-            : '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + ' or ' + esc(o.dom) + '</div>') +
-          '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no matching skills · ' +
-            t.xpPerMin + ' XP/min in ' + esc(o.lang) + ' &amp; ' + esc(o.dom) + '</div>' +
-          '<div class="detail" style="color:var(--text-faint)">Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken</div>' +
-          '<button class="btn-ghost btn-small" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
-          '</div>';
+      TIERS.forEach((t, ti) => {
+        const offers = state.board.filter(o => o.tier === ti)
+          .sort((a, b) => LANGS.indexOf(a.lang) - LANGS.indexOf(b.lang));
+        if(!offers.length) return;
+        const running = state.jobs.filter(j => j.tier === ti).length;
+        const collapsed = state.collapsedTiers.indexOf(t.key) >= 0;
+        html += '<div class="level-group board-group' + (collapsed ? ' collapsed' : '') + '" data-tier="' + t.key + '">' +
+          '<div class="level-header" data-action="toggle-tier" data-tier="' + t.key + '">' +
+            '<div class="level-header-left"><span class="chevron">▾</span>' +
+            '<span class="level-name">' + t.plural + '</span>' +
+            '<span class="level-count">×' + offers.length + (running ? ' · ' + running + ' running' : '') + '</span></div>' +
+            '<div class="level-sum board-sum">' + t.req + '</div>' +
+          '</div><div class="level-body board-body">' +
+          offers.map(offerHTML).join('') +
+          '</div></div>';
       });
       setHTML(boardEl, html);
+    }
+
+    function offerHTML(o){
+      const t = TIERS[o.tier];
+      return '<div class="offer">' +
+        '<div class="offer-top"><span class="chip lang">' + esc(o.lang) + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
+        (state.roster.some(p => isDev(p) && qualifiedFor(p, o)) ? ''
+          : '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>') +
+        '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
+          t.xpPerMin + ' XP/min</div>' +
+        '<div class="detail" style="color:var(--text-faint)">Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken</div>' +
+        '<button class="btn-ghost btn-small" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
+        '</div>';
     }
 
     // The job list is rebuilt only when jobs start/stop or their repeat flag
@@ -969,7 +988,7 @@ window.DebuggLtd = (function(){
           if(!isRunning(j)){
             return '<div class="job failed">' +
               '<div class="job-top"><span class="left">' + t.name +
-              ' <span class="chip lang">' + esc(j.lang) + '</span><span class="chip dom">' + esc(j.dom) + '</span></span>' +
+              ' <span class="chip lang">' + esc(j.lang) + '</span></span>' +
               '<span class="time" style="color:var(--red)">Failed</span></div>' +
               '<div class="detail">' + team + ' · the team is waiting on your call.</div>' +
               '<div class="actions" style="margin:8px 0 0;">' +
@@ -980,7 +999,7 @@ window.DebuggLtd = (function(){
           }
           return '<div class="job">' +
             '<div class="job-top"><span class="left">' + t.name +
-            ' <span class="chip lang">' + esc(j.lang) + '</span><span class="chip dom">' + esc(j.dom) + '</span></span>' +
+            ' <span class="chip lang">' + esc(j.lang) + '</span></span>' +
             '<span class="time" data-time="' + j.id + '"></span></div>' +
             '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
             '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
@@ -1053,7 +1072,7 @@ window.DebuggLtd = (function(){
     }
 
     function suggestTeam(tier, offer, pool){
-      const fit = p => bars(p.lang[offer.lang]) + bars(p.dom[offer.dom]);
+      const fit = p => bars(p.lang[offer.lang]);
       const byFit = pool.slice().sort((a, b) => fit(b) - fit(a) || levelRank(b.role) - levelRank(a.role));
       const chosen = [];
       const take = (pred, n) => {
@@ -1099,7 +1118,7 @@ window.DebuggLtd = (function(){
       const rows = pool.slice().sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role)).map(p => {
         const on = picker.selected.has(p.id);
         const meta = isDev(p)
-          ? '<span class="bars">' + barString(bars(p.lang[offer.lang])) + '</span> <span class="bars dom">' + barString(bars(p.dom[offer.dom])) + '</span>' +
+          ? '<span class="bars">' + barString(bars(p.lang[offer.lang])) + '</span>' +
             (qualifiedFor(p, offer) ? ' · ' + (Math.round(devSlocOn(p, offer) * 10) / 10) + ' SLOC/min'
                                     : ' · <span style="color:var(--amber)">learner, −' + Math.round(LEARNER_DRAG * 100) + '% team</span>')
           : 'no SLOC';
@@ -1111,14 +1130,14 @@ window.DebuggLtd = (function(){
         '<label class="pick unqualified">' +
           '<input type="checkbox" disabled>' +
           '<span><b>' + esc(p.name) + '</b> · ' + p.role + '</span>' +
-          '<span class="meta">no ' + esc(offer.lang) + ' or ' + esc(offer.dom) + ' skill — can only learn in a team</span></label>'
+          '<span class="meta">no ' + esc(offer.lang) + ' skill — can only learn in a team</span></label>'
       ).join('');
 
       teamModalBody.innerHTML =
-        '<h2>' + tier.name + ' <span class="chip lang">' + esc(offer.lang) + '</span><span class="chip dom">' + esc(offer.dom) + '</span>' +
+        '<h2>' + tier.name + ' <span class="chip lang">' + esc(offer.lang) + '</span>' +
         ' <span class="tag">' + offer.sloc.toLocaleString('en-GB') + ' SLOC</span></h2>' +
         '<div class="offer"><div class="detail" style="border:none;padding:0;">Needs ' + tier.req +
-        '. Bars shown are each person’s ' + esc(offer.lang) + ' / ' + esc(offer.dom) + ' skill.</div></div>' +
+        '. Bars shown are each person’s ' + esc(offer.lang) + ' skill.</div></div>' +
         '<div class="pick-list">' + (rows || '<div class="empty">Nobody free who can take this on.</div>') + '</div>' +
         (busyCount ? '<div class="empty" style="margin-bottom:10px;">' + busyCount + ' more busy on other contracts.</div>' : '') +
         '<div class="checks">' + ev.checks.map(c => '<span class="check ' + (c.ok ? 'ok' : 'no') + '">' + (c.ok ? '✓ ' : '✕ ') + esc(c.label) + '</span>').join('') + '</div>' +
@@ -1133,7 +1152,7 @@ window.DebuggLtd = (function(){
                 (ev.learners ? ', −' + Math.round(LEARNER_DRAG * ev.learners * 100) + '% for ' + ev.learners + ' learner' + (ev.learners > 1 ? 's' : '') : '') + ')'
               : '') +
             ' → takes <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b><br>' +
-          'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
+          'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
         '</div>' +
         '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
           'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' +
@@ -1253,6 +1272,10 @@ window.DebuggLtd = (function(){
         const level = btn.dataset.level;
         const i = state.collapsedLevels.indexOf(level);
         if(i < 0) state.collapsedLevels.push(level); else state.collapsedLevels.splice(i, 1);
+      }else if(action === 'toggle-tier'){
+        const key = btn.dataset.tier;
+        const i = state.collapsedTiers.indexOf(key);
+        if(i < 0) state.collapsedTiers.push(key); else state.collapsedTiers.splice(i, 1);
       }else{
         return;
       }
@@ -1267,6 +1290,7 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
 
     if(!state.collapsedLevels) state.collapsedLevels = [];
+    if(!state.collapsedTiers) state.collapsedTiers = [];
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.
@@ -1284,6 +1308,15 @@ window.DebuggLtd = (function(){
     });
     state.jobs.forEach(j => { if(j.lang === 'Assembly') j.lang = 'C/C++'; });
     state.board.forEach((o, i) => { if(o.lang === 'Assembly') state.board[i] = makeOffer(o.tier); });
+
+    // Domains were dropped (languages only for now): strip them from staff and
+    // contracts in progress, and rebuild the board with a hotfix in every language.
+    if((state.boardVersion || 1) < BOARD_VERSION){
+      state.roster.forEach(p => { delete p.dom; if(!p.lang) p.lang = {}; });
+      state.jobs.forEach(j => { delete j.dom; });
+      state.board = makeBoard();
+      state.boardVersion = BOARD_VERSION;
+    }
 
     // Offers from before contracts had a SLOC target.
     if(state.board.some(o => !o.sloc)) state.board = makeBoard();

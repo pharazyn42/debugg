@@ -234,11 +234,16 @@
 .ltd .hire-btn .why{ display: block; font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); font-weight: 400; margin-top: 3px; }
 .ltd .hire-btn:disabled{ opacity: 0.55; }
 
-/* Contract board */
+/* Contract board: a tree like the roster, one collapsible group per contract type */
 .ltd .board{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ltd .board-sum{ white-space: normal; }
+.ltd .level-body.board-body{
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
 .ltd .offer{
   background: var(--panel-2);
@@ -249,8 +254,7 @@
   flex-direction: column;
   gap: 6px;
 }
-.ltd .offer-top{ display: flex; justify-content: space-between; align-items: baseline; }
-.ltd .offer-top .name{ font-weight: 600; font-size: 14px; }
+.ltd .offer-top{ display: flex; justify-content: space-between; align-items: center; }
 .ltd .offer-top .dur{ font-family: var(--mono); font-size: 11px; color: var(--amber); }
 .ltd .chips{ display: flex; gap: 6px; flex-wrap: wrap; }
 .ltd .chip{
@@ -261,7 +265,6 @@
   border: 1px solid;
 }
 .ltd .chip.lang{ color: var(--blue); border-color: #34466e; background: var(--blue-dim); }
-.ltd .chip.dom{ color: var(--violet); border-color: #5a4270; background: var(--violet-dim); }
 .ltd .offer .detail{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
 .ltd .offer button{ margin-top: auto; }
 
@@ -337,7 +340,7 @@
 .ltd .pick.unqualified{ opacity: 0.45; cursor: not-allowed; }
 .ltd .pick input{ accent-color: var(--amber); width: 16px; height: 16px; margin: 0; }
 .ltd .pick .meta{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align: right; }
-.ltd .pick .meta .bars{ color: var(--blue); } .ltd .pick .meta .bars.dom{ color: var(--violet); }
+.ltd .pick .meta .bars{ color: var(--blue); }
 .ltd .checks{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .ltd .check{ font-family: var(--mono); font-size: 11px; padding: 3px 7px; border-radius: 5px; }
 .ltd .check.ok{ background: var(--green-dim); color: var(--green); }
@@ -405,7 +408,6 @@
   border: 1px solid var(--line);
 }
 .ltd .skill-pip.filled{ background: var(--blue); border-color: var(--blue); }
-.ltd .skill-pip.filled.dom{ background: var(--violet); border-color: var(--violet); }
 .ltd .skill-pip.filled.best{ background: var(--amber); border-color: var(--amber); }
 .ltd .skill-xp{ font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); text-align: right; }
 .ltd .req-list{ display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }

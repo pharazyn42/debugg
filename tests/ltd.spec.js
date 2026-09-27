@@ -1,5 +1,6 @@
 // Debugg Ltd: switching the studio on, paying for desk puzzles, the Director's languages,
-// the studio engine, pausing, closing, importing old saves and the /studio/ redirect.
+// the studio engine, the contract board, pausing, closing, importing old saves and the
+// /studio/ redirect.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -91,13 +92,13 @@ test("the Director's puzzle levels boost contract success in that language", asy
   await found(page);
   await expect(page.locator('.card.director')).toContainText('Python Lv 3 (+2% success)');
   await editCompany(page, s => {
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, dom: {} });
-    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', dom: 'Web Dev', sloc: 5, expiresAt: Date.now() + 3600000 };
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, expiresAt: Date.now() + 3600000 };
   });
   await page.click('[data-action=staff][data-offer=o1]');
   await page.click('[data-pick=g1]');
-  // A graduate's 70% reliability plus the Director's 2%.
-  await expect(page.locator('.forecast')).toContainText('Success chance 72% (incl. +2% from your Python level)');
+  // A graduate's 70% reliability, +1% for 1 bar of Python, plus the Director's 2%.
+  await expect(page.locator('.forecast')).toContainText('Success chance 73% (incl. +2% from your Python level)');
   await page.click('[data-action=pick-start]');
   await expect(page.locator('.job')).toHaveCount(1);
 });
@@ -111,7 +112,7 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
     g.lang = { Python: 10 };
-    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', dom: 'Web Dev', sloc: 5, teamSloc: 5, team: [g.id],
+    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: [g.id],
                   startedAt: Date.now(), endsAt: Date.now() + 60000, chance: 1, payout: 20, repeat: false,
                   status: 'running', attempt: 1 });
   });
@@ -123,13 +124,87 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await expect(page.locator('#log')).toContainText('delivered');
 });
 
+test('the board has a hotfix in every language, and no domains', async ({ page }) => {
+  await found(page);
+  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
+  await expect(hotfixes).toHaveCount(4);
+  await expect(hotfixes.locator('.chip.lang')).toHaveText(['Python', 'C/C++', 'JavaScript', 'Rust']);
+  await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Patches', 'Minor releases', 'Major releases']);
+  const saved = await ltd(page);
+  expect(JSON.stringify(saved)).not.toContain('"dom"');
+  expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(6);
+});
+
+test('a hotfix that is taken is replaced in the same language', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Rust: 10 } });
+    s.board.find(o => o.tier === 0 && o.lang === 'Rust').id = 'rust1';
+  });
+  await expect(page.locator('.board-group[data-tier=hotfix] .offer').nth(1)).toContainText('Nobody on staff knows C/C++');
+  await page.click('[data-action=staff][data-offer=rust1]');
+  await page.click('[data-pick=g1]');
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job')).toContainText('Rust');
+  const board = (await ltd(page)).board.filter(o => o.tier === 0);
+  expect(board.map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
+  expect(board.find(o => o.id === 'rust1')).toBeUndefined();
+  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×4 · 1 running');
+});
+
+test('board groups fold, and stay folded', async ({ page }) => {
+  await found(page);
+  const major = page.locator('.board-group[data-tier=major]');
+  await expect(major.locator('.offer').first()).toBeVisible();
+  await major.locator('.level-header').click();
+  await expect(major).toHaveClass(/collapsed/);
+  await expect(major.locator('.offer').first()).toBeHidden();
+  await page.reload();
+  await expect(page.locator('.board-group[data-tier=major]')).toHaveClass(/collapsed/);
+  await expect(page.locator('.board-group[data-tier=hotfix]')).not.toHaveClass(/collapsed/);
+  expect((await ltd(page)).collapsedTiers).toEqual(['major']);
+});
+
+test('a company saved with domains is converted to languages only', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await page.click('[data-action=hire][data-role=Graduate]');
+  await editCompany(page, s => {
+    delete s.boardVersion;
+    const g = s.roster.find(p => p.role === 'Graduate');
+    g.lang = { Python: 10 };
+    g.dom = { 'Web Dev': 60 };
+    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', dom: 'Web Dev', sloc: 5, teamSloc: 5, team: [g.id],
+                  startedAt: Date.now(), endsAt: Date.now() + 60000, chance: 1, payout: 20, repeat: false,
+                  status: 'running', attempt: 1 });
+    s.board = s.board.slice(5).map(o => Object.assign(o, { dom: 'Games' }));
+  });
+  const saved = await ltd(page);
+  expect(JSON.stringify(saved)).not.toContain('"dom"');
+  expect(saved.boardVersion).toBe(2);
+  expect(saved.board.filter(o => o.tier === 0).map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
+  expect(saved.jobs).toHaveLength(1);
+  await expect(page.locator('.job')).toContainText('Python');
+});
+
+test('promotion needs contract time and language bars only', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, worked: 61 * 60000 });
+  });
+  await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveText('Promote to Junior');
+  await page.click('.card[data-id=g1] .card-name');
+  await expect(page.locator('#personModalBody')).toContainText('A language at 1 bar');
+  await expect(page.locator('#personModalBody')).not.toContainText('omain');
+});
+
 test('pausing stops the clock until the company is resumed', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
   await found(page);
   await page.click('[data-action=hire][data-role=Graduate]');
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
-    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', dom: 'Web Dev', sloc: 5, teamSloc: 5, team: [g.id],
+    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: [g.id],
                   startedAt: Date.now(), endsAt: Date.now() + 60000, chance: 1, payout: 20, repeat: false,
                   status: 'running', attempt: 1 });
   });
@@ -174,6 +249,9 @@ test('a company saved on the old /studio/ page is imported', async ({ page }) =>
   const saved = await ltd(page);
   expect(saved.activeContract).toBeUndefined();
   expect(saved.enabled).toBe(true);
+  // Its domains are dropped (languages only for now).
+  expect(JSON.stringify(saved)).not.toContain('"dom"');
+  expect(saved.boardVersion).toBe(2);
   expect(await page.evaluate(() => localStorage.getItem('contract-debugger-state-v3'))).toBeNull();
 });
 
