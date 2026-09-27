@@ -429,6 +429,47 @@ site and what to measure.
     Hotfix / Patch / Minor release / Major release, renamed from Quick
     Fix / Sprint / Milestone / Full Delivery with the same rules.
 
+#### 3d. Difficulty by weekday, and "learn" questions
+- **Difficulty follows the week**, like the New York Times crossword.
+  **Monday is the easiest and Friday the hardest**, with Tuesday to
+  Thursday stepping up in between. The same applies in every language.
+  - Give every puzzle a `difficulty` from 1 (Monday) to 5 (Friday) in
+    `puzzles.js`.
+  - Today, each language's puzzles simply run in order, one per day. The
+    calendar instead has to pick, for each date, the next unused puzzle
+    of that weekday's difficulty. It must stay the same for everyone on
+    the same date (date-seeded, no randomness per player), and a pool
+    running out must not break things (fall back to the nearest
+    difficulty).
+  - Show the day's difficulty on the page, e.g. "Monday · warm-up" or
+    "Friday · hard", so players know what they're in for.
+  - Rate the existing 29 puzzles. Most are mid-week; true Friday
+    puzzles (several interacting quirks, longer code) need writing.
+  - Tie-ins: harder days could earn more XP, or a multiplier on the
+    desk pay in Debugg Ltd, so Friday is worth showing up for.
+- **"Learn" questions**: basic questions that teach the language to
+  someone who's new to it, rather than catching out someone who knows
+  it. For example: what `len("hello")` prints, what `range(3)` counts
+  to, how `//` differs from `/`, what `[1, 2] + [3]` gives, or what
+  `const` stops you doing in JavaScript.
+  - Each one's explanation teaches the concept properly, with a short
+    "try this next" to run in the sandbox.
+  - They could be the Monday puzzles, a separate "Learn" track you can
+    play any time (in order, like lessons, not tied to the calendar), or
+    both. A Learn track works well for someone picking up a new
+    language, and gives the XP levels a natural starting point.
+  - Order them into a path: values and printing, strings, lists and
+    arrays, loops, functions, dictionaries and objects, then the common
+    traps the daily puzzles are about.
+- **Open questions:**
+  - What happens on Saturday and Sunday? Options: a bonus hard puzzle,
+    a replay of the week's hardest, a mid-level puzzle, or the Patch tier
+    (3b) on weekends.
+  - Are Learn questions part of the streak and daily XP, or a separate
+    track with its own progress?
+  - Does puzzle difficulty also set which Debugg Ltd contracts the desk
+    unlocks, or how much it pays?
+
 #### 3c. One game: puzzles first, studio optional — done
 - Built from `ideas/debugg-ltd-merge-plan.md`, ahead of the rest of 3b:
   the desk is the daily puzzles (the Hotfix tier), and the Patch / Minor /

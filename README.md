@@ -72,6 +72,7 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 ## Roadmap
 
 - **Release tiers:** alongside the daily puzzle (the Hotfix), add a twice-weekly Patch ("spot the bug": click the line that causes it), a weekly Minor release ("modify this code to output this") and a monthly Major release ("write code that outputs this"). The code tiers can build on the sandbox's editor and runners: run the player's code, then compare what it prints. In Debugg Ltd, bigger tiers pay more.
+- **Difficulty by weekday, and learn questions:** Monday's puzzle is the easiest and Friday's the hardest, stepping up through the week. Add "learn" questions: basic ones that teach the language to beginners, with explanations and a "try this next" for the sandbox, either as the Monday puzzles or as a separate Learn track. See item 3d in `CLAUDE.md`.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.
 - **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debugg Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `CLAUDE.md`.
 - **Debugg Ltd:** its own roadmap is in `CLAUDE.md`. Tests are done. Next are versioning and the balance pass, and a big company stats panel is planned (item 15d).
