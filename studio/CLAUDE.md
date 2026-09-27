@@ -1,10 +1,11 @@
-# Contract Debugger
+# Debugg Ltd (formerly Contract Debugger)
 
 Context for continuing work on this game. It currently lives in `studio/`,
 separate from `../index.html` ("Debugg", the daily Wordle-style puzzle).
 
-**Direction (agreed, not built yet):** Debugg and Contract Debugger become
-one game on one site. It opens as the puzzle game: the four release-tier
+**Direction (agreed, not built yet):** Debugg and Debugg Ltd (this idle
+game, previously called Contract Debugger) become one game on one site,
+called Debugg. It opens as the puzzle game: the four release-tier
 puzzles (Hotfix / Patch / Minor / Major, item 3b), which can be played on
 their own forever. An option turns on the rest of the game (the studio,
 team and contract board) around them, and the puzzles become the
@@ -226,7 +227,7 @@ Do these first: every later feature touches the job engine, and changes currentl
 - **Keep a `CHANGELOG.md`** with a section per release; the per-commit
   notes so far could seed it.
 - **Cut releases with git tags and GitHub Releases** (e.g.
-  `v0.x.y`). Debugg and Contract Debugger are becoming one product
+  `v0.x.y`). Debugg and Debugg Ltd are becoming one product
   (item 3c), so one version, one changelog and one set of tags cover
   both; no `studio-` prefix needed.
 - **Separate "released" from "in progress".** Today every push to `main`
@@ -336,7 +337,7 @@ Do these first: every later feature touches the job engine, and changes currentl
     is built.
 
 #### 3c. One game: puzzles first, studio optional
-- **Debugg and Contract Debugger are the same game.** The site opens
+- **Debugg and Debugg Ltd are the same game.** The site opens
   straight into the puzzle game: all four release tiers from 3b.
   - Hotfix: daily.
   - Patch: twice a week.
@@ -345,7 +346,8 @@ Do these first: every later feature touches the job engine, and changes currentl
 
   There's no separate "plain Debugg" any more. Someone who only wants the
   puzzles plays these and never needs to see anything else.
-- **An option turns on the rest of the game** around the puzzles:
+- **An option labelled "Start your own company" turns on Debugg Ltd**,
+  the rest of the game, around the puzzles:
   - the stats bar (cash, reputation, payroll, headcount);
   - the studio roster, hiring and the contract board;
   - idle progress.
@@ -365,8 +367,11 @@ Do these first: every later feature touches the job engine, and changes currentl
     their streak)?
   - Does switching the studio off pause it (no salaries, no progress) or
     keep it running unseen?
-  - What's the game called: Debugg, Contract Debugger, or Debugg with
-    "Contract Debugger" as the name of the studio option?
+  - (Decided) The game, and the main page, is called **Debugg**. The
+    optional idle/studio part is **Debugg Ltd**, switched on with a
+    "Start your own company" option. The studio page's visible title
+    already uses the new name. The storage key and file names still say
+    contract-debugger; they'll change when 3c merges things.
 - **Depends on 3b.** It's also why tests and versioning (1, 2) are for the
   whole product, not per game.
 
@@ -596,6 +601,87 @@ Big systems that depend on the earlier phases.
 - Fits with: offer expiry (maintenance items are expiring offers with
   consequences), the business tiers, and the later domain unlock (a
   product could have a domain too).
+
+#### 17b. Tech Debt (event)
+- A later-game complication that adds cost or time. It's named after the
+  developer in-joke.
+- **How it builds up** (ideas): from cutting corners, e.g.:
+  - delivering with lots of learners or low-skill teams;
+  - retried contracts;
+  - missed deadlines (item 6);
+  - neglected in-house product maintenance (item 17).
+
+  It could also be triggered at random by an event ("a legacy module
+  nobody understands").
+- **What it does**: a studio-wide (or per-product) Tech Debt level that
+  slows work (a SLOC/min penalty) and/or raises failure chance until
+  paid down.
+- **Paying it down**: "Refactor" jobs appear on the board. They don't pay,
+  but they clear debt: a time-and-staff cost, like maintenance items.
+- Open questions: a studio-wide meter vs. per in-house product; does it
+  decay on its own; how visible is it before it bites?
+
+#### 17c. Merge Conflict (event)
+- A later-game event that adds time to a contract in progress. It's
+  named after the developer in-joke.
+- **Trigger**: random, with better odds of hitting when more people are
+  touching the same code:
+  - bigger teams;
+  - more learners;
+  - several teams working in the same language, or on the same in-house
+    product, at the same time.
+- **Effect**: the contract gains extra SLOC (e.g. +10–25%) or is paused
+  briefly. The job card shows a "Merge conflict!" badge and a log entry.
+  A senior or principal on the team could resolve it faster or reduce
+  the extra work.
+- Open questions: can the player intervene (e.g. pull someone in to
+  resolve it), or is it purely automatic? How often should it happen so
+  it's flavour, not frustration?
+
+#### 17d. Absences: sick days and holidays
+- Employees are sometimes unavailable. Chances, frequency and durations
+  are to be decided later.
+- **Off sick**: unplanned and random. The person drops out for a while,
+  even mid-contract.
+  - The team carries on without their SLOC/min, so the contract slows.
+  - If they were the only one meeting a requirement (e.g. the only
+    senior on a Patch), the contract could pause until they're back, or
+    the player can swap someone in.
+  - Sick pay: salary probably still paid.
+- **On holiday**: planned. It's announced in advance (e.g. "Sam is off
+  next Tuesday"), so the player can plan around it, e.g. not starting a
+  Major release that would run into it.
+  - Possibly an allowance per person, or requests the player approves
+    or declines. Declining could hook into a future morale system.
+- **Interactions**:
+  - Repeats: skip or pause while someone's away.
+  - Deadlines (item 6): an absence can make a team miss one.
+  - Offline progress: absences should be simulated while the page is
+    closed too.
+  - The employee panel and roster card: show "Off sick" / "On holiday
+    until …".
+
+#### 17e. Disruptive events (server offline and others)
+- Random studio-wide or targeted events that disrupt work for a while.
+  How often, how long and how severe are to be decided later. Examples:
+  - **Server offline**: all (or some) contracts pause until it's back.
+  - **Internet or power outage**: a short pause for everyone on site.
+    Work-from-home contractors (item 15) could be immune.
+  - **Broken build / CI down**: contracts can't finish; they sit at
+    100% until it's fixed.
+  - **Breaking dependency update**: contracts in one language gain
+    extra SLOC.
+  - **Client changes the requirements** (scope creep): a contract in
+    progress gains extra SLOC, maybe with a small payout bump.
+  - **Laptop dies**: one person is out briefly.
+- **Mitigation as a money sink**: upgrades that reduce the chance or
+  impact of these, e.g. backup servers, cloud hosting, better
+  hardware, a DevOps hire. That ties in with studio upgrades.
+- **Presentation**: events appear in the log, and as a banner or badge on
+  affected jobs, with a countdown to recovery.
+- Tech Debt (17b) and Merge Conflict (17c) are the first two of these
+  events. They should all share one event system: trigger, target,
+  effect, duration, log message.
 
 #### 18. Multiple sites, rooms and buildings
 - The multi-site half of item 13 and the buildings half of item 15,

@@ -22,7 +22,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Other ideas
 
-`ideas/contract-debugger-concept.md` sketches an idle-game concept that grew out of Debugg's puzzle mechanic. The plan is for Debugg and Contract Debugger to become one game. It opens as a puzzle game with four release tiers: a daily Hotfix ("what does this output?"), a twice-weekly Patch ("spot the bug"), a weekly Minor release ("modify this to output this") and a monthly Major release ("write code to output this"). An option turns on the studio-management game around them. See `studio/CLAUDE.md` for the roadmap.
+`ideas/contract-debugger-concept.md` sketches an idle-game concept that grew out of Debugg's puzzle mechanic. The plan is for Debugg and that idle game, now called **Debugg Ltd**, to become one game, called Debugg. It opens as a puzzle game with four release tiers: a daily Hotfix ("what does this output?"), a twice-weekly Patch ("spot the bug"), a weekly Minor release ("modify this to output this") and a monthly Major release ("write code to output this"). A "Start your own company" option turns on Debugg Ltd, the studio-management game, around them. See `studio/CLAUDE.md` for the roadmap.
 
 A first playable slice of that concept lives at `studio/index.html` (served at `/studio/` on GitHub Pages once enabled). You start as a lone Director who also manages the start-up:
 - **Your desk:** you solve puzzle contracts yourself for cash.
