@@ -33,4 +33,6 @@ A first playable slice of that concept lives at `studio/index.html` (served at `
 
 `studio/CLAUDE.md` has the full current design.
 
+`ideas/bbq-idle-concept.md` sketches another separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now.
+
 It's a prototype slice, not balanced or feature-complete — see the open questions in the concept doc for what's still to design.

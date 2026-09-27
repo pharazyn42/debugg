@@ -233,6 +233,35 @@ Replace the current flat reliability-by-level model:
   pay before you start it: e.g. the range from "all solved, none clean" to
   "all clean". Reputation gain could be shown the same way.
 
+### Languages only for now; domains become a later-game unlock
+- **Remove domain specialities from the early game.** Contracts, hires and
+  skills use programming languages only. That means dropping the domain
+  half of:
+  - offers and the skill rule (`qualifiedFor()`);
+  - skill-match speed and payout (`matchFit()`);
+  - XP;
+  - promotion requirements (`PROMOTION.dom`);
+  - starting skills (`makeHire()`);
+  - the employee panel.
+
+  Promotion requirements then need re-stating in language bars only.
+- **Quick fixes should cover every language**, so a lone dev always has
+  something they can take. That avoids the deadlock where nobody on staff
+  knows the language of either quick fix on the board. Offer expiry and
+  repeat-picks-a-doable-contract currently paper over this. For example,
+  keep one quick-fix offer per language on the board, or let the player
+  pick the language when staffing a quick fix.
+- **Domains come back later as an unlock**, further into the game (e.g.
+  tied to reputation or a business tier):
+  - Some team contracts (sprint and up) are then tagged with a domain.
+  - Domain **specialists** are a separate kind of hire.
+  - A contract with a domain must have a specialist in that domain on the
+    team.
+  - Open questions: do specialists write code too, are they promotable,
+    and does domain experience grow on regular devs or only specialists?
+- Save migration: existing saves have `dom` skill maps and domain-tagged
+  offers/jobs. Either strip them or bump the storage key.
+
 ### Per-hire speed multiplier
 - Each new hire rolls a random, permanent speed multiplier that scales
   their SLOC/min (e.g. 0.7×–1.3×, range TBD). It's stored on the person
