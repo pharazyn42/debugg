@@ -2,11 +2,15 @@
 
 A Wordle-style daily game where you guess what a short, buggy Python snippet actually prints — no coding required, just read the code and reason it out.
 
-Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result.
+There's a new puzzle every day at local midnight. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving puzzles on consecutive days builds your bug streak.
 
 ## Playing
 
 Open `index.html` directly, or visit the GitHub Pages site once enabled (see below).
+
+## Adding a puzzle
+
+Puzzles live in `puzzles.js`, one per day in order (Day 1 was 27 September 2026). After the last one, the list starts over from the beginning, so add new puzzles to the end to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet in real Python to check its output.
 
 ## Deploying with GitHub Pages
 
@@ -17,15 +21,12 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Roadmap
 
-- Rotate in a new puzzle each day instead of always showing Day 1.
-- Move puzzle content into a small JSON/data file so new days can be added without touching the page code.
-- Tie each puzzle to the real world: after solving, show what the bug could actually cause, a real incident where it happened, or at least an interesting related fact.
 - Award XP per puzzle based on how many guesses and hints were used (fewer means more XP). Track XP separately for each language, so players level up in each one.
 - Add a sandbox where players can write and run their own code snippets.
 - Add new puzzle types alongside "what does this print?":
   - **Fix it:** modify the given code so it produces the correct output.
   - **Write it:** write code from scratch that produces a given output.
-- Add progression that keeps people coming back, e.g. daily streaks, language levels, unlockable puzzle packs or harder tiers, and achievements.
+- Add progression that keeps people coming back, building on the daily bug streak, e.g. language levels, unlockable puzzle packs or harder tiers, and achievements.
 
 ## Other ideas
 

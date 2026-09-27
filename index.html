@@ -234,6 +234,22 @@
   .reveal b{ color: var(--text); }
   .reveal code{ background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; color: var(--amber); }
 
+  .reveal p{ margin: 0 0 10px; }
+  .reveal p:last-child{ margin-bottom: 0; }
+  .wild{
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+  }
+  .wild-label{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .com{ color: var(--text-faint); font-style: italic; }
+
   footer{
     text-align: center;
     margin-top: 22px;
@@ -247,7 +263,7 @@
 
 <div class="wrap">
   <header>
-    <p class="kicker">Debugg · Day 1</p>
+    <p class="kicker" id="kicker">Debugg</p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what the last line prints. You've got 4 guesses.</p>
   </header>
@@ -262,14 +278,9 @@
   <div class="editor">
     <div class="editor-bar">
       <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-      <span class="filename">day1.py</span>
+      <span class="filename" id="filename"></span>
     </div>
-    <pre><code><span class="ln">1</span><span class="kw">def</span> <span class="fn">add_item</span>(item, <span class="flagged" id="flag1">lst=[]</span>):
-<span class="ln">2</span>    lst.append(item)
-<span class="ln">3</span>    <span class="kw">return</span> lst
-<span class="ln">4</span>
-<span class="ln">5</span>add_item(<span class="num">1</span>)
-<span class="ln">6</span><span class="fn">print</span>(<span class="fn">add_item</span>(<span class="num">2</span>))</code></pre>
+    <pre><code id="code"></code></pre>
   </div>
 
   <div class="panel">
@@ -285,20 +296,33 @@
     </div>
     <div class="feedback" id="feedback"></div>
     <div class="reveal" id="reveal">
-      <p><b>Answer:</b> <code>[1, 2]</code> — not <code>[2]</code>.</p>
-      <p>Default argument values are evaluated <b>once</b>, when the function is defined — not on every call. Since <code>lst=[]</code> is only created a single time, the list from the first call (line 5) is still sitting there when the second call runs, so it grows instead of starting fresh.</p>
-      <p><b>Fix:</b> use <code>lst=None</code> and create the list inside the function: <code>if lst is None: lst = []</code>.</p>
+      <p><b>Answer:</b> <code id="answerOut"></code></p>
+      <p id="explainOut"></p>
+      <p><b>Fix:</b> <span id="fixOut"></span></p>
+      <div class="wild">
+        <p class="wild-label">In the wild</p>
+        <p id="wildOut"></p>
+      </div>
     </div>
   </div>
 
-  <footer>bug streak: <span id="streak">0</span> · <a href="#" id="resetLink" style="color:inherit;text-decoration:underline;">reset</a></footer>
+  <footer>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span> · <a href="#" id="resetLink" style="color:inherit;text-decoration:underline;">reset</a></footer>
 </div>
 
+<script src="puzzles.js"></script>
 <script>
 (function(){
   const MAX_GUESSES = 4;
+  // Day 1 is 27 September 2026. The puzzle changes at local midnight.
+  const LAUNCH = Date.UTC(2026, 8, 27);
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const PUZZLES = window.DEBUGG_PUZZLES;
 
   const tilesEl = document.getElementById('tiles');
+  const kickerEl = document.getElementById('kicker');
+  const filenameEl = document.getElementById('filename');
+  const codeEl = document.getElementById('code');
   const guessInput = document.getElementById('guess');
   const submitBtn = document.getElementById('submit');
   const hintBtn = document.getElementById('hintBtn');
@@ -308,30 +332,107 @@
   const revealBtn = document.getElementById('revealBtn');
   const feedbackEl = document.getElementById('feedback');
   const revealEl = document.getElementById('reveal');
-  const flag1 = document.getElementById('flag1');
   const streakEl = document.getElementById('streak');
+  const nextWrap = document.getElementById('nextWrap');
+  const nextInEl = document.getElementById('nextIn');
   const resetLink = document.getElementById('resetLink');
 
-  const HINT_1 = 'Hint 1: look closely at lst=[] in the function signature — how many times does that line actually run?';
-  const HINT_2 = 'Hint 2: a default argument value is created once, when the function is defined — not fresh on every call. So the list from the first call is still there when the second call runs.';
+  // Day number from the player's local calendar date (UTC maths avoids daylight-saving off-by-ones).
+  function dayNumber(date){
+    const today = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    return Math.max(1, Math.floor((today - LAUNCH) / DAY_MS) + 1);
+  }
+
+  const DAY = dayNumber(new Date());
+  const puzzle = PUZZLES[(DAY - 1) % PUZZLES.length];
+  const STATE_KEY = 'debugg-day' + DAY;
+  const STREAK_KEY = 'debugg-streak';
 
   let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
+  let flagEl = null;
 
   function load(){
     try{
-      const raw = localStorage.getItem('debugg-day1');
+      const raw = localStorage.getItem(STATE_KEY);
       if(raw) state = Object.assign(state, JSON.parse(raw));
     }catch(e){}
   }
   function save(){
-    try{ localStorage.setItem('debugg-day1', JSON.stringify(state)); }catch(e){}
+    try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
   }
-  function getStreak(){
-    try{ return parseInt(localStorage.getItem('debugg-streak') || '0', 10); }catch(e){ return 0; }
+
+  // Streak is { count, lastDay }: lastDay is the last day that was won or lost.
+  // Older versions stored a bare number; treat that as a streak ending on day 1.
+  function readStreak(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(STREAK_KEY));
+      if(typeof raw === 'number') return { count: raw, lastDay: raw > 0 ? 1 : 0 };
+      if(raw && typeof raw.count === 'number') return raw;
+    }catch(e){}
+    return { count: 0, lastDay: 0 };
   }
-  function setStreak(n){
-    try{ localStorage.setItem('debugg-streak', String(n)); }catch(e){}
+  function writeStreak(s){
+    try{ localStorage.setItem(STREAK_KEY, JSON.stringify(s)); }catch(e){}
   }
+  // A streak survives only if the last finished day was today or yesterday.
+  function currentStreak(){
+    const s = readStreak();
+    return s.lastDay >= DAY - 1 ? s.count : 0;
+  }
+
+  // --- Code rendering -------------------------------------------------------
+
+  const PY_KEYWORDS = new Set(['def','return','if','elif','else','for','while','in','not','and','or','is',
+    'try','except','finally','raise','with','as','import','from','class','lambda','pass','break',
+    'continue','None','True','False','global','nonlocal','yield','del','assert']);
+
+  function escapeHtml(t){
+    return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Tiny Python highlighter: comments, strings, numbers, keywords and called names.
+  function highlight(text){
+    const re = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)/g;
+    let out = '', last = 0, m;
+    while((m = re.exec(text))){
+      out += escapeHtml(text.slice(last, m.index));
+      const tok = escapeHtml(m[0]);
+      if(m[1]) out += '<span class="com">' + tok + '</span>';
+      else if(m[2]) out += '<span class="str">' + tok + '</span>';
+      else if(m[3]) out += '<span class="num">' + tok + '</span>';
+      else if(m[4]) out += '<span class="' + (PY_KEYWORDS.has(m[4]) ? 'kw' : 'fn') + '">' + tok + '</span>';
+      else out += PY_KEYWORDS.has(m[5]) ? '<span class="kw">' + tok + '</span>' : tok;
+      last = m.index + m[0].length;
+    }
+    return out + escapeHtml(text.slice(last));
+  }
+
+  function renderCode(){
+    const lines = puzzle.code.split('\n');
+    codeEl.innerHTML = lines.map((line, i) => {
+      let body = highlight(line);
+      const f = puzzle.flag;
+      if(f && f.line === i + 1){
+        const at = line.indexOf(f.text);
+        if(at >= 0){
+          body = highlight(line.slice(0, at)) +
+            '<span class="flagged" id="flag">' + highlight(f.text) + '</span>' +
+            highlight(line.slice(at + f.text.length));
+        }
+      }
+      return '<span class="ln">' + (i + 1) + '</span>' + body;
+    }).join('\n');
+    flagEl = document.getElementById('flag');
+  }
+
+  function renderReveal(){
+    document.getElementById('answerOut').textContent = puzzle.display;
+    document.getElementById('explainOut').innerHTML = puzzle.explain;
+    document.getElementById('fixOut').innerHTML = puzzle.fix;
+    document.getElementById('wildOut').innerHTML = puzzle.inTheWild;
+  }
+
+  // --- Game -----------------------------------------------------------------
 
   function renderTiles(){
     tilesEl.innerHTML = '';
@@ -370,39 +471,58 @@
   function showHints(level){
     feedbackEl.className = 'feedback show hint';
     feedbackEl.innerHTML = '';
-    const p1 = document.createElement('p');
-    p1.style.margin = '0';
-    p1.textContent = HINT_1;
-    feedbackEl.appendChild(p1);
-    if(level >= 2){
-      const p2 = document.createElement('p');
-      p2.style.margin = '8px 0 0';
-      p2.textContent = HINT_2;
-      feedbackEl.appendChild(p2);
+    for(let i = 0; i < level; i++){
+      const p = document.createElement('p');
+      p.style.margin = i === 0 ? '0' : '8px 0 0';
+      p.textContent = 'Hint ' + (i + 1) + ': ' + puzzle.hints[i];
+      feedbackEl.appendChild(p);
     }
   }
 
   function lockIn(){
     guessInput.disabled = true;
     submitBtn.disabled = true;
-    flag1.classList.add('on');
+    hintBtn.hidden = true;
+    hint2Btn.hidden = true;
+    revealBtn.hidden = true;
+    if(flagEl) flagEl.classList.add('on');
     revealEl.classList.add('show');
     state.revealed = true;
     save();
+    startCountdown();
   }
 
-  // Single accepted answer for this puzzle: the list [1, 2].
-  // Strip everything but digits and commas so "[1, 2]", "1,2", "1 2" all match.
+  // Loose match so "[1, 2]", "1,2" and "1 2" all count, as do answers with or without quotes.
+  // Colons keep their neighbours so dict output like {1: 'bool'} normalises to "1:bool".
+  function normalise(text){
+    return text.toLowerCase()
+      .replace(/['"`]/g, '')
+      .replace(/[\[\]{}()]/g, ' ')
+      .replace(/\s*:\s*/g, ':')
+      .replace(/[\s,]+/g, ',')
+      .replace(/^,|,$/g, '');
+  }
   function checkGuess(text){
-    const stripped = text.replace(/[^\d,]/g, '').replace(/,+/g, ',').replace(/^,|,$/g, '');
-    return stripped === '1,2';
+    const g = normalise(text);
+    return puzzle.answers.some(a => normalise(a) === g);
   }
 
   function finishRun(won){
-    let streak = getStreak();
-    streak = won ? streak + 1 : 0;
-    setStreak(streak);
-    streakEl.textContent = streak;
+    const s = { count: won ? currentStreak() + 1 : 0, lastDay: DAY };
+    writeStreak(s);
+    streakEl.textContent = s.count;
+  }
+
+  function startCountdown(){
+    function tick(){
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const mins = Math.max(0, Math.ceil((midnight - now) / 60000));
+      nextInEl.textContent = Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+    }
+    tick();
+    nextWrap.hidden = false;
+    if(!startCountdown.timer) startCountdown.timer = setInterval(tick, 30000);
   }
 
   submitBtn.addEventListener('click', () => {
@@ -417,7 +537,7 @@
 
     if(correct){
       state.solved = true;
-      showFeedback('correct', 'Correct — [1, 2]. The default list carries over from the first call.' + hintSuffix());
+      showFeedback('correct', 'Correct: ' + puzzle.display + '.' + hintSuffix());
       lockIn();
       finishRun(true);
     }else if(state.attempts.length >= MAX_GUESSES){
@@ -425,7 +545,8 @@
       lockIn();
       finishRun(false);
     }else{
-      showFeedback('wrong', 'Not quite — think about when that default list gets created.');
+      save();
+      showFeedback('wrong', puzzle.nudge);
     }
   });
 
@@ -452,56 +573,43 @@
 
   revealBtn.addEventListener('click', () => {
     if(state.solved || state.revealed) return;
-    if(state.attempts.length < MAX_GUESSES){
-      // pad remaining tiles as skipped/wrong for a clean stop
-      while(state.attempts.length < MAX_GUESSES) state.attempts.push('wrong');
-      renderTiles();
-    }
-    showFeedback('wrong', 'Revealed — no streak today.' + hintSuffix());
+    // pad remaining tiles as wrong for a clean stop
+    while(state.attempts.length < MAX_GUESSES) state.attempts.push('wrong');
+    renderTiles();
+    showFeedback('wrong', 'Revealed. No streak today.' + hintSuffix());
     lockIn();
     finishRun(false);
   });
 
+  // Clears every saved day and the streak.
   resetLink.addEventListener('click', (e) => {
     e.preventDefault();
     try{
-      localStorage.removeItem('debugg-day1');
-      localStorage.removeItem('debugg-streak');
+      Object.keys(localStorage).filter(k => k.startsWith('debugg-')).forEach(k => localStorage.removeItem(k));
     }catch(err){}
-    state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
-    guessInput.disabled = false;
-    submitBtn.disabled = false;
-    guessInput.value = '';
-    flag1.classList.remove('on');
-    revealEl.classList.remove('show');
-    feedbackEl.classList.remove('show');
-    hintBtn.hidden = false;
-    hint2Btn.hidden = true;
-    updateHintDots(0);
-    renderTiles();
-    streakEl.textContent = '0';
+    location.reload();
   });
 
+  kickerEl.textContent = 'Debugg · Day ' + DAY;
+  filenameEl.textContent = 'day' + DAY + '.py';
+  renderCode();
+  renderReveal();
   load();
   renderTiles();
-  streakEl.textContent = getStreak();
+  streakEl.textContent = currentStreak();
   updateHintDots(state.hintLevel || 0);
   if(state.hintLevel >= 1){
     hintBtn.hidden = true;
     hint2Btn.hidden = state.hintLevel >= 2;
   }
-  if(state.hintLevel >= 1 && !state.solved && !state.revealed){
-    showHints(state.hintLevel);
-  }
   if(state.solved){
-    guessInput.disabled = true; submitBtn.disabled = true;
-    flag1.classList.add('on');
-    showFeedback('correct', 'Solved — [1, 2]. The default list carries over from the first call.' + hintSuffix());
+    lockIn();
+    showFeedback('correct', 'Solved: ' + puzzle.display + '.' + hintSuffix());
   }else if(state.revealed){
-    guessInput.disabled = true; submitBtn.disabled = true;
-    flag1.classList.add('on');
-    revealEl.classList.add('show');
+    lockIn();
     showFeedback('wrong', 'Revealed.' + hintSuffix());
+  }else if(state.hintLevel >= 1){
+    showHints(state.hintLevel);
   }
 })();
 </script>
