@@ -1,0 +1,129 @@
+{
+  "money": 90,
+  "reputation": 0,
+  "roster": [
+    {
+      "id": "director",
+      "name": "You",
+      "role": "Director",
+      "since": 1790528465673,
+      "lang": {},
+      "dom": {}
+    },
+    {
+      "id": "emuk2f2bq5o29d",
+      "name": "Kai R.",
+      "role": "Graduate",
+      "since": 1790528465798,
+      "lang": {
+        "JavaScript": 10
+      },
+      "dom": {}
+    }
+  ],
+  "board": [
+    {
+      "id": "cmuk2f28at9vdl",
+      "tier": 0,
+      "lang": "JavaScript",
+      "dom": "Games",
+      "sloc": 6,
+      "expiresAt": 1790528645674
+    },
+    {
+      "id": "cmuk2f28a62125",
+      "tier": 0,
+      "lang": "JavaScript",
+      "dom": "Games",
+      "sloc": 5,
+      "expiresAt": 1790528645674
+    },
+    {
+      "id": "cmuk2f28aoi8e5",
+      "tier": 1,
+      "lang": "JavaScript",
+      "dom": "Games",
+      "sloc": 454,
+      "expiresAt": 1790529365674
+    },
+    {
+      "id": "cmuk2f28aj8zef",
+      "tier": 1,
+      "lang": "Python",
+      "dom": "Data/AI",
+      "sloc": 432,
+      "expiresAt": 1790529365674
+    },
+    {
+      "id": "cmuk2f28acnise",
+      "tier": 2,
+      "lang": "Rust",
+      "dom": "Safety-Critical",
+      "sloc": 2481,
+      "expiresAt": 1790531165674
+    },
+    {
+      "id": "cmuk2f28apzlsd",
+      "tier": 2,
+      "lang": "JavaScript",
+      "dom": "Games",
+      "sloc": 3042,
+      "expiresAt": 1790531165674
+    },
+    {
+      "id": "cmuk2f28ayzvb9",
+      "tier": 3,
+      "lang": "C/C++",
+      "dom": "Games",
+      "sloc": 25192,
+      "expiresAt": 1790535665674
+    },
+    {
+      "id": "cmuk2f28a0cewb",
+      "tier": 3,
+      "lang": "Python",
+      "dom": "Games",
+      "sloc": 24353,
+      "expiresAt": 1790535665674
+    }
+  ],
+  "jobs": [],
+  "log": [
+    {
+      "kind": "info",
+      "text": "Hired Kai R. as graduate."
+    }
+  ],
+  "lastTick": 1790528465674,
+  "collapsedLevels": [],
+  "tiersVersion": 3,
+  "activeContract": {
+    "lengthIndex": 1,
+    "puzzleIdxs": [
+      0,
+      2,
+      0
+    ],
+    "index": 0,
+    "puzzles": [
+      {
+        "attempts": [],
+        "status": "open",
+        "clean": false,
+        "hintUsed": false
+      },
+      {
+        "attempts": [],
+        "status": "open",
+        "clean": false,
+        "hintUsed": false
+      },
+      {
+        "attempts": [],
+        "status": "open",
+        "clean": false,
+        "hintUsed": false
+      }
+    ]
+  }
+}

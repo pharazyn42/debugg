@@ -1,0 +1,11 @@
+{
+  "name": "debugg",
+  "private": true,
+  "description": "Debugg: daily code puzzles, a sandbox, and Debugg Ltd. No build step; this file is only for the tests.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
