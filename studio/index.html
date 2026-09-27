@@ -639,6 +639,18 @@
     font-family: var(--mono);
   }
   footer a{ color: inherit; }
+  .reset-btn{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 6px;
+    margin-left: 6px;
+  }
+  .reset-btn:hover{ color: var(--red); border-color: var(--red-dim); }
 </style>
 </head>
 <body>
@@ -696,7 +708,8 @@
     <div class="log" id="log"></div>
   </div>
 
-  <footer>contract debugger · prototype slice · <a href="../">back to Debugg</a></footer>
+  <footer>contract debugger · prototype slice · <a href="../">back to Debugg</a>
+    <button class="reset-btn" id="resetBtn">Reset game</button></footer>
 </div>
 
 <div class="modal-back" id="teamModal" hidden>
@@ -1671,6 +1684,16 @@
       }
     }
   });
+  // Replaces the save with a fresh start. Writing the fresh state (rather
+  // than just deleting the key) means the 1s tick can't re-save the old game
+  // before the reload happens.
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if(!confirm('Reset the game? Your studio, staff, cash and progress will be wiped and you’ll start again as a lone Director.')) return;
+    state = freshState();
+    save();
+    location.reload();
+  });
+
   document.addEventListener('keydown', (e) => {
     if(e.key !== 'Escape') return;
     if(picker) closePicker();
