@@ -717,7 +717,8 @@ window.DebuggLtd = (function(){
     document.addEventListener('debugg:puzzle-finished', (e) => {
       const d = e.detail || {};
       const key = d.lang + '-' + d.day;
-      if(d.day !== D.today() || state.paid[key] || !(d.xp > 0)) return;
+      // d.day is the puzzle's day; on a Sunday, the weekend puzzle belongs to Saturday.
+      if(d.day !== D.slotDay(D.today()) || state.paid[key] || !(d.xp > 0)) return;
       const bonus = d.solved ? Math.min(STREAK_BONUS_CAP, STREAK_BONUS_PER_DAY * Math.max(0, (d.streak || 0) - 1)) : 0;
       const cash = Math.round(d.xp * CASH_PER_XP * (1 + bonus));
       const rep = d.xp / XP_PER_REP;

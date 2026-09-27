@@ -320,6 +320,8 @@
   const lang = pickLang();
   try{ localStorage.setItem(LANG_KEY, lang); }catch(e){}
 
+  // The day this puzzle belongs to: on a Sunday, the weekend puzzle is Saturday's.
+  const SLOT = window.Debugg.slotDay(DAY);
   const puzzle = window.Debugg.puzzleFor(lang, DAY);
   const STATE_KEY = window.Debugg.stateKey(lang, DAY);
 
@@ -350,23 +352,25 @@
   function writeStreak(s){
     try{ localStorage.setItem(STREAK_KEY, JSON.stringify(s)); }catch(e){}
   }
-  // A streak survives only if it was last added to today or yesterday.
+  // A streak survives only if it was last added to today's puzzle or the one before. The weekend
+  // puzzle counts once, for Saturday and Sunday together.
   function currentStreak(){
     const s = readStreak();
-    return s.lastDay >= DAY - 1 ? s.count : 0;
+    return s.lastDay >= window.Debugg.previousSlot(DAY) ? s.count : 0;
   }
 
   // --- XP -------------------------------------------------------------------
   // XP is tracked separately per language: { python: 120, ... }.
-  // A solve earns 100/75/50/25 XP for guess 1/2/3/4; each hint takes off a quarter of the base.
+  // A first-guess, no-hint solve earns the day's base XP (Monday 60 up to Friday 150, weekend 200;
+  // see shared.js). Later guesses earn 75/50/25% of it, and each hint takes off a quarter.
   // Failing or revealing still earns a little for finishing and reading the explanation.
-  const SOLVE_XP = [100, 75, 50, 25];
+  const GUESS_SHARE = [1, 0.75, 0.5, 0.25];
   const HINT_MULTIPLIER = [1, 0.75, 0.5];
   const FINISH_XP = 10;
 
   function puzzleXp(won, guesses, hintLevel){
     if(!won) return FINISH_XP;
-    return Math.round(SOLVE_XP[guesses - 1] * HINT_MULTIPLIER[hintLevel || 0]);
+    return Math.round(window.Debugg.baseXp(DAY) * GUESS_SHARE[guesses - 1] * HINT_MULTIPLIER[hintLevel || 0]);
   }
 
   const { readXp, levelStart, levelFor } = window.Debugg;
@@ -443,7 +447,7 @@
 
   // A prefilled GitHub issue about this puzzle. GitHub issues are public, so it asks for nothing personal.
   function reportUrl(){
-    const which = LANGS[lang].name + ' ' + window.Debugg.dayLabel(DAY) + (window.Debugg.isPreview(DAY) ? ' (day ' + DAY + ')' : '');
+    const which = LANGS[lang].name + ' ' + window.Debugg.dayLabel(DAY) + (window.Debugg.isPreview(DAY) ? ' (day ' + SLOT + ')' : '');
     const firstLine = puzzle.code.split('\n').find(l => l.trim()) || '';
     const body = '**What’s wrong?** (e.g. my answer should have counted, the explanation is wrong, a typo)\n\n\n' +
       '**What did you answer?**\n\n\n' +
@@ -458,7 +462,7 @@
     document.getElementById('fixOut').innerHTML = puzzle.fix;
     document.getElementById('takeawayOut').innerHTML = puzzle.takeaway;
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
-    document.getElementById('tryLink').href = 'sandbox.html?lang=' + lang + '&day=' + DAY;
+    document.getElementById('tryLink').href = 'sandbox.html?lang=' + lang + '&day=' + SLOT;
     document.getElementById('reportLink').href = reportUrl();
     document.getElementById('sandboxLink').href = 'sandbox.html#' + lang;
   }
@@ -542,8 +546,8 @@
   // A loss changes nothing today; the streak just won't carry on unless something is solved.
   function finishRun(won){
     const s = readStreak();
-    if(won && !(s.lastDay === DAY && s.count > 0)){
-      writeStreak({ count: currentStreak() + 1, lastDay: DAY });
+    if(won && !(s.lastDay === SLOT && s.count > 0)){
+      writeStreak({ count: currentStreak() + 1, lastDay: SLOT });
     }
     streakEl.textContent = currentStreak();
     renderLangs();
@@ -586,17 +590,21 @@
   // language just ended. Fired only when a game ends, never when a finished game is reloaded.
   function announceFinish(){
     document.dispatchEvent(new CustomEvent('debugg:puzzle-finished', { detail: {
-      lang, day: DAY, solved: state.solved, guesses: state.attempts.length,
+      lang, day: SLOT, solved: state.solved, guesses: state.attempts.length,
       hintLevel: state.hintLevel || 0, xp: state.xp, streak: currentStreak()
     } }));
   }
 
   function startCountdown(){
     function tick(){
+      // The next new puzzle is at midnight, except on a Saturday, when the weekend puzzle
+      // carries on through Sunday.
       const now = new Date();
-      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      const mins = Math.max(0, Math.ceil((midnight - now) / 60000));
-      nextInEl.textContent = Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+      const days = window.Debugg.dayKind(DAY) === 'weekend' && SLOT === DAY ? 2 : 1;
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+      const mins = Math.max(0, Math.ceil((next - now) / 60000));
+      const h = Math.floor(mins / 60);
+      nextInEl.textContent = (h >= 24 ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h ' : h + 'h ') + (mins % 60) + 'm';
     }
     tick();
     nextWrap.hidden = false;
@@ -676,8 +684,8 @@
   renderLangs();
   kickerEl.textContent = window.Debugg.isPreview(DAY)
     ? 'Debugg · Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    : 'Debugg · Day ' + DAY;
-  filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + DAY) + '.' + LANGS[lang].ext;
+    : 'Debugg · ' + window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY);
+  filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.' + LANGS[lang].ext;
   renderCode();
   renderReveal();
   load();

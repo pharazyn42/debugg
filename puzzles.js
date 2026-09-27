@@ -1,9 +1,11 @@
-// Debugg puzzle data. Each language has its own daily puzzle: a language's puzzles run one per day
-// in the order they appear here, and after its last one they start over.
+// Debugg puzzle data. Each language has its own daily puzzle, and the calendar in shared.js picks
+// it: each day takes the first unused puzzle (in the order they appear here) with that weekday's
+// difficulty, and once a language's puzzles have all been used they start over.
 // Loaded with a plain <script> tag (not fetch) so index.html still works when opened straight from disk.
 //
 // Fields:
-//   lang       language key: 'python' or 'javascript' (see LANGS in index.html)
+//   lang       language key: 'python' or 'javascript' (see LANGS in shared.js)
+//   difficulty 1 (warm-up) to 5 (hard); the calendar gives Mondays 1 up to Fridays 5 (see shared.js)
 //   code       the snippet; the last line is the print the player has to predict
 //   flag       { line, text } marks the buggy bit, underlined once the game ends
 //   answers    accepted guesses; compared after normalising (case, spaces, quotes and brackets ignored)
@@ -16,6 +18,7 @@
 window.DEBUGG_PUZZLES = [
   {
     lang: 'python',
+    difficulty: 3,
     code: `def add_item(item, lst=[]):
     lst.append(item)
     return lst
@@ -36,6 +39,7 @@ print(add_item(2))`,
   },
   {
     lang: 'python',
+    difficulty: 2,
     code: `total = 0.1 + 0.2
 print(total == 0.3)`,
     flag: { line: 2, text: 'total == 0.3' },
@@ -52,6 +56,7 @@ print(total == 0.3)`,
   },
   {
     lang: 'python',
+    difficulty: 1,
     code: `total = 0
 for day in range(1, 7):  # every day of the week
     total += day
@@ -70,6 +75,7 @@ print(total)`,
   },
   {
     lang: 'python',
+    difficulty: 1,
     code: `def verify(hash_ok, sig_ok):
     if not hash_ok:
         return "fail"
@@ -92,6 +98,7 @@ print(verify(True, False))`,
   },
   {
     lang: 'python',
+    difficulty: 4,
     code: `grid = [[0] * 3] * 3
 grid[0][0] = 1
 print(grid)`,
@@ -109,6 +116,7 @@ print(grid)`,
   },
   {
     lang: 'python',
+    difficulty: 4,
     code: `print(round(0.5) + round(1.5) + round(2.5))`,
     flag: { line: 1, text: 'round(2.5)' },
     answers: ['4'],
@@ -124,6 +132,7 @@ print(grid)`,
   },
   {
     lang: 'python',
+    difficulty: 1,
     code: `name = "debugg"
 name.upper()
 print(name)`,
@@ -141,6 +150,7 @@ print(name)`,
   },
   {
     lang: 'python',
+    difficulty: 2,
     code: `def is_leap(year):
     return year % 4 == 0
 
@@ -159,6 +169,7 @@ print(is_leap(1900))`,
   },
   {
     lang: 'python',
+    difficulty: 4,
     code: `nums = [1, 2, 2, 3]
 for n in nums:
     if n == 2:
@@ -178,6 +189,7 @@ print(nums)`,
   },
   {
     lang: 'python',
+    difficulty: 3,
     code: `minutes_late = -7
 print(minutes_late // 2)`,
     flag: { line: 2, text: '// 2' },
@@ -194,6 +206,7 @@ print(minutes_late // 2)`,
   },
   {
     lang: 'python',
+    difficulty: 5,
     code: `funcs = [lambda: i for i in range(3)]
 print([f() for f in funcs])`,
     flag: { line: 1, text: 'lambda: i' },
@@ -210,6 +223,7 @@ print([f() for f in funcs])`,
   },
   {
     lang: 'python',
+    difficulty: 2,
     code: `print("10" > "9")`,
     flag: { line: 1, text: '"10" > "9"' },
     answers: ['false'],
@@ -225,6 +239,7 @@ print([f() for f in funcs])`,
   },
   {
     lang: 'python',
+    difficulty: 5,
     code: `d = {1: "int", 1.0: "float", True: "bool"}
 print(d)`,
     flag: { line: 1, text: 'True: "bool"' },
@@ -241,6 +256,7 @@ print(d)`,
   },
   {
     lang: 'python',
+    difficulty: 4,
     code: `def save():
     try:
         return "saved"
@@ -263,6 +279,7 @@ print(save())`,
   // The next four came from Debugg Ltd's original desk.
   {
     lang: 'python',
+    difficulty: 3,
     code: `total = 0.1 + 0.2
 print(round(total, 2) == 0.3)`,
     flag: { line: 2, text: 'round(total, 2)' },
@@ -279,6 +296,7 @@ print(round(total, 2) == 0.3)`,
   },
   {
     lang: 'python',
+    difficulty: 1,
     code: `quantity = "3"  # from input()
 print(quantity * 2)`,
     flag: { line: 2, text: 'quantity * 2' },
@@ -295,6 +313,7 @@ print(quantity * 2)`,
   },
   {
     lang: 'python',
+    difficulty: 2,
     code: `nums = [10, 20, 30, 40, 50]
 print(nums[1:-1])`,
     flag: { line: 2, text: 'nums[1:-1]' },
@@ -311,6 +330,7 @@ print(nums[1:-1])`,
   },
   {
     lang: 'python',
+    difficulty: 3,
     code: `x = 10
 squares = [x * x for x in range(3)]
 print(x)`,
@@ -330,6 +350,7 @@ print(x)`,
   // --- JavaScript ---------------------------------------------------------------
   {
     lang: 'javascript',
+    difficulty: 2,
     code: `const scores = [10, 9, 1];
 scores.sort();
 console.log(scores);`,
@@ -347,6 +368,7 @@ console.log(scores);`,
   },
   {
     lang: 'javascript',
+    difficulty: 1,
     code: `const user = null;
 console.log(typeof user);`,
     flag: { line: 2, text: 'typeof user' },
@@ -363,6 +385,7 @@ console.log(typeof user);`,
   },
   {
     lang: 'javascript',
+    difficulty: 3,
     code: `const price = "5";  // from a form input
 const shipping = 2;
 console.log(price + shipping - shipping);`,
@@ -380,6 +403,7 @@ console.log(price + shipping - shipping);`,
   },
   {
     lang: 'javascript',
+    difficulty: 5,
     code: `const nums = ["1", "7", "11"].map(parseInt);
 console.log(nums);`,
     flag: { line: 1, text: 'map(parseInt)' },
@@ -396,6 +420,7 @@ console.log(nums);`,
   },
   {
     lang: 'javascript',
+    difficulty: 4,
     code: `const fns = [];
 for (var i = 0; i < 3; i++) {
   fns.push(() => i);
@@ -415,6 +440,7 @@ console.log(fns.map(f => f()));`,
   },
   {
     lang: 'javascript',
+    difficulty: 4,
     code: `function getConfig() {
   return
   {
@@ -436,6 +462,7 @@ console.log(getConfig());`,
   },
   {
     lang: 'javascript',
+    difficulty: 2,
     code: `const input = "0";
 if (input == false) {
   console.log("empty");
@@ -456,6 +483,7 @@ if (input == false) {
   },
   {
     lang: 'javascript',
+    difficulty: 3,
     code: `// Christmas: month 12, day 25?
 const xmas = new Date(2026, 12, 25);
 console.log(xmas.getFullYear());`,
@@ -473,6 +501,7 @@ console.log(xmas.getFullYear());`,
   },
   {
     lang: 'javascript',
+    difficulty: 3,
     code: `const orderId = 9007199254740993;
 console.log(orderId);`,
     flag: { line: 1, text: '9007199254740993' },
@@ -489,6 +518,7 @@ console.log(orderId);`,
   },
   {
     lang: 'javascript',
+    difficulty: 3,
     code: `const user = { name: "Ada", roles: ["admin"] };
 const guest = { ...user };
 guest.roles.push("guest");
@@ -507,6 +537,7 @@ console.log(user.roles);`,
   },
   {
     lang: 'javascript',
+    difficulty: 2,
     code: `function hasNegative(nums) {
   nums.forEach(n => {
     if (n < 0) return true;

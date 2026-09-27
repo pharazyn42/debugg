@@ -4,17 +4,15 @@ A Wordle-style daily game where you guess what a short, buggy Python or JavaScri
 
 **For the soft launch the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
 
-There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving at least one puzzle a day, in any language, builds your bug streak.
+There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. **Difficulty follows the week:** Monday is a warm-up, then easy, medium, tricky, and Friday is hard. Saturday and Sunday share one harder weekend puzzle (solving it on either day counts for both). Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving at least one puzzle a day, in any language, builds your bug streak.
 
-Each puzzle also earns XP, tracked separately for each language so you level up in each one:
+Each puzzle also earns XP, tracked separately for each language so you level up in each one. A first-guess, no-hint solve earns the day's XP:
 
-| Solved on guess | 1 | 2 | 3 | 4 |
-|---|---|---|---|---|
-| No hints | 100 | 75 | 50 | 25 |
-| 1 hint | 75 | 56 | 38 | 19 |
-| 2 hints | 50 | 38 | 25 | 13 |
+| Monday | Tuesday | Wednesday | Thursday | Friday | Weekend |
+|---|---|---|---|---|---|
+| 60 | 80 | 100 | 120 | 150 | 200 |
 
-Running out of guesses or revealing the answer still earns 10 XP. Level 2 starts at 100 XP, and each level after that needs 100 more than the last (300, 600, 1000, …).
+Solving on the 2nd, 3rd or 4th guess earns 75%, 50% or 25% of that, and each hint takes off a quarter (1 hint: 75%, 2 hints: 50%). For example, a Wednesday puzzle solved on the 2nd guess with 1 hint earns 100 × 0.75 × 0.75 = 56. Running out of guesses or revealing the answer still earns 10 XP. Level 2 starts at 100 XP, and each level after that needs 100 more than the last (300, 600, 1000, …).
 
 ## Playing
 
@@ -35,7 +33,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 - **Backup:** everything is saved in the player's browser only. The footer's **backup** link shows a code holding all of it (puzzles, XP, streak, company, sandbox drafts) and restores from one on any device (`backup.js`).
 - **Feedback:** after each game, "Report it" opens a GitHub issue prefilled with the puzzle's language, day, first line and expected answer; the footer's **feedback** link opens a blank one. Issues are public, and reporting needs a GitHub account.
-- **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). It's off until `SITE_COUNT_URL` in that file is set to the site's GoatCounter address. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debugg Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
+- **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). The dashboard is at https://debugg.goatcounter.com. Setting `SITE_COUNT_URL` in that file to `''` switches it off. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debugg Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
 - **Privacy:** `privacy.html` explains all of the above to players. Fonts are served from `fonts/` (Sora and JetBrains Mono, SIL Open Font License), not Google Fonts.
 
 ## Debugg Ltd
@@ -55,7 +53,7 @@ The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on
 
 ## Adding a puzzle
 
-Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 is 1 October 2026; days before it show a "Preview" puzzle), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+Puzzles live in `puzzles.js`, each with a `difficulty` from 1 (warm-up) to 5 (hard). Day 1 is Thursday 1 October 2026; days before it show a "Preview" puzzle. The calendar in `shared.js` gives each day the first unused puzzle with that weekday's difficulty (Monday 1 to Friday 5; the weekend gets a 5), falling back to the nearest difficulty when a pool runs out, and starts over once every puzzle has been used. Add new puzzles to the end of their language's section, and keep the pools balanced: each week uses one puzzle of difficulty 1 to 4 and two of difficulty 5. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
 
 To add a new language, add it to `LANGS` and `SYNTAX` in `shared.js` (name, file extension, indent, keywords, comment and string syntax), then add puzzles with that `lang`.
 
@@ -80,8 +78,7 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 
 ## Roadmap
 
-- **Switch on analytics (to do before launch):** create a free GoatCounter account at goatcounter.com, pick a site code (e.g. `debugg`), and put its count address (e.g. `https://debugg.goatcounter.com/count`) in `SITE_COUNT_URL` in `analytics.js`. Everything else is already built; until then nothing is counted.
-- **Puzzle formats and the weekly rotation** (decided; see item 3b in `CLAUDE.md`): still one puzzle a day per language, but its format and difficulty follow the week. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debugg Ltd desk pay) rises with difficulty.
+- **Puzzle formats** (decided; see item 3b in `CLAUDE.md`): the weekly difficulty rotation is built, with every day using "what does this output" for now. Still to come are the other formats, which follow the week too. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debugg Ltd desk pay) rises with difficulty.
 - **Learn track:** lessons per language played in order at any time, teaching one concept each with a "try this next" for the sandbox. Lessons earn XP but don't count towards the streak. Monday's daily puzzles are learn-level too.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.
 - **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debugg Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `CLAUDE.md`.

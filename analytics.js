@@ -3,12 +3,12 @@
 // a few named events (see the list in privacy.html). What players type (answers, sandbox code)
 // is never sent.
 //
-// Turned off until SITE_COUNT_URL below is filled in with the site's GoatCounter count address.
-// GoatCounter also ignores visits from localhost by itself.
+// SITE_COUNT_URL is the site's GoatCounter count address (dashboard: https://debugg.goatcounter.com).
+// Leave it '' to switch analytics off. GoatCounter also ignores visits from localhost by itself.
 window.DebuggAnalytics = (function(){
-  const SITE_COUNT_URL = '';  // e.g. 'https://debugg.goatcounter.com/count'
-  // window.DEBUGG_GOATCOUNTER lets tests switch it on against a stand-in.
-  const GOATCOUNTER_URL = window.DEBUGG_GOATCOUNTER || SITE_COUNT_URL;
+  const SITE_COUNT_URL = 'https://debugg.goatcounter.com/count';
+  // window.DEBUGG_GOATCOUNTER overrides it: tests set it to '' (off) or to a stand-in.
+  const GOATCOUNTER_URL = 'DEBUGG_GOATCOUNTER' in window ? window.DEBUGG_GOATCOUNTER : SITE_COUNT_URL;
 
   const queue = [];
   let loaded = false;
