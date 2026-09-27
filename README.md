@@ -19,6 +19,13 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 - Rotate in a new puzzle each day instead of always showing Day 1.
 - Move puzzle content into a small JSON/data file so new days can be added without touching the page code.
+- Tie each puzzle to the real world: after solving, show what the bug could actually cause, a real incident where it happened, or at least an interesting related fact.
+- Award XP per puzzle based on how many guesses and hints were used (fewer means more XP). Track XP separately for each language, so players level up in each one.
+- Add a sandbox where players can write and run their own code snippets.
+- Add new puzzle types alongside "what does this print?":
+  - **Fix it:** modify the given code so it produces the correct output.
+  - **Write it:** write code from scratch that produces a given output.
+- Add progression that keeps people coming back, e.g. daily streaks, language levels, unlockable puzzle packs or harder tiers, and achievements.
 
 ## Other ideas
 
