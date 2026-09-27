@@ -845,24 +845,32 @@
 
   const LINE_RATE = 2; // ¤ per SLOC delivered, before multipliers
 
-  // XP is per delivered contract and works out at ~1–1.5 XP per contract
-  // minute, so bars build at roughly the pace of the promotion timers: a
-  // junior spreading work across random languages reaches a 3-bar language
-  // in ~8h of contract time, and 5 bars takes days. Bigger contracts pay
+  // Each contract is a SLOC target. It takes target ÷ (team SLOC/min)
+  // minutes, and pays for the SLOC delivered. `minutes` is the reference
+  // time for the reference team (`refSloc` SLOC/min — the cheapest team
+  // that meets the requirements, e.g. a lone grad on a quick fix, or a
+  // senior + 2 grads on a sprint); the target is refSloc × minutes, ±15%.
+  // Bigger or more senior teams finish sooner.
+  //
+  // XP is earned per minute spent on the contract (xpPerMin, ~1–1.5), so
+  // skill bars build at roughly the pace of the contract-time promotion
+  // timers regardless of how fast the team is. Bigger contracts pay
   // slightly more XP per minute to reward teamwork.
+  const SLOC_SPREAD = 0.15;
+  const MIN_JOB_MS = 5000; // floor, so a principal on a quick fix isn't instant
   // A failed contract can be retried once in RETRY_TIME of the time for
   // RETRY_PAYOUT of the payout.
   const RETRY_TIME = 0.5;
   const RETRY_PAYOUT = 0.75;
 
   const TIERS = [
-    { key: 'quick',     name: 'Quick Fix',     minutes: 1,  min: 1,  max: 1,  mult: 1.0, xp: 1,   rep: 0.5,
+    { key: 'quick',     name: 'Quick Fix',     minutes: 1,  refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 1.0,  rep: 0.5,
       needs: {}, req: '1 developer, any level' },
-    { key: 'sprint',    name: 'Sprint',        minutes: 10, min: 3,  max: 5,  mult: 1.2, xp: 12,  rep: 2,
+    { key: 'sprint',    name: 'Sprint',        minutes: 10, refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 1.2,  rep: 2,
       needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
-    { key: 'milestone', name: 'Milestone',     minutes: 30, min: 5,  max: 10, mult: 1.5, xp: 40,  rep: 6,
+    { key: 'milestone', name: 'Milestone',     minutes: 30, refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 1.33, rep: 6,
       needs: { Principal: 1 }, req: '5–10 devs · 1+ principal' },
-    { key: 'full',      name: 'Full Delivery', minutes: 90, min: 10, max: 20, mult: 2.0, xp: 135, rep: 20,
+    { key: 'full',      name: 'Full Delivery', minutes: 90, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 1.5,  rep: 20,
       needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
   ];
   const OFFERS_PER_TIER = 2;
@@ -915,6 +923,7 @@
     if(h) return h + 'h' + (m ? ' ' + m + 'm' : '');
     return m + 'm';
   }
+  function fmtXp(xp){ return xp >= 10 ? String(Math.round(xp)) : xp.toFixed(1).replace(/\.0$/, ''); }
   function fmtClock(ms){
     const s = Math.max(0, Math.ceil(ms / 1000));
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -953,8 +962,11 @@
   }
 
   function makeOffer(tierIndex){
+    const tier = TIERS[tierIndex];
     const lang = pick(LANGS);
-    return { id: uid('c'), tier: tierIndex, lang, dom: pick(PAIRINGS[lang]) };
+    const spread = 1 - SLOC_SPREAD + Math.random() * 2 * SLOC_SPREAD;
+    return { id: uid('c'), tier: tierIndex, lang, dom: pick(PAIRINGS[lang]),
+             sloc: Math.max(1, Math.round(tier.refSloc * tier.minutes * spread)) };
   }
   function makeBoard(){
     const board = [];
@@ -1128,10 +1140,12 @@
     const matched = devs.filter(d => bars(d.lang[offer.lang]) > 0 && bars(d.dom[offer.dom]) > 0).length;
     const reliability = devs.length ? devs.reduce((s, d) => s + ROLES[d.role].reliability, 0) / devs.length : 0;
     const chance = devs.length ? Math.min(0.98, reliability + 0.05 * (matched / devs.length)) : 0;
-    const payout = Math.round(sloc * tier.minutes * LINE_RATE * tier.mult * (1 + skill));
-    const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * tier.minutes;
+    const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
+    const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * (1 + skill));
+    const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
+    const xp = tier.xpPerMin * ms / 60000;
 
-    return { checks, valid, sloc, chance, payout, salaryCost };
+    return { checks, valid, sloc, ms, chance, payout, salaryCost, xp };
   }
 
   function startJob(offerId, memberIds, repeat){
@@ -1157,7 +1171,8 @@
   function newJob(offer, team, startedAt, ev, repeat){
     return {
       id: offer.id, tier: offer.tier, lang: offer.lang, dom: offer.dom,
-      team, startedAt, endsAt: startedAt + TIERS[offer.tier].minutes * 60000,
+      sloc: offer.sloc, teamSloc: ev.sloc,
+      team, startedAt, endsAt: startedAt + ev.ms,
       chance: ev.chance, payout: ev.payout, repeat, status: 'running', attempt: 1
     };
   }
@@ -1165,7 +1180,7 @@
   function isRunning(job){ return (job.status || 'running') === 'running'; }
   function jobTag(job){ return TIERS[job.tier].name + ' (' + job.lang + ' / ' + job.dom + ')'; }
   function retryPayout(job){ return Math.round(job.payout * RETRY_PAYOUT); }
-  function retryMs(job){ return TIERS[job.tier].minutes * 60000 * RETRY_TIME; }
+  function retryMs(job){ return (job.endsAt - job.startedAt) * RETRY_TIME; }
 
   // Rolls the outcome, credits contract time to everyone on the team (only
   // the part worked at their current level), and pays out/awards XP on
@@ -1177,16 +1192,17 @@
       if(p) p.worked = (p.worked || 0) + Math.max(0, job.endsAt - Math.max(job.startedAt, p.since));
     });
     const retry = job.attempt === 2 ? ' retry' : '';
+    const xp = tier.xpPerMin * (job.endsAt - job.startedAt) / 60000;
     if(Math.random() < job.chance){
       state.money += job.payout;
       state.reputation += tier.rep;
       job.team.forEach(id => {
         const p = person(id);
         if(!p || !isDev(p)) return;
-        p.lang[job.lang] = (p.lang[job.lang] || 0) + tier.xp;
-        p.dom[job.dom] = (p.dom[job.dom] || 0) + tier.xp;
+        p.lang[job.lang] = (p.lang[job.lang] || 0) + xp;
+        p.dom[job.dom] = (p.dom[job.dom] || 0) + xp;
       });
-      addLog('ok', '✓ ' + jobTag(job) + retry + ' delivered — ' + fmt(job.payout) + ', +' + tier.xp + ' XP to the team.');
+      addLog('ok', '✓ ' + jobTag(job) + retry + ' delivered — ' + fmt(job.payout) + ', +' + fmtXp(xp) + ' XP to the team.');
       return true;
     }
     state.reputation = Math.max(0, state.reputation - tier.rep / 2);
@@ -1481,10 +1497,11 @@
     state.board.forEach(o => {
       const t = TIERS[o.tier];
       html += '<div class="offer">' +
-        '<div class="offer-top"><span class="name">' + t.name + '</span><span class="dur">' + t.minutes + ' min</span></div>' +
+        '<div class="offer-top"><span class="name">' + t.name + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
         '<div class="chips"><span class="chip lang">' + esc(o.lang) + '</span><span class="chip dom">' + esc(o.dom) + '</span></div>' +
         '<div class="detail">' + t.req + '</div>' +
-        '<div class="detail">+' + t.xp + ' XP in ' + esc(o.lang) + ' &amp; ' + esc(o.dom) + ' on delivery</div>' +
+        '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team · ' +
+          t.xpPerMin + ' XP/min in ' + esc(o.lang) + ' &amp; ' + esc(o.dom) + '</div>' +
         '<button class="btn-ghost btn-small" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
         '</div>';
     });
@@ -1519,7 +1536,8 @@
           ' <span class="chip lang">' + esc(j.lang) + '</span><span class="chip dom">' + esc(j.dom) + '</span></span>' +
           '<span class="time" data-time="' + j.id + '"></span></div>' +
           '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
-          '<div class="detail">' + team + ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
+          '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
+          ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
           ' on delivery' + (j.attempt === 2 ? ' · retry' : '') + '</div>' +
           '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
           (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>' +
@@ -1633,7 +1651,7 @@
 
     teamModalBody.innerHTML =
       '<h2>' + tier.name + ' <span class="chip lang">' + esc(offer.lang) + '</span><span class="chip dom">' + esc(offer.dom) + '</span>' +
-      ' <span class="tag">' + tier.minutes + ' min</span></h2>' +
+      ' <span class="tag">' + offer.sloc.toLocaleString('en-GB') + ' SLOC</span></h2>' +
       '<div class="offer"><div class="detail" style="border:none;padding:0;">Needs ' + tier.req +
       '. Bars shown are each person’s ' + esc(offer.lang) + ' / ' + esc(offer.dom) + ' skill.</div></div>' +
       '<div class="pick-list">' + (rows || '<div class="empty">Nobody free who can take this on.</div>') + '</div>' +
@@ -1642,7 +1660,8 @@
       '<div class="forecast">' +
         'Success chance <b>' + Math.round(ev.chance * 100) + '%</b> · Payout <b>' + fmt(ev.payout) + '</b> · ' +
         'Salaries over the job <b>' + fmt(ev.salaryCost) + '</b><br>' +
-        'Everyone gains <b>+' + tier.xp + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
+        'Team output <b>' + ev.sloc + ' SLOC/min</b> → takes <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b><br>' +
+        'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
       '</div>' +
       '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
         'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' +
@@ -2003,6 +2022,8 @@
     state.activeContract = null;
   }
   if(!state.collapsedLevels) state.collapsedLevels = [];
+  // Offers from before contracts had a SLOC target.
+  if(state.board.some(o => !o.sloc)) state.board = makeBoard();
 
   const now = Date.now();
   const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);

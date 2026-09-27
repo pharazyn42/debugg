@@ -44,9 +44,11 @@ BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
 PROMOTION = { Junior: {minutes:60, lang:1, dom:1}, Senior: {8h, 3, 2}, Principal: {3 days, 5, 5} }  // contract time only
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
-TIERS = [ quick fix 1 min / 1 dev, sprint 10 min / 3-5 + senior,
-          milestone 30 min / 5-10 + principal,
-          full delivery 90 min / 10+ incl. manager, 2 principals, 3 seniors ]
+TIERS = [ quick fix ~5 SLOC / 1 dev, sprint ~400 SLOC / 3-5 + senior,
+          milestone ~2,700 SLOC / 5-10 + principal,
+          full delivery ~22,500 SLOC / 10+ incl. manager, 2 principals, 3 seniors ]
+// each tier: minutes + refSloc (reference time for the cheapest valid team);
+// an offer's SLOC target = refSloc × minutes ± SLOC_SPREAD (15%)
 ```
 
 **Top-level state:**
@@ -54,8 +56,8 @@ TIERS = [ quick fix 1 min / 1 dev, sprint 10 min / 3-5 + senior,
 state = {
   money, reputation, lastTick,
   roster: [ { id, name, role, since, worked, lang: {name: xp}, dom: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
-  board:  [ { id, tier, lang, dom } ],            // 2 offers per tier
-  jobs:   [ { id, tier, lang, dom, team: [ids], startedAt, endsAt, chance, payout, repeat,
+  board:  [ { id, tier, lang, dom, sloc } ],      // 2 offers per tier; sloc = work target
+  jobs:   [ { id, tier, lang, dom, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
@@ -100,14 +102,27 @@ state = {
   requirements and shows success chance, payout and salary cost. It has a
   "Suggest a team" button. Each person can only be on one contract at a
   time.
-  - Payout = team SLOC/min × minutes × `LINE_RATE` × tier multiplier ×
-    skill match.
+  - **SLOC drives time**: each offer is a SLOC target, shown on the card.
+    Duration is the target divided by the team's combined SLOC/min
+    (managers add none), with a 5-second floor. The reference team takes
+    the nominal time:
+    - a lone grad on a quick fix: ~1 min;
+    - senior + 2 grads on a sprint: ~10 min;
+    - principal + 4 grads on a milestone: ~30 min;
+    - 2 principals + 3 seniors + 4 grads + a manager on a full delivery:
+      ~90 min.
+
+    More senior or bigger teams finish sooner. The picker shows team
+    SLOC/min and the resulting time.
+  - Payout = SLOC target × `LINE_RATE` × tier multiplier × skill match. So
+    a contract pays the same whoever does it; faster teams simply earn more
+    per minute and pay less salary per contract.
   - Success chance = average reliability by level, plus a small bonus for
     skill match.
   - On delivery, everyone on the team gains the tier's XP in that
-    language and domain. XP per contract is 1 / 12 / 40 / 135, about
-    1–1.5 XP per contract minute, tuned so skill bars build at roughly the
-    pace of the promotion timers. This is the placeholder skill-gain
+    language and domain. XP is per minute spent on it (`xpPerMin`: 1 /
+    1.2 / 1.33 / 1.5 by tier), independent of team speed, so skill bars
+    build at roughly the pace of the contract-time promotion timers. This is the placeholder skill-gain
     mechanic; it doesn't yet model supervision.
   - **Retry on failure**: a failed contract can be retried once, in half
     the time, for 75% of the payout. If the retry fails, the contract is
@@ -186,8 +201,9 @@ Replace the current flat reliability-by-level model:
 - **Each level up** raises both the success chance and the delivery speed
   (a principal finishes faster and more reliably than a grad on the same
   job).
-- **Speed**: contract duration should shrink with team level and skill
-  match, rather than being fixed per tier.
+- **Speed**: duration already shrinks with dev level, via SLOC/min (see
+  "SLOC drives time" above). Still to do: skill match should also speed
+  things up, e.g. matched devs get a SLOC/min bonus on that contract.
 - **Teams**: exact curves are TBD, as is how per-person chances combine for
   a team (average, weighted by SLOC, or weakest link).
 
