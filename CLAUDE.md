@@ -43,6 +43,14 @@ URL has `?ltd`. `DebuggLtd.start({ stats, studio, board })` renders into the
 three slots and either resumes the saved company, imports an old one, or
 founds a new one. `body.ltd-on` switches the page to the two-column layout.
 
+**The calendar.** Day 1 is 1 October 2026 (`LAUNCH` in `shared.js`). Days
+before it are preview days (0, -1, …), labelled "Preview", each with its
+own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
+once players have real progress**. If it does move, `shared.js` notices
+(it remembers the date in `debugg-epoch`) and clears per-day progress, the
+streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
+drafts.
+
 **Saves.** Puzzle progress is `debugg-day<N>` (Python) and
 `debugg-<lang>-day<N>`, plus `debugg-xp`, `debugg-streak` and `debugg-lang`.
 The company is `debugg-ltd`. Pre-merge studio saves
@@ -940,7 +948,7 @@ Big systems that depend on the earlier phases.
 
 `npm test` runs the Playwright suite in `tests/` against a small static
 server (`tests/serve.js`). Tests fix the date with
-`page.clock.setFixedTime` (Day 1 is 27 September 2026) and simulate time
+`page.clock.setFixedTime` (Day 1 is 1 October 2026; `dayDate(n)` in `tests/helpers.js`, with 0 and below for preview days) and simulate time
 passing by editing saves and moving the clock. The sandbox's Python tests
 need Pyodide: from the CDN, or set `PYODIDE_DIR` to an unpacked `pyodide`
 npm package when there's no internet. Switching language on the puzzle page

@@ -698,7 +698,8 @@ window.DebuggLtd = (function(){
     function pruneLedger(){
       const cutoff = D.today() - PAID_MEMORY_DAYS;
       Object.keys(state.paid).forEach(k => {
-        if(parseInt(k.split('-').pop(), 10) < cutoff) delete state.paid[k];
+        const day = parseInt((/-(-?\d+)$/.exec(k) || [])[1], 10);
+        if(!(day >= cutoff)) delete state.paid[k];
       });
     }
 

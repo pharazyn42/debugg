@@ -46,7 +46,7 @@ The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on
 
 ## Adding a puzzle
 
-Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 was 27 September 2026), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 is 1 October 2026; days before it show a "Preview" puzzle), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
 
 To add a new language, add it to `LANGS` and `SYNTAX` in `shared.js` (name, file extension, indent, keywords, comment and string syntax), then add puzzles with that `lang`.
 

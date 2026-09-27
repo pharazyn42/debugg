@@ -1,6 +1,6 @@
 // The daily puzzle page: every puzzle, language tabs, streak, XP and old saves.
 const { test, expect } = require('@playwright/test');
-const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
+const { dayDate, openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
 
 const LANGS = ['python', 'javascript'];
 
@@ -17,7 +17,7 @@ for(const lang of LANGS){
     const count = await page.evaluate(l => window.Debugg.puzzlesFor(l).length, lang);
     expect(count).toBeGreaterThan(5);
     for(let day = 1; day <= count; day++){
-      await page.clock.setFixedTime(new Date(2026, 8, 26 + day, 12));
+      await page.clock.setFixedTime(dayDate(day));
       await fresh(page);
       const p = await puzzleFor(page, lang, day);
       await expect(page.locator('#kicker')).toHaveText('Debugg · Day ' + day);
@@ -61,7 +61,7 @@ test('the streak counts days with at least one solve', async ({ page }) => {
   await guess(page, (await puzzleFor(page, 'python', 1)).display);
   await expect(page.locator('#streak')).toHaveText('1');
 
-  await page.clock.setFixedTime(new Date(2026, 8, 28, 12));
+  await page.clock.setFixedTime(dayDate(2));
   await gotoLang(page, 'javascript', 2);
   await guess(page, (await puzzleFor(page, 'javascript', 2)).display);
   await expect(page.locator('#streak')).toHaveText('2');
@@ -71,7 +71,7 @@ test('the streak counts days with at least one solve', async ({ page }) => {
   await expect(page.locator('#streak')).toHaveText('2');
 
   // Day 3 with no solve, so on day 4 it's gone.
-  await page.clock.setFixedTime(new Date(2026, 8, 30, 12));
+  await page.clock.setFixedTime(dayDate(4));
   await page.reload();
   await expect(page.locator('#streak')).toHaveText('0');
 });
@@ -87,7 +87,7 @@ test('XP depends on guesses and hints, and is only awarded once', async ({ page 
   expect((await xp()).python).toBe(100);
 
   // Second guess with one hint: 75 × 0.75 = 56.
-  await page.clock.setFixedTime(new Date(2026, 8, 28, 12));
+  await page.clock.setFixedTime(dayDate(2));
   await page.reload();
   await page.click('#hintBtn');
   await guess(page, 'nope');
@@ -103,7 +103,8 @@ test('XP depends on guesses and hints, and is only awarded once', async ({ page 
 
 test('saves from before languages and XP still load', async ({ page }) => {
   await openAt(page, 'index.html#python', 1);
-  await page.evaluate(() => localStorage.clear());
+  // Old formats, but under the current calendar (the remembered Day 1 date is kept).
+  await fresh(page);
   await withStorage(page, {
     'debugg-streak': '3',
     'debugg-day1': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 2 }
@@ -122,4 +123,51 @@ test('works at phone width', async ({ page }) => {
   await fresh(page);
   await page.click('#revealBtn');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
+test('days before Day 1 are previews with their own saves', async ({ page }) => {
+  await openAt(page, 'index.html#python', -3);  // 27 September 2026
+  await fresh(page);
+  await expect(page.locator('#kicker')).toHaveText('Debugg · Preview · Day 1 is 1 October');
+  await expect(page.locator('#filename')).toHaveText('preview.py');
+  await guess(page, (await puzzleFor(page, 'python', -3)).display);
+  await expect(page.locator('#feedback')).toHaveClass(/correct/);
+  expect(await readJson(page, 'debugg-day-3')).toMatchObject({ solved: true });
+
+  // Day 1 is a fresh puzzle, and the preview solve carried the streak into it.
+  await page.clock.setFixedTime(dayDate(1));
+  await page.reload();
+  await expect(page.locator('#kicker')).toHaveText('Debugg · Day 1');
+  await expect(page.locator('#feedback')).not.toHaveClass(/correct/);
+});
+
+test('moving Day 1 clears progress saved under the old day numbers', async ({ page }) => {
+  await openAt(page, 'index.html#python', 1);
+  await page.evaluate(() => {
+    localStorage.clear();  // no remembered calendar, as for saves made before it existed
+    localStorage.setItem('debugg-day1', JSON.stringify({ attempts: ['correct'], solved: true, revealed: true, hintLevel: 0, xp: 100 }));
+    localStorage.setItem('debugg-javascript-day1', JSON.stringify({ attempts: ['wrong'], solved: false, revealed: false, hintLevel: 0 }));
+    localStorage.setItem('debugg-streak', JSON.stringify({ count: 1, lastDay: 1 }));
+    localStorage.setItem('debugg-xp', JSON.stringify({ python: 100 }));
+    localStorage.setItem('debugg-ltd', JSON.stringify({ enabled: false, pausedAt: 1, money: 500, paid: { 'python-1': true } }));
+  });
+  await page.reload();
+  await expect(page.locator('#feedback')).not.toHaveClass(/correct/);
+  const kept = await page.evaluate(() => ({
+    day1: localStorage.getItem('debugg-day1'),
+    js: localStorage.getItem('debugg-javascript-day1'),
+    streak: localStorage.getItem('debugg-streak'),
+    xp: JSON.parse(localStorage.getItem('debugg-xp')),
+    company: JSON.parse(localStorage.getItem('debugg-ltd'))
+  }));
+  expect(kept.day1).toBeNull();
+  expect(kept.js).toBeNull();
+  expect(kept.streak).toBeNull();
+  expect(kept.xp).toEqual({ python: 100 });
+  expect(kept.company).toMatchObject({ money: 500, paid: {} });
+
+  // Once the calendar is remembered, nothing else is cleared.
+  await guess(page, (await puzzleFor(page, 'python', 1)).display);
+  await page.reload();
+  await expect(page.locator('#feedback')).toHaveClass(/correct/);
 });

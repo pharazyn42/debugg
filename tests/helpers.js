@@ -1,8 +1,8 @@
 // Shared helpers for the browser tests.
 
-// Local noon on game day n (Day 1 is 27 September 2026).
+// Local noon on game day n (Day 1 is 1 October 2026; days before it are previews: 0, -1, …).
 function dayDate(n){
-  return new Date(2026, 8, 26 + n, 12, 0, 0);
+  return new Date(2026, 9, n, 12, 0, 0);
 }
 
 // Opens a page with the clock fixed to game day `day` (timers still run normally).

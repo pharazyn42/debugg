@@ -526,7 +526,8 @@ def _debugg_run(src):
     const list = window.Debugg.puzzlesFor(l);
     const seen = new Set();
     const res = [];
-    for(let d = DAY; d >= 1; d--){
+    // Before launch, "earlier days" are only today's preview.
+    for(let d = DAY; d >= Math.min(1, DAY); d--){
       if(d === DAY && !window.Debugg.isFinished(l, d)) continue;
       const idx = (d - 1) % list.length;
       if(seen.has(idx)) continue;
@@ -547,7 +548,7 @@ def _debugg_run(src):
       const o = document.createElement('option');
       o.value = it.day;
       const firstLine = it.puzzle.code.split('\n').find(l => l.trim() && !/^\s*(#|\/\/)/.test(l)) || '';
-      o.textContent = 'Day ' + it.day + (it.day === DAY ? ' (today)' : '') + ': ' + (firstLine.length > 38 ? firstLine.slice(0, 37) + '…' : firstLine);
+      o.textContent = window.Debugg.dayLabel(it.day) + (it.day === DAY ? ' (today)' : '') + ': ' + (firstLine.length > 38 ? firstLine.slice(0, 37) + '…' : firstLine);
       pick.appendChild(o);
     });
     pick.disabled = !items.length;
@@ -556,13 +557,13 @@ def _debugg_run(src):
   function loadPuzzle(day){
     const it = unlockedPuzzles(lang).find(x => x.day === day);
     if(!it){
-      noteEl.textContent = 'Day ' + day + '\'s ' + LANGS[lang].name + ' puzzle isn\'t unlocked yet. Finish it on the daily page first.';
+      noteEl.textContent = window.Debugg.dayLabel(day) + '\'s ' + LANGS[lang].name + ' puzzle isn\'t unlocked yet. Finish it on the daily page first.';
       return false;
     }
     replaceAll(it.puzzle.code + '\n');
     saveDraft();
     noteEl.innerHTML = '';
-    noteEl.append('Loaded Day ' + day + '. It printed ');
+    noteEl.append('Loaded ' + (window.Debugg.isPreview(day) ? 'the preview puzzle' : 'Day ' + day) + '. It printed ');
     const c = document.createElement('code');
     c.textContent = it.puzzle.display;
     noteEl.append(c, '. Try changing it and running it again.');
@@ -621,7 +622,7 @@ def _debugg_run(src):
   }
   setLang(startLang);
   const wantedDay = parseInt(params.get('day'), 10);
-  if(wantedDay > 0) loadPuzzle(wantedDay);
+  if(!isNaN(wantedDay)) loadPuzzle(wantedDay);
 
   window.addEventListener('hashchange', () => {
     const l = location.hash.slice(1);

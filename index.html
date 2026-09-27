@@ -631,8 +631,10 @@
   });
 
   renderLangs();
-  kickerEl.textContent = 'Debugg · Day ' + DAY;
-  filenameEl.textContent = 'day' + DAY + '.' + LANGS[lang].ext;
+  kickerEl.textContent = window.Debugg.isPreview(DAY)
+    ? 'Debugg · Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+    : 'Debugg · Day ' + DAY;
+  filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + DAY) + '.' + LANGS[lang].ext;
   renderCode();
   renderReveal();
   load();
