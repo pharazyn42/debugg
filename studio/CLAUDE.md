@@ -490,17 +490,16 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   own desk performance opens up the studio's ceiling — as the original
   concept doc intended.
 
-#### 13. Business tiers and multiple sites
+#### 13. Business tiers
 - Show a business-tier label that grows with headcount: Start-up →
   Small business → … → something massive (e.g. Multinational).
 - Thresholds and names are TBD. The current Director-as-manager phase is
   the "Start-up" tier.
-- Moving up a tier could unlock things: more contract-board slots, bigger
-  contract types, new hire types.
-- At larger tiers, add an option to expand to multiple sites (offices).
-  Each site would plausibly have its own headcount capacity and managers,
-  possibly a regional speciality (e.g. an embedded-heavy site). How sites
-  interact with team staffing (can a team span sites?) is TBD.
+- Moving up a tier could unlock things:
+  - more contract-board slots;
+  - bigger contract types;
+  - new hire types;
+  - later, multiple sites (item 18).
 
 #### 14. Training for language (and later domain) skills
 - Add a way to spend money (and/or time off contracts) to train a person's
@@ -520,13 +519,58 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   (higher salary and/or hire cost). They're a way past the desk cap
   before you can afford space.
 - Over time you rent offices, buy rooms, then whole buildings, each adding
-  desks. This fits with the business tiers and multiple sites in item
-  13; sites could be where buildings live.
+  desks. This fits with the business tiers (item 13) and multiple sites
+  (item 18); sites could be where buildings live.
 - Open questions:
   - Do contractors count towards the supervision structure and manager
     span?
   - Can they be promoted?
   - Do they gain XP at the same rate?
+
+#### 15b. Shared event system
+- One system for everything that randomly (or conditionally) happens to
+  the studio, built before any individual event. Each event defines:
+  - **trigger**: a random chance per tick, a condition (e.g. too many
+    learners), or scheduled (e.g. a planned holiday);
+  - **target**: the whole studio, a job, a person, a language or a
+    product;
+  - **effect**: pause, a SLOC/min penalty, extra SLOC, someone
+    unavailable, or a cost;
+  - **duration** and recovery.
+- It also covers **presentation**: a log entry, a badge or banner with a
+  countdown on whatever is affected, and the roster/panel status.
+- It must work **offline**: events are simulated while the page is
+  closed, within the offline cap, the same way repeats are.
+- Randomness goes through the injectable seeded RNG from item 1, so tests
+  can force events.
+- Events built on it: absences (15c), Tech Debt (17b), Merge Conflict
+  (17c), disruptive events (17d); later maybe good events too (a star
+  hire applies, a client tips extra).
+
+#### 15c. Absences: sick days and holidays
+- Employees are sometimes unavailable. Chances, frequency and durations
+  are to be decided later.
+- **Off sick**: unplanned and random. The person drops out for a while,
+  even mid-contract.
+  - The team carries on without their SLOC/min, so the contract slows.
+  - If they were the only one meeting a requirement (e.g. the only
+    senior on a Patch), the contract could pause until they're back, or
+    the player can swap someone in.
+  - Sick pay: salary probably still paid.
+- **On holiday**: planned. It's announced in advance (e.g. "Sam is off
+  next Tuesday"), so the player can plan around it, e.g. not starting a
+  Major release that would run into it.
+  - Possibly an allowance per person, or requests the player approves
+    or declines. Declining could hook into a future morale system.
+- **Interactions**:
+  - Repeats: skip or pause while someone's away.
+  - Deadlines (item 6): an absence can make a team miss one.
+  - Offline progress: absences should be simulated while the page is
+    closed too.
+  - The employee panel and roster card: show "Off sick" / "On holiday
+    until …".
+- The first event built on the shared event system (15b): a good,
+  self-contained test of it before the late-game events.
 
 ### Phase 4 — Late game
 
@@ -603,6 +647,7 @@ Big systems that depend on the earlier phases.
   product could have a domain too).
 
 #### 17b. Tech Debt (event)
+- Built on the shared event system (15b).
 - A later-game complication that adds cost or time. It's named after the
   developer in-joke.
 - **How it builds up** (ideas): from cutting corners, e.g.:
@@ -622,6 +667,7 @@ Big systems that depend on the earlier phases.
   decay on its own; how visible is it before it bites?
 
 #### 17c. Merge Conflict (event)
+- Built on the shared event system (15b).
 - A later-game event that adds time to a contract in progress. It's
   named after the developer in-joke.
 - **Trigger**: random, with better odds of hitting when more people are
@@ -638,30 +684,7 @@ Big systems that depend on the earlier phases.
   resolve it), or is it purely automatic? How often should it happen so
   it's flavour, not frustration?
 
-#### 17d. Absences: sick days and holidays
-- Employees are sometimes unavailable. Chances, frequency and durations
-  are to be decided later.
-- **Off sick**: unplanned and random. The person drops out for a while,
-  even mid-contract.
-  - The team carries on without their SLOC/min, so the contract slows.
-  - If they were the only one meeting a requirement (e.g. the only
-    senior on a Patch), the contract could pause until they're back, or
-    the player can swap someone in.
-  - Sick pay: salary probably still paid.
-- **On holiday**: planned. It's announced in advance (e.g. "Sam is off
-  next Tuesday"), so the player can plan around it, e.g. not starting a
-  Major release that would run into it.
-  - Possibly an allowance per person, or requests the player approves
-    or declines. Declining could hook into a future morale system.
-- **Interactions**:
-  - Repeats: skip or pause while someone's away.
-  - Deadlines (item 6): an absence can make a team miss one.
-  - Offline progress: absences should be simulated while the page is
-    closed too.
-  - The employee panel and roster card: show "Off sick" / "On holiday
-    until …".
-
-#### 17e. Disruptive events (server offline and others)
+#### 17d. Disruptive events (server offline and others)
 - Random studio-wide or targeted events that disrupt work for a while.
   How often, how long and how severe are to be decided later. Examples:
   - **Server offline**: all (or some) contracts pause until it's back.
@@ -679,11 +702,10 @@ Big systems that depend on the earlier phases.
   hardware, a DevOps hire. That ties in with studio upgrades.
 - **Presentation**: events appear in the log, and as a banner or badge on
   affected jobs, with a countdown to recovery.
-- Tech Debt (17b) and Merge Conflict (17c) are the first two of these
-  events. They should all share one event system: trigger, target,
-  effect, duration, log message.
+- Built on the shared event system (15b), like absences (15c), Tech
+  Debt (17b) and Merge Conflict (17c).
 
-#### 17f. Multi-language contracts
+#### 17e. Multi-language contracts
 - Later in the game, some contracts need more than one language, e.g. a
   Python back end with a JavaScript front end, or a Rust service with
   Python tooling. Hotfixes stay single-language; multi-language contracts
@@ -712,8 +734,15 @@ Big systems that depend on the earlier phases.
   make sense (reuse or extend `PAIRINGS`)?
 
 #### 18. Multiple sites, rooms and buildings
-- The multi-site half of item 13 and the buildings half of item 15,
-  built once those basics exist.
+- At larger business tiers (item 13), add an option to expand to
+  multiple sites (offices).
+  - Each site would plausibly have its own headcount capacity and
+    managers, and possibly a regional speciality (e.g. an embedded-heavy
+    site).
+  - How sites interact with team staffing (can a team span sites?) is
+    TBD.
+- Builds on office space (item 15): sites are where rooms and buildings
+  live, each adding desks.
 
 #### 19. Prestige
 - "Acquisition": cash out the studio for a permanent multiplier and pick
