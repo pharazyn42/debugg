@@ -1,8 +1,9 @@
-// Debugg puzzle data. One puzzle per day, in order; after the last one the list starts over.
+// Debugg puzzle data. Each language has its own daily puzzle: a language's puzzles run one per day
+// in the order they appear here, and after its last one they start over.
 // Loaded with a plain <script> tag (not fetch) so index.html still works when opened straight from disk.
 //
 // Fields:
-//   lang       language key (only 'python' so far)
+//   lang       language key: 'python' or 'javascript' (see LANGS in index.html)
 //   code       the snippet; the last line is the print the player has to predict
 //   flag       { line, text } marks the buggy bit, underlined once the game ends
 //   answers    accepted guesses; compared after normalising (case, spaces, quotes and brackets ignored)
@@ -258,5 +259,204 @@ print(save())`,
     explain: '<code>finally</code> <b>always</b> runs, even after <code>try</code> has returned. The try block gets ready to return <code>"saved"</code>, then finally runs and returns <code>"cancelled"</code> instead, which replaces it. If the try block had raised an exception, the return in finally would have silently swallowed that too.',
     fix: 'Never <code>return</code> from a <code>finally</code> block. Use finally only for cleanup, like closing files.',
     inTheWild: 'This is risky enough that Python 3.14 now warns about it: PEP 765 makes <code>return</code>, <code>break</code> and <code>continue</code> that leave a <code>finally</code> block a <code>SyntaxWarning</code>, because they can silently hide both return values and exceptions.'
+  },
+  // --- JavaScript ---------------------------------------------------------------
+  {
+    lang: 'javascript',
+    code: `const scores = [10, 9, 1];
+scores.sort();
+console.log(scores);`,
+    flag: { line: 2, text: 'scores.sort()' },
+    answers: ['1,10,9'],
+    display: '[1, 10, 9]',
+    nudge: 'Not quite. How does sort() compare items if you don\'t tell it how?',
+    hints: [
+      'With no compare function, sort() doesn\'t compare the numbers as numbers. What does it compare?',
+      'sort() turns each item into a string and sorts alphabetically, and "10" comes before "9".'
+    ],
+    explain: 'With no compare function, <code>sort()</code> converts every item to a <b>string</b> and sorts them in dictionary order. As strings, <code>"10"</code> comes before <code>"9"</code> because <code>"1"</code> comes before <code>"9"</code>. So the order is 1, 10, 9.',
+    fix: 'Pass a compare function: <code>scores.sort((a, b) =&gt; a - b)</code>.',
+    inTheWild: 'This has been the rule since the first edition of the ECMAScript spec in 1997, and it can\'t change without breaking old websites. Typed arrays like <code>Int32Array</code> came much later, and their <code>sort()</code> does sort numbers numerically.'
+  },
+  {
+    lang: 'javascript',
+    code: `const user = null;
+console.log(typeof user);`,
+    flag: { line: 2, text: 'typeof user' },
+    answers: ['object'],
+    display: 'object',
+    nudge: 'Not quite. typeof has a famous quirk with exactly this value.',
+    hints: [
+      'This is a well-known quirk of typeof. It isn\'t "null".',
+      'typeof null is "object", a leftover from the very first version of JavaScript.'
+    ],
+    explain: '<code>typeof null</code> is <code>"object"</code>, even though <code>null</code> isn\'t an object. It\'s a bug from JavaScript\'s first version that was never fixed. That\'s why a check like <code>typeof x === "object"</code> lets <code>null</code> through, and the code then crashes on <code>x.name</code>.',
+    fix: 'Check for null directly: <code>user === null</code>, or <code>user !== null &amp;&amp; typeof user === "object"</code> for "a real object".',
+    inTheWild: 'The first JavaScript engine stored a small type tag with every value, and the tag for objects was 0. <code>null</code> was stored as a null pointer, which is all zeros, so it read as an object. A proposal to make <code>typeof null</code> return <code>"null"</code> was considered for ES2015 but rejected because it broke too much existing code.'
+  },
+  {
+    lang: 'javascript',
+    code: `const price = "5";  // from a form input
+const shipping = 2;
+console.log(price + shipping - shipping);`,
+    flag: { line: 3, text: 'price + shipping' },
+    answers: ['50'],
+    display: '50',
+    nudge: 'Not quite. price is a string. What does + do with a string?',
+    hints: [
+      'Work left to right. What is "5" + 2 when one side is a string?',
+      '"5" + 2 joins them into the string "52". Then - only works on numbers, so "52" - 2 is 50.'
+    ],
+    explain: 'Work left to right. <code>+</code> with a string <b>joins</b> text, so <code>"5" + 2</code> is <code>"52"</code>. But <code>-</code> only means subtraction, so JavaScript converts <code>"52"</code> to a number: <code>52 - 2</code> is <code>50</code>. Two operators that look like opposites treat strings completely differently.',
+    fix: 'Convert input as soon as you read it: <code>const price = Number(input.value);</code>',
+    inTheWild: 'A form input\'s <code>.value</code> is always a string, even for <code>&lt;input type="number"&gt;</code>, so "add to cart" totals like "10" + "5" = "105" are a classic web bug. Gary Bernhardt\'s 2012 lightning talk "Wat" made JavaScript\'s type conversions famous, with examples like <code>[] + {}</code>.'
+  },
+  {
+    lang: 'javascript',
+    code: `const nums = ["1", "7", "11"].map(parseInt);
+console.log(nums);`,
+    flag: { line: 1, text: 'map(parseInt)' },
+    answers: ['1,nan,3'],
+    display: '[1, NaN, 3]',
+    nudge: 'Not quite. map() passes more than one argument to the function it calls.',
+    hints: [
+      'map() calls your function with (value, index, array). parseInt takes a second argument too. What is it?',
+      'parseInt\'s second argument is the base. So this runs parseInt("1", 0), parseInt("7", 1) and parseInt("11", 2).'
+    ],
+    explain: '<code>map</code> calls the function with <b>(value, index, array)</b>, and <code>parseInt</code>\'s second argument is the number base. So you get <code>parseInt("1", 0)</code>, which is 1 (base 0 means "work it out"), <code>parseInt("7", 1)</code>, which is NaN (base 1 isn\'t valid), and <code>parseInt("11", 2)</code>, which is 3 (11 in binary).',
+    fix: '<code>["1", "7", "11"].map(Number)</code>, or <code>.map(s =&gt; parseInt(s, 10))</code>.',
+    inTheWild: 'This one is a JavaScript classic, and the lesson goes beyond <code>parseInt</code>: passing a function straight to <code>map</code> is only safe if it ignores extra arguments. It can also break later, when a library adds an optional second parameter to a function you were passing this way.'
+  },
+  {
+    lang: 'javascript',
+    code: `const fns = [];
+for (var i = 0; i < 3; i++) {
+  fns.push(() => i);
+}
+console.log(fns.map(f => f()));`,
+    flag: { line: 2, text: 'var i = 0' },
+    answers: ['3,3,3'],
+    display: '[3, 3, 3]',
+    nudge: 'Not quite. How many i variables does this loop create?',
+    hints: [
+      'var creates one variable for the whole function, not one per loop. When do the arrow functions read it?',
+      'All three functions share the same i, and they run after the loop, when i has reached 3.'
+    ],
+    explain: '<code>var</code> creates <b>one</b> <code>i</code> for the whole function. Each arrow function reads <code>i</code> when it\'s <b>called</b>, not when it\'s created. They\'re all called on line 5, after the loop has finished, and the loop only stops once <code>i</code> reaches 3.',
+    fix: 'Use <code>let</code>: <code>for (let i = 0; i &lt; 3; i++)</code> gives each loop iteration its own <code>i</code>.',
+    inTheWild: 'Before <code>let</code> arrived in ES2015, the standard workaround was to wrap the loop body in a function that runs immediately (an "IIFE") just to get a fresh variable each time. The classic version of this bug is click handlers made in a loop, where every button reports the last index.'
+  },
+  {
+    lang: 'javascript',
+    code: `function getConfig() {
+  return
+  {
+    debug: true
+  };
+}
+console.log(getConfig());`,
+    flag: { line: 2, text: 'return' },
+    answers: ['undefined'],
+    display: 'undefined',
+    nudge: 'Not quite. Look at what\'s on the same line as return.',
+    hints: [
+      'JavaScript can add semicolons for you. Where might it add one here?',
+      'JavaScript puts a semicolon straight after return, because nothing follows it on that line. The function returns nothing.'
+    ],
+    explain: 'JavaScript inserts missing semicolons for you, and a line break straight after <code>return</code> ends the statement. So this is really <code>return;</code>, which returns <code>undefined</code>. The <code>{ debug: true }</code> below is never reached. It\'s parsed as a block, not an object.',
+    fix: 'Keep the opening brace on the same line: <code>return {</code>.',
+    inTheWild: 'This is one of the main reasons JavaScript style guides put opening braces on the same line, and Douglas Crockford warns about it in "JavaScript: The Good Parts" (2008). Code formatters like Prettier don\'t change what the code means, but they lay it out so the problem is easy to see.'
+  },
+  {
+    lang: 'javascript',
+    code: `const input = "0";
+if (input == false) {
+  console.log("empty");
+} else {
+  console.log("has value");
+}`,
+    flag: { line: 2, text: 'input == false' },
+    answers: ['empty'],
+    display: 'empty',
+    nudge: 'Not quite. What does == do when the two sides are different types?',
+    hints: [
+      '== converts both sides before comparing. What does "0" become? And false?',
+      'Both sides become the number 0, so "0" == false is true.'
+    ],
+    explain: '<code>==</code> converts both sides to the same type before comparing. <code>false</code> becomes 0 and <code>"0"</code> becomes 0, so they\'re equal. That\'s despite <code>"0"</code> being a non-empty string, which counts as true in an <code>if (input)</code>. So a real value gets treated as empty.',
+    fix: 'Use <code>===</code>, which never converts: <code>input === ""</code>.',
+    inTheWild: '<code>==</code>\'s conversion rules are confusing enough that ESLint has a built-in rule, <code>eqeqeq</code>, to require <code>===</code>, and most JavaScript style guides turn it on. Users whose answer is genuinely "0", like a quantity or a count, are the usual victims.'
+  },
+  {
+    lang: 'javascript',
+    code: `// Christmas: month 12, day 25?
+const xmas = new Date(2026, 12, 25);
+console.log(xmas.getFullYear());`,
+    flag: { line: 2, text: '12' },
+    answers: ['2027'],
+    display: '2027',
+    nudge: 'Not quite. What number is January in a JavaScript Date?',
+    hints: [
+      'Months in JavaScript\'s Date are counted from 0. So which month is 12?',
+      'January is 0 and December is 11. Month 12 rolls over into January of the next year.'
+    ],
+    explain: 'Months in <code>Date</code> run from <b>0 to 11</b>, so 12 is one past December. Instead of raising an error, <code>Date</code> rolls the extra month into the next year, giving 25 January 2027. Days and years are counted normally, which makes this easy to miss.',
+    fix: 'Use 11 for December: <code>new Date(2026, 11, 25)</code>, or pass an ISO string like <code>"2026-12-25"</code>.',
+    inTheWild: 'JavaScript copied this from Java\'s <code>java.util.Date</code>, because JavaScript was made to look like Java. Java deprecated most of that class in 1997, but JavaScript kept it. The newer <code>Temporal</code> date API finally numbers months from 1.'
+  },
+  {
+    lang: 'javascript',
+    code: `const orderId = 9007199254740993;
+console.log(orderId);`,
+    flag: { line: 1, text: '9007199254740993' },
+    answers: ['9007199254740992'],
+    display: '9007199254740992',
+    nudge: 'Not quite. How big a whole number can a JavaScript number store exactly?',
+    hints: [
+      'All JavaScript numbers are floating point. Above a certain size, not every whole number can be stored.',
+      'Above 2⁵³ (9007199254740992), only every other whole number can be stored, so this one is rounded.'
+    ],
+    explain: 'Every JavaScript number is a 64-bit float, and whole numbers are only exact up to <b>2⁵³</b> (9007199254740992). Past that, the gaps between numbers you can store grow larger than 1, so <code>9007199254740993</code> gets rounded to the nearest one that fits. No error, just a different number.',
+    fix: 'Keep big IDs as strings, or use <code>BigInt</code>: <code>9007199254740993n</code>.',
+    inTheWild: 'Twitter hit this when tweet IDs grew past 2⁵³: JavaScript clients parsing the JSON quietly got the wrong IDs. Twitter\'s API added an <code>id_str</code> field with the ID as a string. JavaScript later added <code>BigInt</code> in ES2020 for exact large whole numbers.'
+  },
+  {
+    lang: 'javascript',
+    code: `const user = { name: "Ada", roles: ["admin"] };
+const guest = { ...user };
+guest.roles.push("guest");
+console.log(user.roles);`,
+    flag: { line: 2, text: '{ ...user }' },
+    answers: ['admin,guest'],
+    display: "['admin', 'guest']",
+    nudge: 'Not quite. Does spreading copy the roles array, or share it?',
+    hints: [
+      '{ ...user } makes a new object. But what about the objects and arrays inside it?',
+      'Spreading is a shallow copy: guest.roles and user.roles are the same array.'
+    ],
+    explain: '<code>{ ...user }</code> makes a <b>shallow</b> copy: a new outer object, but its properties still point at the same values. <code>guest.roles</code> is the very same array as <code>user.roles</code>, so pushing to one changes both, and the admin now has a guest role too.',
+    fix: 'Copy the nested array too (<code>{ ...user, roles: [...user.roles] }</code>) or deep-copy with <code>structuredClone(user)</code>.',
+    inTheWild: 'Deep copying used to mean a library or the lossy <code>JSON.parse(JSON.stringify(x))</code> trick, which drops dates, functions and <code>undefined</code>. <code>structuredClone()</code> was available in all major browsers by 2022 and does it properly. In state libraries like Redux, a shallow copy like this one is a classic cause of screens that don\'t update.'
+  },
+  {
+    lang: 'javascript',
+    code: `function hasNegative(nums) {
+  nums.forEach(n => {
+    if (n < 0) return true;
+  });
+  return false;
+}
+console.log(hasNegative([3, -1, 2]));`,
+    flag: { line: 3, text: 'return true' },
+    answers: ['false'],
+    display: 'false',
+    nudge: 'Not quite. Which function does that return true return from?',
+    hints: [
+      'That return is inside an arrow function. Does it return from hasNegative?',
+      'return true only ends the arrow function for that one item. forEach ignores it, and hasNegative carries on to return false.'
+    ],
+    explain: 'The <code>return true</code> is inside the <b>arrow function</b>, so it only ends that call, for the item -1. <code>forEach</code> ignores return values and keeps going, then <code>hasNegative</code> reaches its own <code>return false</code>. The negative number was found, and the result was thrown away.',
+    fix: 'Use <code>some</code>, which stops at the first match: <code>return nums.some(n =&gt; n &lt; 0);</code>',
+    inTheWild: 'There\'s no way to stop a <code>forEach</code> early except throwing an error. That\'s why arrays have <code>some</code>, <code>every</code> and <code>find</code>, which all stop as soon as they have an answer. A plain <code>for...of</code> loop, where <code>return</code> works as expected, is another fix.'
   }
 ];

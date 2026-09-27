@@ -1,8 +1,8 @@
 # Debugg
 
-A Wordle-style daily game where you guess what a short, buggy Python snippet actually prints — no coding required, just read the code and reason it out.
+A Wordle-style daily game where you guess what a short, buggy Python or JavaScript snippet actually prints — no coding required, just read the code and reason it out.
 
-There's a new puzzle every day at local midnight. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving puzzles on consecutive days builds your bug streak.
+There's a new puzzle in each language every day at local midnight; pick a language with the tabs at the top. Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and an "In the wild" note: a real incident caused by the same kind of bug, or an interesting fact about it. Solving at least one puzzle a day, in any language, builds your bug streak.
 
 Each puzzle also earns XP, tracked separately for each language so you level up in each one:
 
@@ -20,7 +20,9 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Adding a puzzle
 
-Puzzles live in `puzzles.js`, one per day in order (Day 1 was 27 September 2026). After the last one, the list starts over from the beginning, so add new puzzles to the end to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet in real Python to check its output.
+Puzzles live in `puzzles.js`. Each language's puzzles run one per day in the order they appear (Day 1 was 27 September 2026), and after a language's last puzzle its list starts over. Add new puzzles to the end of their language's section to keep things fresh. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+
+To add a new language, add it to `LANGS` and `SYNTAX` in `index.html` (name, file extension, keywords, comment and string syntax), then add puzzles with that `lang`.
 
 ## Deploying with GitHub Pages
 
@@ -31,7 +33,6 @@ Puzzles live in `puzzles.js`, one per day in order (Day 1 was 27 September 2026)
 
 ## Roadmap
 
-- Add puzzles in more languages. XP is already tracked per language: add the language to `LANGS` in `index.html` and set `lang` on its puzzles. The syntax highlighter only knows Python so far.
 - Add a sandbox where players can write and run their own code snippets.
 - Add new puzzle types alongside "what does this print?":
   - **Fix it:** modify the given code so it produces the correct output.

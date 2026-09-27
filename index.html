@@ -250,6 +250,29 @@
   }
   .com{ color: var(--text-faint); font-style: italic; }
 
+  .langs{
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 0 4px;
+  }
+  .lang-tab{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1.5px solid var(--line);
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .lang-tab:hover{ color: var(--text); border-color: var(--text-faint); }
+  .lang-tab[aria-current="page"]{ background: var(--amber); border-color: var(--amber); color: #1a1305; font-weight: 600; }
+  .lang-tab .mark{ margin-left: 6px; }
+  .lang-tab .mark.won{ color: var(--green); }
+  .lang-tab .mark.lost{ color: var(--red); }
+  .lang-tab[aria-current="page"] .mark{ color: inherit; }
+
   .xp{
     display: flex;
     flex-direction: column;
@@ -258,7 +281,7 @@
   }
   .xp-row{
     display: grid;
-    grid-template-columns: auto auto 1fr auto;
+    grid-template-columns: 11ch 5ch 1fr auto;
     align-items: center;
     gap: 10px;
     font-family: var(--mono);
@@ -299,8 +322,10 @@
   <header>
     <p class="kicker" id="kicker">Debugg</p>
     <h1>What does this print?</h1>
-    <p class="sub">Read the snippet, then guess what the last line prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
+    <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
+
+  <nav class="langs" id="langs" aria-label="Language"></nav>
 
   <div class="tiles" id="tiles"></div>
   <div class="hint-track" id="hintTrack">
@@ -380,16 +405,40 @@
     return Math.max(1, Math.floor((today - LAUNCH) / DAY_MS) + 1);
   }
 
-  const DAY = dayNumber(new Date());
-  const puzzle = PUZZLES[(DAY - 1) % PUZZLES.length];
-  const STATE_KEY = 'debugg-day' + DAY;
+  const LANGS = {
+    python: { name: 'Python', ext: 'py' },
+    javascript: { name: 'JavaScript', ext: 'js' }
+  };
+  const LANG_KEY = 'debugg-lang';
   const STREAK_KEY = 'debugg-streak';
   const XP_KEY = 'debugg-xp';
 
-  const LANGS = {
-    python: { name: 'Python', ext: 'py' }
-  };
-  const lang = LANGS[puzzle.lang] ? puzzle.lang : 'python';
+  // Each language has its own daily puzzle. The chosen language comes from the URL (#javascript),
+  // then the last one played, then Python.
+  function pickLang(){
+    const fromHash = location.hash.slice(1);
+    if(LANGS[fromHash]) return fromHash;
+    try{
+      const saved = localStorage.getItem(LANG_KEY);
+      if(LANGS[saved]) return saved;
+    }catch(e){}
+    return 'python';
+  }
+
+  const DAY = dayNumber(new Date());
+  const lang = pickLang();
+  try{ localStorage.setItem(LANG_KEY, lang); }catch(e){}
+
+  function puzzleFor(l){
+    const list = PUZZLES.filter(p => p.lang === l);
+    return list[(DAY - 1) % list.length];
+  }
+  // Python keeps the original key so progress saved before languages existed still loads.
+  function stateKey(l){
+    return l === 'python' ? 'debugg-day' + DAY : 'debugg-' + l + '-day' + DAY;
+  }
+  const puzzle = puzzleFor(lang);
+  const STATE_KEY = stateKey(lang);
 
   let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
   let flagEl = null;
@@ -404,7 +453,8 @@
     try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
   }
 
-  // Streak is { count, lastDay }: lastDay is the last day that was won or lost.
+  // Streak counts consecutive days with at least one solve, in any language.
+  // It's stored as { count, lastDay }, where lastDay is the last day that added to it.
   // Older versions stored a bare number; treat that as a streak ending on day 1.
   function readStreak(){
     try{
@@ -417,7 +467,7 @@
   function writeStreak(s){
     try{ localStorage.setItem(STREAK_KEY, JSON.stringify(s)); }catch(e){}
   }
-  // A streak survives only if the last finished day was today or yesterday.
+  // A streak survives only if it was last added to today or yesterday.
   function currentStreak(){
     const s = readStreak();
     return s.lastDay >= DAY - 1 ? s.count : 0;
@@ -502,17 +552,34 @@
 
   // --- Code rendering -------------------------------------------------------
 
-  const PY_KEYWORDS = new Set(['def','return','if','elif','else','for','while','in','not','and','or','is',
-    'try','except','finally','raise','with','as','import','from','class','lambda','pass','break',
-    'continue','None','True','False','global','nonlocal','yield','del','assert']);
+  // Keywords and comment/string syntax for the tiny highlighter, per language.
+  const SYNTAX = {
+    python: {
+      keywords: ['def','return','if','elif','else','for','while','in','not','and','or','is',
+        'try','except','finally','raise','with','as','import','from','class','lambda','pass','break',
+        'continue','None','True','False','global','nonlocal','yield','del','assert'],
+      comment: '#.*$',
+      string: `"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'`
+    },
+    javascript: {
+      keywords: ['const','let','var','function','return','if','else','for','while','do','of','in','new',
+        'typeof','instanceof','true','false','null','undefined','this','class','extends','try','catch',
+        'finally','throw','break','continue','switch','case','default','async','await'],
+      comment: '\\/\\/.*$',
+      string: `"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'|\`(?:[^\`\\\\]|\\\\.)*\``
+    }
+  };
+  const syntax = SYNTAX[lang];
+  const KEYWORDS = new Set(syntax.keywords);
+  const TOKEN_RE = new RegExp('(' + syntax.comment + ')|(' + syntax.string + ')|(\\b\\d+(?:\\.\\d+)?\\b)|([A-Za-z_$][\\w$]*)(?=\\s*\\()|([A-Za-z_$][\\w$]*)', 'g');
 
   function escapeHtml(t){
     return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  // Tiny Python highlighter: comments, strings, numbers, keywords and called names.
+  // Tiny highlighter: comments, strings, numbers, keywords and called names.
   function highlight(text){
-    const re = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)/g;
+    const re = new RegExp(TOKEN_RE.source, 'g');
     let out = '', last = 0, m;
     while((m = re.exec(text))){
       out += escapeHtml(text.slice(last, m.index));
@@ -520,8 +587,8 @@
       if(m[1]) out += '<span class="com">' + tok + '</span>';
       else if(m[2]) out += '<span class="str">' + tok + '</span>';
       else if(m[3]) out += '<span class="num">' + tok + '</span>';
-      else if(m[4]) out += '<span class="' + (PY_KEYWORDS.has(m[4]) ? 'kw' : 'fn') + '">' + tok + '</span>';
-      else out += PY_KEYWORDS.has(m[5]) ? '<span class="kw">' + tok + '</span>' : tok;
+      else if(m[4]) out += '<span class="' + (KEYWORDS.has(m[4]) ? 'kw' : 'fn') + '">' + tok + '</span>';
+      else out += KEYWORDS.has(m[5]) ? '<span class="kw">' + tok + '</span>' : tok;
       last = m.index + m[0].length;
     }
     return out + escapeHtml(text.slice(last));
@@ -627,11 +694,48 @@
     return puzzle.answers.some(a => normalise(a) === g);
   }
 
+  // Only a solve changes the streak, and only the first solve of the day adds to it.
+  // A loss changes nothing today; the streak just won't carry on unless something is solved.
   function finishRun(won){
-    const s = { count: won ? currentStreak() + 1 : 0, lastDay: DAY };
-    writeStreak(s);
-    streakEl.textContent = s.count;
+    const s = readStreak();
+    if(won && !(s.lastDay === DAY && s.count > 0)){
+      writeStreak({ count: currentStreak() + 1, lastDay: DAY });
+    }
+    streakEl.textContent = currentStreak();
+    renderLangs();
   }
+
+  // Tabs for each language, marked ✓ or ✕ once today's puzzle in it is finished.
+  function renderLangs(){
+    const nav = document.getElementById('langs');
+    nav.innerHTML = '';
+    Object.keys(LANGS).forEach(l => {
+      let done = null;
+      try{ done = JSON.parse(localStorage.getItem(stateKey(l))); }catch(e){}
+      const a = document.createElement('a');
+      a.className = 'lang-tab';
+      a.href = '#' + l;
+      a.textContent = LANGS[l].name;
+      if(l === lang) a.setAttribute('aria-current', 'page');
+      if(done && (done.solved || done.revealed)){
+        const mark = document.createElement('span');
+        mark.className = 'mark ' + (done.solved ? 'won' : 'lost');
+        mark.textContent = done.solved ? '✓' : '✕';
+        mark.setAttribute('aria-label', done.solved ? 'solved' : 'not solved');
+        a.appendChild(mark);
+      }
+      nav.appendChild(a);
+    });
+  }
+
+  // Switching tabs changes the hash; reload so the page starts clean for the other language.
+  window.addEventListener('hashchange', () => {
+    const l = location.hash.slice(1);
+    if(LANGS[l] && l !== lang){
+      try{ localStorage.setItem(LANG_KEY, l); }catch(e){}
+      location.reload();
+    }
+  });
 
   function startCountdown(){
     function tick(){
@@ -698,7 +802,7 @@
     renderTiles();
     lockIn();
     finishRun(false);
-    showFeedback('wrong', 'Revealed' + hintSuffix() + '. No streak today.' + awardXp());
+    showFeedback('wrong', 'Revealed' + hintSuffix() + '. The answer\'s below.' + awardXp());
   });
 
   // Clears every saved day and the streak.
@@ -710,6 +814,7 @@
     location.reload();
   });
 
+  renderLangs();
   kickerEl.textContent = 'Debugg · Day ' + DAY;
   filenameEl.textContent = 'day' + DAY + '.' + LANGS[lang].ext;
   renderCode();
