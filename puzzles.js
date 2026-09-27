@@ -347,6 +347,206 @@ print(x)`,
     takeaway: 'A comprehension’s loop variable stays inside the comprehension. A plain <code>for</code> loop’s variable doesn’t: it’s still there after the loop.'
   },
 
+  // Hard puzzles (difficulty 5) for Fridays and weekends.
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `scores = ([1], [2])
+try:
+    scores[0] += [3]
+except TypeError:
+    pass
+print(scores)`,
+    flag: { line: 3, text: 'scores[0] += [3]' },
+    answers: ['([1, 3], [2])'],
+    display: '([1, 3], [2])',
+    nudge: 'Not quite. The line raises an error, but does it change anything first?',
+    hints: [
+      'A tuple can’t be changed, so line 3 raises a TypeError. But += does two things: what are they, and in which order?',
+      '+= first extends the list in place (that works, lists can change), then tries to store it back into the tuple (that fails). The list has already changed.'
+    ],
+    explain: '<code>scores[0] += [3]</code> is really two steps: extend the list <code>scores[0]</code>, then assign the result back to <code>scores[0]</code>. The list is mutable, so step one <b>succeeds</b> and the list becomes <code>[1, 3]</code>. Step two tries to assign into the tuple, which raises <code>TypeError</code>. The error is caught, but the list has already changed.',
+    fix: 'Change the list directly, without assigning back into the tuple: <code>scores[0].append(3)</code> or <code>scores[0].extend([3])</code>.',
+    takeaway: '<code>x += y</code> changes a mutable <code>x</code> in place <i>and then</i> assigns it back. If the assignment fails, the change has still happened.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `a = [1, 2]
+b = a
+a += [3]
+a = a + [4]
+print(b)`,
+    flag: { line: 4, text: 'a = a + [4]' },
+    answers: ['[1, 2, 3]'],
+    display: '[1, 2, 3]',
+    nudge: 'Not quite. Do += and a = a + … do the same thing to a list?',
+    hints: [
+      'b and a start as the same list. Which of lines 3 and 4 changes that list, and which makes a new one?',
+      '+= extends the shared list in place, so b sees the 3. a + [4] builds a brand new list, and only a points at it.'
+    ],
+    explain: 'Line 2 makes <code>b</code> another name for the same list. <code>a += [3]</code> extends that list <b>in place</b>, so <code>b</code> sees <code>[1, 2, 3]</code>. But <code>a = a + [4]</code> builds a <b>new</b> list and points <code>a</code> at it. <code>b</code> still points at the old one, which never gets the 4.',
+    fix: 'If you want an independent copy, make one up front: <code>b = a.copy()</code>. If you want both to change, use <code>a += [4]</code> or <code>a.append(4)</code>.',
+    takeaway: 'For lists, <code>a += x</code> changes the existing list, but <code>a = a + x</code> creates a new one. Other names for the old list only see the first.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `print(False == False in [False])`,
+    flag: { line: 1, text: 'False == False in [False]' },
+    answers: ['True'],
+    display: 'True',
+    nudge: 'Not quite. == and in are both comparison operators. What does Python do with a chain of them?',
+    hints: [
+      'Python lets you chain comparisons, like 1 < x < 10. Are == and in both comparisons?',
+      'It’s a chain: (False == False) and (False in [False]). Both parts are True.'
+    ],
+    explain: '<code>==</code> and <code>in</code> are both comparison operators, so Python <b>chains</b> them, just like <code>1 &lt; x &lt; 10</code>. The line means <code>(False == False) and (False in [False])</code>. Both parts are <code>True</code>, so the result is <code>True</code>. It is <i>not</i> <code>(False == False) in [False]</code>, which would be <code>True in [False]</code>, and so <code>False</code>.',
+    fix: 'Add brackets to say which you mean: <code>(False == False) in [False]</code>. Better still, don’t mix different comparisons in one chain.',
+    takeaway: 'All comparison operators (<code>&lt;</code>, <code>==</code>, <code>in</code>, <code>is</code>…) chain: <code>a op1 b op2 c</code> means <code>a op1 b and b op2 c</code>.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `name = ""
+nickname = None
+print(name or nickname or "anon" and len("anon") > 3)`,
+    flag: { line: 3, text: '"anon" and len("anon") > 3' },
+    answers: ['True'],
+    display: 'True',
+    nudge: 'Not quite. Which binds tighter, and or or? And what do they return?',
+    hints: [
+      'and is worked out before or, like × before +. Where does that put the brackets?',
+      'It’s name or nickname or ("anon" and len("anon") > 3). The and returns its last value, True, and so does the whole or chain.'
+    ],
+    explain: '<code>and</code> binds tighter than <code>or</code>, so the line is <code>name or nickname or ("anon" and len("anon") &gt; 3)</code>. <code>and</code> and <code>or</code> return one of their <b>values</b>, not just True or False. <code>"anon" and True</code> gives <code>True</code>. Then <code>"" or None or True</code> returns the first truthy value, which is <code>True</code>, not <code>"anon"</code>.',
+    fix: 'Put the default and the check on separate lines: <code>display = name or nickname or "anon"</code>, then test <code>len(display) &gt; 3</code> separately.',
+    takeaway: '<code>and</code> binds tighter than <code>or</code>, and both return one of their operands. Use brackets whenever you mix them.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `class Counter:
+    count = 0
+
+    def add(self):
+        self.count += 1
+
+a = Counter()
+b = Counter()
+a.add()
+a.add()
+b.add()
+print(Counter.count, a.count, b.count)`,
+    flag: { line: 5, text: 'self.count += 1' },
+    answers: ['0 2 1'],
+    display: '0 2 1',
+    nudge: 'Not quite. When self.count += 1 runs, which count does it change?',
+    hints: [
+      'self.count += 1 reads self.count, then assigns self.count. Where does each of those look?',
+      'Reading finds the class’s count (0) the first time, but assigning creates a new count on the instance. The class’s count is never changed.'
+    ],
+    explain: '<code>self.count += 1</code> means <code>self.count = self.count + 1</code>. The <b>read</b> finds <code>Counter.count</code> (0) because the instance has no <code>count</code> yet. The <b>assignment</b> then creates a new <code>count</code> on that instance. So <code>a</code> ends up with its own 2, <code>b</code> with its own 1, and <code>Counter.count</code> is still 0.',
+    fix: 'To count across all instances, change the class attribute directly: <code>Counter.count += 1</code>. To count per instance, set <code>self.count = 0</code> in <code>__init__</code> so it’s clearly per instance.',
+    takeaway: 'Assigning to <code>self.x</code> always creates or changes an <i>instance</i> attribute, even when <code>x</code> was first read from the class.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `squares = (n * n for n in range(4))
+print(sum(squares), sum(squares))`,
+    flag: { line: 1, text: '(n * n for n in range(4))' },
+    answers: ['14 0'],
+    display: '14 0',
+    nudge: 'Not quite. Round brackets make a generator, not a list. Can you go through a generator twice?',
+    hints: [
+      'The first sum() is 0 + 1 + 4 + 9. What’s left in the generator for the second one?',
+      'A generator produces its values once. After the first sum() it’s used up, so the second sum() adds nothing: 0.'
+    ],
+    explain: 'Round brackets make a <b>generator</b>, which produces its values one at a time and only once. The first <code>sum()</code> uses them all up: 0 + 1 + 4 + 9 = 14. The second <code>sum()</code> finds the generator empty and returns 0. No error, just a silently wrong total.',
+    fix: 'Use a list if you need the values more than once: <code>squares = [n * n for n in range(4)]</code>.',
+    takeaway: 'Generators (and iterators like <code>map()</code>, <code>zip()</code> and open files) can only be read once. Make a list if you need to go through them again.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `words = ["bb", "a", "ccc", "dd"]
+print(sorted(words, key=len, reverse=True))`,
+    flag: { line: 2, text: 'key=len, reverse=True' },
+    answers: ["['ccc', 'bb', 'dd', 'a']"],
+    display: "['ccc', 'bb', 'dd', 'a']",
+    nudge: 'Not quite. "bb" and "dd" are the same length. Which comes first?',
+    hints: [
+      'The longest word goes first. "bb" and "dd" tie on length: does reverse=True flip them too?',
+      'Python’s sort is stable: items that tie keep their original order, even with reverse=True. "bb" came before "dd", so it stays first.'
+    ],
+    explain: 'The words are sorted by length, longest first: <code>"ccc"</code>, then the two 2-letter words, then <code>"a"</code>. Python’s sort is <b>stable</b>: items with equal keys keep their original order. <code>reverse=True</code> keeps that too; it doesn’t just flip the finished list. <code>"bb"</code> came before <code>"dd"</code>, so it stays first.',
+    fix: 'If ties should be ordered too, sort by more than one key: <code>sorted(words, key=lambda w: (-len(w), w))</code>.',
+    takeaway: 'Python’s sort is stable, even with <code>reverse=True</code>: items that tie keep their original order.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `count = 0
+
+def bump():
+    try:
+        count += 1
+    except UnboundLocalError:
+        return "error"
+    return count
+
+print(bump())`,
+    flag: { line: 5, text: 'count += 1' },
+    answers: ['error'],
+    display: 'error',
+    nudge: 'Not quite. Inside bump(), is count the global count?',
+    hints: [
+      'Assigning to a name anywhere in a function makes it local to that whole function. Does bump() assign to count?',
+      'count += 1 assigns to count, so count is local in bump(). Reading it before it has a value raises UnboundLocalError.'
+    ],
+    explain: 'Because <code>bump()</code> <b>assigns</b> to <code>count</code> (<code>+=</code> is an assignment), Python treats <code>count</code> as a local variable for the whole function. So <code>count += 1</code> tries to read the local <code>count</code> before it has a value, which raises <code>UnboundLocalError</code>, and the function returns <code>"error"</code>. The global <code>count</code> is never touched.',
+    fix: 'Declare it: <code>global count</code> at the top of <code>bump()</code>. Better, avoid globals: pass the count in and return the new value.',
+    takeaway: 'If a function assigns to a name anywhere, that name is local throughout the function. Use <code>global</code> or <code>nonlocal</code> to change an outer variable.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `print(sorted([True, 2, 1.5, 0]))`,
+    flag: { line: 1, text: 'True' },
+    answers: ['[0, True, 1.5, 2]'],
+    display: '[0, True, 1.5, 2]',
+    nudge: 'Not quite. Can True be compared with numbers? Where does it land?',
+    hints: [
+      'In Python, bool is a kind of int. What number is True?',
+      'True is 1, so it sorts between 0 and 1.5, and it’s still printed as True.'
+    ],
+    explain: '<code>bool</code> is a subclass of <code>int</code>, and <code>True</code> equals 1. So the list sorts as if it were 1, 2, 1.5, 0: that gives 0, 1, 1.5, 2. Sorting doesn’t change the values, so <code>True</code> is still printed as <code>True</code>, sitting where 1 would be.',
+    fix: 'Keep booleans and numbers in separate lists. If you really mean 1, use 1.',
+    takeaway: '<code>True</code> and <code>False</code> are the integers 1 and 0 in disguise: they compare, sort and add like numbers.'
+  },
+  {
+    lang: 'python',
+    difficulty: 5,
+    code: `for n in [2, 4, 6]:
+    if n % 2:
+        break
+else:
+    n = "none odd"
+print(n)`,
+    flag: { line: 4, text: 'else:' },
+    answers: ['none odd'],
+    display: 'none odd',
+    nudge: 'Not quite. That else belongs to the for loop, not the if. When does it run?',
+    hints: [
+      'Look at the indentation: the else lines up with for, not with if. A loop’s else runs in one situation. Which?',
+      'A for loop’s else runs when the loop finishes without a break. All three numbers are even, so there’s no break.'
+    ],
+    explain: 'The <code>else</code> lines up with <code>for</code>, so it belongs to the <b>loop</b>. A loop’s <code>else</code> runs when the loop finishes <b>without</b> hitting <code>break</code>. All three numbers are even, so <code>n % 2</code> is always 0, nothing breaks, and the <code>else</code> sets <code>n</code> to <code>"none odd"</code>.',
+    fix: 'The code is fine. It’s a real idiom for “search, and handle not finding anything”. But many people misread it, so a short comment helps: <code># runs if no break</code>.',
+    takeaway: 'A loop’s <code>else</code> runs when the loop ends normally, and is skipped when it ends with <code>break</code>. Read it as “no break”.'
+  },
+
   // --- JavaScript ---------------------------------------------------------------
   {
     lang: 'javascript',
