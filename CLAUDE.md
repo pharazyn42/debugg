@@ -448,7 +448,7 @@ for its contracts; they no longer name puzzles.
   80, Wednesday 100, Thursday 120, Friday 150, weekend 200. Extra guesses
   and hints scale it down by the same fractions as today, and a failed or
   revealed puzzle still gives 10.
-- **Learn** is both:
+- **Learn** is both (the Learn track is now its own item, 3d):
   - the **Monday** puzzles, which are learn-level; and
   - a separate **Learn track**: lessons per language, played in order at
     any time, not tied to the calendar. Each lesson teaches one concept
@@ -510,6 +510,72 @@ for its contracts; they no longer name puzzles.
   - Switching the studio off pauses it.
 - When the other formats arrive they apply in both modes, with one record
   of progress. Desk pay follows XP, so harder days pay the company more.
+
+#### 3d. Learn channel: learn languages in a fun way
+This is the idea that started Debugg: a fun way to learn different
+programming languages. The daily puzzle tests what you know; the Learn
+channel teaches it. It sits alongside the daily puzzles as its own
+channel (e.g. **Daily** | **Learn** tabs at the top), played any time,
+at your own pace. It expands the "Learn track" sketched in 3b.
+
+- **Courses per language.** A path of short units for each language:
+  - values and printing;
+  - strings;
+  - lists and arrays;
+  - loops;
+  - functions;
+  - dictionaries and objects;
+  - then the traps the daily puzzles are about.
+
+  Each lesson is 2–3 minutes: a short explanation, then a few quick
+  puzzles.
+- **Learn by predicting.** Debugg's core idea works for teaching too:
+  show a snippet, ask what it prints before explaining, then explain.
+  Lessons use the easy formats from 3b (multiple choice, fill the blank,
+  value of `x`, what does this output), plus "run it yourself" in the
+  sandbox for every example.
+- **Learning a second language from the first.** A "Rosetta" style for
+  people who already know one language: show a Python snippet and ask
+  which JavaScript (or Rust, or C++) version does the same thing, or
+  what's different about how each handles it (integer division, string
+  immutability, equality, scoping). Once you know one language, this is
+  the fast, fun way into the next.
+- **Game feel, Duolingo-style:**
+  - a visual path per language, with units, checkpoints and a "boss"
+    puzzle at the end of each unit;
+  - a daily learning goal (e.g. one lesson);
+  - XP per language, level-ups and badges;
+  - a placement quiz to skip ahead if you already know the basics;
+  - review: questions you got wrong come back later (spaced
+    repetition).
+- **How it connects to the rest of Debugg:**
+  - Lessons earn XP in that language (less than a daily puzzle, e.g. 20),
+    so they feed the same levels.
+  - In Debugg Ltd, puzzle levels already boost contracts, so learning a
+    language makes your company better at it.
+  - Finishing a language's beginner course could suggest switching on its
+    daily puzzle.
+  - The studio already has C/C++ and Rust, so Learn could be where those
+    languages first appear, before they have daily puzzles.
+- **Running code.** Python (Pyodide) and JavaScript (Web Worker) already
+  run in the sandbox. C/C++ and Rust would need in-browser compilers
+  (WebAssembly toolchains, large downloads), so their lessons could start
+  with formats that don't run code.
+- **Content load.** Roughly 40–60 lessons per language to start. It's
+  the biggest cost, so start with one language (Python), make the lesson
+  format data-driven like `puzzles.js`, and add languages one course at a
+  time.
+- Open questions:
+  - Does learning count towards the daily streak, or have its own
+    learning streak? 3b currently says lessons don't count, so the daily
+    puzzle stays the one thing to do each day.
+  - Which languages after Python: JavaScript first (already built), or go
+    straight for something new like Rust?
+  - Is the channel free and open to everyone from day one, or unlocked
+    after a few daily puzzles?
+  - Order against the other Phase 1 work: the lesson formats overlap with
+    3b's multiple choice and fill-the-blank, so building those formats
+    first serves both.
 
 ### Phase 2 — Make the core loop feel right
 
