@@ -1,9 +1,11 @@
 # Contract Debugger — idle game concept
 
-> **Status: idea, not started.** This is a separate concept from the Debugg game
-> in this repo. Debugg (the daily bug/output-guessing puzzle) stays its own
-> thing — this doc just lives alongside it because it grew out of the same
-> conversation. Nothing here should get merged into `index.html`.
+> **Status: original brainstorm; a playable version now lives in `studio/`.**
+> Direction has since changed: Debugg (the daily puzzle) and Contract
+> Debugger are to become one product on one site. Debugg stays playable as
+> a standalone daily puzzle, with Contract Debugger as an opt-in studio mode
+> on top. See `studio/CLAUDE.md` (roadmap items 3b and 3c) for the current
+> plan; this doc is kept for the original reasoning.
 
 An idle/incremental game built around a Debugg-style puzzle as the core
 "active" mechanic, wrapped in a software-studio management/idle layer.

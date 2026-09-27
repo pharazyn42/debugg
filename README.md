@@ -22,7 +22,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Other ideas
 
-`ideas/contract-debugger-concept.md` sketches a separate idle-game concept that grew out of Debugg's puzzle mechanic. It's a distinct project, not a direction for this game — kept here as a note, not wired into anything.
+`ideas/contract-debugger-concept.md` sketches an idle-game concept that grew out of Debugg's puzzle mechanic. The plan is for it to become an optional "studio mode" on this site. Debugg stays playable as a plain daily puzzle; players who opt in get a studio-management game built around the same puzzles. See `studio/CLAUDE.md` for the roadmap.
 
 A first playable slice of that concept lives at `studio/index.html` (served at `/studio/` on GitHub Pages once enabled). You start as a lone Director who also manages the start-up:
 - **Your desk:** you solve puzzle contracts yourself for cash.

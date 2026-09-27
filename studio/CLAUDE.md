@@ -1,9 +1,14 @@
 # Contract Debugger
 
-Context for continuing work on this game. This directory (`studio/`) is a
-separate, self-contained project from the rest of this repo — `../index.html`
-is "Debugg," an unrelated daily Wordle-style puzzle game. Don't conflate the
-two or wire them together.
+Context for continuing work on this game. It currently lives in `studio/`,
+separate from `../index.html` ("Debugg", the daily Wordle-style puzzle).
+
+**Direction (agreed, not built yet):** Debugg and Contract Debugger become
+one product on one site. Debugg's daily puzzle is the base game and can be
+played standalone forever; Contract Debugger is an opt-in "studio mode"
+layered on top, where the daily puzzles become the Director's desk. See
+roadmap items 3b and 3c. Until that work starts, keep the two codebases
+independent: don't half-merge them.
 
 ## What this is
 
@@ -170,7 +175,7 @@ state = {
 - **Skill gain is a placeholder**: a flat XP rate with no supervision
   effect (item 22).
 - **No training spend, studio upgrades, or prestige** (items 14, 15, 19).
-- **Puzzle bank is only 6 entries** (desk contracts only; item 11).
+- **Puzzle bank is only 6 entries** (desk contracts only; item 3b).
 - **Balance is untuned** (item 10).
 
 ## Future development
@@ -218,7 +223,9 @@ Do these first: every later feature touches the job engine, and changes currentl
 - **Keep a `CHANGELOG.md`** with a section per release; the per-commit
   notes so far could seed it.
 - **Cut releases with git tags and GitHub Releases** (e.g.
-  `studio-v0.x.y`, prefixed because this repo also holds Debugg).
+  `v0.x.y`). Debugg and Contract Debugger are becoming one product
+  (item 3c), so one version, one changelog and one set of tags cover
+  both; no `studio-` prefix needed.
 - **Separate "released" from "in progress".** Today every push to `main`
   deploys straight to GitHub Pages. Options:
   - deploy only on a tag or release, via a GitHub Actions Pages workflow
@@ -253,6 +260,89 @@ Do these first: every later feature touches the job engine, and changes currentl
     and does domain experience grow on regular devs or only specialists?
 - Save migration: existing saves have `dom` skill maps and domain-tagged
   offers/jobs. Either strip them or bump the storage key.
+
+#### 3b. One puzzle engine; Patch / Minor / Major releases
+- **One puzzle engine for both modes.** It covers:
+  - answer checking;
+  - 4 guesses;
+  - two-level hints tracked with dots, as in Debugg;
+  - the explained answer when you run out;
+  - streaks.
+
+  Puzzles move out of the pages into a data file. Debugg's own roadmap
+  (move puzzle content into JSON, rotate daily instead of always Day 1) is
+  the same work.
+- **The desk's contract types become release tiers on a calendar.**
+  Each is one puzzle per period, and each tier is a different, harder
+  kind of puzzle. Sprint is dropped.
+
+  | Tier | Refreshes | Replaces | The puzzle |
+  |---|---|---|---|
+  | **Patch** | daily | Quick Fix | **"What does this output?"** Read a snippet and predict its output (today's Debugg mechanic). |
+  | **Minor release** | weekly | Milestone | **"Modify this to output this."** Given code and a target output, edit the code so it produces it. |
+  | **Major release** | monthly | Full Delivery | **"Write some code to output this."** Write code from scratch that produces a target output. |
+
+  Everyone gets the same puzzle each period (date-seeded), and each can
+  be completed once per period. Standalone Debugg's daily puzzle *is* the
+  Patch.
+- This replaces the old item 11 ("daily desk contracts").
+- **Content load** is about 365 Patches + 52 Minor + 12 Major, so roughly
+  430 puzzles a year. Patches are still the bulk, so a puzzle generator or
+  a large authored bank is still needed for them.
+- **Minor and Major releases need code execution** to check answers:
+  - Run the player's code in the browser, e.g. with **Pyodide** (Python
+    in WebAssembly, loadable from jsDelivr), and compare stdout to the
+    target.
+  - Run it in a **Web Worker with a timeout**, so an infinite loop can be
+    killed without freezing the page.
+  - Pyodide is a large download (~10 MB), so load it lazily, only when a
+    Minor/Major puzzle is opened.
+  - Alternatives: a lighter in-browser Python (Skulpt, Brython), or making
+    these tiers JavaScript, which runs natively.
+- **Guard against cheating**, since `print("<target>")` trivially produces
+  any output. Options:
+  - **Hidden test cases**: the puzzle defines a function to modify or
+    write, and it's checked against several inputs, not just the one shown
+    (most robust).
+  - **Constraints**: locked lines that can't be edited, an edit budget
+    for Minor releases (e.g. change at most N lines or characters), or
+    banned constructs (e.g. no string literal equal to the target).
+  - Probably a mix: Minor releases use locked lines plus an edit budget;
+    Major releases use hidden test cases.
+- Open questions:
+  - What counts as an "attempt" for the code tiers? Unlimited runs but
+    limited submissions? Is there a guess limit at all?
+  - Hints for the code tiers: what are they, and how do they affect the
+    clean bonus? The same question applies to the two hint levels on
+    Patches.
+  - Do Minor/Major releases appear in standalone mode too, or only in
+    studio mode?
+  - What happens to the desk's payout multipliers and partial-payout
+    rules, now that each tier is a single puzzle?
+  - Do the staffed contract board types (currently Quick Fix / Sprint /
+    Milestone / Full Delivery) also get renamed to the release tiers, and
+    is Sprint dropped there too? This answer only covered the desk.
+
+#### 3c. Studio mode on the main site
+- **Debugg opens as the plain daily puzzle.** Nothing else is shown unless
+  the player opts in.
+- **A toggle (e.g. "Run a studio") turns on Contract Debugger around it**:
+  - the stats bar;
+  - the Director's desk (the Patch / Minor / Major puzzles from 3b);
+  - the studio roster, hiring and the contract board;
+  - idle progress.
+- **One site, one save origin.** The standalone puzzle and studio mode
+  share progress (streaks, today's solve). `/studio/` becomes a redirect
+  to the main site with studio mode on.
+- **Open questions:**
+  - If someone opts in after weeks of daily play, does their history
+    count for anything (e.g. starting cash or reputation)?
+  - Does switching studio mode off pause the studio (no salaries, no
+    progress) or keep it running unseen?
+  - Does solving today's puzzle in standalone mode count as today's
+    Patch if they turn studio mode on later that day?
+- **Depends on 3b.** It's also why tests and versioning (1, 2) are for the
+  whole product, not per game.
 
 ### Phase 2 — Make the core loop feel right
 
@@ -358,18 +448,10 @@ Replace the current flat reliability-by-level model:
 
 ### Phase 3 — Retention and mid-game growth
 
-Reasons to come back daily, and the first progression layers beyond hiring. The puzzle bank for daily desk contracts is content work that can start in parallel with anything.
+The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)
 
-#### 11. Daily desk contracts
-- The puzzle contracts at the Director's desk should refresh once a day,
-  with only one contract of each type (Quick Fix, Sprint, Milestone, Full
-  Delivery) playable per day. The aim is to bring players back daily,
-  like the main Debugg game.
-- This needs:
-  - a per-day seed so everyone gets the same puzzles that day;
-  - tracking which types have been played today;
-  - a "come back tomorrow" state;
-  - a much bigger puzzle bank than 6.
+#### 11. (Moved) Daily desk contracts
+- Folded into item 3b (Patch / Minor / Major release cadence).
 
 #### 12. Reputation gates contract tiers
 - Reputation is tracked but does nothing yet. Gate the bigger contract
