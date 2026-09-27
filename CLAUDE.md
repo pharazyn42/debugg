@@ -16,7 +16,7 @@ simplified from that doc in places (noted below).
 
 ## Where things live
 
-No build step and no runtime dependencies (besides Google Fonts, and Pyodide
+No build step and no runtime dependencies (besides GoatCounter once switched on, and Pyodide
 from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 `https://pharazyn42.github.io/debugg/`.
 
