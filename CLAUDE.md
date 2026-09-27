@@ -91,18 +91,20 @@ START_CASH = 150, FOUNDER_BONUS_CAP = 1000             // + ¤1 per puzzle XP at
 DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance per puzzle level above 1
 
 LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old saves fold it into C/C++
-DOMAINS = ['Web Dev', 'Games', 'Embedded/Controls', 'Safety-Critical', 'Data/AI']
-PAIRINGS = { <lang>: [domains it can be paired with on a contract] }
+// Languages only: domains were removed (item 3) and are planned to return later (item 16).
 BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
 
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
-PROMOTION = { Junior: {minutes:60, lang:1, dom:1}, Senior: {8h, 3, 2}, Principal: {3 days, 5, 5} }  // contract time only
+PROMOTION = { Junior: {minutes:60, lang:1}, Senior: {8h, 3}, Principal: {3 days, 5} }  // contract time only
+SKILL_SPEED = 1.0, SKILL_CHANCE = 0.05   // full bars in the contract's language: 2× SLOC/min, +5% success
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
 TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
           minor release ~2,700 SLOC / 5-10 + principal,
           major release ~22,500 SLOC / 10+ incl. manager, 2 principals, 3 seniors ]
 // Renamed from quick fix / sprint / milestone / full delivery (same rules,
 // same indices); TIERS_VERSION lets the boot sequence refresh old boards.
+// The board holds one hotfix per language, plus OFFERS_PER_TIER (2) of each
+// other type; BOARD_VERSION 2 = languages only (older saves are converted).
 // each tier: minutes + refSloc (reference time for the cheapest valid team);
 // an offer's SLOC target = refSloc × minutes ± SLOC_SPREAD (15%)
 ```
@@ -111,12 +113,14 @@ TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
 ```js
 state = {
   money, reputation, lastTick,
-  roster: [ { id, name, role, since, worked, lang: {name: xp}, dom: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
-  board:  [ { id, tier, lang, dom, sloc, expiresAt } ],  // 2 offers per tier; sloc = work target
-  jobs:   [ { id, tier, lang, dom, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
+  roster: [ { id, name, role, since, worked, lang: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
+  board:  [ { id, tier, lang, sloc, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target
+  jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
+  collapsedTiers: [],                             // contract board groups folded in the UI ('hotfix', …)
+  tiersVersion, boardVersion,                     // save-shape markers for the boot migrations
   enabled, pausedAt,                              // false / a time while the player has it paused
   paid: { 'python-5': true, … }                   // desk puzzles already paid for (last 14 days)
 }
@@ -155,33 +159,40 @@ state = {
   - Managers produce no SLOC.
   - Hiring, promoting and "Let go" are all blocked if they would break the
     structure, and the UI says why.
-- **Hires' starting skills**:
-  - Grads: one language at 1 bar, no domains.
-  - Juniors: at most 1 bar in up to 2 domains.
-  - Seniors: a language at 3–4 and a domain at 2–3.
-  - Principals: a language and a domain at 5.
+- **Hires' starting skills** (languages only):
+  - Grads: one language at 1 bar.
+  - Juniors: a language at 1–2 bars, sometimes a second at 1.
+  - Seniors: a language at 3–4, and a second at 1–2.
+  - Principals: a language at 5, plus two more at lower bars.
 - **Promotions** need three things, and the player confirms with a
   "Promote" button:
   - **Contract time at the current level**: 1 hour for Junior, 8 hours for
     Senior, 3 days for Principal. Only time spent on contracts counts;
     time on the bench doesn't. It's credited when each contract finishes
     (`p.worked`) and resets on promotion.
-  - **Skill bars**: as listed in `PROMOTION`.
+  - **Skill bars** in their best language: 1 for Junior, 3 for Senior, 5
+    for Principal (`PROMOTION`).
   - **A free slot** at the next level.
-- **Contract board**: offers are tagged with a random language + domain,
-  shown on the card. Staff them via the team picker, which ticks off the
+- **Contract board**: shown as a tree like the roster, one foldable group
+  per contract type (Hotfixes, Patches, Minor releases, Major releases),
+  each header showing how many offers and how many are running. Folded
+  groups are remembered (`collapsedTiers`). There's **always a hotfix in
+  every language**: a taken or expired hotfix is replaced in the same
+  language, and the board fills in any language that's missing, so a lone
+  dev always has something they can take. The other types have 2 offers
+  each, in random languages. Each offer shows its language and SLOC
+  target. Staff them via the team picker, which ticks off the
   requirements and shows success chance, payout and salary cost. It has a
   "Suggest a team" button. Each person can only be on one contract at a
   time.
   - **Skill rule**: a dev "knows the stack" for a contract if they have at
-    least one bar in its language or its domain (`qualifiedFor()`; managers
-    are exempt).
+    least one bar in its language (`qualifiedFor()`; managers are exempt).
     - Solo hotfixes need someone who knows the stack.
     - On team contracts, devs who don't can join as **learners**. They
       write no code and each costs the team `LEARNER_DRAG` (10%) of its
       output in mentoring time. There must be at least one dev who knows
       the stack per learner. Learners earn XP as normal on delivery. This
-      is the only way to gain a first bar in a new language or domain.
+      is the only way to gain a first bar in a new language.
     - The picker labels learners (and greys out non-learners on quick
       fixes), and "Suggest a team" only adds learners when short-handed.
     - A board card warns when nobody on staff knows the stack.
@@ -193,8 +204,8 @@ state = {
     (managers add none), with a 5-second floor.
 
     Each dev's SLOC/min on a contract is boosted by skill match:
-    × (1 + `SKILL_SPEED` × (lang bars + domain bars) / 10) for that
-    contract's language and domain. A full 5+5 match doubles their output.
+    × (1 + `SKILL_SPEED` × bars / 5) in that contract's language. Full
+    bars doubles their output.
 
     The reference team, with no matching skills, takes the nominal time:
     - a lone grad on a hotfix: ~1 min;
@@ -209,10 +220,11 @@ state = {
   - Payout = SLOC target × `LINE_RATE` × tier multiplier × skill match. So
     a contract pays the same whoever does it; faster teams simply earn more
     per minute and pay less salary per contract.
-  - Success chance = average reliability by level, plus a small bonus for
-    skill match.
+  - Success chance = average reliability by level, plus up to
+    `SKILL_CHANCE` (+5%) scaled by the team's average bars in the
+    language (a grad with 1 bar adds +1%), plus the Director's boost.
   - On delivery, everyone on the team gains the tier's XP in that
-    language and domain. XP is per minute spent on it (`xpPerMin`: 1 /
+    language. XP is per minute spent on it (`xpPerMin`: 1 /
     1.2 / 1.33 / 1.5 by tier), independent of team speed, so skill bars
     build at roughly the pace of the contract-time promotion timers. This is the placeholder skill-gain
     mechanic; it doesn't yet model supervision.
@@ -230,8 +242,9 @@ state = {
 - **Roster UI**: the Director card, then a collapsible tree grouped by
   level. Each group header shows its headcount, how many are busy, SLOC/min
   and salary/min. Collapse state persists. Clicking a card opens the
-  employee panel: all languages and domains as pip bars with XP to the next
-  bar, current assignment, and a promotion checklist.
+  employee panel: all languages as pip bars with XP to the next bar,
+  current assignment, and a promotion checklist. Roster cards show a dev's
+  two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
 
@@ -362,34 +375,19 @@ site and what to measure.
   - Accounts, or an anonymous sync code? A sync code is lighter and
     avoids storing emails.
 
-#### 3. Languages only for now; domains become a later-game unlock
-- **Remove domain specialities from the early game.** Contracts, hires and
-  skills use programming languages only. That means dropping the domain
-  half of:
-  - offers and the skill rule (`qualifiedFor()`);
-  - skill-match speed and payout (`matchFit()`);
-  - XP;
-  - promotion requirements (`PROMOTION.dom`);
-  - starting skills (`makeHire()`);
-  - the employee panel.
-
-  Promotion requirements then need re-stating in language bars only.
-- **Hotfixes should cover every language**, so a lone dev always has
-  something they can take. That avoids the deadlock where nobody on staff
-  knows the language of either hotfix on the board. Offer expiry and
-  repeat-picks-a-doable-contract currently paper over this. For example,
-  keep one quick-fix offer per language on the board, or let the player
-  pick the language when staffing a hotfix.
-- **Domains come back later as an unlock**, further into the game (e.g.
-  tied to reputation or a business tier):
-  - Some team contracts (minor releases and up) are then tagged with a domain.
-  - Domain **specialists** are a separate kind of hire.
-  - A contract with a domain must have a specialist in that domain on the
-    team.
-  - Open questions: do specialists write code too, are they promotable,
-    and does domain experience grow on regular devs or only specialists?
-- Save migration: existing saves have `dom` skill maps and domain-tagged
-  offers/jobs. Either strip them or bump the storage key.
+#### 3. Languages only for now — done
+- Domains are gone from offers, the skill rule, skill match (speed,
+  payout and success chance), XP, promotions (Junior 1 / Senior 3 /
+  Principal 5 bars in a language), starting skills and every display.
+- The board always has a hotfix in every language.
+- The contract board is a foldable tree by contract type, like the roster.
+- Saves with domains are converted on load (`BOARD_VERSION` 2): `dom` is
+  stripped from staff and running contracts, and the board is rebuilt.
+- Side effect, decided: the skill-match success bonus used to need a bar
+  in both the language and the domain, so grads never got it. It now
+  scales with language bars (up to +5%), so a lone grad on a hotfix is
+  71% rather than a flat 70% or 75%. Item 4a replaces this model anyway.
+- Bringing domains back later is item 16.
 
 #### 3b. Puzzle formats and the weekly rotation
 Decided with the player-owner; replaces the earlier plan of Hotfix /
@@ -520,7 +518,7 @@ Small-to-medium changes the player feels every session. Do the balance pass last
 #### 4a. Success chance scales with level and skill match
 Replace the current flat reliability-by-level model:
 - **Success chance** depends on both dev level and how well their skills
-  suit the contract's language/domain. Reference point for a Graduate:
+  suit the contract's language. Reference point for a Graduate:
   - 25% when their skills don't match;
   - 50% base;
   - 75% when they do match.
@@ -589,9 +587,9 @@ Replace the current flat reliability-by-level model:
 
 #### 7. Current contract in the employee panel
 - Clicking an employee should show the contract they're working on.
-  Today the panel only has a one-line "On Minor release (Rust / Web Dev) — 4:12
+  Today the panel only has a one-line "On Minor release (Rust) — 4:12
   left". It should show the full contract:
-  - type, language and domain;
+  - type and language;
   - teammates;
   - progress (SLOC done / target, time left);
   - success chance and payout;
@@ -740,9 +738,9 @@ roster.
 - **Contracts:**
   - offers taken, delivered, failed, retried, dropped, and lost after a
     failed retry, each by tier;
-  - success rate by tier, language and domain, compared with the
+  - success rate by tier and language, compared with the
     forecast chance, to show whether you're lucky or unlucky;
-  - total SLOC delivered, by tier, language and domain;
+  - total SLOC delivered, by tier and language;
   - the biggest payout, fastest delivery by tier, and longest job;
   - repeats: contracts started by repeat, the longest unbroken repeat
     chain, repeats stopped because the team no longer fitted, and
@@ -753,14 +751,14 @@ roster.
     average time to each promotion;
   - total salaries paid, by level;
   - learners placed, and first bars gained through learning;
-  - skill bars gained, by language and domain;
+  - skill bars gained, by language;
   - the longest-serving employee.
 - **Per employee** (on the employee panel):
   - hired on, and roles held, with dates;
   - contracts delivered and failed, SLOC written, cash earned for the
     company, and salary paid to them;
   - time on contracts vs on the bench;
-  - their favourite language and domain (most XP gained).
+  - their favourite language (most XP gained).
 - **The Director:** puzzle levels over time, and the success boost from
   them in total (how many extra deliveries it probably caused).
 - **Records and milestones:** the date of each first (first hire,
@@ -781,8 +779,16 @@ roster.
 Big systems that depend on the earlier phases.
 
 #### 16. Domains return as an unlock with specialist hires
-- See item 3: the "Domains come back later as an unlock" part. Needs
-  reputation gating (12) or business tiers (13) to unlock it.
+- Domains (Web Dev, Games, Embedded/Controls, Safety-Critical, Data/AI)
+  were removed in item 3 and come back further into the game, unlocked by
+  reputation gating (12) or business tiers (13):
+  - Some team contracts (minor releases and up) are then tagged with a
+    domain.
+  - Domain **specialists** are a separate kind of hire.
+  - A contract with a domain must have a specialist in that domain on the
+    team.
+  - Open questions: do specialists write code too, are they promotable,
+    and does domain experience grow on regular devs or only specialists?
 
 #### 17. In-house software products and maintenance teams
 - **Unlocks later in the game** (e.g. by business tier or reputation): the

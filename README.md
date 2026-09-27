@@ -44,7 +44,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
 - **You, the Director:** your puzzle level in each language is the Director's skill in it. Every level above 1 adds 1% success chance to contracts in that language, up to +10%.
 - **The studio:** hire up to 4 devs yourself, then managers; each person supervises up to 3 at the level below. Promotions need time on contracts and skill bars.
-- **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team). Teams can repeat contracts, and work carries on while the page is closed (up to 4 hours).
+- **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team), grouped in foldable sections. There's always a hotfix in every language. Contracts, skills and promotions are by programming language. Teams can repeat contracts, and work carries on while the page is closed (up to 4 hours).
 - **Pause company** stops the clock completely (no salaries, no progress) until you switch it back on. **Close company** deletes it; puzzle progress, XP and the streak are kept. The footer's "reset puzzles" does the opposite: it keeps the company.
 
 The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
