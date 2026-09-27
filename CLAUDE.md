@@ -266,6 +266,69 @@ Do these first: every later feature touches the job engine, and changes currentl
     instead of branch deploys;
   - or keep `main` as the released branch and do work on a `dev` branch.
 
+#### 2b. Hosting, players and analytics
+The site is static files on GitHub Pages, and everything a player does is
+saved only in their own browser. So today there's no way to know how many
+people play, how far they get, or where they drop off, and a player can't
+move their progress to another device. This item decides how to host the
+site and what to measure.
+
+- **What we want to know.**
+  - **Visitors:** daily and weekly visitors, new vs returning, where they
+    came from (referrers), device and screen size, and which pages they
+    use (daily puzzle, sandbox, the studio).
+  - **Puzzles:** for each day and language, how many started, solved,
+    failed or revealed; the guess distribution (like Wordle's share
+    graph); hint use; and the most common wrong answers. Wrong answers
+    show where a puzzle is ambiguous or the answer matching is too
+    strict.
+  - **Progression:** how many players reach each XP level per language,
+    and how fast; streak lengths and where streaks break; day-1, day-7
+    and day-30 return rates.
+  - **Debugg Ltd:** how many players found a company (and when, relative
+    to their first puzzle); time to the first hire, manager, senior and
+    principal; how many pause or close; cash and headcount over time. The
+    balance pass (item 10) needs exactly this.
+- **Step 1, visitor analytics with no backend.** Add a privacy-friendly,
+  cookie-free analytics script to the pages. Candidates (check current
+  pricing and limits before choosing):
+  - GoatCounter (free for non-commercial use, open source);
+  - Cloudflare Web Analytics (free);
+  - Plausible (paid, or self-hosted);
+  - Umami (self-hosted).
+
+  Most of these also record **custom events**, which would cover a lot of
+  the puzzle and progression numbers above: fire one on
+  `debugg:puzzle-finished` (language, day, solved, guesses, hints), on
+  level-ups, on founding a company, and on the studio's milestones.
+  GitHub Pages gives no visitor stats of its own, so this is the quickest
+  win.
+- **Step 2, a small backend for what analytics can't do.**
+  - Shared puzzle stats shown to players after a game ("62% solved this,
+    most in 2 guesses").
+  - Accounts or a sync code, so progress and companies move between
+    devices and survive clearing the browser.
+  - Later: leaderboards, or comparing companies.
+
+  Options: a serverless function plus a small database (Cloudflare
+  Workers + D1 or KV, Supabase, Firebase), which can sit alongside the
+  static site. Hosting could stay on GitHub Pages with the backend on its
+  own domain, or move to a host that does both (Cloudflare Pages, Netlify
+  or Vercel).
+- **Privacy.** Cookie-free, aggregate analytics usually needs no consent
+  banner. Anything tied to a person (accounts, synced saves) needs a
+  privacy notice and a way to delete your data. Never send wrong answers
+  or code typed into the sandbox with anything that identifies the player.
+- **Also:** a custom domain (GitHub Pages supports one), and keeping the
+  game fully playable if analytics or the backend is blocked or down.
+- **Open questions:**
+  - Is the goal only to understand players, or also player-facing
+    features (shared stats, sync, leaderboards)? The second needs step 2.
+  - Is a small monthly cost acceptable, or should everything stay on
+    free tiers?
+  - Accounts, or an anonymous sync code? A sync code is lighter and
+    avoids storing emails.
+
 #### 3. Languages only for now; domains become a later-game unlock
 - **Remove domain specialities from the early game.** Contracts, hires and
   skills use programming languages only. That means dropping the domain
@@ -575,6 +638,72 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
     until …".
 - The first event built on the shared event system (15b): a good,
   self-contained test of it before the late-game events.
+
+#### 15d. Company stats and records
+The company keeps almost no history: cash, reputation, and an 8-line log.
+Track lifetime stats, show them on a **Stats** panel (a button next to
+Pause / Close company), and use them later for achievements and prestige
+(item 19). Stats go in the save under `state.stats`, counted as things
+happen (not rebuilt from the log). Saves from before the stats existed
+start at zero, apart from the numbers that can be worked out from the
+roster.
+
+- **Company overview:**
+  - date founded and days since; days the company has been active (a
+    tick or a desk puzzle that day); total time running, time paused,
+    and time away (offline catch-up);
+  - lifetime cash earned, split by source (desk puzzles, each contract
+    tier, retries) and lifetime cash spent (salaries, hiring);
+  - net profit, best day, worst day, and cash earned in the last 7 days;
+  - peak cash, lowest cash (and how long it was negative), and peak
+    reputation;
+  - current and peak headcount, and headcount by level;
+  - the founder's bonus received, and whether the company came from an
+    import.
+- **The desk (your puzzles):**
+  - desk puzzles paid, by language; desk income, and its share of all
+    income;
+  - perfect solves, average guesses and hints, and reveals;
+  - the streak bonus earned in total, and the longest streak while the
+    company was running.
+- **Contracts:**
+  - offers taken, delivered, failed, retried, dropped, and lost after a
+    failed retry, each by tier;
+  - success rate by tier, language and domain, compared with the
+    forecast chance, to show whether you're lucky or unlucky;
+  - total SLOC delivered, by tier, language and domain;
+  - the biggest payout, fastest delivery by tier, and longest job;
+  - repeats: contracts started by repeat, the longest unbroken repeat
+    chain, repeats stopped because the team no longer fitted, and
+    offline repeats;
+  - offers that expired untaken, by tier.
+- **People:**
+  - hired by role, let go, and promoted (to each level), plus the
+    average time to each promotion;
+  - total salaries paid, by level;
+  - learners placed, and first bars gained through learning;
+  - skill bars gained, by language and domain;
+  - the longest-serving employee.
+- **Per employee** (on the employee panel):
+  - hired on, and roles held, with dates;
+  - contracts delivered and failed, SLOC written, cash earned for the
+    company, and salary paid to them;
+  - time on contracts vs on the bench;
+  - their favourite language and domain (most XP gained).
+- **The Director:** puzzle levels over time, and the success boost from
+  them in total (how many extra deliveries it probably caused).
+- **Records and milestones:** the date of each first (first hire,
+  manager, senior, principal, patch, minor release, major release,
+  ¤10,000 in cash, 10 staff…). These become achievements later.
+- **Charts** (later): cash, reputation and headcount over time, stored
+  as one sample per hour or day so the save stays small.
+- **Open questions:**
+  - How much history to keep: all-time counters are small, but daily
+    series grow, so cap them (e.g. the last 90 days) or bucket them.
+  - Should any of this be shared (item 2b), e.g. comparing your company
+    with others, or a leaderboard?
+  - Does "Close company" keep a summary of past companies (a hall of
+    fame), which prestige (item 19) could build on?
 
 ### Phase 4 — Late game
 
