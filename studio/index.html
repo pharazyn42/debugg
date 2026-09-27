@@ -500,6 +500,7 @@
   .job-top .time{ font-family: var(--mono); font-size: 12px; color: var(--amber); font-variant-numeric: tabular-nums; }
   .progress{ height: 5px; border-radius: 3px; background: var(--bg); overflow: hidden; margin-bottom: 6px; }
   .progress > div{ height: 100%; background: var(--amber); border-radius: 3px; }
+  .job.failed{ border-color: var(--red-dim); }
   .job .detail{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
   .empty{ font-size: 12.5px; color: var(--text-faint); }
 
@@ -809,12 +810,13 @@
   const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
   const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
 
-  // To be promoted INTO a level: minutes at the current level, plus best
-  // language and best domain bars.
+  // To be promoted INTO a level: minutes spent working on contracts at the
+  // current level (bench time doesn't count), plus best language and best
+  // domain bars.
   const PROMOTION = {
-    Junior:    { minutes: 10, lang: 1, dom: 1 },
-    Senior:    { minutes: 30, lang: 3, dom: 2 },
-    Principal: { minutes: 90, lang: 5, dom: 5 }
+    Junior:    { minutes: 60,       lang: 1, dom: 1 },  // 1 hour
+    Senior:    { minutes: 8 * 60,   lang: 3, dom: 2 },  // 8 hours
+    Principal: { minutes: 72 * 60,  lang: 5, dom: 5 }   // 3 days
   };
 
   // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
@@ -830,14 +832,24 @@
 
   const LINE_RATE = 2; // ¤ per SLOC delivered, before multipliers
 
+  // XP is per delivered contract and works out at ~1–1.5 XP per contract
+  // minute, so bars build at roughly the pace of the promotion timers: a
+  // junior spreading work across random languages reaches a 3-bar language
+  // in ~8h of contract time, and 5 bars takes days. Bigger contracts pay
+  // slightly more XP per minute to reward teamwork.
+  // A failed contract can be retried once in RETRY_TIME of the time for
+  // RETRY_PAYOUT of the payout.
+  const RETRY_TIME = 0.5;
+  const RETRY_PAYOUT = 0.75;
+
   const TIERS = [
-    { key: 'quick',     name: 'Quick Fix',     minutes: 1,  min: 1,  max: 1,  mult: 1.0, xp: 10,  rep: 0.5,
+    { key: 'quick',     name: 'Quick Fix',     minutes: 1,  min: 1,  max: 1,  mult: 1.0, xp: 1,   rep: 0.5,
       needs: {}, req: '1 developer, any level' },
-    { key: 'sprint',    name: 'Sprint',        minutes: 10, min: 3,  max: 5,  mult: 1.2, xp: 40,  rep: 2,
+    { key: 'sprint',    name: 'Sprint',        minutes: 10, min: 3,  max: 5,  mult: 1.2, xp: 12,  rep: 2,
       needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
-    { key: 'milestone', name: 'Milestone',     minutes: 30, min: 5,  max: 10, mult: 1.5, xp: 120, rep: 6,
+    { key: 'milestone', name: 'Milestone',     minutes: 30, min: 5,  max: 10, mult: 1.5, xp: 40,  rep: 6,
       needs: { Principal: 1 }, req: '5–10 devs · 1+ principal' },
-    { key: 'full',      name: 'Full Delivery', minutes: 90, min: 10, max: 20, mult: 2.0, xp: 300, rep: 20,
+    { key: 'full',      name: 'Full Delivery', minutes: 90, min: 10, max: 20, mult: 2.0, xp: 135, rep: 20,
       needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
   ];
   const OFFERS_PER_TIER = 2;
@@ -880,6 +892,15 @@
   function fmt(n){
     const sign = n < 0 ? '−' : '';
     return sign + '¤' + Math.abs(n).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+  }
+  // Coarse "2d 3h" / "7h 12m" / "15m" for promotion timers. Time remaining
+  // rounds up; time elapsed (roundDown) rounds down.
+  function fmtDuration(ms, roundDown){
+    const mins = Math.max(0, (roundDown ? Math.floor : Math.ceil)(ms / 60000));
+    const d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+    if(d) return d + 'd' + (h ? ' ' + h + 'h' : '');
+    if(h) return h + 'h' + (m ? ' ' + m + 'm' : '');
+    return m + 'm';
   }
   function fmtClock(ms){
     const s = Math.max(0, Math.ceil(ms / 1000));
@@ -1048,8 +1069,8 @@
     const next = DEV_LEVELS[r + 1];
     const req = PROMOTION[next];
     const missing = [];
-    const minsLeft = req.minutes - (now - p.since) / 60000;
-    if(minsLeft > 0) missing.push(Math.ceil(minsLeft) + 'm tenure');
+    const left = req.minutes * 60000 - (p.worked || 0);
+    if(left > 0) missing.push(fmtDuration(left) + ' more contract time');
     if(bestBars(p.lang) < req.lang) missing.push('a language at ' + req.lang);
     if(bestBars(p.dom) < req.dom) missing.push('a domain at ' + req.dom);
     const blocked = missing.length ? null : problemWith({ [p.role]: -1, [next]: 1 });
@@ -1118,17 +1139,31 @@
     return true;
   }
 
+  // status: 'running' | 'failed' (waiting for the player to retry or drop it).
+  // attempt: 1 for the original run, 2 for the retry.
   function newJob(offer, team, startedAt, ev, repeat){
     return {
       id: offer.id, tier: offer.tier, lang: offer.lang, dom: offer.dom,
       team, startedAt, endsAt: startedAt + TIERS[offer.tier].minutes * 60000,
-      chance: ev.chance, payout: ev.payout, repeat
+      chance: ev.chance, payout: ev.payout, repeat, status: 'running', attempt: 1
     };
   }
 
+  function isRunning(job){ return (job.status || 'running') === 'running'; }
+  function jobTag(job){ return TIERS[job.tier].name + ' (' + job.lang + ' / ' + job.dom + ')'; }
+  function retryPayout(job){ return Math.round(job.payout * RETRY_PAYOUT); }
+  function retryMs(job){ return TIERS[job.tier].minutes * 60000 * RETRY_TIME; }
+
+  // Rolls the outcome, credits contract time to everyone on the team (only
+  // the part worked at their current level), and pays out/awards XP on
+  // success. Returns true if it was delivered.
   function settleJob(job){
     const tier = TIERS[job.tier];
-    const tag = tier.name + ' (' + job.lang + ' / ' + job.dom + ')';
+    job.team.forEach(id => {
+      const p = person(id);
+      if(p) p.worked = (p.worked || 0) + Math.max(0, job.endsAt - Math.max(job.startedAt, p.since));
+    });
+    const retry = job.attempt === 2 ? ' retry' : '';
     if(Math.random() < job.chance){
       state.money += job.payout;
       state.reputation += tier.rep;
@@ -1138,11 +1173,21 @@
         p.lang[job.lang] = (p.lang[job.lang] || 0) + tier.xp;
         p.dom[job.dom] = (p.dom[job.dom] || 0) + tier.xp;
       });
-      addLog('ok', '✓ ' + tag + ' delivered — ' + fmt(job.payout) + ', +' + tier.xp + ' XP to the team.');
-    }else{
-      state.reputation = Math.max(0, state.reputation - tier.rep / 2);
-      addLog('bad', '✕ ' + tag + ' failed — no payout.');
+      addLog('ok', '✓ ' + jobTag(job) + retry + ' delivered — ' + fmt(job.payout) + ', +' + tier.xp + ' XP to the team.');
+      return true;
     }
+    state.reputation = Math.max(0, state.reputation - tier.rep / 2);
+    addLog('bad', '✕ ' + jobTag(job) + retry + ' failed' +
+      (job.attempt === 1 ? '.' : ' again — contract lost.'));
+    return false;
+  }
+
+  function retryJob(job, startAt){
+    job.status = 'running';
+    job.attempt = 2;
+    job.startedAt = startAt;
+    job.endsAt = startAt + retryMs(job);
+    job.payout = retryPayout(job);
   }
 
   // A repeating job rolls straight into a fresh contract of the same type
@@ -1165,12 +1210,23 @@
     const repeatCutoff = now - OFFLINE_CAP_SECONDS * 1000;
     let finished = 0;
     for(;;){
-      const due = state.jobs.filter(j => j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
+      const due = state.jobs.filter(j => isRunning(j) && j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
       if(!due.length) break;
       const job = due[0];
-      state.jobs = state.jobs.filter(j => j !== job);
-      settleJob(job);
+      const delivered = settleJob(job);
       finished++;
+      if(!delivered && job.attempt === 1){
+        // Repeating teams retry automatically (it's the better deal per
+        // minute); otherwise the team waits for the player to decide.
+        if(job.repeat && job.endsAt >= repeatCutoff){
+          retryJob(job, job.endsAt);
+          addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
+        }else{
+          job.status = 'failed';
+        }
+        continue;
+      }
+      state.jobs = state.jobs.filter(j => j !== job);
       if(job.repeat && job.endsAt >= repeatCutoff) restartJob(job);
     }
     return finished;
@@ -1260,10 +1316,12 @@
       const ps = promotionStatus(p, now);
       if(ps){
         const req = PROMOTION[ps.next];
-        const minsLeft = Math.ceil(req.minutes - (now - p.since) / 60000);
+        const worked = p.worked || 0;
+        const needMs = req.minutes * 60000;
         const row = (ok, text) => '<div class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ ' : '○ ') + text + '</div>';
         body += '<div class="skill-section-title">Promotion to ' + ps.next + '</div><div class="req-list">' +
-          row(minsLeft <= 0, req.minutes + ' min as ' + p.role.toLowerCase() + (minsLeft > 0 ? ' (' + minsLeft + 'm to go)' : '')) +
+          row(worked >= needMs, fmtDuration(needMs) + ' on contracts as ' + p.role.toLowerCase() +
+              (worked < needMs ? ' (' + fmtDuration(worked, true) + ' so far)' : '')) +
           row(bestBars(p.lang) >= req.lang, 'A language at ' + req.lang + ' bar' + (req.lang > 1 ? 's' : '')) +
           row(bestBars(p.dom) >= req.dom, 'A domain at ' + req.dom + ' bar' + (req.dom > 1 ? 's' : '')) +
           (ps.blocked ? '<div class="no" style="color:var(--amber)">⚠ ' + esc(ps.blocked) + '</div>' : '') +
@@ -1281,8 +1339,9 @@
       '<div class="modal-top"><div><div class="modal-name">' + esc(p.name) + '</div>' +
       '<div class="modal-level">' + p.role + '</div></div></div>' +
       '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−¤' + role.salary + '/min upkeep · ' +
-      tenure + 'm in role<br>' +
-      (job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ' / ' + esc(job.dom) + ') — ' + fmtClock(job.endsAt - now) + ' left'
+      fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts<br>' +
+      (job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
+       : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ' / ' + esc(job.dom) + ') — ' + fmtClock(job.endsAt - now) + ' left'
            : 'Idle') + '</div>' +
       body);
   }
@@ -1363,7 +1422,9 @@
   function cardHTML(p, now){
     const role = ROLES[p.role];
     const job = jobFor(p.id);
-    const status = job
+    const status = job && !isRunning(job)
+      ? '<span class="promo blocked">' + TIERS[job.tier].name + ' failed — retry or drop it below</span>'
+      : job
       ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) + ' / ' + esc(job.dom) +
         (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
       : '<span class="status-idle">Idle</span>';
@@ -1427,18 +1488,31 @@
     }else{
       setHTML(jobsEl, jobs.map(j => {
         const t = TIERS[j.tier];
+        const team = j.team.map(id => { const p = person(id); return p ? esc(p.name) : '?'; }).join(', ');
+        if(!isRunning(j)){
+          return '<div class="job failed">' +
+            '<div class="job-top"><span class="left">' + t.name +
+            ' <span class="chip lang">' + esc(j.lang) + '</span><span class="chip dom">' + esc(j.dom) + '</span></span>' +
+            '<span class="time" style="color:var(--red)">Failed</span></div>' +
+            '<div class="detail">' + team + ' · the team is waiting on your call.</div>' +
+            '<div class="actions" style="margin:8px 0 0;">' +
+              '<button class="btn-primary btn-small" data-action="retry-job" data-job="' + j.id + '">Retry — ' +
+                fmtClock(retryMs(j)) + ' for ' + fmt(retryPayout(j)) + ' (' + Math.round(j.chance * 100) + '%)</button>' +
+              '<button class="btn-ghost btn-small" data-action="drop-job" data-job="' + j.id + '">Drop it</button>' +
+            '</div></div>';
+        }
         return '<div class="job">' +
           '<div class="job-top"><span class="left">' + t.name +
           ' <span class="chip lang">' + esc(j.lang) + '</span><span class="chip dom">' + esc(j.dom) + '</span></span>' +
           '<span class="time" data-time="' + j.id + '"></span></div>' +
           '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
-          '<div class="detail">' + j.team.map(id => { const p = person(id); return p ? esc(p.name) : '?'; }).join(', ') +
-          ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) + ' on delivery</div>' +
+          '<div class="detail">' + team + ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
+          ' on delivery' + (j.attempt === 2 ? ' · retry' : '') + '</div>' +
           '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
           (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>' +
           '</div>';
       }).join(''));
-      jobs.forEach(j => {
+      jobs.filter(isRunning).forEach(j => {
         const time = jobsEl.querySelector('[data-time="' + j.id + '"]');
         const bar = jobsEl.querySelector('[data-bar="' + j.id + '"]');
         const pct = Math.min(100, ((now - j.startedAt) / (j.endsAt - j.startedAt)) * 100);
@@ -1555,7 +1629,7 @@
       '<div class="forecast">' +
         'Success chance <b>' + Math.round(ev.chance * 100) + '%</b> · Payout <b>' + fmt(ev.payout) + '</b> · ' +
         'Salaries over the job <b>' + fmt(ev.salaryCost) + '</b><br>' +
-        'Everyone gains <b>+' + tier.xp + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered.' +
+        'Everyone gains <b>+' + tier.xp + ' XP</b> in ' + esc(offer.lang) + ' and ' + esc(offer.dom) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
       '</div>' +
       '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
         'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' +
@@ -1626,6 +1700,7 @@
       if(!ps || !ps.ready) return;
       p.role = ps.next;
       p.since = Date.now();
+      p.worked = 0;
       addLog('ok', '★ ' + p.name + ' promoted to ' + ps.next.toLowerCase() + '.');
     }else if(action === 'release'){
       const p = person(btn.dataset.id);
@@ -1636,6 +1711,16 @@
     }else if(action === 'staff'){
       openPicker(btn.dataset.offer);
       return;
+    }else if(action === 'retry-job' || action === 'drop-job'){
+      const job = state.jobs.find(j => j.id === btn.dataset.job);
+      if(!job || isRunning(job)) return;
+      if(action === 'retry-job'){
+        retryJob(job, Date.now());
+        addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
+      }else{
+        state.jobs = state.jobs.filter(j => j !== job);
+        addLog('info', 'Dropped ' + jobTag(job) + '.');
+      }
     }else if(action === 'inspect'){
       openPersonModal(btn.dataset.id);
       return;

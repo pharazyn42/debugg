@@ -42,7 +42,8 @@ PAIRINGS = { <lang>: [domains it can be paired with on a contract] }
 BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
 
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
-PROMOTION = { Junior: {minutes:10, lang:1, dom:1}, Senior: {30, 3, 2}, Principal: {90, 5, 5} }
+PROMOTION = { Junior: {minutes:60, lang:1, dom:1}, Senior: {8h, 3, 2}, Principal: {3 days, 5, 5} }  // contract time only
+RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
 TIERS = [ quick fix 1 min / 1 dev, sprint 10 min / 3-5 + senior,
           milestone 30 min / 5-10 + principal,
           full delivery 90 min / 10+ incl. manager, 2 principals, 3 seniors ]
@@ -52,9 +53,10 @@ TIERS = [ quick fix 1 min / 1 dev, sprint 10 min / 3-5 + senior,
 ```js
 state = {
   money, reputation, lastTick,
-  roster: [ { id, name, role, since, lang: {name: xp}, dom: {name: xp} } ],  // Director is roster[0]
+  roster: [ { id, name, role, since, worked, lang: {name: xp}, dom: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
   board:  [ { id, tier, lang, dom } ],            // 2 offers per tier
-  jobs:   [ { id, tier, lang, dom, team: [ids], startedAt, endsAt, chance, payout, repeat } ],
+  jobs:   [ { id, tier, lang, dom, team: [ids], startedAt, endsAt, chance, payout, repeat,
+              status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
   activeContract: null | { lengthIndex, puzzleIdxs, index, puzzles: [{ attempts, status, clean, hintUsed }] }
@@ -85,9 +87,14 @@ state = {
   - Juniors: at most 1 bar in up to 2 domains.
   - Seniors: a language at 3–4 and a domain at 2–3.
   - Principals: a language and a domain at 5.
-- **Promotions**: need both time at the current level and skill bars, plus
-  a free slot at the next level. The player confirms with a "Promote"
-  button.
+- **Promotions** need three things, and the player confirms with a
+  "Promote" button:
+  - **Contract time at the current level**: 1 hour for Junior, 8 hours for
+    Senior, 3 days for Principal. Only time spent on contracts counts;
+    time on the bench doesn't. It's credited when each contract finishes
+    (`p.worked`) and resets on promotion.
+  - **Skill bars**: as listed in `PROMOTION`.
+  - **A free slot** at the next level.
 - **Contract board**: offers are tagged with a random language + domain,
   shown on the card. Staff them via the team picker, which ticks off the
   requirements and shows success chance, payout and salary cost. It has a
@@ -98,8 +105,15 @@ state = {
   - Success chance = average reliability by level, plus a small bonus for
     skill match.
   - On delivery, everyone on the team gains the tier's XP in that
-    language and domain. This is the placeholder skill-gain mechanic; it
-    doesn't yet model supervision.
+    language and domain. XP per contract is 1 / 12 / 40 / 135, about
+    1–1.5 XP per contract minute, tuned so skill bars build at roughly the
+    pace of the promotion timers. This is the placeholder skill-gain
+    mechanic; it doesn't yet model supervision.
+  - **Retry on failure**: a failed contract can be retried once, in half
+    the time, for 75% of the payout. If the retry fails, the contract is
+    lost. Non-repeating jobs wait in a "failed" state, with the team held,
+    until the player picks Retry or Drop. Repeating jobs retry
+    automatically, since it's the better deal per minute.
 - **Repeat**: a job can be set to roll straight into a new contract of the
   same type with the same team when it finishes. This is on by default for
   quick fixes. Repeats keep chaining while the page is closed, up to the
