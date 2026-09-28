@@ -56,6 +56,27 @@
 .ltd .stat .value.money.neg{ color: var(--red); }
 .ltd .stat .value.rep{ color: var(--blue); }
 .ltd .stat .value.rate{ color: var(--red); font-size: 14px; }
+/* The business's stage: a step track, its name, what it means and what's next. */
+.ltd .stage-bar{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "name steps" "text text";
+  align-items: center;
+  gap: 4px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 14px 0 0;
+}
+.ltd .stage-name{ grid-area: name; font-weight: 700; font-size: 15px; color: var(--amber); }
+.ltd .stage-steps{ grid-area: steps; display: flex; gap: 4px; justify-self: end; }
+.ltd .stage-step{ width: 22px; height: 6px; border-radius: 3px; background: var(--line); }
+.ltd .stage-step.done{ background: var(--amber-dim, #7a5a20); }
+.ltd .stage-step.now{ background: var(--amber); }
+.ltd .stage-text{ grid-area: text; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.ltd .stage-next{ color: var(--text-faint); }
+
 /* Phones: the four stats in one row. */
 @media (max-width: 560px){
   .ltd .stat-bar{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }

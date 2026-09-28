@@ -36,6 +36,7 @@ window.DebuggLtd = (function(){
 
     [statsSlot, studioSlot, boardSlot].forEach(el => { el.classList.add('ltd'); el.hidden = false; });
     statsSlot.innerHTML =
+      '<div class="stage-bar" id="stageBar"></div>' +
       '<div class="stat-bar">' +
         '<div class="stat"><div class="label">Cash</div><div class="value money" id="statMoney">¤0</div></div>' +
         '<div class="stat"><div class="label">Reputation</div><div class="value rep" id="statRep">0</div></div>' +
@@ -79,7 +80,7 @@ window.DebuggLtd = (function(){
     const $ = id => document.getElementById(id);
     const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
-    const guideEl = $('guide'), structureNote = $('structureNote');
+    const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
     const welcomeToast = $('welcomeToast');
@@ -134,6 +135,23 @@ window.DebuggLtd = (function(){
     const INFLATION = [0.02, 0.04];               // every role, per move
     const COMPETITION = [0.06, 0.15];             // one role, per move
     const COMPETITION_CHANCE = 0.4;
+
+    // The business's stage, by managers and headcount (the Director included). A start-up has
+    // no managers: you staff every contract yourself, and the daily puzzle pays in full. From a
+    // small business on, managers put idle developers on contracts, and the puzzle pays less
+    // (`desk`), since the company earns its keep without you.
+    const STAGES = [
+      { key: 'startup', name: 'Start-up',        managers: 0,  heads: 0,   desk: 1,
+        text: 'You run the team yourself: staff every contract, and your daily puzzle pays in full.' },
+      { key: 'small',   name: 'Small business',  managers: 1,  heads: 0,   desk: 0.5,
+        text: 'Your managers put idle developers on contracts. The daily puzzle pays half.' },
+      { key: 'midsize', name: 'Mid-size company', managers: 3, heads: 25,  desk: 0.25,
+        text: 'Your managers keep everyone busy. The daily puzzle pays a quarter.' },
+      { key: 'large',   name: 'Large company',   managers: 6,  heads: 60,  desk: 0.1,
+        text: 'The company runs itself. The daily puzzle pays a tenth: it’s for you now.' },
+      { key: 'multinational', name: 'Multinational', managers: 12, heads: 150, desk: 0.05,
+        text: 'A household name. The daily puzzle is pocket money.' }
+    ];
 
     // Applicants: every APPLICANT_EVERY_H hours or so (at random) an experienced developer
     // applies, asking the market price ± a little, and their offer stays open for
@@ -865,7 +883,8 @@ window.DebuggLtd = (function(){
       // d.day is the puzzle's day; on a Sunday, the weekend puzzle belongs to Saturday.
       if(d.day !== D.slotDay(D.today()) || state.paid[key] || !(d.xp > 0)) return;
       const bonus = d.solved ? Math.min(STREAK_BONUS_CAP, STREAK_BONUS_PER_DAY * Math.max(0, (d.streak || 0) - 1)) : 0;
-      const cash = Math.round(d.xp * CASH_PER_XP * (1 + bonus));
+      const cut = stage().desk;
+      const cash = Math.round(d.xp * CASH_PER_XP * (1 + bonus) * cut);
       const rep = d.xp / XP_PER_REP;
       state.money += cash;
       state.reputation += rep;
@@ -874,6 +893,7 @@ window.DebuggLtd = (function(){
       const name = (D.LANG_INFO[d.lang] || { name: d.lang }).name;
       const text = 'Today’s ' + name + ' puzzle ' + (d.solved ? 'paid ' : 'still paid ') + fmt(cash) +
         (bonus ? ' (incl. +' + Math.round(bonus * 100) + '% streak bonus)' : '') +
+        (cut < 1 ? ' (a ' + stage().name.toLowerCase() + ' gets ' + Math.round(cut * 100) + '% of desk pay)' : '') +
         ' and +' + (Math.round(rep * 10) / 10) + ' reputation.';
       addLog(d.solved ? 'ok' : 'info', '✓ Desk: ' + text);
       showToast(text);
@@ -883,6 +903,65 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // Rendering: stats, studio, board
     // ---------------------------------------------------------------------
+
+    function stageIndex(){
+      const managers = state.roster.filter(p => p.role === 'Manager').length;
+      let i = 0;
+      STAGES.forEach((st, k) => { if(managers >= st.managers && state.roster.length >= st.heads) i = k; });
+      return i;
+    }
+    function stage(){ return STAGES[stageIndex()]; }
+    // What it takes to reach the next stage.
+    function nextStageText(){
+      const next = STAGES[stageIndex() + 1];
+      if(!next) return '';
+      const managers = state.roster.filter(p => p.role === 'Manager').length;
+      const needs = [];
+      if(managers < next.managers) needs.push(next.managers === 1 ? 'your first manager' : next.managers + ' managers (you have ' + managers + ')');
+      if(state.roster.length < next.heads) needs.push(next.heads + ' staff (you have ' + state.roster.length + ')');
+      return 'Next: ' + next.name + ', with ' + needs.join(' and ') +
+        (DEMO && DEMO_LOCKED_ROLES.includes('Manager') && managers < next.managers ? ' (managers are coming in v0.1)' : '') + '.';
+    }
+    // Logs and announces a change of stage (either way), once.
+    function checkStage(){
+      const st = stage();
+      if(!state.stage){ state.stage = st.key; return; }
+      if(state.stage === st.key) return;
+      const up = STAGES.findIndex(x => x.key === st.key) > STAGES.findIndex(x => x.key === state.stage);
+      state.stage = st.key;
+      const text = 'Debuggit Ltd is ' + (up ? 'now' : 'back to being') + ' a ' + st.name.toLowerCase() + '. ' + st.text;
+      addLog(up ? 'ok' : 'info', (up ? '★ ' : '') + text);
+      showToast(text);
+      track('stage/' + st.key);
+    }
+
+    // From a small business on, managers put idle developers to work: first on the biggest team
+    // contracts a free team can take ("Suggest a team"'s choice), then each one left on a hotfix
+    // in a language they know. Everything they start repeats. The offer open in the picker is left alone.
+    function managersStaff(){
+      if(stageIndex() < 1) return 0;
+      let placed = [];
+      const free = () => { const busy = busyIds(); return state.roster.filter(p => p.role !== 'Director' && !busy.has(p.id)); };
+      for(let ti = TIERS.length - 1; ti > 0; ti--){
+        const tier = TIERS[ti];
+        state.board.filter(o => o.tier === ti && !(picker && picker.offerId === o.id)).forEach(o => {
+          const pool = free().filter(p => eligibleFor(tier, p));
+          const ids = suggestTeam(tier, o, pool);
+          if(ids.length < tier.min || !evaluateTeam(tier, o, ids.map(person)).valid) return;
+          if(startJob(o.id, ids, true)) placed = placed.concat(ids.filter(id => isDev(person(id))));
+        });
+      }
+      free().filter(isDev).forEach(d => {
+        const o = state.board.filter(o => isHotfix(o.tier) && qualifiedFor(d, o) && !(picker && picker.offerId === o.id))
+          .sort((a, b) => bars(d.lang[b.lang]) - bars(d.lang[a.lang]))[0];
+        if(o && startJob(o.id, [d.id], true)) placed.push(d.id);
+      });
+      if(placed.length){
+        const names = placed.map(id => person(id).name);
+        addLog('info', 'Your managers put ' + (names.length <= 2 ? names.join(' and ') : names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more') + ' to work.');
+      }
+      return placed.length;
+    }
 
     // The first steps, shown as one "next step" card until the player has a dev on a contract and
     // has solved a desk puzzle (or dismisses it): hire a grad, put them on a hotfix they can
@@ -905,7 +984,7 @@ window.DebuggLtd = (function(){
       const today = D.slotDay(D.today());
       if(!D.isFinished(today)){
         return { key: 'desk', text: '<b>Solve today’s puzzle at your desk.</b> It pays the company up to ' +
-          fmt(D.baseXp(today) * CASH_PER_XP) + ', and a new one comes out every day.' };
+          fmt(D.baseXp(today) * CASH_PER_XP * stage().desk) + ', and a new one comes out every day.' };
       }
       state.guideDone = true;
       save();
@@ -924,7 +1003,8 @@ window.DebuggLtd = (function(){
       if(idle.length && !(step && step.key === 'staff')){
         const cost = idle.reduce((n, p) => n + ROLES[p.role].salary, 0);
         html += '<div class="alert" data-alert="idle">⚠ ' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
-          ' on the bench, costing ¤' + cost + '/min. Staff them on a contract below.</div>';
+          ' on the bench, costing ¤' + cost + '/min. ' +
+          (stageIndex() >= 1 ? 'Your managers will put them to work once there’s a contract they can take.' : 'Staff them on a contract below.') + '</div>';
       }
       if(state.money < 0){
         html += '<div class="alert bad" data-alert="debt">⚠ The company is ' + fmt(-state.money) + ' in debt, and salaries keep going out. ' +
@@ -932,6 +1012,16 @@ window.DebuggLtd = (function(){
       }
       setHTML(guideEl, html);
       return step;
+    }
+
+    function renderStage(){
+      const i = stageIndex();
+      const st = STAGES[i];
+      setHTML(stageBar,
+        '<div class="stage-steps" aria-hidden="true">' + STAGES.map((x, k) =>
+          '<span class="stage-step' + (k < i ? ' done' : k === i ? ' now' : '') + '" title="' + esc(x.name) + '"></span>').join('') + '</div>' +
+        '<div class="stage-name" data-stage="' + st.key + '">' + esc(st.name) + '</div>' +
+        '<div class="stage-text">' + esc(st.text) + ' <span class="stage-next">' + esc(nextStageText()) + '</span></div>');
     }
 
     function renderStats(){
@@ -1291,6 +1381,7 @@ window.DebuggLtd = (function(){
     function renderAll(){
       const now = Date.now();
       guide = renderGuide();
+      renderStage();
       renderStats();
       renderStudio(now);
       renderBoard();
@@ -1596,6 +1687,7 @@ window.DebuggLtd = (function(){
     refreshBoard(Date.now());
     moveMarket(Date.now());
     moveApplicants(Date.now());
+    checkStage();
 
     const now = Date.now();
     const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);
@@ -1614,6 +1706,8 @@ window.DebuggLtd = (function(){
     state.lastTick = now;
     save();
 
+    managersStaff();
+    save();
     renderAll();
     if(opening) showToast(opening);
 
@@ -1625,6 +1719,8 @@ window.DebuggLtd = (function(){
       refreshBoard(t);
       moveMarket(t);
       moveApplicants(t);
+      checkStage();
+      managersStaff();
       renderAll();
       save();
     }, 1000);

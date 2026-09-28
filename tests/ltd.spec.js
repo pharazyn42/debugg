@@ -253,6 +253,33 @@ test('on a phone, the Ltd tab folds a finished puzzle to its tiles', async ({ pa
   await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
 });
 
+test('the business grows from a start-up; managers staff idle devs and the desk pays less', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('.stage-name')).toHaveText('Start-up');
+  await expect(page.locator('.stage-bar')).toContainText('your daily puzzle pays in full');
+  await expect(page.locator('.stage-bar')).toContainText('Next: Small business, with your first manager (managers are coming in v0.1).');
+  await expect(page.locator('.stage-step.now')).toHaveCount(1);
+
+  // A manager joins (from an old save, say): it's a small business, and they staff the idle grad.
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.roster.push({ id: 'm1', name: 'Mo M.', role: 'Manager', since: Date.now(), lang: {} });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+  });
+  await expect(page.locator('.stage-name')).toHaveText('Small business');
+  await expect(page.locator('.stage-bar')).toContainText('Next: Mid-size company, with 3 managers (you have 1) and 25 staff (you have 3)');
+  await expect(page.locator('#log')).toContainText('Debuggit Ltd is now a small business.');
+  await expect(page.locator('#log')).toContainText('Your managers put Ada L. to work.');
+  const job = (await ltd(page)).jobs[0];
+  expect(job).toMatchObject({ team: ['g1'], lang: 'Python', tier: 0, repeat: true });
+  expect((await ltd(page)).stage).toBe('small');
+
+  // The desk pays half: a first-try Wednesday solve is ¤100, not ¤200.
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await expect(page.locator('#welcomeToast')).toContainText('paid ¤100');
+  await expect(page.locator('#welcomeToast')).toContainText('a small business gets 50% of desk pay');
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');

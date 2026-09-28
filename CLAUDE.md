@@ -182,6 +182,7 @@ state = {
   paid: { 'python-5': true, … },                  // desk puzzles already paid for (last 14 days)
   applicants: [ { id, role, person, cost, expiresAt } ], nextApplicantAt,
   guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
+  stage,                                          // the business stage last announced ('startup', 'small', …)
   market: { prices: { Graduate: 1.08, … }, nextAt } // hire-cost multipliers, and when the market next moves
 }
 ```
@@ -312,6 +313,18 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **Business stages** (`STAGES`, `stageIndex()`, shown in a stage bar above the stats, with a
+  step track and what the next stage needs): **Start-up** (no managers), **Small business** (1
+  manager), **Mid-size company** (3 managers, 25 staff), **Large company** (6, 60),
+  **Multinational** (12, 150); headcount includes the Director. Decided with the player-owner:
+  a start-up is run by hand and lives on the daily puzzle; from a small business on,
+  **managers staff idle developers** (`managersStaff()`, every tick and on load: the biggest
+  team contracts a free team can take, by "Suggest a team", then hotfixes; all on repeat, and
+  never the offer open in the picker), and **desk pay shrinks** by stage (`desk`: 100%, 50%,
+  25%, 10%, 5%; reputation from puzzles doesn't). A change of stage is logged, announced and
+  tracked (`ltd/stage/<key>`); `state.stage` remembers the last one. In the demo managers are
+  locked, so every company stays a start-up (the bar says managers come in v0.1). This is the
+  start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
   they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
@@ -986,6 +999,9 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   concept doc intended.
 
 #### 13. Business tiers
+- **Started** (September 2026): the stages, the stage bar, managers staffing idle developers
+  and desk pay shrinking by stage are built (see "Business stages" above). Still to do: stages
+  unlocking things (below), and managers only when the demo allows them.
 - Show a business-tier label that grows with headcount: Start-up →
   Small business → … → something massive (e.g. Multinational).
 - Thresholds and names are TBD. The current Director-as-manager phase is

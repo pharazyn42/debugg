@@ -60,6 +60,8 @@ The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily and Learn; "S
 
 Patches and bigger contracts only come to the board once the company has more than 10 staff, the Director included.
 
+The company grows through **stages**, shown above its stats: a **Start-up** (just you and up to 4 devs) is run by hand, staffing every contract yourself, and your daily puzzle pays in full. With managers it becomes a **Small business**, then a mid-size company, a large company and a multinational: managers put idle developers on contracts for you, and the daily puzzle pays less and less (half, a quarter, a tenth, a twentieth).
+
 A **Next step** card walks a new company through its first hire, its first contract and the desk puzzle; after that, the studio warns about anyone left on the bench (they're still paid) and about debt. The board shows the contracts your staff can take, with the rest folded away.
 
 **In the demo** the company is the start-up slice: no managers, so you can have up to 4 devs, which means hotfixes only (patches need more than 10 staff). Minor and major releases show on the board as "coming in v0.1".
