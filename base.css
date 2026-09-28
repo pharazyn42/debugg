@@ -210,6 +210,11 @@ footer{
   font-size: 12px;
   font-family: var(--mono);
 }
+/* The version, linking to What's new; "new" until a returning player has looked. */
+.app-version{ margin-top: 8px; }
+.version-link{ color: var(--text-faint); text-decoration: none; }
+.version-link:hover{ color: var(--text); text-decoration: underline; }
+.version-link.new{ color: var(--amber); border: 1px solid var(--amber-dim); border-radius: 999px; padding: 1px 8px; }
 
 /* Dialogs (the save backup window) */
 dialog{

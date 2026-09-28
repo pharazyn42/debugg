@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_call:  # the Release workflow runs these first
 
 jobs:
   # Runs every puzzle with the real toolchain (python3, node, gcc and clang, rustc; all on the

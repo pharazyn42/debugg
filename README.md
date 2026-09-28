@@ -45,6 +45,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - **Backup:** everything is saved in the player's browser only. The footer's **backup** link shows a code holding all of it (puzzles, XP, streak, company, sandbox drafts) and restores from one on any device (`backup.js`).
 - **Feedback:** after each game, "Report it" opens a GitHub issue prefilled with the puzzle's language, day, first line and expected answer; the footer's **feedback** link opens a blank one. Issues are public, and reporting needs a GitHub account.
 - **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). The dashboard is at https://debugg.goatcounter.com. Setting `SITE_COUNT_URL` in that file to `''` switches it off. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debuggit Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
+- **Versions:** every page's footer shows the version (e.g. `v0.0.1 demo`), linking to **What's new** (`whatsnew.html`), which shows `CHANGELOG.md`. `node tools/release.js bump <version>` cuts a release, and pushing its `v<version>` tag runs the tests and publishes a GitHub Release (see "Releases" in `CLAUDE.md`).
 - **Privacy:** `privacy.html` explains all of the above to players. Fonts are served from `fonts/` (Sora and JetBrains Mono, SIL Open Font License), not Google Fonts.
 
 ## Debuggit Ltd
