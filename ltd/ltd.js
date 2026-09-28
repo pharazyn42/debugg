@@ -49,6 +49,8 @@ window.DebuggLtd = (function(){
         '<div class="structure" id="structure"></div>' +
         '<div class="roster" id="roster"></div>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
+        '<h3>Applicants</h3>' +
+        '<div class="applicants" id="applicants"></div>' +
       '</div>';
     boardSlot.innerHTML =
       '<div class="panel">' +
@@ -74,7 +76,7 @@ window.DebuggLtd = (function(){
 
     const $ = id => document.getElementById(id);
     const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads');
-    const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid');
+    const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
     const welcomeToast = $('welcomeToast');
@@ -105,6 +107,10 @@ window.DebuggLtd = (function(){
       Principal: { sloc: 70, salary: 28, cost: 12000, reliability: 0.95 }
     };
     const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
+    // Experienced developers can't be hired at will: they apply now and then (see "Applicants"
+    // below). Managers and graduates have hire buttons.
+    const APPLICANT_ROLES = ['Junior', 'Senior', 'Principal'];
+    const HIRE_BUTTONS = HIRE_ORDER.filter(r => !APPLICANT_ROLES.includes(r));
     const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
 
     // To be promoted INTO a level: minutes spent working on contracts at the
@@ -125,6 +131,19 @@ window.DebuggLtd = (function(){
     const INFLATION = [0.02, 0.04];               // every role, per move
     const COMPETITION = [0.06, 0.15];             // one role, per move
     const COMPETITION_CHANCE = 0.4;
+
+    // Applicants: every APPLICANT_EVERY_H hours or so (at random) an experienced developer
+    // applies, asking the market price ± a little, and their offer stays open for
+    // APPLICANT_OPEN_H hours. Reputation decides who applies: juniors from the start, seniors
+    // and principals once the studio is known (APPLICANT_REP). At most MAX_APPLICANTS wait
+    // at once. When a rival competes for a level, it also hires away an applicant at it.
+    const APPLICANT_EVERY_H = [8, 24];
+    const FIRST_APPLICANT_H = 2;                  // a new company's first applicant
+    const APPLICANT_OPEN_H = 12;
+    const MAX_APPLICANTS = 3;
+    const APPLICANT_ASK = [0.9, 1.2];             // × the market price
+    const APPLICANT_REP = { Junior: 0, Senior: 500, Principal: 3000 };
+    const APPLICANT_WEIGHT = { Junior: 6, Senior: 3, Principal: 1 };
 
     // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
     // directly below; each manager personally covers one slot at every level
@@ -398,14 +417,16 @@ window.DebuggLtd = (function(){
     function moveMarket(now){
       if(!state.market) state.market = { prices: {}, nextAt: nextMarketMove(now) };
       const m = state.market;
-      const between = ([lo, hi]) => lo + Math.random() * (hi - lo);
       for(let i = 0; m.nextAt <= now && i < 60; i++){
         if(Math.random() < COMPETITION_CHANCE){
           const role = pick(HIRE_ORDER);
           const up = between(COMPETITION);
           m.prices[role] = (m.prices[role] || 1) * (1 + up);
+          const lost = (state.applicants || []).find(a => a.role === role);
+          if(lost) state.applicants = state.applicants.filter(a => a !== lost);
           addLog('info', 'Competition: a rival studio is hiring ' + (role === 'Graduate' ? 'graduates' : role.toLowerCase() + 's') +
-            ', so ' + role.toLowerCase() + ' hires cost ' + Math.round(up * 100) + '% more.');
+            ', so ' + role.toLowerCase() + ' hires cost ' + Math.round(up * 100) + '% more' +
+            (lost ? ', and it’s hired away ' + lost.person.name + ', who’d applied to you.' : '.'));
         }else{
           const up = between(INFLATION);
           HIRE_ORDER.forEach(r => { m.prices[r] = (m.prices[r] || 1) * (1 + up); });
@@ -414,6 +435,40 @@ window.DebuggLtd = (function(){
         m.nextAt = nextMarketMove(m.nextAt);
       }
       if(m.nextAt <= now) m.nextAt = nextMarketMove(now);
+    }
+
+    function between([lo, hi]){ return lo + Math.random() * (hi - lo); }
+    // The levels reputation has opened to applicants.
+    function applicantRoles(){ return APPLICANT_ROLES.filter(r => (state.reputation || 0) >= APPLICANT_REP[r]); }
+    function nextApplicantTime(from){ return from + between(APPLICANT_EVERY_H) * 3600000; }
+    function newApplicant(at){
+      const roles = applicantRoles();
+      let roll = Math.random() * roles.reduce((n, r) => n + APPLICANT_WEIGHT[r], 0);
+      const role = roles.find(r => (roll -= APPLICANT_WEIGHT[r]) < 0) || roles[0];
+      const p = makeHire(role);
+      return { id: p.id, role, person: p, cost: Math.round(hireCost(role) * between(APPLICANT_ASK) / 5) * 5,
+               expiresAt: at + APPLICANT_OPEN_H * 3600000 };
+    }
+    // Lets applicants go whose offers have run out, then brings in everyone due by `now`
+    // (skipping any whose offer would already have run out while the page was closed).
+    function moveApplicants(now){
+      if(!state.applicants) state.applicants = [];
+      if(!state.nextApplicantAt) state.nextApplicantAt = now + FIRST_APPLICANT_H * 3600000;
+      state.applicants = state.applicants.filter(a => {
+        if(a.expiresAt > now) return true;
+        addLog('info', a.person.name + ' (' + a.role.toLowerCase() + ') took a job elsewhere.');
+        return false;
+      });
+      for(let i = 0; state.nextApplicantAt <= now && i < 60; i++){
+        const at = state.nextApplicantAt;
+        if(at + APPLICANT_OPEN_H * 3600000 > now && state.applicants.length < MAX_APPLICANTS){
+          const a = newApplicant(at);
+          state.applicants.push(a);
+          addLog('info', a.person.name + ' applied to join as a ' + a.role.toLowerCase() + ', asking ' + fmt(a.cost) + '.');
+        }
+        state.nextApplicantAt = nextApplicantTime(at);
+      }
+      if(state.nextApplicantAt <= now) state.nextApplicantAt = nextApplicantTime(now);
     }
 
     function addLog(kind, text){
@@ -743,6 +798,8 @@ window.DebuggLtd = (function(){
       state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; });
       state.board.forEach(o => { o.expiresAt += ms; });
       if(state.market) state.market.nextAt += ms;
+      if(state.nextApplicantAt) state.nextApplicantAt += ms;
+      (state.applicants || []).forEach(a => { a.expiresAt += ms; });
       state.roster.forEach(p => { p.since += ms; });
     }
 
@@ -960,7 +1017,7 @@ window.DebuggLtd = (function(){
       renderPersonModal(now);
 
       let hire = '';
-      HIRE_ORDER.forEach(role => {
+      HIRE_BUTTONS.forEach(role => {
         const why = hireProblem(role);
         const cost = hireCost(role);
         const broke = state.money < cost;
@@ -974,6 +1031,32 @@ window.DebuggLtd = (function(){
                 '</button>';
       });
       setHTML(hireGrid, hire);
+      renderApplicants(now);
+    }
+
+    function renderApplicants(now){
+      let html = state.applicants.map(a => {
+        const why = hireProblem(a.role);
+        const broke = state.money < a.cost;
+        return '<div class="applicant" data-applicant="' + a.id + '">' +
+          '<div class="card-top"><span class="card-name">' + esc(a.person.name) + '</span>' +
+          '<span class="card-level ' + a.role + '">' + a.role + '</span></div>' +
+          '<div class="card-stats"><span>' + ROLES[a.role].sloc + ' SLOC/min · ' + topSkillsText(a.person) + '</span>' +
+          '<span>−¤' + ROLES[a.role].salary + '/min</span></div>' +
+          '<div class="card-foot"><span class="promo">Offer open ' + fmtDuration(a.expiresAt - now) + '</span>' +
+          '<button class="btn-small btn-promote" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>' +
+            'Hire for ' + fmt(a.cost) + '</button></div>' +
+          (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>' : '') +
+          '</div>';
+      }).join('');
+      if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Experienced developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
+      const locked = APPLICANT_ROLES.filter(r => (state.reputation || 0) < APPLICANT_REP[r]);
+      if(locked.length){
+        html += '<p class="applicants-note">' + locked.map(r => (r === 'Senior' ? 'Seniors' : 'Principals') +
+          ' apply once the studio has ' + APPLICANT_REP[r].toLocaleString('en-GB') + ' reputation').join('; ') +
+          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts and daily puzzles earn it.</p>';
+      }
+      setHTML(applicantsEl, html);
     }
 
     function cardHTML(p, now){
@@ -1325,6 +1408,15 @@ window.DebuggLtd = (function(){
         state.roster.push(hire);
         addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
         track('hired/' + role.toLowerCase());
+      }else if(action === 'hire-applicant'){
+        const a = (state.applicants || []).find(x => x.id === btn.dataset.id);
+        if(!a || state.money < a.cost || hireProblem(a.role)) return;
+        state.money -= a.cost;
+        state.applicants = state.applicants.filter(x => x !== a);
+        a.person.since = Date.now();
+        state.roster.push(a.person);
+        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + '.');
+        track('hired/' + a.role.toLowerCase());
       }else if(action === 'promote'){
         const p = person(btn.dataset.id);
         const ps = p && promotionStatus(p, Date.now());
@@ -1411,6 +1503,7 @@ window.DebuggLtd = (function(){
     state.board.forEach(o => { if(!o.expiresAt) o.expiresAt = Date.now() + TIERS[o.tier].offerLife * 60000; });
     refreshBoard(Date.now());
     moveMarket(Date.now());
+    moveApplicants(Date.now());
 
     const now = Date.now();
     const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);
@@ -1439,6 +1532,7 @@ window.DebuggLtd = (function(){
       if(resolveDueJobs(t) && picker) renderPicker();
       refreshBoard(t);
       moveMarket(t);
+      moveApplicants(t);
       renderAll();
       save();
     }, 1000);

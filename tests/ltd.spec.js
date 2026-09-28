@@ -160,6 +160,42 @@ test('hiring costs only go up, with inflation and competition', async ({ page })
   expect(prices.Graduate).toBeGreaterThanOrEqual(1.5);
 });
 
+test('experienced developers apply now and then; only grads and managers have hire buttons', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('[data-action=hire]')).toHaveCount(2);
+  await expect(page.locator('[data-action=hire][data-role=Junior]')).toHaveCount(0);
+  await expect(page.locator('#applicants')).toContainText('Nobody’s applied yet');
+  await expect(page.locator('#applicants')).toContainText('Seniors apply once the studio has 500 reputation; Principals apply once the studio has 3,000 reputation');
+  const now = await page.evaluate(() => Date.now());
+  expect((await ltd(page)).nextApplicantAt - now).toBe(2 * 3600000);
+
+  // Someone applies. With no reputation yet, it's a junior.
+  await editCompany(page, s => { s.money = 5000; s.nextApplicantAt = Date.now() - 1000; });
+  const saved = await ltd(page);
+  expect(saved.applicants).toHaveLength(1);
+  const a = saved.applicants[0];
+  expect(a.role).toBe('Junior');
+  expect(a.cost).toBeGreaterThanOrEqual(675);
+  expect(a.cost).toBeLessThanOrEqual(900);
+  expect(saved.nextApplicantAt - now).toBeGreaterThanOrEqual(8 * 3600000 - 1000);
+  await expect(page.locator('#log')).toContainText('applied to join as a junior');
+  const card = page.locator('.applicant[data-applicant="' + a.id + '"]');
+  await expect(card).toContainText('Offer open 12h');
+  await card.locator('[data-action=hire-applicant]').click();
+  await expect(page.locator('.applicant')).toHaveCount(0);
+  const after = await ltd(page);
+  expect(after.money).toBeCloseTo(5000 - a.cost, 0);
+  expect(after.roster.find(p => p.id === a.id).role).toBe('Junior');
+
+  // An offer that runs out is gone.
+  await editCompany(page, s => {
+    s.applicants = [{ id: 'x1', role: 'Senior', cost: 3000, expiresAt: Date.now() - 1000,
+                      person: { id: 'x1', name: 'Sam Q.', role: 'Senior', since: Date.now(), lang: { Rust: 150 } } }];
+  });
+  expect((await ltd(page)).applicants).toHaveLength(0);
+  await expect(page.locator('#log')).toContainText('Sam Q. (senior) took a job elsewhere.');
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');

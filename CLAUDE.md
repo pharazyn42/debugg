@@ -308,6 +308,16 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): only
+  graduates and managers have hire buttons. Juniors, seniors and principals *apply*: one
+  every 8–24 hours (the first 2 hours after founding), at most 3 waiting, each asking the
+  market price × 0.9–1.2, with the offer open for 12 hours ("took a job elsewhere" after).
+  Reputation decides who applies (`APPLICANT_REP`): juniors from the start, seniors from
+  500, principals from 3,000, weighted 6 : 3 : 1 among those open. A competition move on a
+  level also hires away a waiting applicant at it. Arrivals and expiries happen while the
+  page is closed (not while paused). Decided with the player-owner: promotion is the steady,
+  cheap way to grow seniority; applicants are the pricey chance to get ahead. This is
+  reputation's first use (item 12).
 - **The hiring market** (`moveMarket()`): hire costs only go up. Every 12–36 hours (at
   random), either inflation raises every role's cost by 2–4%, or a rival studio competing
   for one level raises that one by 6–15%. Each move is logged, and hire buttons show the
@@ -316,7 +326,7 @@ state = {
 
 ## Known gaps — not wired in yet
 
-- **Reputation does nothing** beyond being tracked (roadmap item 12).
+- **Reputation only decides which applicants turn up** (roadmap item 12 has more for it).
 - **Skill gain is a placeholder**: a flat XP rate with no supervision
   effect (item 22).
 - **No training spend, studio upgrades, or prestige** (items 14, 15, 19).
