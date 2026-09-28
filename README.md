@@ -4,7 +4,7 @@ A Wordle-style daily game where you guess what a short, buggy code snippet actua
 
 **The name and the wordmark.** It's called **Debuggit** ("debug it"), and its logo is that phrase written as a line of code in the day's puzzle language: `debugg(it)` on a Python day, `debugg.it()` in JavaScript, `debugg!(it)` in Rust, `debugg(&it);` in C. Each page has its own: `debugg.learn()`, `debugg.run()` (the sandbox) and `debugg.ltd()` (the studio). Beside it sits the **Debuggit duck** (`img/duck.svg`), a rubber duck for rubber-duck debugging: it's the logo and favicon, it reacts after every puzzle ("Quack! First try, no hints."), and it cheers Learn lessons on. `img/share.png` is the link-preview card and `img/duck-180.png` the home-screen icon. `renderWordmark()` in `shared.js` draws it with the puzzles' syntax colours. The repository, the `debugg-*` save keys and names like `window.Debugg` keep the old spelling: players never see them, and renaming them would break saves.
 
-**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debuggit Ltd is cut down to hotfixes and patches with no managers (see "Debuggit Ltd" below).
+**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debuggit Ltd is cut down to hotfixes, with no managers (see "Debuggit Ltd" below).
 
 **One puzzle a day, and the languages take turns.** `ROTATION` in `shared.js` lists the languages in play and the day each one joins; for now it's Python only. With more than one, they share the week's six puzzles (Monday to Friday and the weekend), shifting one day along each week so every language gets every difficulty in turn. A newly added language only gets Monday and Tuesday, the easy days, for its first two weeks. C, Rust and JavaScript puzzles are written and checked; to introduce one, add it to `ROTATION` with the day it joins.
 
@@ -49,7 +49,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Debuggit Ltd
 
-"Start your own company" (in the footer, and after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+The **Ltd** tab at the top (next to Daily and Learn; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
 
 - **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
@@ -58,7 +58,9 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team), grouped in foldable sections. There's always a hotfix in every language. Contracts, skills and promotions are by programming language. Teams can repeat contracts, and work carries on while the page is closed (up to 4 hours).
 - **Pause company** stops the clock completely (no salaries, no progress) until you switch it back on. **Close company** deletes it; puzzle progress, XP and the streak are kept. The footer's "reset puzzles" does the opposite: it keeps the company.
 
-**In the demo** the company is the start-up slice: hotfixes and patches only, and no managers, so you can have up to 4 devs. Minor and major releases show on the board as "coming in v0.1".
+Patches and bigger contracts only come to the board once the company has more than 10 staff, the Director included.
+
+**In the demo** the company is the start-up slice: no managers, so you can have up to 4 devs, which means hotfixes only (patches need more than 10 staff). Minor and major releases show on the board as "coming in v0.1".
 
 The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 

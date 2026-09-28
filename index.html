@@ -193,7 +193,19 @@
     border-radius: 5px;
     padding: 2px 6px;
   }
-  body.ltd-on .found, body.ltd-on #ltdLinkSep{ display: none; }
+  body.ltd-running .found, body.ltd-view .found{ display: none; }
+  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard{ display: none !important; }
+  .ltd-intro{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin: 0 0 18px;
+  }
+  .ltd-intro p{ margin: 0 0 12px; color: var(--text-dim); line-height: 1.5; }
+  .ltd-intro .section-label{ margin-bottom: 6px; }
+  .ltd-note{ text-align: center; font-size: 13px; color: var(--text-faint); margin: -6px 0 16px; }
+  .ltd-note a{ color: var(--amber); }
 
   .section-label{
     font-family: var(--mono);
@@ -253,14 +265,23 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a></nav>
+    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd</a></nav>
     <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
 
-  <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). -->
+  <!-- The Ltd tab without a running company: what it is, and a button to start (or resume) one. -->
+  <section class="ltd-intro" id="ltdIntro" hidden>
+    <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
+    <p id="ltdIntroText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and get paid for every daily puzzle.</p>
+    <button class="btn-primary" id="ltdLink">Start your own company</button>
+  </section>
+  <p class="ltd-note" id="ltdNote" hidden>Your company is running: today’s puzzle pays Debuggit Ltd. <a href="index.html?ltd">Open Ltd →</a></p>
+
+  <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). On the
+       Daily tab a running company is loaded but hidden, so the puzzle still pays it. -->
   <div id="ltdStats" hidden></div>
 
   <div class="columns">
@@ -325,7 +346,7 @@
     <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
     <div class="footer-links"><a href="sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
-      <a href="privacy.html">privacy</a><span id="ltdLinkSep"> · <a href="#" id="ltdLink">start your own company</a> <span class="beta">beta</span></span> ·
+      <a href="privacy.html">privacy</a> ·
       <a href="#" id="resetLink">reset puzzles</a></div>
   </footer>
 </div>
@@ -333,7 +354,7 @@
 <dialog id="demoNotice" aria-labelledby="demoTitle">
   <img class="dialog-duck" src="img/duck.svg" alt="" width="56" height="56">
   <h2 id="demoTitle">This is the Debuggit demo</h2>
-  <p>Thanks for trying Debuggit early. The daily puzzles are all here, and Debuggit Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
+  <p>Thanks for trying Debuggit early. The daily puzzles are all here, and Debuggit Ltd, the company you can start, is a cut-down version for now: hotfixes, with up to four developers. Patches need more than 10 staff, so they come with managers in v0.1.</p>
   <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
   <p>Found something wrong, or have an idea? The feedback link at the bottom of the page opens a GitHub issue.</p>
   <div class="backup-actions"><button class="btn-primary" id="demoOk" type="button">Got it</button></div>
@@ -769,32 +790,46 @@
 </script>
 
 <script>
-// Debuggit Ltd loader. The studio's code only loads when it's switched on: when a company is
-// saved and running, when a save from before the merge exists (the old /studio/ page),
-// or when the page is opened with ?ltd (which /studio/ now redirects to).
+// Debuggit Ltd loader. The Ltd tab is index.html?ltd: the studio beside the puzzle (its desk), or,
+// with no running company, a card to start or resume one. On the Daily tab a running company is
+// loaded but kept out of sight, so the puzzle still pays it. The studio's code only loads when a
+// company is running, when a save from before the merge exists (the old /studio/ page, which
+// opens the Ltd tab), or when the player starts or resumes one.
 (function(){
   const KEY = 'debugg-ltd', OLD_KEY = 'contract-debugger-state-v3';
   function read(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+  const $ = id => document.getElementById(id);
 
-  const params = new URLSearchParams(location.search);
-  const asked = params.has('ltd');
-  if(asked){
-    params.delete('ltd');
-    const q = params.toString();
-    history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
-  }
   const saved = read(KEY);
-  const paused = !!(saved && !saved.enabled);
-  if(paused){
-    document.getElementById('ltdLink').textContent = 'resume Debuggit Ltd';
-    document.getElementById('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
-    document.getElementById('foundBtn').textContent = 'Resume Debuggit Ltd';
+  const running = !!(saved && saved.enabled);
+  const importing = !saved && !!read(OLD_KEY);
+  let ltdView = new URLSearchParams(location.search).has('ltd') || importing;
+
+  // Marks the current tab, and on the Ltd tab keeps ?ltd in the address so a reload stays there.
+  function showView(){
+    document.body.classList.toggle('ltd-view', ltdView);
+    $('dailyTab').removeAttribute('aria-current');
+    $('ltdTab').removeAttribute('aria-current');
+    (ltdView ? $('ltdTab') : $('dailyTab')).setAttribute('aria-current', 'page');
+    if(ltdView){
+      if(!new URLSearchParams(location.search).has('ltd'))
+        history.replaceState(null, '', location.pathname + (location.search ? location.search + '&ltd' : '?ltd') + location.hash);
+      window.Debugg.renderWordmark($('wordmark'), 'ltd');
+    }
+    $('ltdIntro').hidden = !ltdView || document.body.classList.contains('ltd-running');
+  }
+
+  if(saved && !saved.enabled){
+    $('ltdIntroText').textContent = $('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
+    $('ltdLink').textContent = $('foundBtn').textContent = 'Resume Debuggit Ltd';
   }
 
   let loading = false;
   function switchOn(){
     if(loading) return;
     loading = true;
+    document.body.classList.add('ltd-running');
+    showView();
     const css = document.createElement('link');
     css.rel = 'stylesheet';
     css.href = 'ltd/ltd.css';
@@ -802,21 +837,22 @@
     const js = document.createElement('script');
     js.src = 'ltd/ltd.js';
     js.onload = () => {
-      document.body.classList.add('ltd-on');
-      window.Debugg.renderWordmark(document.getElementById('wordmark'), 'ltd');
-      window.DebuggLtd.start({
-        stats: document.getElementById('ltdStats'),
-        studio: document.getElementById('ltdStudio'),
-        board: document.getElementById('ltdBoard')
-      });
+      if(ltdView) document.body.classList.add('ltd-on');
+      else $('ltdNote').hidden = false;
+      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard') });
     };
-    js.onerror = () => { loading = false; };
+    js.onerror = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
     document.body.appendChild(js);
   }
 
-  if(asked || (saved && saved.enabled) || (!saved && read(OLD_KEY))) switchOn();
-  [document.getElementById('ltdLink'), document.getElementById('foundBtn')].forEach(el =>
-    el.addEventListener('click', (e) => { e.preventDefault(); switchOn(); }));
+  showView();
+  if(running || importing) switchOn();
+  // Starting or resuming the company, from the Ltd tab's card or the one under a finished puzzle.
+  [$('ltdLink'), $('foundBtn')].forEach(el => el.addEventListener('click', (e) => {
+    e.preventDefault();
+    ltdView = true;
+    switchOn();
+  }));
 
   // The demo notice: shown on the first visit, and again from the "demo" badge in the header.
   // Tests switch the automatic one off with window.DEBUGG_DEMO_NOTICE = false.
