@@ -9,7 +9,9 @@ const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./he
 const at = (h, m = 0) => new Date(2026, 9, 7, h, m, 0);  // Day 3, a Wednesday
 const ltd = page => readJson(page, 'debugg-ltd');
 
+// Opens the Ltd tab and starts a company there.
 async function found(page){
+  await page.click('#ltdTab');
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
 }
@@ -38,6 +40,9 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   await expect(page.locator('#foundCard')).toBeVisible();
   await page.click('#foundBtn');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
+  // Starting it here moves to the Ltd tab.
+  await expect(page).toHaveURL(/index\.html\?ltd#python$/);
+  await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#kicker')).toHaveText('Day 3 · Wednesday · medium · Python');
   // The wordmark becomes the studio's.
   await expect(page.locator('#wordmark')).toHaveAttribute('data-wordmark', 'debugg.ltd()');
@@ -138,11 +143,36 @@ test('the board has a hotfix in every language, and no domains', async ({ page }
   await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Patches', 'Minor releases', 'Major releases']);
   const saved = await ltd(page);
   expect(JSON.stringify(saved)).not.toContain('"dom"');
-  expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(2);
+  expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(0);
+});
+
+// Adds staff until the company has `n` people, the Director included.
+const staffUpTo = n => new Function('s', `
+  while(s.roster.length < ${n}) s.roster.push({ id: 'g' + s.roster.length, name: 'Grad ' + s.roster.length, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });`);
+
+test('patches only come to the board above 10 staff', async ({ page }) => {
+  await found(page);
+  const patches = page.locator('.board-group[data-tier=patch]');
+  await expect(patches).toHaveClass(/locked/);
+  await expect(patches.locator('.level-count')).toHaveText('unlocks above 10 staff');
+  await editCompany(page, staffUpTo(10));
+  await expect(page.locator('#statHeads')).toHaveText('10');
+  await expect(patches).toHaveClass(/locked/);
+  await editCompany(page, staffUpTo(11));
+  await expect(page.locator('#statHeads')).toHaveText('11');
+  await expect(patches.locator('.offer')).toHaveCount(2);
+  // Dropping back to 10 takes them off the board again.
+  await editCompany(page, s => { s.roster.pop(); });
+  await expect(patches).toHaveClass(/locked/);
+  expect((await ltd(page)).board.filter(o => o.tier === 1)).toHaveLength(0);
 });
 
 test('the demo runs hotfixes and patches, with no managers yet', async ({ page }) => {
   await found(page);
+  await expect(page.locator('#welcomeToast')).toContainText('In the demo it runs hotfixes');
+  await expect(page.locator('#welcomeToast')).toContainText('reset when v0.1 comes out');
+  // Patches still open above 10 staff (only an old save can get there without managers).
+  await editCompany(page, staffUpTo(11));
   await expect(page.locator('.board-group[data-tier=patch] .offer')).toHaveCount(2);
   for(const tier of ['minor', 'major']){
     await expect(page.locator('.board-group[data-tier=' + tier + ']')).toHaveClass(/locked/);
@@ -151,7 +181,6 @@ test('the demo runs hotfixes and patches, with no managers yet', async ({ page }
   }
   await expect(page.locator('[data-action=hire][data-role=Manager]')).toBeDisabled();
   await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('coming in v0.1');
-  await expect(page.locator('#welcomeToast')).toContainText('reset when v0.1 comes out');
 
   // A company from before the demo keeps its staff, but its bigger offers go.
   await editCompany(page, s => {
@@ -179,6 +208,7 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
 
 test('board groups fold, and stay folded', async ({ page }) => {
   await found(page);
+  await editCompany(page, staffUpTo(11));
   const patches = page.locator('.board-group[data-tier=patch]');
   await expect(patches.locator('.offer').first()).toBeVisible();
   await patches.locator('.level-header').click();
@@ -236,7 +266,7 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.click('#ltdPause');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
-  await expect(page.locator('#ltdLink')).toHaveText('resume Debuggit Ltd');
+  await expect(page.locator('#ltdLink')).toHaveText('Resume Debuggit Ltd');
 
   // Two hours later: no salaries were paid and the job hasn't moved on.
   await page.clock.setFixedTime(at(14));
@@ -282,9 +312,42 @@ test('a company saved on the old /studio/ page is imported', async ({ page }) =>
 
 test('/studio/ redirects to the main page with the studio on', async ({ page }) => {
   await page.goto('studio/');
-  await expect(page).toHaveURL(/\/index\.html$/);
+  await expect(page).toHaveURL(/\/index\.html\?ltd$/);
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  await page.click('#ltdLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   await expect(page.locator('#statMoney')).toHaveText('¤150');
+});
+
+test('Daily, Learn and Ltd are tabs; on the Daily tab a running company is hidden but still paid', async ({ page }) => {
+  await expect(page.locator('.modes .lang-tab')).toHaveText(['Daily', 'Learn', 'Ltd']);
+  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#ltdIntro')).toBeHidden();
+  await page.click('#ltdTab');
+  await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  // Opening the tab doesn't start a company by itself.
+  expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
+  expect(await ltd(page)).toBeNull();
+  await page.click('#ltdLink');
+  await expect(page.locator('#statMoney')).toHaveText('¤150');
+  await expect(page.locator('#ltdIntro')).toBeHidden();
+
+  await page.click('#dailyTab');
+  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#ltdNote')).toBeVisible();
+  await expect(page.locator('#ltdStats')).toBeHidden();
+  await expect(page.locator('#ltdBoard')).toBeHidden();
+  await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await expect.poll(async () => (await ltd(page)).money).toBeGreaterThanOrEqual(350);
+  await page.click('#ltdNote a');
+  await expect(page.locator('#statMoney')).toHaveText(/¤3[45]\d/);
+
+  // Learn links to the Ltd tab too.
+  await page.click('#learnLink');
+  await page.click('.modes a[href="index.html?ltd"]');
+  await expect(page.locator('#statMoney')).toBeVisible();
 });
 
 test('works at phone width with the studio on', async ({ page }) => {

@@ -176,14 +176,26 @@ window.DebuggLtd = (function(){
     // keeps turning over even if nobody on staff can take what's on it. A
     // replacement hotfix keeps its language.
 
-    // The demo is the start-up slice: hotfixes and patches only, and no managers,
+    // The demo is the start-up slice: hotfixes and patches only, and no managers (and with
+    // patches needing more than PATCH_HEADCOUNT staff, that means hotfixes in practice),
     // so the Director looks after up to DIRECTOR_SPAN devs. The rest is shown as
     // coming in v0.1. Old saves keep what they have; they just get no more of it.
     const DEMO = !!D.DEMO;
     const DEMO_TIERS = ['hotfix', 'patch'];
     const DEMO_LOCKED_ROLES = ['Manager'];
     const COMING = 'coming in v0.1';
-    function tierOpen(tierIndex){ return !DEMO || DEMO_TIERS.includes(TIERS[tierIndex].key); }
+    // Patches (and every bigger type) only come to the board once the company has more than
+    // PATCH_HEADCOUNT people, the Director included. Hotfixes are always open.
+    const PATCH_HEADCOUNT = 10;
+    const STAFF_LOCK = 'unlocks above ' + PATCH_HEADCOUNT + ' staff';
+    function headcount(){ return state ? state.roster.length : 1; }
+    // Why a contract type isn't on the board yet, or null if it is.
+    function tierLock(tierIndex){
+      if(DEMO && !DEMO_TIERS.includes(TIERS[tierIndex].key)) return COMING;
+      if(!isHotfix(tierIndex) && headcount() <= PATCH_HEADCOUNT) return STAFF_LOCK;
+      return null;
+    }
+    function tierOpen(tierIndex){ return !tierLock(tierIndex); }
 
     const FIRST_NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan',
                          'Avery','Rowan','Kai','Emerson','Harper','Skyler','Parker','Sage','Hayden','Robin','Ari','Noa'];
@@ -302,6 +314,11 @@ window.DebuggLtd = (function(){
       const hotfix = TIERS.findIndex(t => t.key === 'hotfix');
       LANGS.forEach(lang => {
         if(!state.board.some(o => o.tier === hotfix && o.lang === lang)) state.board.push(makeOffer(hotfix, lang));
+      });
+      // A type that has just opened (e.g. patches, once the company is big enough) gets its offers.
+      TIERS.forEach((_, i) => {
+        if(isHotfix(i) || !tierOpen(i)) return;
+        for(let k = state.board.filter(o => o.tier === i).length; k < OFFERS_PER_TIER; k++) state.board.push(makeOffer(i));
       });
     }
 
@@ -613,7 +630,8 @@ window.DebuggLtd = (function(){
       }
       if(!ev){
         addLog('info', tier.name + ' repeat stopped — ' +
-          (tierOpen(job.tier) ? 'the team no longer fits the requirements.' : tier.plural.toLowerCase() + ' are ' + COMING + '.'));
+          (tierOpen(job.tier) ? 'the team no longer fits the requirements.'
+            : tier.plural.toLowerCase() + (tierLock(job.tier) === COMING ? ' are ' + COMING : ' need more than ' + PATCH_HEADCOUNT + ' staff') + '.'));
         return;
       }
       state.jobs.push(newJob(offer, job.team, job.endsAt, ev, true));
@@ -713,7 +731,7 @@ window.DebuggLtd = (function(){
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too. ' +
         'Debuggit Ltd is in beta, so its numbers may change as it’s balanced.' +
-        (DEMO ? ' In the demo it runs hotfixes and patches with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
+        (DEMO ? ' In the demo it runs hotfixes with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
     save();
@@ -963,7 +981,7 @@ window.DebuggLtd = (function(){
         if(!tierOpen(ti) && !offers.length){
           html += '<div class="level-group board-group collapsed locked" data-tier="' + t.key + '">' +
             '<div class="level-header"><div class="level-header-left">' +
-            '<span class="level-name">' + t.plural + '</span><span class="level-count">' + COMING + '</span></div>' +
+            '<span class="level-name">' + t.plural + '</span><span class="level-count">' + tierLock(ti) + '</span></div>' +
             '<div class="level-sum board-sum">' + t.req + '</div></div></div>';
           return;
         }

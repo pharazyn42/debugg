@@ -7,8 +7,8 @@ same game. Its logo is a wordmark, "debug it" as a line of code in the day's puz
 
 Context for continuing work on this repo. **Debugg** is the daily puzzle game:
 read a short Python or JavaScript snippet and guess what it prints. **Debugg
-Ltd** is the optional idle studio-management game around it, switched on with
-"Start your own company". With it on, the daily puzzles are the Director's
+Ltd** is the optional idle studio-management game around it, on the **Ltd** tab
+next to Daily and Learn. With it on, the daily puzzles are the Director's
 desk and pay the company. The README covers the player-facing rules; this file
 is the design and implementation notes, mostly for Debugg Ltd.
 
@@ -53,11 +53,18 @@ it (see "The desk" below). The studio reads puzzle XP through
 `Debugg.readXp()` for the Director's skills. The puzzle page never depends on
 the studio.
 
-**Switching on.** The loader at the bottom of `index.html` loads `ltd/` when
-the saved company is running, when an old pre-merge save exists, or when the
-URL has `?ltd`. `DebuggLtd.start({ stats, studio, board })` renders into the
-three slots and either resumes the saved company, imports an old one, or
-founds a new one. `body.ltd-on` switches the page to the two-column layout.
+**Tabs and switching on.** The puzzle and Learn pages have **Daily | Learn | Ltd** tabs. The
+Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
+there): the studio beside the puzzle, which is its desk, or, with no running company, a card
+(`#ltdIntro`) to start or resume one. Opening the tab never founds a company by itself. The
+loader at the bottom of `index.html` loads `ltd/` when the saved company is running (on either
+tab), when an old pre-merge save exists (which opens the Ltd tab), or when the player starts
+or resumes one (the card on the Ltd tab, or the one under a finished puzzle, which moves to the
+Ltd tab). On the Daily tab a running company is loaded but hidden (`body.ltd-running` without
+`ltd-on`), with a one-line note linking to Ltd, so the puzzle still pays it.
+`DebuggLtd.start({ stats, studio, board })` renders into the three slots and either resumes the
+saved company, imports an old one, or founds a new one. `body.ltd-on` shows the studio in the
+two-column layout.
 
 **Languages and the rotation.** There's one puzzle a day, and the
 languages take turns. `LANG_INFO` in `shared.js` describes every language
@@ -83,7 +90,8 @@ visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches with no managers (`DEMO_TIERS`,
 `DEMO_LOCKED_ROLES` in `ltd.js`). The locked types show on the board as
-"coming in v0.1". Old saves keep any staff and running jobs they have, but
+"coming in v0.1". Since patches need more than 10 staff (see the contract board) and the
+Director alone can only run 4 devs, the demo is hotfixes in practice. Old saves keep any staff and running jobs they have, but
 their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with
@@ -223,7 +231,10 @@ state = {
   every language**: a taken or expired hotfix is replaced in the same
   language, and the board fills in any language that's missing, so a lone
   dev always has something they can take. The other types have 2 offers
-  each, in random languages. Each offer shows its language and SLOC
+  each, in random languages, but only once the company has **more than 10 staff**, the
+  Director included (`PATCH_HEADCOUNT`, `tierLock()`); until then they show locked as
+  "unlocks above 10 staff", and dropping back to 10 takes their offers off the board (running
+  contracts finish; repeats stop). Each offer shows its language and SLOC
   target. Staff them via the team picker, which ticks off the
   requirements and shows success chance, payout and salary cost. It has a
   "Suggest a team" button. Each person can only be on one contract at a

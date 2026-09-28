@@ -7,7 +7,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await openAt(page, 'index.html#python');
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);
-  await page.click('#ltdLink');
+  await page.click('#foundBtn');
   // ¤150 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
   await expect(page.locator('#statMoney')).toHaveText('¤250');
   await page.click('#backupLink');
@@ -64,7 +64,7 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
   }));
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);  // 100 XP: level 2
-  await page.click('#ltdLink');
+  await page.click('#foundBtn');
   await expect(page.locator('#statMoney')).toBeVisible();
   await page.click('[data-action=hire][data-role=Graduate]');
   await page.click('#backupLink');
@@ -81,7 +81,8 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
 test('Debuggit Ltd is labelled beta, and the privacy page is linked', async ({ page }) => {
   await openAt(page, 'index.html#python');
   await fresh(page);
-  await expect(page.locator('#ltdLinkSep .beta')).toHaveText('beta');
+  await page.click('#ltdTab');
+  await expect(page.locator('#ltdIntro .beta')).toHaveText('beta');
   await page.click('#ltdLink');
   await expect(page.locator('.company-controls .beta')).toHaveText('beta');
   await expect(page.locator('#welcomeToast')).toContainText('in beta');
