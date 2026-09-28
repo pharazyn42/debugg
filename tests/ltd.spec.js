@@ -116,9 +116,12 @@ test("the Director's puzzle levels boost contract success in that language", asy
 
 test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
+  await withStorage(page, { 'debugg-xp': { python: 100 } });  // a ¤100 founder's bonus
   await found(page);
+  // ¤150 is just short of a graduate's ¤180.
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
   await page.click('[data-action=hire][data-role=Graduate]');
-  await expect(page.locator('#statMoney')).toHaveText('¤90');
+  await expect(page.locator('#statMoney')).toHaveText('¤70');
   await expect(page.locator('#statHeads')).toHaveText('2');
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
@@ -130,9 +133,31 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12, 30));
   await page.reload();
   // 30 minutes of a ¤2/min salary, plus the ¤20 contract.
-  await expect(page.locator('#statMoney')).toHaveText('¤50');
+  await expect(page.locator('#statMoney')).toHaveText('¤30');
   await expect(page.locator('#welcomeToast')).toContainText('1 contract wrapped up while you were away');
   await expect(page.locator('#log')).toContainText('delivered');
+});
+
+test('hiring costs only go up, with inflation and competition', async ({ page }) => {
+  await withStorage(page, { 'debugg-xp': { python: 300 } });
+  await found(page);
+  const grad = page.locator('[data-action=hire][data-role=Graduate] .cost');
+  await expect(grad).toHaveText('¤180');
+  const nextAt = (await ltd(page)).market.nextAt - await page.evaluate(() => Date.now());
+  expect(nextAt).toBeGreaterThanOrEqual(12 * 3600000 - 60000);
+  expect(nextAt).toBeLessThanOrEqual(36 * 3600000);
+  // A rival hiring graduates has pushed their price up by half.
+  await editCompany(page, s => { s.market.prices.Graduate = 1.5; });
+  await expect(grad).toHaveText('¤270 ↑50%');
+  await page.click('[data-action=hire][data-role=Graduate]');
+  await expect(page.locator('#statMoney')).toHaveText('¤180');
+  // A move that's due happens on load, and is logged; prices never fall.
+  await editCompany(page, s => { s.market.nextAt = Date.now() - 1000; });
+  await expect(page.locator('#log')).toContainText(/Inflation: every hire costs|Competition: a rival studio is hiring/);
+  const prices = (await ltd(page)).market.prices;
+  expect(Object.values(prices).some(m => m > 1)).toBe(true);
+  expect(Object.values(prices).every(m => m >= 1)).toBe(true);
+  expect(prices.Graduate).toBeGreaterThanOrEqual(1.5);
 });
 
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
@@ -222,6 +247,7 @@ test('board groups fold, and stay folded', async ({ page }) => {
 
 test('a company saved with domains is converted to languages only', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
+  await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
   await page.click('[data-action=hire][data-role=Graduate]');
   await editCompany(page, s => {
@@ -245,8 +271,11 @@ test('a company saved with domains is converted to languages only', async ({ pag
 test('promotion needs contract time and language bars only', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, worked: 61 * 60000 });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, worked: 11 * 3600000 });
   });
+  // 12 hours on contracts for Junior.
+  await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveCount(0);
+  await editCompany(page, s => { s.roster.find(p => p.id === 'g1').worked = 12 * 3600000 + 60000; });
   await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveText('Promote to Junior');
   await page.click('.card[data-id=g1] .card-name');
   await expect(page.locator('#personModalBody')).toContainText('A language at 1 bar');
@@ -255,6 +284,7 @@ test('promotion needs contract time and language bars only', async ({ page }) =>
 
 test('pausing stops the clock until the company is resumed', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
+  await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
   await page.click('[data-action=hire][data-role=Graduate]');
   await editCompany(page, s => {
@@ -273,7 +303,7 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.reload();
   await page.click('#ltdLink');
   await expect(page.locator('#welcomeToast')).toContainText('paused for 2h');
-  await expect(page.locator('#statMoney')).toHaveText('¤90');
+  await expect(page.locator('#statMoney')).toHaveText('¤70');
   const job = (await ltd(page)).jobs[0];
   expect(job.endsAt - Date.parse(at(14))).toBe(60000);
 });

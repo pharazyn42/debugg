@@ -98,22 +98,33 @@ window.DebuggLtd = (function(){
     const DEV_LEVELS = ['Graduate', 'Junior', 'Senior', 'Principal'];
     const ROLES = {
       Director:  { sloc: 0,  salary: 0 },
-      Manager:   { sloc: 0,  salary: 8,  cost: 300 },
-      Graduate:  { sloc: 5,  salary: 2,  cost: 60,   reliability: 0.70 },
-      Junior:    { sloc: 12, salary: 5,  cost: 250,  reliability: 0.80 },
-      Senior:    { sloc: 30, salary: 12, cost: 1000, reliability: 0.90 },
-      Principal: { sloc: 70, salary: 28, cost: 4000, reliability: 0.95 }
+      Manager:   { sloc: 0,  salary: 8,  cost: 900 },
+      Graduate:  { sloc: 5,  salary: 2,  cost: 180,   reliability: 0.70 },
+      Junior:    { sloc: 12, salary: 5,  cost: 750,   reliability: 0.80 },
+      Senior:    { sloc: 30, salary: 12, cost: 3000,  reliability: 0.90 },
+      Principal: { sloc: 70, salary: 28, cost: 12000, reliability: 0.95 }
     };
     const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
     const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
 
     // To be promoted INTO a level: minutes spent working on contracts at the
     // current level (bench time doesn't count), plus bars in their best language.
+    // Deliberately slow: hiring at a level is the quick way to get one; growing your
+    // own people is the cheap way.
     const PROMOTION = {
-      Junior:    { minutes: 60,       lang: 1 },  // 1 hour
-      Senior:    { minutes: 8 * 60,   lang: 3 },  // 8 hours
-      Principal: { minutes: 72 * 60,  lang: 5 }   // 3 days
+      Junior:    { minutes: 12 * 60,  lang: 1 },  // 12 hours
+      Senior:    { minutes: 72 * 60,  lang: 3 },  // 3 days
+      Principal: { minutes: 336 * 60, lang: 5 }   // 14 days
     };
+
+    // The hiring market: hire costs start at ROLES[role].cost and only go up. Every
+    // MARKET_EVERY_H hours or so (at random), either inflation raises every role's
+    // cost a little, or a rival studio competing for one level raises that one more.
+    // Prices move while the page is closed too (not while the company is paused).
+    const MARKET_EVERY_H = [12, 36];              // hours between market moves
+    const INFLATION = [0.02, 0.04];               // every role, per move
+    const COMPETITION = [0.06, 0.15];             // one role, per move
+    const COMPETITION_CHANCE = 0.4;
 
     // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
     // directly below; each manager personally covers one slot at every level
@@ -126,7 +137,7 @@ window.DebuggLtd = (function(){
     const MANAGER_SPAN = 12;
     const DIRECTOR_SPAN = 4;
 
-    const LINE_RATE = 2; // ¤ per SLOC delivered, before multipliers
+    const LINE_RATE = 1; // ¤ per SLOC delivered, before multipliers
 
     // Each contract is a SLOC target. It takes target ÷ (team SLOC/min)
     // minutes, and pays for the SLOC delivered. `minutes` is the reference
@@ -135,9 +146,9 @@ window.DebuggLtd = (function(){
     // senior + 2 grads on a patch); the target is refSloc × minutes, ±15%.
     // Bigger or more senior teams finish sooner.
     //
-    // XP is earned per minute spent on the contract (xpPerMin, ~1–1.5), so
-    // skill bars build at roughly the pace of the contract-time promotion
-    // timers regardless of how fast the team is. Bigger contracts pay
+    // XP is earned per minute spent on the contract (xpPerMin, about 1 XP every
+    // 2–3 minutes), so skill bars build at roughly the pace of the contract-time
+    // promotion timers regardless of how fast the team is. Bigger contracts pay
     // slightly more XP per minute to reward teamwork.
     const SLOC_SPREAD = 0.15;
     // Skill match speeds a dev up on a contract: their SLOC/min is multiplied
@@ -155,13 +166,13 @@ window.DebuggLtd = (function(){
     // Contract types are named after release types, smallest first:
     // hotfix → patch → minor release → major release.
     const TIERS = [
-      { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 1.0,  rep: 0.5,
+      { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 0.33,  rep: 0.5,
         needs: {}, req: '1 developer, any level' },
-      { key: 'patch', name: 'Patch',          plural: 'Patches',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 1.2,  rep: 2,
+      { key: 'patch', name: 'Patch',          plural: 'Patches',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 0.4,  rep: 2,
         needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
-      { key: 'minor', name: 'Minor release',  plural: 'Minor releases', minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 1.33, rep: 6,
+      { key: 'minor', name: 'Minor release',  plural: 'Minor releases', minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 0.45, rep: 6,
         needs: { Principal: 1 }, req: '5–10 devs · 1+ principal' },
-      { key: 'major', name: 'Major release',  plural: 'Major releases', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 1.5,  rep: 20,
+      { key: 'major', name: 'Major release',  plural: 'Major releases', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 0.5,  rep: 20,
         needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
     ];
     // 1 = quick fix / sprint / milestone / full delivery (same rules, old names).
@@ -374,6 +385,37 @@ window.DebuggLtd = (function(){
     }
     function jobFor(id){ return state.jobs.find(j => j.team.indexOf(id) >= 0); }
 
+    // What a hire at this level costs today, rounded to ¤5.
+    function hireCost(role){
+      const m = state.market && state.market.prices[role] || 1;
+      return Math.round(ROLES[role].cost * m / 5) * 5;
+    }
+    function nextMarketMove(from){
+      const [lo, hi] = MARKET_EVERY_H;
+      return from + (lo + Math.random() * (hi - lo)) * 3600000;
+    }
+    // Applies every market move that's due by `now`, oldest first, and logs each one.
+    function moveMarket(now){
+      if(!state.market) state.market = { prices: {}, nextAt: nextMarketMove(now) };
+      const m = state.market;
+      const between = ([lo, hi]) => lo + Math.random() * (hi - lo);
+      for(let i = 0; m.nextAt <= now && i < 60; i++){
+        if(Math.random() < COMPETITION_CHANCE){
+          const role = pick(HIRE_ORDER);
+          const up = between(COMPETITION);
+          m.prices[role] = (m.prices[role] || 1) * (1 + up);
+          addLog('info', 'Competition: a rival studio is hiring ' + (role === 'Graduate' ? 'graduates' : role.toLowerCase() + 's') +
+            ', so ' + role.toLowerCase() + ' hires cost ' + Math.round(up * 100) + '% more.');
+        }else{
+          const up = between(INFLATION);
+          HIRE_ORDER.forEach(r => { m.prices[r] = (m.prices[r] || 1) * (1 + up); });
+          addLog('info', 'Inflation: every hire costs ' + Math.round(up * 100) + '% more.');
+        }
+        m.nextAt = nextMarketMove(m.nextAt);
+      }
+      if(m.nextAt <= now) m.nextAt = nextMarketMove(now);
+    }
+
     function addLog(kind, text){
       state.log.unshift({ kind, text });
       state.log.length = Math.min(state.log.length, LOG_LENGTH);
@@ -536,7 +578,9 @@ window.DebuggLtd = (function(){
       // Skill match adds up to +5%, scaled by the team's average bars in the language.
       const chance = devs.length ? Math.min(0.98, reliability + SKILL_CHANCE * skill + boost) : 0;
       const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
-      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * (1 + skill));
+      // A contract pays the same whoever does it: skill makes a team faster (more contracts an
+      // hour), not better paid per contract.
+      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult);
       const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
       const xp = tier.xpPerMin * ms / 60000;
 
@@ -698,6 +742,7 @@ window.DebuggLtd = (function(){
       state.lastTick = (state.lastTick || Date.now()) + ms;
       state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; });
       state.board.forEach(o => { o.expiresAt += ms; });
+      if(state.market) state.market.nextAt += ms;
       state.roster.forEach(p => { p.since += ms; });
     }
 
@@ -917,11 +962,14 @@ window.DebuggLtd = (function(){
       let hire = '';
       HIRE_ORDER.forEach(role => {
         const why = hireProblem(role);
-        const cost = ROLES[role].cost;
+        const cost = hireCost(role);
         const broke = state.money < cost;
+        const rise = Math.round((cost / ROLES[role].cost - 1) * 100);
         hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') + '" data-action="hire" data-role="' + role + '"' +
                 (why || broke ? ' disabled' : '') + '>' +
-                '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost">' + fmt(cost) + '</span>' +
+                '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost"' +
+                  (rise > 0 ? ' title="Up ' + rise + '% since the company started, from inflation and competition"' : '') + '>' + fmt(cost) +
+                  (rise > 0 ? ' <span class="rise">↑' + rise + '%</span>' : '') + '</span>' +
                 '<span class="why">' + (why ? esc(why) : broke ? 'not enough cash' : ROLES[role].salary + '/min salary') + '</span>' +
                 '</button>';
       });
@@ -1270,7 +1318,7 @@ window.DebuggLtd = (function(){
 
       if(action === 'hire'){
         const role = btn.dataset.role;
-        const cost = ROLES[role].cost;
+        const cost = hireCost(role);
         if(state.money < cost || hireProblem(role)) return;
         state.money -= cost;
         const hire = makeHire(role);
@@ -1362,6 +1410,7 @@ window.DebuggLtd = (function(){
     if(state.board.some(o => !o.sloc)) state.board = makeBoard();
     state.board.forEach(o => { if(!o.expiresAt) o.expiresAt = Date.now() + TIERS[o.tier].offerLife * 60000; });
     refreshBoard(Date.now());
+    moveMarket(Date.now());
 
     const now = Date.now();
     const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);
@@ -1389,6 +1438,7 @@ window.DebuggLtd = (function(){
       state.lastTick = t;
       if(resolveDueJobs(t) && picker) renderPicker();
       refreshBoard(t);
+      moveMarket(t);
       renderAll();
       save();
     }, 1000);
