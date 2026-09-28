@@ -43,6 +43,10 @@ body{
 .wrap{ width: 100%; max-width: 560px; }
 
 header{ text-align: center; margin-bottom: 22px; }
+/* The logo: the Debuggit duck (img/duck.svg) beside the wordmark. */
+.brand{ display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 8px; }
+.brand .wordmark{ margin: 0; }
+.duck-logo{ width: 34px; height: 34px; flex: none; }
 /* The wordmark: "debug it" as a line of code in the day's language (see renderWordmark in shared.js). */
 .wordmark{
   display: inline-block;

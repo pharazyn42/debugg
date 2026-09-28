@@ -4,7 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Debuggit</title>
-<meta name="description" content="A Wordle-style daily game where you guess what a short, buggy snippet of Python or JavaScript actually prints.">
+<meta name="description" content="A Wordle-style daily game: read a short, buggy code snippet and guess what it prints. One bug a day.">
+<meta property="og:title" content="Debuggit">
+<meta property="og:description" content="Read the code. Guess what it prints. One bug a day.">
+<meta property="og:image" content="https://pharazyn42.github.io/debugg/img/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#131417">
+<link rel="icon" href="img/duck.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/duck-180.png">
 <link rel="stylesheet" href="base.css">
 <style>
   .tiles{
@@ -109,6 +119,24 @@
     vertical-align: 1px;
   }
   .modes{ display: flex; justify-content: center; gap: 6px; margin: 0 0 16px; }
+  /* The Debuggit duck's reaction after a game. */
+  .duck-says{ display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
+  .duck-says[hidden]{ display: none; }
+  .duck-says img{ width: 44px; height: 44px; flex: none; }
+  .duck-says p{
+    margin: 0;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .duck-says.happy img{ animation: duck-hop 0.55s ease 2; }
+  .duck-says.dizzy img{ transform: rotate(-14deg); }
+  @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
+  @media (prefers-reduced-motion: reduce){ .duck-says.happy img{ animation: none; } }
+  .dialog-duck{ display: block; margin: 0 auto 6px; }
   .demo-badge{
     font-family: var(--mono);
     font-size: 9.5px;
@@ -226,7 +254,7 @@
 <div class="wrap">
   <header>
     <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a></nav>
-    <a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a>
+    <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
@@ -269,6 +297,7 @@
       <button class="btn-ghost" id="revealBtn">Reveal answer</button>
     </div>
     <div class="feedback" id="feedback"></div>
+    <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
     <div class="reveal" id="reveal">
       <p><b>Answer:</b> <code id="answerOut"></code></p>
       <p id="explainOut"></p>
@@ -302,6 +331,7 @@
 </div>
 
 <dialog id="demoNotice" aria-labelledby="demoTitle">
+  <img class="dialog-duck" src="img/duck.svg" alt="" width="56" height="56">
   <h2 id="demoTitle">This is the Debuggit demo</h2>
   <p>Thanks for trying Debuggit early. The daily puzzles are all here, and Debuggit Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
   <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
@@ -577,6 +607,21 @@
     state.revealed = true;
     save();
     startCountdown();
+    duckSay();
+  }
+
+  // The Debuggit duck reacts once the game is over: a hop for a solve, a wobble for a miss.
+  function duckSay(){
+    const box = document.getElementById('duckSays');
+    const n = state.attempts.length, h = state.hintLevel || 0;
+    let line;
+    if(state.solved && n === 1 && !h) line = 'Quack! First try, no hints.';
+    else if(state.solved) line = 'Quack! Debugged it in ' + n + (n === 1 ? ' guess' : ' guesses') +
+      (h ? ', with ' + h + (h === 1 ? ' hint' : ' hints') : '') + '.';
+    else line = 'Even the duck gets stuck sometimes. Talk it through with the explanation below.';
+    document.getElementById('duckLine').textContent = line;
+    box.className = 'duck-says ' + (state.solved ? 'happy' : 'dizzy');
+    box.hidden = false;
   }
 
   // Loose matching (see normaliseAnswer in shared.js).

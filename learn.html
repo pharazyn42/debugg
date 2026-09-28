@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Debuggit Learn</title>
 <meta name="description" content="Learn to code from the very start with short lessons: read a little, answer a question, and move on when you get it right.">
+<link rel="icon" href="img/duck.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/duck-180.png">
 <link rel="stylesheet" href="base.css">
 <style>
   .modes{ display: flex; justify-content: center; gap: 6px; margin: 0 0 16px; }
@@ -134,6 +136,10 @@
   .step-actions [hidden]{ display: none; }
   .guess-row{ margin-bottom: 12px; }
 
+  .summary-duck{ display: block; margin: 0 auto 6px; animation: duck-hop 0.55s ease 2; }
+  .summary-duck.dizzy{ animation: none; transform: rotate(-14deg); }
+  @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
+  @media (prefers-reduced-motion: reduce){ .summary-duck{ animation: none; } }
   .summary{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px 18px; text-align: center; }
   .summary h2{ margin: 4px 0 8px; }
   .summary p{ color: var(--text-dim); margin: 0 0 12px; }
@@ -149,7 +155,7 @@
 <div class="wrap">
   <header>
     <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html">Daily</a><a class="lang-tab" href="learn.html" aria-current="page">Learn</a></nav>
-    <a class="wordmark" id="wordmark" href="learn.html" aria-label="Debuggit Learn">debugg.learn()</a>
+    <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="learn.html" aria-label="Debuggit Learn">debugg.learn()</a></div>
     <h1 id="title">Learn</h1>
     <p class="sub" id="sub"></p>
   </header>

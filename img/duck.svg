@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The Debuggit duck">
+  <!-- The Debuggit duck: a rubber duck, for rubber-duck debugging. -->
+  <ellipse cx="32" cy="58" rx="22" ry="3" fill="#000" opacity="0.18"/>
+  <path d="M9 36 Q3 26 11 24 Q13 31 19 34 Z" fill="#e2a43a"/>
+  <ellipse cx="30" cy="42" rx="22" ry="14" fill="#f2b84b"/>
+  <circle cx="42" cy="22" r="12" fill="#f2b84b"/>
+  <path d="M51 20 Q61 20 62 24 Q61 29 51 28 Z" fill="#ef7f3a"/>
+  <path d="M52 24.5 Q57 25 61.5 24.5" stroke="#c9602a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <circle cx="45" cy="19" r="2.4" fill="#131417"/>
+  <circle cx="45.8" cy="18.2" r="0.8" fill="#fff"/>
+  <path d="M18 41 Q26 34 38 39 Q33 49 20 47 Z" fill="#e2a43a"/>
+  <path d="M36 14 Q40 11 45 12" stroke="#fff5d6" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>
+</svg>
