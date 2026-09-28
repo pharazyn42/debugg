@@ -7,6 +7,10 @@ Ltd** is the optional idle studio-management game around it, switched on with
 desk and pay the company. The README covers the player-facing rules; this file
 is the design and implementation notes, mostly for Debugg Ltd.
 
+**The site is a demo** (Day 1 is Monday 5 October 2026) with no release
+date yet. All demo progress is reset when v0.1 comes out, which players are
+told on their first visit; see "The demo" below and item 2c.
+
 The merge of the two (item 3c) is done; `ideas/debugg-ltd-merge-plan.md` is
 the plan it was built from. Original design brainstorm for the studio:
 `ideas/contract-debugger-concept.md`. That doc is the source of the overall
@@ -48,12 +52,29 @@ three slots and either resumes the saved company, imports an old one, or
 founds a new one. `body.ltd-on` switches the page to the two-column layout.
 
 **Languages.** `ENABLED_LANGS` in `shared.js` is the list players see;
-it's `['python']` for the soft launch. JavaScript's puzzles, sandbox runner
+it's `['python']` for the demo. JavaScript's puzzles, sandbox runner
 and saves are kept, and adding it back to the list restores it everywhere.
 Tests switch it on (`window.DEBUGG_LANGS`, set in `tests/helpers.js`) so it
 stays covered; pass `{ langs: null }` to `openAt` to test what players see.
 
-**The calendar.** Day 1 is 1 October 2026 (`LAUNCH` in `shared.js`). Days
+**The demo.** `DEMO` in `shared.js` is on. It shows a notice on the first
+visit (again from the **demo** badge in the header; tests switch the
+automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
+Ltd down to hotfixes and patches with no managers (`DEMO_TIERS`,
+`DEMO_LOCKED_ROLES` in `ltd.js`). The locked types show on the board as
+"coming in v0.1". Old saves keep any staff and running jobs they have, but
+their bigger offers go and their repeats stop.
+
+**Save versions and the v0.1 reset.** Every save is marked with
+`debugg-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
+version is in `WIPED_VERSIONS` loses everything under `debugg-*` (and the
+pre-merge studio save) except sandbox drafts, and backup codes from those
+versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
+`'0.1'`, `WIPED_VERSIONS` to `['demo', '']` (`''` = saved before the
+marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
+`window.DEBUGG_WIPED_VERSIONS`.
+
+**The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `shared.js`). Days
 before it are preview days (0, -1, …), labelled "Preview", each with its
 own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
 once players have real progress**. If it does move, `shared.js` notices
@@ -295,7 +316,8 @@ Do these first: every later feature touches the job engine, and changes currentl
   - MINOR: new mechanics;
   - PATCH: fixes and balance tweaks.
 - **Show the version in the game** (e.g. the footer) and store it in the
-  save, so a save can be migrated deliberately rather than by ad-hoc
+  save (started: saves carry `debugg-version`, `'demo'` for now, and v0.1
+  resets demo saves; see "Save versions" above), so a save can be migrated deliberately rather than by ad-hoc
   shape guards.
 - **Keep a `CHANGELOG.md`** with a section per release; the per-commit
   notes so far could seed it.
@@ -394,11 +416,12 @@ Decided with the player-owner after the naming search (September 2026).
     costs nothing and some people only want the puzzle.
   - **Learn is its own lane** (item 3d), for beginners at their own pace.
     It feeds the company through the Director's language levels.
-- **Don't switch before launch.** Day 1 (1 October 2026) goes out as the
-  daily with the studio one click away. After two or three weeks,
+- **Decide from the demo.** The demo (Day 1: Monday 5 October 2026, no
+  release date for v0.1 yet) runs as the daily with a cut-down studio one
+  click away, and all its progress is reset at v0.1. After two or three weeks,
   GoatCounter's `ltd/founded`, `ltd/hired/…` and `ltd/paused` events
   show how many puzzle players start a company and keep it running. If a
-  good share do, go company-first.
+  good share do, v0.1 goes company-first.
 - **What company-first needs** (worth building either way):
   - the balance pass (item 10) and reputation gating (item 12): an idle
     game lives or dies on depth, and today it's beta and untuned;
@@ -1208,7 +1231,7 @@ Big systems that depend on the earlier phases.
 
 `npm test` runs the Playwright suite in `tests/` against a small static
 server (`tests/serve.js`). Tests fix the date with
-`page.clock.setFixedTime` (Day 1 is 1 October 2026; `dayDate(n)` in `tests/helpers.js`, with 0 and below for preview days) and simulate time
+`page.clock.setFixedTime` (the demo's Day 1 is Monday 5 October 2026, and Day 3, a Wednesday, is the default; `dayDate(n)` in `tests/helpers.js`, with 0 and below for preview days) and simulate time
 passing by editing saves and moving the clock. The sandbox's Python tests
 need Pyodide: from the CDN, or set `PYODIDE_DIR` to an unpacked `pyodide`
 npm package when there's no internet. Switching language on the puzzle page

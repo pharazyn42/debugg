@@ -2,14 +2,35 @@
 // languages, the day calendar, saved puzzle progress and the syntax highlighter.
 // Load after puzzles.js with a plain <script> tag, so pages still work when opened straight from disk.
 window.Debugg = (function(){
-  // Day 1 is 1 October 2026. The puzzle changes at local midnight.
+  // This is the demo. Its Day 1 is Monday 5 October 2026, and the puzzle changes at local midnight.
   // Days before it are preview days, numbered 0, -1, -2… and labelled "Preview".
-  // Saves are keyed by day number, so once players have real progress this date must not change.
-  const LAUNCH = Date.UTC(2026, 9, 1);
+  // The real launch date isn't set yet: v0.1 sets it, and resets all demo progress (see below).
+  const DEMO = true;
+  const LAUNCH = Date.UTC(2026, 9, 5);
   const DAY_MS = 24 * 60 * 60 * 1000;
   // The Day 1 date before this one, for saves made before the calendar remembered its date.
   const OLD_LAUNCH = Date.UTC(2026, 8, 27);
   const EPOCH_KEY = 'debugg-epoch';
+
+  // Save versions. Every save is marked with the version that made it (`debugg-version`). Saves from
+  // a version in WIPED_VERSIONS lose all their progress on load, as the demo warns players: v0.1 sets
+  // SAVE_VERSION to '0.1' and WIPED_VERSIONS to ['demo', ''] ('' is a save from before the marker).
+  // Sandbox drafts are kept. Backup codes from a wiped version are refused (backup.js).
+  const SAVE_VERSION = 'demo';
+  const VERSION_KEY = 'debugg-version';
+  const WIPED_VERSIONS = window.DEBUGG_WIPED_VERSIONS || [];
+  function isWipedVersion(v){ return WIPED_VERSIONS.includes(v || ''); }
+  (function wipeOldVersions(){
+    try{
+      const saved = localStorage.getItem(VERSION_KEY) || '';
+      if(saved !== SAVE_VERSION && isWipedVersion(saved)){
+        Object.keys(localStorage)
+          .filter(k => (k.startsWith('debugg-') && !k.startsWith('debugg-sandbox-')) || k === 'contract-debugger-state-v3')
+          .forEach(k => localStorage.removeItem(k));
+      }
+      localStorage.setItem(VERSION_KEY, SAVE_VERSION);
+    }catch(e){}
+  })();
 
   // If Day 1 has moved since this browser last played, every saved day number now points at a
   // different date. Clear what's keyed by day number (per-day progress, the streak, and Debugg
@@ -37,7 +58,7 @@ window.Debugg = (function(){
     python: { name: 'Python', ext: 'py', indent: '    ' },
     javascript: { name: 'JavaScript', ext: 'js', indent: '  ' }
   };
-  // The languages players can see. JavaScript is switched off for the soft launch: its puzzles,
+  // The languages players can see. JavaScript is switched off for the demo: its puzzles,
   // sandbox runner and saves are all kept, and adding it back here brings everything back.
   // window.DEBUGG_LANGS overrides this, so tests keep covering the hidden languages.
   const ENABLED_LANGS = window.DEBUGG_LANGS || ['python'];
@@ -210,7 +231,7 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  return { LANGS, dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
+  return { DEMO, SAVE_VERSION, isWipedVersion, LANGS, dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
            dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished,
            readXp, levelStart, levelFor, highlight, escapeHtml };
 })();

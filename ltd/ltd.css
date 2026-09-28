@@ -163,6 +163,11 @@
   padding: 8px;
 }
 .ltd .level-group.collapsed .level-body{ display: none; }
+/* Contract types that aren't in the demo yet. */
+.ltd .level-group.locked{ opacity: 0.55; }
+.ltd .level-group.locked .level-header{ cursor: default; }
+.ltd .level-group.locked .level-header:hover{ background: var(--panel-2); }
+.ltd .level-group.locked .level-count{ color: var(--amber); }
 
 .ltd .card{
   background: var(--panel-2);
