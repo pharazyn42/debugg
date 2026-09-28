@@ -108,6 +108,7 @@
     padding: 0 4px;
     vertical-align: 1px;
   }
+  .modes{ display: flex; justify-content: center; gap: 6px; margin: 0 0 16px; }
   .demo-badge{
     font-family: var(--mono);
     font-size: 9.5px;
@@ -224,6 +225,7 @@
 
 <div class="wrap">
   <header>
+    <nav class="modes" aria-label="Debugg"><a class="lang-tab" href="index.html" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a></nav>
     <p class="kicker"><span id="kicker">Debugg</span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
@@ -301,7 +303,7 @@
 <dialog id="demoNotice" aria-labelledby="demoTitle">
   <h2 id="demoTitle">This is the Debugg demo</h2>
   <p>Thanks for trying Debugg early. The daily puzzles are all here, and Debugg Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
-  <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak and company. Sandbox drafts are kept. There's no release date yet.</p>
+  <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
   <p>Found something wrong, or have an idea? The feedback link at the bottom of the page opens a GitHub issue.</p>
   <div class="backup-actions"><button class="btn-primary" id="demoOk" type="button">Got it</button></div>
 </dialog>
@@ -676,13 +678,13 @@
     announceFinish();
   });
 
-  // Clears every saved day, XP, the streak and sandbox drafts. A Debugg Ltd company is kept;
-  // it has its own "Close company" button.
+  // Clears every saved day, XP, the streak and sandbox drafts. A Debugg Ltd company is kept (it has
+  // its own "Close company" button), and so is Learn progress (learn.html has its own reset).
   resetLink.addEventListener('click', (e) => {
     e.preventDefault();
-    if(!confirm('Reset your puzzle progress, XP and streak? Your company, if you have one, is kept.')) return;
+    if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && k !== 'debugg-ltd' && k !== 'debugg-demo-seen').forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen'].includes(k)).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });

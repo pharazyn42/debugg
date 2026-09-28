@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-// Checks every puzzle in puzzles/: its fields are complete, its answer matches its own display, and
-// its code really prints that display when run with the real toolchain:
+// Checks every puzzle in puzzles/ and every Learn course in learn/: the fields are complete, and the
+// code really prints what the puzzle or lesson says it does, when run with the real toolchain:
 //   Python      python3
 //   JavaScript  node
 //   C           gcc and clang, at -O0 and -O2 (all four must agree, which catches undefined behaviour)
 //   Rust        rustc in debug mode (as the Rust Playground runs it by default)
+//
+// For Learn steps it also checks that a multiple-choice question's right answer is what the code prints
+// and no wrong answer is; that each fill-the-blank option does (or doesn't) give the target output; and
+// that a "tap the line" error really happens on that line.
 //
 // Usage: node tools/check-puzzles.js [lang ...]    e.g. node tools/check-puzzles.js rust
 // Exits non-zero if anything fails. A missing toolchain fails too, unless SKIP_MISSING=1.
@@ -31,6 +35,10 @@ function loadGame(){
   for(const f of ctx.Debugg.PUZZLE_FILES){
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'learn/courses.js'), 'utf8'), ctx, { filename: 'learn/courses.js' });
+  for(const course of Object.values(ctx.DEBUGG_LEARN.courses)){
+    for(const f of course.files) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
   return ctx;
 }
 
@@ -47,14 +55,14 @@ const RUNNERS = {
     fs.writeFileSync(path.join(TMP, 'main.py'), code);
     const r = run('python3', ['main.py']);
     if(r.missing) return { missing: 'python3' };
-    return { outputs: [{ label: 'python3', out: r.out, err: r.err }] };
+    return { outputs: [{ label: 'python3', out: r.out, err: r.err, code: r.code }] };
   },
   javascript(code){
     fs.writeFileSync(path.join(TMP, 'main.js'), code);
     const r = run(process.execPath, ['main.js']);
     // Node pads arrays and objects ("[ 1, 2 ]"); the sandbox and browsers print "[1, 2]".
     const out = r.out.replace(/([\[{]) /g, '$1').replace(/ ([\]}])/g, '$1');
-    return { outputs: [{ label: 'node', out, err: r.err }] };
+    return { outputs: [{ label: 'node', out, err: r.err, code: r.code }] };
   },
   c(code){
     fs.writeFileSync(path.join(TMP, 'main.c'), code);
@@ -64,9 +72,9 @@ const RUNNERS = {
         const bin = path.join(TMP, 'main-' + cc + opt);
         const b = run(cc, ['-std=c17', opt, '-w', '-o', bin, 'main.c', '-lm']);
         if(b.missing) return { missing: cc };
-        if(b.code !== 0) return { error: cc + ' ' + opt + ' failed to compile:\n' + b.err };
+        if(b.code !== 0) return { error: cc + ' ' + opt + ' failed to compile:\n' + b.err, compileErr: b.err };
         const r = run(bin, []);
-        outputs.push({ label: cc + ' ' + opt, out: r.out, err: r.err });
+        outputs.push({ label: cc + ' ' + opt, out: r.out, err: r.err, code: r.code });
       }
     }
     return { outputs };
@@ -76,9 +84,9 @@ const RUNNERS = {
     const bin = path.join(TMP, 'main-rs');
     const b = run('rustc', ['--edition', '2021', '-A', 'warnings', '-o', bin, 'main.rs']);
     if(b.missing) return { missing: 'rustc' };
-    if(b.code !== 0) return { error: 'rustc failed to compile:\n' + b.err };
+    if(b.code !== 0) return { error: 'rustc failed to compile:\n' + b.err, compileErr: b.err };
     const r = run(bin, []);
-    return { outputs: [{ label: 'rustc', out: r.out, err: r.err }] };
+    return { outputs: [{ label: 'rustc', out: r.out, err: r.err, code: r.code }] };
   }
 };
 
@@ -102,9 +110,127 @@ function checkFields(p, D){
 // A puzzle prints its display, and nothing else (a trailing newline is fine).
 function matches(out, display){ return out.replace(/\s+$/, '') === display; }
 
+// --- Learn ---------------------------------------------------------------------------------------
+
+// Runs code and returns its output (every toolchain agreeing), or { error } / { missing }.
+function outputOf(lang, code){
+  const r = RUNNERS[lang](code);
+  if(r.missing || r.error) return r;
+  const outs = new Set(r.outputs.map(o => o.out.replace(/\s+$/, '')));
+  if(outs.size > 1) return { error: 'toolchains disagree: ' + [...outs].map(o => JSON.stringify(o)).join(' vs ') };
+  const o = r.outputs[0];
+  if(o.code !== 0) return { error: 'exited with an error:\n      ' + o.err.trim().split('\n').slice(-2).join('\n      '), failed: true, err: o.err };
+  return { out: o.out.replace(/\s+$/, '') };
+}
+
+// Returns the problems with one Learn step.
+function checkStep(lang, step){
+  const problems = [];
+  const need = f => { if(step[f] === undefined || step[f] === '') problems.push('missing ' + f); };
+  const oneCorrect = () => {
+    if(!Array.isArray(step.options) || step.options.length < 2) return problems.push('needs at least 2 options');
+    if(step.options.filter(o => o.correct).length !== 1) problems.push('needs exactly one correct option');
+    step.options.filter(o => !o.correct).forEach(o => { if(!o.why) problems.push('wrong option "' + o.text + '" needs a why'); });
+  };
+  const run = code => {
+    const r = outputOf(lang, code);
+    if(r.missing) problems.push(r.missing + ' is not installed');
+    return r;
+  };
+  if(step.type === 'teach'){
+    need('text');
+    if(step.code !== undefined && step.output !== undefined){
+      const r = run(step.code);
+      if(r.error) problems.push(r.error);
+      else if(r.out !== undefined && r.out !== step.output) problems.push('prints ' + JSON.stringify(r.out) + ', not ' + JSON.stringify(step.output));
+    }
+  }else if(step.type === 'choice'){
+    need('question'); need('explain'); oneCorrect();
+    if(step.asks === 'output' && !problems.length){
+      const r = run(step.code);
+      if(r.error) problems.push(r.error);
+      else if(r.out !== undefined){
+        const right = step.options.find(o => o.correct);
+        if(right.text !== r.out) problems.push('the right answer "' + right.text + '" isn\'t what it prints: ' + JSON.stringify(r.out));
+        step.options.filter(o => !o.correct && o.text === r.out).forEach(o => problems.push('wrong option "' + o.text + '" is actually what it prints'));
+      }
+    }
+  }else if(step.type === 'predict'){
+    ['question', 'code', 'display', 'answers', 'nudge', 'explain'].forEach(need);
+    if(!problems.length){
+      if(!step.answers.some(a => global.D.normaliseAnswer(a) === global.D.normaliseAnswer(step.display))) problems.push('the display wouldn\'t be accepted as an answer');
+      const r = run(step.code);
+      if(r.error) problems.push(r.error);
+      else if(r.out !== undefined && r.out !== step.display) problems.push('prints ' + JSON.stringify(r.out) + ', not ' + JSON.stringify(step.display));
+    }
+  }else if(step.type === 'blank'){
+    ['question', 'code', 'target', 'explain'].forEach(need); oneCorrect();
+    if(!problems.length){
+      if((step.code.match(/___/g) || []).length !== 1) problems.push('the code needs exactly one ___ gap');
+      else step.options.forEach(o => {
+        const r = run(step.code.replace('___', o.text));
+        const hits = r.out === step.target;
+        if(o.correct && !hits) problems.push('the right option "' + o.text + '" gives ' + (r.error ? 'an error: ' + r.error : JSON.stringify(r.out)) + ', not the target');
+        if(!o.correct && hits) problems.push('wrong option "' + o.text + '" also gives the target');
+      });
+    }
+  }else if(step.type === 'line'){
+    ['question', 'code', 'line', 'explain'].forEach(need);
+    const count = (step.code || '').split('\n').length;
+    if(!(step.line >= 1 && step.line <= count)) problems.push('line ' + step.line + ' is outside the code');
+    else if(step.errors){
+      const r = run(step.code);
+      const text = r.compileErr || r.err || '';
+      if(!r.error) problems.push('it should stop with an error, but it ran fine');
+      else if(!new RegExp('line ' + step.line + '\\b|:' + step.line + ':').test(text)) problems.push('the error isn\'t on line ' + step.line + ':\n      ' + text.trim().split('\n').slice(-3).join('\n      '));
+    }
+  }else{
+    problems.push('unknown step type "' + step.type + '"');
+  }
+  return problems;
+}
+
+function checkLearn(ctx, only){
+  let failed = 0, steps = 0;
+  const L = ctx.DEBUGG_LEARN;
+  const summary = [];
+  for(const [lang, course] of Object.entries(L.courses)){
+    if(only.length && !only.includes(lang)) continue;
+    const units = L.units.filter(u => u.lang === lang);
+    const fail = (where, problems) => { failed++; console.log('✗ learn ' + where + '\n    ' + problems.join('\n    ')); };
+    if(units.length !== course.files.length) fail(lang, ['course lists ' + course.files.length + ' files but ' + units.length + ' units loaded']);
+    const unitIds = new Set();
+    let lessons = 0;
+    units.forEach(u => {
+      if(!u.id || unitIds.has(u.id)) fail(lang + '/' + u.id, ['unit id missing or repeated']);
+      unitIds.add(u.id);
+      const lessonIds = new Set();
+      const all = u.lessons.map(l => {
+        if(!l.id || lessonIds.has(l.id)) fail(lang + '/' + u.id + '/' + l.id, ['lesson id missing or repeated']);
+        lessonIds.add(l.id);
+        return { where: lang + '/' + u.id + '/' + l.id, steps: l.steps };
+      });
+      lessons += u.lessons.length;
+      if(u.checkpoint){
+        const qs = u.checkpoint.steps.filter(s => s.type !== 'teach').length;
+        if(!(u.checkpoint.pass >= 1 && u.checkpoint.pass <= qs)) fail(lang + '/' + u.id + '/checkpoint', ['pass mark must be 1 to ' + qs]);
+        all.push({ where: lang + '/' + u.id + '/checkpoint', steps: u.checkpoint.steps });
+      }
+      all.forEach(({ where, steps: list }) => list.forEach((s, i) => {
+        steps++;
+        const problems = checkStep(lang, s);
+        if(problems.length) fail(where + ' step ' + (i + 1) + ' (' + s.type + ')', problems);
+      }));
+    });
+    summary.push('  ' + (lang + ':').padEnd(12) + units.length + ' unit' + (units.length === 1 ? '' : 's') + ', ' + lessons + ' lessons' +
+      (course.planned && course.planned.length ? ', ' + course.planned.length + ' more planned' : ''));
+  }
+  return { failed, steps, summary };
+}
+
 function main(){
   const ctx = loadGame();
-  const D = ctx.Debugg;
+  const D = global.D = ctx.Debugg;
   const only = process.argv.slice(2);
   const puzzles = ctx.DEBUGG_PUZZLES.filter(p => !only.length || only.includes(p.lang));
   const skipMissing = process.env.SKIP_MISSING === '1';
@@ -148,10 +274,14 @@ function main(){
     console.log('  ' + (l + ':').padEnd(12) + [1, 2, 3, 4, 5].map(d => d + ': ' + c[d]).join('  ') +
       '   total ' + Object.values(c).reduce((a, b) => a + b, 0));
   });
-  console.log('\n' + (puzzles.length - failed - skipped) + ' passed' + (failed ? ', ' + failed + ' failed' : '') +
+  console.log('\nPuzzles: ' + (puzzles.length - failed - skipped) + ' passed' + (failed ? ', ' + failed + ' failed' : '') +
     (skipped ? ', ' + skipped + ' skipped (toolchain missing)' : '') + '.');
+
+  const learn = checkLearn(ctx, only);
+  console.log('\nLearn courses:\n' + learn.summary.join('\n'));
+  console.log('\nLearn: ' + (learn.steps - learn.failed) + ' of ' + learn.steps + ' steps passed.');
   fs.rmSync(TMP, { recursive: true, force: true });
-  process.exit(failed ? 1 : 0);
+  process.exit(failed || learn.failed ? 1 : 0);
 }
 
 main();

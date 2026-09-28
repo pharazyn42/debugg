@@ -16,6 +16,12 @@ Each puzzle also earns XP in its language, so you level up in each language you 
 
 Solving on the 2nd, 3rd or 4th guess earns 75%, 50% or 25% of that, and each hint takes off a quarter (1 hint: 75%, 2 hints: 50%). For example, a Wednesday puzzle solved on the 2nd guess with 1 hint earns 100 × 0.75 × 0.75 = 56. Running out of guesses or revealing the answer still earns 10 XP. Level 2 starts at 100 XP, and each level after that needs 100 more than the last (300, 600, 1000, …).
 
+## Learn
+
+`learn.html` (the **Learn** tab next to **Daily**) teaches a language from the very start, one short lesson at a time. A course is made of units, each with a few lessons and a checkpoint. Lessons mix quick teaching points with questions: multiple choice, "what does this print?", fill the blank, and "tap the line with the bug". Answer a question wrong and you're told why, then it comes back before the end of the lesson; stars show how cleanly you got through. Passing a unit's checkpoint unlocks the next unit, and anyone can take it straight away to skip what they already know.
+
+Learn has its **own XP and streak**, separate from the daily puzzles. The Python course's Unit 1 (Values and printing) is built; the next units are listed as coming soon. `learn/README.md` explains the format for writing more, and the puzzle checker runs every lesson snippet too.
+
 ## Playing
 
 Open `index.html` directly, or visit the GitHub Pages site once enabled (see below).

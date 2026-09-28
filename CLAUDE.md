@@ -28,7 +28,8 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 |---|---|
 | `index.html` | The daily puzzle page. It also holds the slots the studio renders into, and the loader that switches the studio on. |
 | `puzzles/` | The puzzle bank, one file per language (`python.js`, `javascript.js`, `c.js`, `rust.js`), and a README on the fields and scheduling. |
-| `tools/check-puzzles.js` | Runs every puzzle with its real toolchain and checks it prints its answer (`npm run check-puzzles`; also a CI job). |
+| `tools/check-puzzles.js` | Runs every puzzle and every Learn snippet with its real toolchain and checks it prints what it says (`npm run check-puzzles`; also a CI job). |
+| `learn.html`, `learn/` | Debugg Learn: the page, the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
@@ -613,6 +614,31 @@ for its contracts; they no longer name puzzles.
   of progress. Desk pay follows XP, so harder days pay the company more.
 
 #### 3d. Learn channel: learn languages in a fun way
+
+**Built so far** (September 2026): `learn.html`, reached from a **Daily | Learn** switch at the
+top of the puzzle page, with the Python course's Unit 1, *Values and printing* (3 lessons and
+a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the sketch below:
+
+- **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
+  modular, one file each; the course lists them in order and names the planned ones.
+- **Steps:** teaching points, multiple choice (each wrong option explains itself), "what does
+  this print?", fill the blank (pick the missing piece) and "tap the line with the bug".
+- **Progress:** lessons unlock in order; a wrong answer is explained, shows the right answer,
+  and comes back at the end of the lesson, which ends once every question is right. Stars by
+  mistakes (0 → 3, 1–2 → 2, more → 1). Checkpoints: pass mark out of 8, retry any time, and
+  can be taken first to test out of a unit; passing unlocks the next unit.
+- **XP and streak are separate from the daily puzzles** (not shared, as the sketch below
+  said): Learn XP per language (10 per new lesson, 5 per new star, 30 per checkpoint) with its
+  own levels, and a Learn streak of days with a lesson finished. Learn doesn't pay Debugg Ltd
+  or boost the Director. Saved as `debugg-learn`; "reset puzzles" keeps it.
+- **Checked like the puzzles:** `tools/check-puzzles.js` runs every lesson snippet, and
+  checks right and wrong options and "tap the line" errors against the real output.
+- **Still to do:** the rest of the Python course (Strings, Lists, Conditions, Loops,
+  Functions, Dictionaries, the classic traps), a review queue of missed questions (spaced
+  repetition), other languages' courses, the Rosetta-style "second language" lessons, and
+  badges.
+
+The original sketch:
 This is the idea that started Debugg: a fun way to learn different
 programming languages. The daily puzzle tests what you know; the Learn
 channel teaches it. It sits alongside the daily puzzles as its own
