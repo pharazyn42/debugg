@@ -1,18 +1,20 @@
 // Shared helpers for the browser tests.
 
-// Local noon on game day n (Day 1 is Thursday 1 October 2026; days before it are previews: 0, -1, …).
-// Days 3–4, 10–11… are weekends; Day 5 is a Monday and Day 7 a Wednesday.
+// Local noon on game day n (the demo's Day 1 is Monday 5 October 2026; days before it are
+// previews: 0, -1, …). Days 6–7, 13–14… are weekends, and Day 3 is a Wednesday.
 function dayDate(n){
-  return new Date(2026, 9, n, 12, 0, 0);
+  return new Date(2026, 9, 4 + n, 12, 0, 0);
 }
 
 // Opens a page with the clock fixed to game day `day` (timers still run normally).
 // JavaScript is hidden from players for now, but the tests switch it back on so it stays
 // covered; pass { langs: null } to test the site exactly as players see it.
-// Day 7 (a Wednesday, 100 XP for a perfect solve) is the default.
-async function openAt(page, path, day = 7, { langs = ['python', 'javascript'] } = {}){
+// Day 3 (a Wednesday, 100 XP for a perfect solve) is the default.
+// The demo notice that opens on a first visit is off unless { notice: true }.
+async function openAt(page, path, day = 3, { langs = ['python', 'javascript'], notice = false } = {}){
   await page.clock.setFixedTime(dayDate(day));
   if(langs) await page.addInitScript(l => { window.DEBUGG_LANGS = l; }, langs);
+  if(!notice) await page.addInitScript(() => { window.DEBUGG_DEMO_NOTICE = false; });
   // Tests never count as real visits (the analytics test switches it on against a stand-in).
   await page.addInitScript(() => { if(!('DEBUGG_GOATCOUNTER' in window)) window.DEBUGG_GOATCOUNTER = ''; });
   if(process.env.PYODIDE_DIR){

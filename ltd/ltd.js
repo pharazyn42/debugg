@@ -176,6 +176,15 @@ window.DebuggLtd = (function(){
     // keeps turning over even if nobody on staff can take what's on it. A
     // replacement hotfix keeps its language.
 
+    // The demo is the start-up slice: hotfixes and patches only, and no managers,
+    // so the Director looks after up to DIRECTOR_SPAN devs. The rest is shown as
+    // coming in v0.1. Old saves keep what they have; they just get no more of it.
+    const DEMO = !!D.DEMO;
+    const DEMO_TIERS = ['hotfix', 'patch'];
+    const DEMO_LOCKED_ROLES = ['Manager'];
+    const COMING = 'coming in v0.1';
+    function tierOpen(tierIndex){ return !DEMO || DEMO_TIERS.includes(TIERS[tierIndex].key); }
+
     const FIRST_NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan',
                          'Avery','Rowan','Kai','Emerson','Harper','Skyler','Parker','Sage','Hayden','Robin','Ari','Noa'];
     const OFFLINE_CAP_SECONDS = 4 * 60 * 60;
@@ -286,6 +295,7 @@ window.DebuggLtd = (function(){
     // picker, so it doesn't vanish mid-choice — and make sure there's a hotfix
     // in every language.
     function refreshBoard(now){
+      state.board = state.board.filter(o => tierOpen(o.tier) || (picker && picker.offerId === o.id));
       state.board.forEach((o, i) => {
         if(o.expiresAt <= now && !(picker && picker.offerId === o.id)) state.board[i] = replacementFor(o);
       });
@@ -298,6 +308,7 @@ window.DebuggLtd = (function(){
     function makeBoard(){
       const board = [];
       TIERS.forEach((_, i) => {
+        if(!tierOpen(i)) return;
         if(isHotfix(i)) LANGS.forEach(lang => board.push(makeOffer(i, lang)));
         else for(let k = 0; k < OFFERS_PER_TIER; k++) board.push(makeOffer(i));
       });
@@ -398,6 +409,7 @@ window.DebuggLtd = (function(){
     }
 
     function hireProblem(role){
+      if(DEMO && DEMO_LOCKED_ROLES.includes(role)) return COMING;
       return problemWith({ [role]: 1 });
     }
     function releaseProblem(p){
@@ -593,13 +605,14 @@ window.DebuggLtd = (function(){
       // Look for a fresh contract of the same type that the whole team is
       // qualified for.
       let offer = null, ev = null;
-      for(let i = 0; i < 40 && members.every(Boolean); i++){
+      for(let i = 0; i < 40 && members.every(Boolean) && tierOpen(job.tier); i++){
         const candidate = makeOffer(job.tier);
         const e = evaluateTeam(tier, candidate, members);
         if(e.valid){ offer = candidate; ev = e; break; }
       }
       if(!ev){
-        addLog('info', tier.name + ' repeat stopped — the team no longer fits the requirements.');
+        addLog('info', tier.name + ' repeat stopped — ' +
+          (tierOpen(job.tier) ? 'the team no longer fits the requirements.' : tier.plural.toLowerCase() + ' are ' + COMING + '.'));
         return;
       }
       state.jobs.push(newJob(offer, job.team, job.endsAt, ev, true));
@@ -698,7 +711,8 @@ window.DebuggLtd = (function(){
       opening = 'You’ve founded Debugg Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too. ' +
-        'Debugg Ltd is in beta, so its numbers may change as it’s balanced.';
+        'Debugg Ltd is in beta, so its numbers may change as it’s balanced.' +
+        (DEMO ? ' In the demo it runs hotfixes and patches with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
     save();
@@ -945,6 +959,13 @@ window.DebuggLtd = (function(){
       TIERS.forEach((t, ti) => {
         const offers = state.board.filter(o => o.tier === ti)
           .sort((a, b) => LANGS.indexOf(a.lang) - LANGS.indexOf(b.lang));
+        if(!tierOpen(ti) && !offers.length){
+          html += '<div class="level-group board-group collapsed locked" data-tier="' + t.key + '">' +
+            '<div class="level-header"><div class="level-header-left">' +
+            '<span class="level-name">' + t.plural + '</span><span class="level-count">' + COMING + '</span></div>' +
+            '<div class="level-sum board-sum">' + t.req + '</div></div></div>';
+          return;
+        }
         if(!offers.length) return;
         const running = state.jobs.filter(j => j.tier === ti).length;
         const collapsed = state.collapsedTiers.indexOf(t.key) >= 0;

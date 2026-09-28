@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
 
-const at = (h, m = 0) => new Date(2026, 9, 7, h, m, 0);  // Day 7, a Wednesday
+const at = (h, m = 0) => new Date(2026, 9, 7, h, m, 0);  // Day 3, a Wednesday
 const ltd = page => readJson(page, 'debugg-ltd');
 
 async function found(page){
@@ -38,7 +38,7 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   await expect(page.locator('#foundCard')).toBeVisible();
   await page.click('#foundBtn');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  await expect(page.locator('#kicker')).toHaveText('Debugg Ltd · Day 7 · Wednesday · medium');
+  await expect(page.locator('#kicker')).toHaveText('Debugg Ltd · Day 3 · Wednesday · medium');
 });
 
 test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
@@ -56,7 +56,7 @@ test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async (
 test('desk puzzles pay the company once, by XP earned', async ({ page }) => {
   await found(page);
   await expect(page.locator('#statMoney')).toHaveText('¤150');
-  await guess(page, (await puzzleFor(page, 'python', 7)).display);
+  await guess(page, (await puzzleFor(page, 'python', 3)).display);
   await expect(page.locator('#statMoney')).toHaveText('¤350');
   await expect(page.locator('#statRep')).toHaveText('5');
   await expect(page.locator('#welcomeToast')).toContainText('Today’s Python puzzle paid ¤200');
@@ -67,20 +67,20 @@ test('desk puzzles pay the company once, by XP earned', async ({ page }) => {
   await page.click('a[href="#javascript"]');
   await page.click('#revealBtn');
   await expect(page.locator('#statMoney')).toHaveText('¤370');
-  expect((await ltd(page)).paid).toEqual({ 'python-7': true, 'javascript-7': true });
+  expect((await ltd(page)).paid).toEqual({ 'python-3': true, 'javascript-3': true });
 });
 
 test('a streak adds 10% per day beyond the first', async ({ page }) => {
   // A 2-day streak ending yesterday; solving today makes it 3, so +20%.
   await withStorage(page, { 'debugg-streak': { count: 2, lastDay: 6 } });
   await found(page);
-  await guess(page, (await puzzleFor(page, 'python', 7)).display);
+  await guess(page, (await puzzleFor(page, 'python', 3)).display);
   await expect(page.locator('#statMoney')).toHaveText('¤390');
   await expect(page.locator('#welcomeToast')).toContainText('+20% streak bonus');
 });
 
 test('puzzles finished before the company existed are not paid', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 'python', 7)).display);
+  await guess(page, (await puzzleFor(page, 'python', 3)).display);
   await found(page);
   // ¤150 plus the ¤100 founder's bonus for that puzzle's XP, and no desk payment.
   await expect(page.locator('#statMoney')).toHaveText('¤250');
@@ -132,7 +132,26 @@ test('the board has a hotfix in every language, and no domains', async ({ page }
   await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Patches', 'Minor releases', 'Major releases']);
   const saved = await ltd(page);
   expect(JSON.stringify(saved)).not.toContain('"dom"');
-  expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(6);
+  expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(2);
+});
+
+test('the demo runs hotfixes and patches, with no managers yet', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('.board-group[data-tier=patch] .offer')).toHaveCount(2);
+  for(const tier of ['minor', 'major']){
+    await expect(page.locator('.board-group[data-tier=' + tier + ']')).toHaveClass(/locked/);
+    await expect(page.locator('.board-group[data-tier=' + tier + '] .level-count')).toHaveText('coming in v0.1');
+    await expect(page.locator('.board-group[data-tier=' + tier + '] .offer')).toHaveCount(0);
+  }
+  await expect(page.locator('[data-action=hire][data-role=Manager]')).toBeDisabled();
+  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('coming in v0.1');
+  await expect(page.locator('#welcomeToast')).toContainText('reset when v0.1 comes out');
+
+  // A company from before the demo keeps its staff, but its bigger offers go.
+  await editCompany(page, s => {
+    s.board.push({ id: 'm1', tier: 2, lang: 'Python', sloc: 2700, expiresAt: Date.now() + 3600000 });
+  });
+  expect((await ltd(page)).board.filter(o => o.tier > 1)).toHaveLength(0);
 });
 
 test('a hotfix that is taken is replaced in the same language', async ({ page }) => {
@@ -154,15 +173,15 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
 
 test('board groups fold, and stay folded', async ({ page }) => {
   await found(page);
-  const major = page.locator('.board-group[data-tier=major]');
-  await expect(major.locator('.offer').first()).toBeVisible();
-  await major.locator('.level-header').click();
-  await expect(major).toHaveClass(/collapsed/);
-  await expect(major.locator('.offer').first()).toBeHidden();
+  const patches = page.locator('.board-group[data-tier=patch]');
+  await expect(patches.locator('.offer').first()).toBeVisible();
+  await patches.locator('.level-header').click();
+  await expect(patches).toHaveClass(/collapsed/);
+  await expect(patches.locator('.offer').first()).toBeHidden();
   await page.reload();
-  await expect(page.locator('.board-group[data-tier=major]')).toHaveClass(/collapsed/);
+  await expect(page.locator('.board-group[data-tier=patch]')).toHaveClass(/collapsed/);
   await expect(page.locator('.board-group[data-tier=hotfix]')).not.toHaveClass(/collapsed/);
-  expect((await ltd(page)).collapsedTiers).toEqual(['major']);
+  expect((await ltd(page)).collapsedTiers).toEqual(['patch']);
 });
 
 test('a company saved with domains is converted to languages only', async ({ page }) => {
@@ -224,14 +243,14 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
 });
 
 test('closing the company keeps puzzle progress; resetting puzzles keeps the company', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 'python', 7)).display);
+  await guess(page, (await puzzleFor(page, 'python', 3)).display);
   await found(page);
   await page.click('#resetLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   expect(await ltd(page)).not.toBeNull();
   expect(await readJson(page, 'debugg-xp')).toBeNull();
 
-  await guess(page, (await puzzleFor(page, 'python', 7)).display);
+  await guess(page, (await puzzleFor(page, 'python', 3)).display);
   await page.click('#ltdClose');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await ltd(page)).toBeNull();

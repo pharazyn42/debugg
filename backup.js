@@ -38,6 +38,10 @@ window.DebuggBackup = (function(){
     Object.keys(data).forEach(k => {
       if(!isOurs(k) || typeof data[k] !== 'string') throw new Error('That backup code is damaged.');
     });
+    // Progress from a version that's been reset (the demo, once v0.1 is out) stays reset.
+    if(window.Debugg.isWipedVersion(data['debugg-version'])){
+      throw new Error('That backup is from the Debugg demo. Demo progress was reset when v0.1 came out, so it can’t be restored.');
+    }
     return data;
   }
 

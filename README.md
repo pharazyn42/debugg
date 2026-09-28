@@ -2,7 +2,9 @@
 
 A Wordle-style daily game where you guess what a short, buggy Python or JavaScript snippet actually prints — no coding required, just read the code and reason it out.
 
-**For the soft launch the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
+**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debugg Ltd is cut down to hotfixes and patches with no managers (see "Debugg Ltd" below).
+
+**For now the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
 
 There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. **Difficulty follows the week:** Monday is a warm-up, then easy, medium, tricky, and Friday is hard. Saturday and Sunday share one harder weekend puzzle (solving it on either day counts for both). Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving at least one puzzle a day, in any language, builds your bug streak.
 
@@ -47,13 +49,15 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - **The contract board:** staff hotfixes, patches, minor releases and major releases (about 1, 10, 30 and 90 minutes for a minimum team), grouped in foldable sections. There's always a hotfix in every language. Contracts, skills and promotions are by programming language. Teams can repeat contracts, and work carries on while the page is closed (up to 4 hours).
 - **Pause company** stops the clock completely (no salaries, no progress) until you switch it back on. **Close company** deletes it; puzzle progress, XP and the streak are kept. The footer's "reset puzzles" does the opposite: it keeps the company.
 
+**In the demo** the company is the start-up slice: hotfixes and patches only, and no managers, so you can have up to 4 devs. Minor and major releases show on the board as "coming in v0.1".
+
 The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 
 `ideas/debugg-ltd-merge-plan.md` is the plan this was built from, and `CLAUDE.md` has the studio's full design and roadmap.
 
 ## Adding a puzzle
 
-Puzzles live in `puzzles.js`, each with a `difficulty` from 1 (warm-up) to 5 (hard). Day 1 is Thursday 1 October 2026; days before it show a "Preview" puzzle. The calendar in `shared.js` gives each day the first unused puzzle with that weekday's difficulty (Monday 1 to Friday 5; the weekend gets a 5), falling back to the nearest difficulty when a pool runs out, and starts over once every puzzle has been used. Add new puzzles to the end of their language's section, and keep the pools balanced: each week uses one puzzle of difficulty 1 to 4 and two of difficulty 5. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+Puzzles live in `puzzles.js`, each with a `difficulty` from 1 (warm-up) to 5 (hard). The demo's Day 1 is Monday 5 October 2026; days before it show a "Preview" puzzle. The calendar in `shared.js` gives each day the first unused puzzle with that weekday's difficulty (Monday 1 to Friday 5; the weekend gets a 5), falling back to the nearest difficulty when a pool runs out, and starts over once every puzzle has been used. Add new puzzles to the end of their language's section, and keep the pools balanced: each week uses one puzzle of difficulty 1 to 4 and two of difficulty 5. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
 
 To add a new language, add it to `LANGS` and `SYNTAX` in `shared.js` (name, file extension, indent, keywords, comment and string syntax), then add puzzles with that `lang`.
 
@@ -78,6 +82,8 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 
 ## Roadmap
 
+- **v0.1:** the first real release, with a launch date, the full company and a reset of all demo progress. See items 2 and 2c in `CLAUDE.md`.
+- **Company-first, decided from the demo:** make Debugg Ltd the game, with the daily puzzle as the Director's desk (still shareable, and still playable without a company) and Learn as its own lane. The demo runs as the daily; GoatCounter's company events then show whether puzzle players take to the studio. The name stays Debugg (debugg.ai is the one clash). See item 2c in `CLAUDE.md`.
 - **Puzzle formats** (decided; see item 3b in `CLAUDE.md`): the weekly difficulty rotation is built, with every day using "what does this output" for now. Still to come are the other formats, which follow the week too. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debugg Ltd desk pay) rises with difficulty.
 - **Learn track:** lessons per language played in order at any time, teaching one concept each with a "try this next" for the sandbox. Lessons earn XP but don't count towards the streak. Monday's daily puzzles are learn-level too.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.

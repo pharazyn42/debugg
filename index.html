@@ -108,6 +108,21 @@
     padding: 0 4px;
     vertical-align: 1px;
   }
+  .demo-badge{
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: none;
+    border: 1px solid var(--amber-dim);
+    border-radius: 4px;
+    padding: 0 4px;
+    margin-left: 4px;
+    vertical-align: 1px;
+    cursor: pointer;
+  }
+  .demo-badge:hover{ border-color: var(--amber); }
   .try a{ color: var(--amber); font-weight: 600; text-decoration: none; }
   .try a:hover{ text-decoration: underline; }
   .found{
@@ -197,7 +212,7 @@
 
 <div class="wrap">
   <header>
-    <p class="kicker" id="kicker">Debugg</p>
+    <p class="kicker"><span id="kicker">Debugg</span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
@@ -271,6 +286,14 @@
       <a href="#" id="resetLink">reset puzzles</a></div>
   </footer>
 </div>
+
+<dialog id="demoNotice" aria-labelledby="demoTitle">
+  <h2 id="demoTitle">This is the Debugg demo</h2>
+  <p>Thanks for trying Debugg early. The daily puzzles are all here, and Debugg Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
+  <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak and company. Sandbox drafts are kept. There's no release date yet.</p>
+  <p>Found something wrong, or have an idea? The feedback link at the bottom of the page opens a GitHub issue.</p>
+  <div class="backup-actions"><button class="btn-primary" id="demoOk" type="button">Got it</button></div>
+</dialog>
 
 <script src="puzzles.js"></script>
 <script src="shared.js"></script>
@@ -676,7 +699,7 @@
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company, if you have one, is kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && k !== 'debugg-ltd').forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && k !== 'debugg-ltd' && k !== 'debugg-demo-seen').forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });
@@ -761,6 +784,19 @@
   if(asked || (saved && saved.enabled) || (!saved && read(OLD_KEY))) switchOn();
   [document.getElementById('ltdLink'), document.getElementById('foundBtn')].forEach(el =>
     el.addEventListener('click', (e) => { e.preventDefault(); switchOn(); }));
+
+  // The demo notice: shown on the first visit, and again from the "demo" badge in the header.
+  // Tests switch the automatic one off with window.DEBUGG_DEMO_NOTICE = false.
+  if(window.Debugg.DEMO){
+    const notice = document.getElementById('demoNotice');
+    const badge = document.getElementById('demoBadge');
+    badge.hidden = false;
+    badge.addEventListener('click', () => notice.showModal());
+    document.getElementById('demoOk').addEventListener('click', () => notice.close());
+    let seen = true;
+    try{ seen = !!localStorage.getItem('debugg-demo-seen'); localStorage.setItem('debugg-demo-seen', '1'); }catch(e){}
+    if(!seen && window.DEBUGG_DEMO_NOTICE !== false) notice.showModal();
+  }
 
   document.getElementById('backupLink').addEventListener('click', (e) => {
     e.preventDefault();
