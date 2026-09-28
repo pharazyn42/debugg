@@ -375,29 +375,60 @@ site and what to measure.
   - Accounts, or an anonymous sync code? A sync code is lighter and
     avoids storing emails.
 
-#### 2c. Find a new name
-- **Why:** "debugg.ai" exists and is too similar to Debugg. Better to
-  rename before the soft launch spreads links and the name sticks.
-- **Candidates:** "dbugg" is one idea, but it's still one letter from
-  debugg.ai and sounds the same when said aloud, so it may not be
-  different enough. Worth brainstorming a few more.
-- **Before choosing, check:**
-  - the domain (.com, and maybe .dev, .io or .app);
-  - trademarks in the main markets;
-  - existing products, apps and games with the same or a similar name;
-  - GitHub and social handles.
-- **What a rename touches:**
-  - player-facing text, the page titles, the privacy page, "Debugg Ltd"
-    (e.g. "<Name> Ltd"), the README and this file;
-  - the GoatCounter site code (a new site or a renamed one);
-  - the repository name, which is also the GitHub Pages address
-    (`/debugg/`), so old links need a redirect (or move to a custom
-    domain at the same time, item 2b);
-  - the feedback links, which point at the repository's issues.
-- **Keep the internals:** the `debugg-*` storage keys, the
-  `debugg:puzzle-finished` event and names like `window.Debugg` are
-  invisible to players. Renaming them would break every save for no
-  gain, so they stay.
+#### 2c. Direction: company-first, and keeping the name
+Decided with the player-owner after the naming search (September 2026).
+
+- **Why change direction.** "Guess what this prints, daily" is easy to
+  copy, and others already exist: What's the Output?
+  (https://whatstheoutput.online, one JavaScript snippet a day) and Debug
+  Challenge (https://debugger-zeta.vercel.app). What nobody else has is
+  the studio: a software company you grow, where your own daily puzzle is
+  the Director's desk. So that's what to lead with.
+- **The target shape:**
+  - **Debugg Ltd is the game.** The company is founded on the first visit
+    rather than behind "Start your own company", and the page is framed
+    as the studio, with today's puzzle as its desk panel.
+  - **The daily stays, as the desk.** It still pays the company, levels
+    the Director and keeps the Wordle-style share card, since that's how
+    dailies spread. Keep it playable without a company too, quietly: it
+    costs nothing and some people only want the puzzle.
+  - **Learn is its own lane** (item 3d), for beginners at their own pace.
+    It feeds the company through the Director's language levels.
+- **Don't switch before launch.** Day 1 (1 October 2026) goes out as the
+  daily with the studio one click away. After two or three weeks,
+  GoatCounter's `ltd/founded`, `ltd/hired/…` and `ltd/paused` events
+  show how many puzzle players start a company and keep it running. If a
+  good share do, go company-first.
+- **What company-first needs** (worth building either way):
+  - the balance pass (item 10) and reputation gating (item 12): an idle
+    game lives or dies on depth, and today it's beta and untuned;
+  - a first-time walkthrough: hire a grad, staff a hotfix, solve today's
+    puzzle to pay the studio (item 10b);
+  - founding on first visit, and the studio-first layout.
+- **Risks:** idle games are a narrower taste than "guess what this
+  prints", and a big screen of numbers is a harder first impression
+  than one snippet. The walkthrough and keeping the puzzle up front are
+  the answer to both.
+- **The name stays Debugg.** debugg.ai (an AI testing tool, with a VS
+  Code extension and the `debugg-ai` GitHub organisation) is the one
+  clash; no "Debugg" trademark turned up in a web search, but do a proper
+  search (USPTO, UK IPO, EUIPO) before spending money on the name.
+  Company-first helps here too: "Debugg Ltd" as the product reads nothing
+  like a testing tool. Other ways to set it apart:
+  - "Debugg Daily" for the puzzle (no other use found);
+  - a duck mascot (rubber-duck debugging) on the logo and share card;
+  - a game-flavoured domain, e.g. `debugg.game` or `playdebugg.com`.
+- **Names checked and ruled out:** dbugg (DBUGG Studios, dbugg.com and
+  the `dbugg` GitHub name are taken, and it sounds like Debugg anyway);
+  Heisenbug (a trademarked Norwegian tech company and a QA conference);
+  names of people in general (the player-owner's preference); and the
+  obvious duck names (Rubberduck is a VBA debugging tool, QuackStack Ltd
+  is a web studio, DuckType is a dictation app). Unchecked duck ideas
+  for later, e.g. a default company name: Duck Test Ltd, Bathtub Labs,
+  Waddle, Quacked It.
+- **Keep the internals** whatever the product is called: the `debugg-*`
+  storage keys, the `debugg:puzzle-finished` event and `window.Debugg`
+  are invisible to players, and renaming them would break every save.
 
 #### 3. Languages only for now — done
 - Domains are gone from offers, the skill rule, skill match (speed,
