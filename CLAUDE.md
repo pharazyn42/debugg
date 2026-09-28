@@ -648,6 +648,8 @@ a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the s
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
   with `soon: true` and no files (C, for now) shows as a "soon" tab with only its planned units.
+  A course's `sections` are later parts of it under their own heading: C's is Embedded C
+  (item 3e), decided as a section of the C course rather than a course or tab of its own.
 - **Steps:** teaching points, multiple choice (each wrong option explains itself), "what does
   this print?", fill the blank (pick the missing piece) and "tap the line with the bug".
 - **Progress:** lessons unlock in order; a wrong answer is explained, shows the right answer,
@@ -753,7 +755,8 @@ later, Debuggit Ltd's Embedded/Controls contracts.
   register viewer and bit flipper; (3) the virtual board, Units 4–7; (4) Ltd's
   Embedded/Controls domain (with item 16); (5) maybe C in the browser (picoc/TinyCC in
   WebAssembly, or an emulator like avr8js).
-- **Decided:** C99 as the baseline.
+- **Decided:** C99 as the baseline; in Learn, Embedded C is a section of the C course (its
+  10 units after the plain C ones), not a separate course or tab.
 - **Open questions:** hobbyist or professional audience; generic registers or a named chip
   family (AVR, Cortex-M); whether to cover Arduino's C++; separate Embedded XP.
 
