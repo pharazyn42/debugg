@@ -22,7 +22,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await other.click('#backupLink');
   await other.fill('#restoreCode', 'not a code');
   await other.click('#restoreBtn');
-  await expect(other.locator('#restoreError')).toContainText('doesn’t look like a Debugg backup code');
+  await expect(other.locator('#restoreError')).toContainText('doesn’t look like a Debuggit backup code');
   await other.fill('#restoreCode', code.slice(0, 20));
   await other.click('#restoreBtn');
   await expect(other.locator('#restoreError')).toContainText('incomplete or damaged');
@@ -78,7 +78,7 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
   ]);
 });
 
-test('Debugg Ltd is labelled beta, and the privacy page is linked', async ({ page }) => {
+test('Debuggit Ltd is labelled beta, and the privacy page is linked', async ({ page }) => {
   await openAt(page, 'index.html#python');
   await fresh(page);
   await expect(page.locator('#ltdLinkSep .beta')).toHaveText('beta');
@@ -129,5 +129,5 @@ test('saves from a reset version are wiped, apart from sandbox drafts, and so ar
   await page.click('#backupLink');
   await page.fill('#restoreCode', oldCode);
   await page.click('#restoreBtn');
-  await expect(page.locator('#restoreError')).toContainText('from the Debugg demo');
+  await expect(page.locator('#restoreError')).toContainText('from the Debuggit demo');
 });

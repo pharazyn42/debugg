@@ -1,4 +1,4 @@
-// Debugg Learn: the course map, lessons and checkpoints on learn.html.
+// Debuggit Learn: the course map, lessons and checkpoints on learn.html.
 //
 // A course is a list of units; a unit has lessons and a checkpoint; a lesson is a list of steps (see
 // learn/README.md). Lessons unlock in order. A question answered wrongly comes back at the end of the

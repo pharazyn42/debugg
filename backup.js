@@ -1,4 +1,4 @@
-// Save backup: everything Debugg keeps is in this browser's storage, so clearing site data (or
+// Save backup: everything Debuggit keeps is in this browser's storage, so clearing site data (or
 // Safari's clean-up of sites you haven't visited for a while) would lose it. The backup window
 // turns all of it (puzzle progress, XP, streak, the company, sandbox drafts) into one code the
 // player can keep somewhere safe, and restores it on any device.
@@ -30,7 +30,7 @@ window.DebuggBackup = (function(){
   // Returns the saved values in a code, or throws with a message the player can read.
   function readCode(code){
     const trimmed = (code || '').replace(/\s+/g, '');
-    if(!trimmed.startsWith(PREFIX)) throw new Error('That doesn’t look like a Debugg backup code. It should start with ' + PREFIX);
+    if(!trimmed.startsWith(PREFIX)) throw new Error('That doesn’t look like a Debuggit backup code. It should start with ' + PREFIX);
     let data;
     try{ data = JSON.parse(fromBase64(trimmed.slice(PREFIX.length))); }
     catch(e){ throw new Error('That backup code is incomplete or damaged. Check it was copied in full.'); }
@@ -40,12 +40,12 @@ window.DebuggBackup = (function(){
     });
     // Progress from a version that's been reset (the demo, once v0.1 is out) stays reset.
     if(window.Debugg.isWipedVersion(data['debugg-version'])){
-      throw new Error('That backup is from the Debugg demo. Demo progress was reset when v0.1 came out, so it can’t be restored.');
+      throw new Error('That backup is from the Debuggit demo. Demo progress was reset when v0.1 came out, so it can’t be restored.');
     }
     return data;
   }
 
-  // Replaces everything Debugg has saved in this browser with the backup, then reloads.
+  // Replaces everything Debuggit has saved in this browser with the backup, then reloads.
   function restore(data){
     if(window.DebuggLtd && window.DebuggLtd.stop) window.DebuggLtd.stop();
     Object.keys(localStorage).filter(isOurs).forEach(k => localStorage.removeItem(k));
@@ -64,7 +64,7 @@ window.DebuggBackup = (function(){
     dialog.setAttribute('aria-labelledby', 'backupTitle');
     dialog.innerHTML =
       '<h2 id="backupTitle">Back up your progress</h2>' +
-      '<p>Debugg saves everything in this browser only. Clearing your browsing data, or not visiting for a while in Safari, can erase it. ' +
+      '<p>Debuggit saves everything in this browser only. Clearing your browsing data, or not visiting for a while in Safari, can erase it. ' +
       'Keep this code somewhere safe (a note or an email to yourself), and paste it here on any device to get everything back: ' +
       'your puzzles, XP, streak and company.</p>' +
       '<label for="backupCode">Your backup code</label>' +
@@ -93,7 +93,7 @@ window.DebuggBackup = (function(){
       let data;
       try{ data = readCode($('restoreCode').value); }
       catch(e){ $('restoreError').textContent = e.message; return; }
-      if(!confirm('Restore this backup? It replaces all Debugg progress in this browser, including any company.')) return;
+      if(!confirm('Restore this backup? It replaces all Debuggit progress in this browser, including any company.')) return;
       track('backup/restored');
       restore(data);
     });

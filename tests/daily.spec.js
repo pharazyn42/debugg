@@ -20,7 +20,7 @@ for(const lang of Object.keys(EXT)){
       const p = await puzzleFor(page, day);
       expect(p.lang).toBe(lang);
       seen.add(p.code);
-      await expect(page.locator('#kicker')).toHaveText('Debugg · ' + info.label + ' · ' + info.title + ' · ' + NAME[lang]);
+      await expect(page.locator('#kicker')).toHaveText(info.label + ' · ' + info.title + ' · ' + NAME[lang]);
       await expect(page.locator('#filename')).toHaveText('day' + day + '.' + EXT[lang]);
       await expect(page.locator('#langName')).toHaveText(NAME[lang]);
       await expect(page.locator('#flag')).toHaveCount(1);
@@ -72,7 +72,7 @@ test('languages take turns, shifting a day each week, and a new one starts on th
 test('a Rust day shows Rust, links to the Rust Playground and earns Rust XP', async ({ page }) => {
   await openAt(page, 'index.html', 1, { rotation: [{ lang: 'rust' }] });
   await fresh(page);
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Day 1 · Monday · warm-up · Rust');
+  await expect(page.locator('#kicker')).toHaveText('Day 1 · Monday · warm-up · Rust');
   await expect(page.locator('#filename')).toHaveText('day1.rs');
   const p = await puzzleFor(page, 1);
   await guess(page, p.display);
@@ -91,6 +91,24 @@ test("a C day has no run link, since C doesn't run in the browser yet", async ({
   await expect(page.locator('#takeawayOut')).not.toBeEmpty();
   await expect(page.locator('.try')).toBeHidden();
   await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'sandbox.html');
+});
+
+test('the wordmark is "debug it" in the day\'s language, and each page has its own', async ({ page }) => {
+  const expected = { python: 'debugg(it)', javascript: 'debugg.it()', c: 'debugg(&it);', rust: 'debugg!(it)' };
+  for(const [lang, code] of Object.entries(expected)){
+    await openAt(page, 'index.html', 1, { rotation: [{ lang }] });
+    const mark = page.locator('#wordmark');
+    await expect(mark).toHaveAttribute('data-wordmark', code);
+    await expect(mark).toHaveText(code);
+    await expect(mark).toHaveAttribute('aria-label', 'Debuggit');
+  }
+  await expect(page).toHaveTitle('Debuggit');
+  await page.goto('learn.html');
+  await expect(page.locator('#wordmark')).toHaveText('debugg.learn()');
+  await page.goto('sandbox.html');
+  await expect(page.locator('#wordmark')).toHaveText('debugg.run()');
+  await page.goto('privacy.html');
+  await expect(page.locator('.wordmark')).toHaveText('debugg.it()');
 });
 
 test('answers are matched loosely', async ({ page }) => {
@@ -126,7 +144,7 @@ test('the streak counts days with a solve, and the weekend as one', async ({ pag
   // Saturday isn't played; solving the weekend puzzle on Sunday still carries the streak on.
   await solveOn(7);
   await expect(page.locator('#streak')).toHaveText('4');
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Days 6–7 · Weekend · hard · Python');
+  await expect(page.locator('#kicker')).toHaveText('Days 6–7 · Weekend · hard · Python');
   // Monday: still alive until Monday's puzzle is missed.
   await page.clock.setFixedTime(dayDate(8));
   await page.reload();
@@ -139,7 +157,7 @@ test('the streak counts days with a solve, and the weekend as one', async ({ pag
 test('a weekend puzzle solved on Saturday is still solved on Sunday', async ({ page }) => {
   await openAt(page, 'index.html', 6);
   await fresh(page);
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Days 6–7 · Weekend · hard · Python');
+  await expect(page.locator('#kicker')).toHaveText('Days 6–7 · Weekend · hard · Python');
   await guess(page, (await puzzleFor(page, 6)).display);
   expect((await readJson(page, 'debugg-xp')).python).toBe(200);
   await page.clock.setFixedTime(dayDate(7));
@@ -225,7 +243,7 @@ test('works at phone width', async ({ page }) => {
 test('days before Day 1 are previews with their own saves', async ({ page }) => {
   await openAt(page, 'index.html', -2);  // Friday 2 October 2026
   await fresh(page);
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Preview · Day 1 is 5 October');
+  await expect(page.locator('#kicker')).toHaveText('Preview · Day 1 is 5 October');
   await expect(page.locator('#filename')).toHaveText('preview.py');
   await guess(page, (await puzzleFor(page, -2)).display);
   await expect(page.locator('#feedback')).toHaveClass(/correct/);
@@ -234,7 +252,7 @@ test('days before Day 1 are previews with their own saves', async ({ page }) => 
   // Day 1 is a fresh puzzle.
   await page.clock.setFixedTime(dayDate(1));
   await page.reload();
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Day 1 · Monday · warm-up · Python');
+  await expect(page.locator('#kicker')).toHaveText('Day 1 · Monday · warm-up · Python');
   await expect(page.locator('#feedback')).not.toHaveClass(/correct/);
 });
 

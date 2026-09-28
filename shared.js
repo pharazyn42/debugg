@@ -54,7 +54,7 @@ window.Debugg = (function(){
     }catch(e){}
   })();
 
-  // Every language with puzzles. `runnable` ones run in the sandbox; `studio` is the name Debugg Ltd
+  // Every language with puzzles. `runnable` ones run in the sandbox; `studio` is the name Debuggit Ltd
   // uses for it; `playground` makes a link that runs a snippet on another site.
   const LANG_INFO = {
     python: { name: 'Python', ext: 'py', indent: '    ', runnable: true, studio: 'Python' },
@@ -297,6 +297,30 @@ window.Debugg = (function(){
     return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // --- The wordmark ---------------------------------------------------------------
+  // The game is called Debuggit, and its logo is a line of code: "debug it" written in the day's
+  // puzzle language, so the header changes with the rotation. Each page (Learn, the sandbox, the
+  // studio) has its own method on it. It's coloured by the same highlighter as the puzzles.
+  const NAME = 'Debuggit';
+  const WORDMARKS = {
+    python:     { code: 'debugg(it)',   lang: 'python' },
+    javascript: { code: 'debugg.it()',  lang: 'javascript' },
+    c:          { code: 'debugg(&it);', lang: 'c' },
+    rust:       { code: 'debugg!(it)',  lang: 'rust' },
+    learn:      { code: 'debugg.learn()', lang: 'javascript', label: NAME + ' Learn' },
+    sandbox:    { code: 'debugg.run()', lang: 'javascript', label: NAME + ' Sandbox' },
+    ltd:        { code: 'debugg.ltd()', lang: 'javascript', label: NAME + ' Ltd' }
+  };
+  // Fills `el` with the wordmark for a language or page ('python', 'learn', …; anything else gets
+  // the default, debugg.it()). Screen readers hear the plain name.
+  function renderWordmark(el, which){
+    const w = WORDMARKS[which] || WORDMARKS.javascript;
+    el.innerHTML = '<span aria-hidden="true">' + highlight(w.code, w.lang) + '</span>';
+    el.setAttribute('aria-label', w.label || NAME);
+    el.title = w.label || NAME;
+    el.dataset.wordmark = w.code;
+  }
+
   // Highlights one line of code: comments, strings, numbers, keywords and called names.
   function highlight(text, lang){
     const syn = syntaxFor(lang);
@@ -315,7 +339,7 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  return { DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
+  return { NAME, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
            dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };

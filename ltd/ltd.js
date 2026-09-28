@@ -1,4 +1,4 @@
-// Debugg Ltd: the studio, team and contract board, around the daily puzzles.
+// Debuggit Ltd: the studio, team and contract board, around the daily puzzles.
 //
 // Loaded by index.html only when the studio is switched on (see the loader there).
 // The puzzle page never depends on this file. When a daily puzzle ends, the page fires
@@ -59,7 +59,7 @@ window.DebuggLtd = (function(){
         '<h3>Recent</h3>' +
         '<div class="log" id="log"></div>' +
       '</div>' +
-      '<div class="company-controls">Debugg Ltd <span class="beta">beta</span> · ' +
+      '<div class="company-controls">Debuggit Ltd <span class="beta">beta</span> · ' +
         '<button class="reset-btn" id="ltdPause" title="Stops the clock: no salaries and no contract progress until you switch it back on">Pause company</button>' +
         '<button class="reset-btn" id="ltdClose">Close company</button>' +
       '</div>';
@@ -695,7 +695,7 @@ window.DebuggLtd = (function(){
         state.enabled = true;
         state.pausedAt = null;
         track('resumed');
-        opening = 'Welcome back. Debugg Ltd was paused' + (away > 60000 ? ' for ' + fmtDuration(away, true) : '') + ', so nothing changed while you were away.';
+        opening = 'Welcome back. Debuggit Ltd was paused' + (away > 60000 ? ' for ' + fmtDuration(away, true) : '') + ', so nothing changed while you were away.';
       }
     }else if(old){
       // A company from before the merge: keep everything except the old desk contract.
@@ -709,10 +709,10 @@ window.DebuggLtd = (function(){
       const bonus = founderBonus();
       state = freshState(START_CASH + bonus);
       track('founded');
-      opening = 'You’ve founded Debugg Ltd with ' + fmt(state.money) +
+      opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too. ' +
-        'Debugg Ltd is in beta, so its numbers may change as it’s balanced.' +
+        'Debuggit Ltd is in beta, so its numbers may change as it’s balanced.' +
         (DEMO ? ' In the demo it runs hotfixes and patches with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
@@ -1228,7 +1228,7 @@ window.DebuggLtd = (function(){
     });
     // Deletes the company for good. The tick is stopped first so it can't re-save it.
     document.getElementById('ltdClose').addEventListener('click', () => {
-      if(!confirm('Close Debugg Ltd? Your studio, staff, cash and reputation will be deleted. Your puzzle progress, XP and streak are kept.')) return;
+      if(!confirm('Close Debuggit Ltd? Your studio, staff, cash and reputation will be deleted. Your puzzle progress, XP and streak are kept.')) return;
       track('closed');
       stopGame();
       try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
