@@ -212,7 +212,13 @@ window.DebuggLearn = (function(){
     const input = $('answer');
     if(input){
       input.focus();
-      input.addEventListener('keydown', e => { if(e.key === 'Enter') $('checkBtn').click(); });
+      // Enter checks the answer. preventDefault stops the same key press from also landing on the
+      // Continue button, which gets the focus as soon as the answer is marked.
+      input.addEventListener('keydown', e => {
+        if(e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault();
+        $('checkBtn').click();
+      });
     }else if(s.type === 'teach') $('continueBtn').focus();
   }
 
