@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Debugg</title>
+<title>Debuggit</title>
 <meta name="description" content="A Wordle-style daily game where you guess what a short, buggy snippet of Python or JavaScript actually prints.">
 <link rel="stylesheet" href="base.css">
 <style>
@@ -133,7 +133,7 @@
   }
   .found .btn-ghost{ margin-top: 4px; }
 
-  /* Debugg Ltd layout: the puzzle becomes the desk column, with the studio beside it. */
+  /* Debuggit Ltd layout: the puzzle becomes the desk column, with the studio beside it. */
   .desk-title{ display: none; }
   body.ltd-on .wrap{ max-width: 1080px; }
   body.ltd-on .columns{
@@ -225,13 +225,14 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debugg"><a class="lang-tab" href="index.html" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a></nav>
-    <p class="kicker"><span id="kicker">Debugg</span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
+    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a></nav>
+    <a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a>
+    <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
 
-  <!-- Debugg Ltd fills these slots when the studio is switched on (see the loader below). -->
+  <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). -->
   <div id="ltdStats" hidden></div>
 
   <div class="columns">
@@ -279,7 +280,7 @@
       <p class="try"><a id="tryLink" href="sandbox.html">Run it yourself in the sandbox →</a></p>
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
       <div class="found" id="foundCard">
-        <p class="section-label">Debugg Ltd <span class="beta">beta</span></p>
+        <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
         <p id="foundText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and get paid for every daily puzzle.</p>
         <button class="btn-ghost" id="foundBtn">Start your own company</button>
       </div>
@@ -301,8 +302,8 @@
 </div>
 
 <dialog id="demoNotice" aria-labelledby="demoTitle">
-  <h2 id="demoTitle">This is the Debugg demo</h2>
-  <p>Thanks for trying Debugg early. The daily puzzles are all here, and Debugg Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
+  <h2 id="demoTitle">This is the Debuggit demo</h2>
+  <p>Thanks for trying Debuggit early. The daily puzzles are all here, and Debuggit Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
   <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
   <p>Found something wrong, or have an idea? The feedback link at the bottom of the page opens a GitHub issue.</p>
   <div class="backup-actions"><button class="btn-primary" id="demoOk" type="button">Got it</button></div>
@@ -595,7 +596,7 @@
     streakEl.textContent = currentStreak();
   }
 
-  // Tells anything listening (Debugg Ltd, when it's switched on) that today's puzzle just ended. Fired only when a game ends, never when a finished game is reloaded.
+  // Tells anything listening (Debuggit Ltd, when it's switched on) that today's puzzle just ended. Fired only when a game ends, never when a finished game is reloaded.
   function announceFinish(){
     document.dispatchEvent(new CustomEvent('debugg:puzzle-finished', { detail: {
       lang, day: SLOT, solved: state.solved, guesses: state.attempts.length,
@@ -678,7 +679,7 @@
     announceFinish();
   });
 
-  // Clears every saved day, XP, the streak and sandbox drafts. A Debugg Ltd company is kept (it has
+  // Clears every saved day, XP, the streak and sandbox drafts. A Debuggit Ltd company is kept (it has
   // its own "Close company" button), and so is Learn progress (learn.html has its own reset).
   resetLink.addEventListener('click', (e) => {
     e.preventDefault();
@@ -689,9 +690,11 @@
     location.reload();
   });
 
+  // The wordmark is "debug it" in today's language (see renderWordmark in shared.js).
+  window.Debugg.renderWordmark(document.getElementById('wordmark'), lang);
   kickerEl.textContent = window.Debugg.isPreview(DAY)
-    ? 'Debugg · Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    : 'Debugg · ' + window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name;
+    ? 'Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+    : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name;
   filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.' + LANG.ext;
   document.getElementById('langName').textContent = LANG.name;
   renderCode();
@@ -721,7 +724,7 @@
 </script>
 
 <script>
-// Debugg Ltd loader. The studio's code only loads when it's switched on: when a company is
+// Debuggit Ltd loader. The studio's code only loads when it's switched on: when a company is
 // saved and running, when a save from before the merge exists (the old /studio/ page),
 // or when the page is opened with ?ltd (which /studio/ now redirects to).
 (function(){
@@ -738,9 +741,9 @@
   const saved = read(KEY);
   const paused = !!(saved && !saved.enabled);
   if(paused){
-    document.getElementById('ltdLink').textContent = 'resume Debugg Ltd';
-    document.getElementById('foundText').textContent = 'Debugg Ltd is paused: no salaries and no contract progress until you switch it back on.';
-    document.getElementById('foundBtn').textContent = 'Resume Debugg Ltd';
+    document.getElementById('ltdLink').textContent = 'resume Debuggit Ltd';
+    document.getElementById('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
+    document.getElementById('foundBtn').textContent = 'Resume Debuggit Ltd';
   }
 
   let loading = false;
@@ -755,7 +758,7 @@
     js.src = 'ltd/ltd.js';
     js.onload = () => {
       document.body.classList.add('ltd-on');
-      document.getElementById('kicker').textContent = document.getElementById('kicker').textContent.replace('Debugg', 'Debugg Ltd');
+      window.Debugg.renderWordmark(document.getElementById('wordmark'), 'ltd');
       window.DebuggLtd.start({
         stats: document.getElementById('ltdStats'),
         studio: document.getElementById('ltdStudio'),

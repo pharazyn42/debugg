@@ -32,8 +32,8 @@ window.DEBUGG_LEARN.units.push({
           type: 'teach',
           title: 'Joining strings',
           text: '<code>+</code> joins two strings into one, exactly as they are. It doesn\'t add a space: if you want one, it has to be inside a string.',
-          code: `print("Deb" + "ugg")`,
-          output: 'Debugg'
+          code: `print("Debugg" + "it")`,
+          output: 'Debuggit'
         },
         {
           type: 'choice',
@@ -87,7 +87,7 @@ print("double")`,
           type: 'line',
           question: 'This program stops with an error. Tap the line that causes it.',
           code: `print("Welcome")
-print('to Debugg')
+print('to Debuggit')
 print("Let's go')`,
           line: 3,
           errors: true,

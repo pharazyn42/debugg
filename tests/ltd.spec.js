@@ -1,4 +1,4 @@
-// Debugg Ltd: switching the studio on, paying for desk puzzles, the Director's languages,
+// Debuggit Ltd: switching the studio on, paying for desk puzzles, the Director's languages,
 // the studio engine, the contract board, pausing, closing, importing old saves and the
 // /studio/ redirect.
 const { test, expect } = require('@playwright/test');
@@ -38,7 +38,10 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   await expect(page.locator('#foundCard')).toBeVisible();
   await page.click('#foundBtn');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  await expect(page.locator('#kicker')).toHaveText('Debugg Ltd · Day 3 · Wednesday · medium · Python');
+  await expect(page.locator('#kicker')).toHaveText('Day 3 · Wednesday · medium · Python');
+  // The wordmark becomes the studio's.
+  await expect(page.locator('#wordmark')).toHaveAttribute('data-wordmark', 'debugg.ltd()');
+  await expect(page.locator('#wordmark')).toHaveAttribute('aria-label', 'Debuggit Ltd');
 });
 
 test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
@@ -233,7 +236,7 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.click('#ltdPause');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
-  await expect(page.locator('#ltdLink')).toHaveText('resume Debugg Ltd');
+  await expect(page.locator('#ltdLink')).toHaveText('resume Debuggit Ltd');
 
   // Two hours later: no salaries were paid and the job hasn't moved on.
   await page.clock.setFixedTime(at(14));

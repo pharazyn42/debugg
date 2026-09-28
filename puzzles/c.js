@@ -1,4 +1,4 @@
-// Debugg's C puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
+// Debuggit's C puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
 // after adding one: it runs every snippet and checks it prints the puzzle's answer. C snippets are
 // compiled with gcc and clang at -O0 and -O2, which must all agree, so keep them free of undefined
 // behaviour (signed overflow, unsequenced side effects, reading uninitialised memory).

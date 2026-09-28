@@ -1,4 +1,9 @@
-# Debugg and Debugg Ltd
+# Debuggit (formerly Debugg), Debuggit Learn and Debuggit Ltd
+
+The game is called **Debuggit** (September 2026; see item 2c). The code, the repository, the
+`debugg-*` save keys and `window.Debugg` keep the old spelling, and "Debugg" below means the
+same game. Its logo is a wordmark, "debug it" as a line of code in the day's puzzle language
+(`renderWordmark()` in `shared.js`).
 
 Context for continuing work on this repo. **Debugg** is the daily puzzle game:
 read a short Python or JavaScript snippet and guess what it prints. **Debugg
@@ -413,7 +418,7 @@ site and what to measure.
   - Accounts, or an anonymous sync code? A sync code is lighter and
     avoids storing emails.
 
-#### 2c. Direction: company-first, and keeping the name
+#### 2c. Direction: company-first, and the name Debuggit
 Decided with the player-owner after the naming search (September 2026).
 
 - **Why change direction.** "Guess what this prints, daily" is easy to
@@ -448,15 +453,35 @@ Decided with the player-owner after the naming search (September 2026).
   prints", and a big screen of numbers is a harder first impression
   than one snippet. The walkthrough and keeping the puzzle up front are
   the answer to both.
-- **The name stays Debugg.** debugg.ai (an AI testing tool, with a VS
-  Code extension and the `debugg-ai` GitHub organisation) is the one
-  clash; no "Debugg" trademark turned up in a web search, but do a proper
-  search (USPTO, UK IPO, EUIPO) before spending money on the name.
-  Company-first helps here too: "Debugg Ltd" as the product reads nothing
-  like a testing tool. Other ways to set it apart:
-  - "Debugg Daily" for the puzzle (no other use found);
-  - a duck mascot (rubber-duck debugging) on the logo and share card;
-  - a game-flavoured domain, e.g. `debugg.game` or `playdebugg.com`.
+- **The name is now Debuggit** ("debug it"), decided with the player-owner
+  after the checks below. Players see Debuggit, Debuggit Learn and
+  Debuggit Ltd; the logo is a **wordmark**, "debug it" written as a line of
+  code in the day's puzzle language, so it changes with the rotation:
+  `debugg(it)` (Python), `debugg.it()` (JavaScript, and the default),
+  `debugg!(it)` (Rust), `debugg(&it);` (C), plus `debugg.learn()`,
+  `debugg.run()` (sandbox) and `debugg.ltd()` (the studio, when it's on).
+  It's drawn by `renderWordmark()` in `shared.js` with the puzzle
+  highlighter. The typed name stays plain "Debuggit", since `<>`, `()` and
+  `.` can't go in app titles, handles or domains.
+  - **Clashes found:** no exact "Debuggit"; the nearest is DEBUGIT
+    International (debugit.net), a games QA company, which sounds the
+    same. debugg.ai is still one letter-pattern away in writing.
+  - **Still to do before spending money on it:** check domains
+    (`debugg.it` matches the `debugg.it()` wordmark, but `.it` has
+    residency rules; also `debuggit.com`, `.game`, `.dev`), a proper
+    trademark search (USPTO, UK IPO, EUIPO) for Debuggit and Debugit, the
+    GitHub name, and a GoatCounter site under the new name. Renaming the
+    repository (the Pages address) can wait for a custom domain.
+  - Other names checked and dropped along the way: Buggit (a project
+    management app and a testing company), Squashit (a bug-squashing app
+    game), Printle (two daily word games), Tracebug (an AI bug tool);
+    Gitcha and Stepthru looked free but were liked less.
+- **Before that, the plan was to keep Debugg.** debugg.ai (an AI testing
+  tool, with a VS Code extension and the `debugg-ai` GitHub organisation)
+  is the clash that started the search.
+  Ideas from then that still apply: a duck mascot (rubber-duck debugging)
+  on the logo and share card, and a share card like "debugg.it() #14 ·
+  Python · debugged in 2".
 - **Names checked and ruled out:** dbugg (DBUGG Studios, dbugg.com and
   the `dbugg` GitHub name are taken, and it sounds like Debugg anyway);
   Heisenbug (a trademarked Norwegian tech company and a QA conference);

@@ -1,4 +1,4 @@
-// Browser tests for Debugg: the daily puzzles, the sandbox and Debugg Ltd.
+// Browser tests for Debuggit: the daily puzzles, the sandbox and Debuggit Ltd.
 // Run with `npm test`. The site is served by tests/serve.js, like GitHub Pages would.
 const { defineConfig } = require('@playwright/test');
 

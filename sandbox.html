@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Debugg Sandbox</title>
-<meta name="description" content="Write and run Python or JavaScript snippets in your browser, and replay past Debugg puzzles.">
+<title>Debuggit Sandbox</title>
+<meta name="description" content="Write and run Python or JavaScript snippets in your browser, and replay past Debuggit puzzles.">
 <link rel="stylesheet" href="base.css">
 <style>
   .back{
-    display: inline-block;
+    display: table;
+    margin-inline: auto;
     font-family: var(--mono);
     font-size: 12px;
     color: var(--text-dim);
@@ -126,7 +127,7 @@
 <div class="wrap">
   <header>
     <a class="back" href="index.html" id="backLink">← Today's puzzle</a>
-    <p class="kicker">Debugg · Sandbox</p>
+    <a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit Sandbox">debugg.run()</a>
     <h1>Try it yourself</h1>
     <p class="sub">Write some code and run it, or replay a puzzle you've finished. Everything runs in your browser.</p>
   </header>
@@ -644,5 +645,6 @@ def _debugg_run(src):
   });
 })();
 </script>
+<script>window.Debugg.renderWordmark(document.getElementById('wordmark'), 'sandbox');</script>
 </body>
 </html>

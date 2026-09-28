@@ -1,4 +1,4 @@
-// Debugg's Python puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
+// Debuggit's Python puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
 // after adding one: it runs every snippet and checks it prints the puzzle's answer.
 (window.DEBUGG_PUZZLES = window.DEBUGG_PUZZLES || []).push(
 
@@ -262,7 +262,7 @@ print(save())`,
     fix: 'Never <code>return</code> from a <code>finally</code> block. Use finally only for cleanup, like closing files.',
     takeaway: '<code>finally</code> always runs, and a <code>return</code> inside it replaces any other result, even an exception. Use <code>finally</code> only for clean-up.'
   },
-  // The next four came from Debugg Ltd's original desk.
+  // The next four came from Debuggit Ltd's original desk.
   {
     lang: 'python',
     difficulty: 3,

@@ -43,6 +43,18 @@ body{
 .wrap{ width: 100%; max-width: 560px; }
 
 header{ text-align: center; margin-bottom: 22px; }
+/* The wordmark: "debug it" as a line of code in the day's language (see renderWordmark in shared.js). */
+.wordmark{
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  margin: 0 0 8px;
+}
+.wordmark:hover{ opacity: 0.85; }
 .kicker{
   font-family: var(--mono);
   font-size: 12px;

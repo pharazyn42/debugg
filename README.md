@@ -1,8 +1,10 @@
-# Debugg
+# Debuggit
 
 A Wordle-style daily game where you guess what a short, buggy code snippet actually prints — no coding required, just read the code and reason it out. The languages take turns: Python for now, with C, Rust and JavaScript written and ready to join.
 
-**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debugg Ltd is cut down to hotfixes and patches with no managers (see "Debugg Ltd" below).
+**The name and the wordmark.** It's called **Debuggit** ("debug it"), and its logo is that phrase written as a line of code in the day's puzzle language: `debugg(it)` on a Python day, `debugg.it()` in JavaScript, `debugg!(it)` in Rust, `debugg(&it);` in C. Each page has its own: `debugg.learn()`, `debugg.run()` (the sandbox) and `debugg.ltd()` (the studio). `renderWordmark()` in `shared.js` draws it with the puzzles' syntax colours. The repository, the `debugg-*` save keys and names like `window.Debugg` keep the old spelling: players never see them, and renaming them would break saves.
+
+**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debuggit Ltd is cut down to hotfixes and patches with no managers (see "Debuggit Ltd" below).
 
 **One puzzle a day, and the languages take turns.** `ROTATION` in `shared.js` lists the languages in play and the day each one joins; for now it's Python only. With more than one, they share the week's six puzzles (Monday to Friday and the weekend), shifting one day along each week so every language gets every difficulty in turn. A newly added language only gets Monday and Tuesday, the easy days, for its first two weeks. C, Rust and JavaScript puzzles are written and checked; to introduce one, add it to `ROTATION` with the day it joins.
 
@@ -42,12 +44,12 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 - **Backup:** everything is saved in the player's browser only. The footer's **backup** link shows a code holding all of it (puzzles, XP, streak, company, sandbox drafts) and restores from one on any device (`backup.js`).
 - **Feedback:** after each game, "Report it" opens a GitHub issue prefilled with the puzzle's language, day, first line and expected answer; the footer's **feedback** link opens a blank one. Issues are public, and reporting needs a GitHub account.
-- **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). The dashboard is at https://debugg.goatcounter.com. Setting `SITE_COUNT_URL` in that file to `''` switches it off. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debugg Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
+- **Analytics:** `analytics.js` counts visits and a few anonymous events with [GoatCounter](https://www.goatcounter.com) (no cookies). The dashboard is at https://debugg.goatcounter.com. Setting `SITE_COUNT_URL` in that file to `''` switches it off. Events: puzzle results (language, day, solved in how many guesses, hints), level-ups, Debuggit Ltd founding/pausing/resuming/closing/hiring/promoting, backup and feedback use, and sandbox runs. Typed answers and code are never sent.
 - **Privacy:** `privacy.html` explains all of the above to players. Fonts are served from `fonts/` (Sora and JetBrains Mono, SIL Open Font License), not Google Fonts.
 
-## Debugg Ltd
+## Debuggit Ltd
 
-"Start your own company" (in the footer, and after each finished puzzle) switches on **Debugg Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+"Start your own company" (in the footer, and after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
 
 - **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
@@ -76,7 +78,7 @@ To add a new language: add it to `LANG_INFO`, `PUZZLE_FILES` and `SYNTAX` in `sh
 
 ## Tests
 
-Browser tests (Playwright) cover the daily puzzles, the sandbox and Debugg Ltd, and run in GitHub Actions on every pull request:
+Browser tests (Playwright) cover the daily puzzles, the sandbox and Debuggit Ltd, and run in GitHub Actions on every pull request:
 
 ```sh
 npm install
@@ -96,13 +98,13 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 ## Roadmap
 
 - **v0.1:** the first real release, with a launch date, the full company and a reset of all demo progress. See items 2 and 2c in `CLAUDE.md`.
-- **Company-first, decided from the demo:** make Debugg Ltd the game, with the daily puzzle as the Director's desk (still shareable, and still playable without a company) and Learn as its own lane. The demo runs as the daily; GoatCounter's company events then show whether puzzle players take to the studio. The name stays Debugg (debugg.ai is the one clash). See item 2c in `CLAUDE.md`.
-- **Puzzle formats** (decided; see item 3b in `CLAUDE.md`): the weekly difficulty rotation is built, with every day using "what does this output" for now. Still to come are the other formats, which follow the week too. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debugg Ltd desk pay) rises with difficulty.
+- **Company-first, decided from the demo:** make Debuggit Ltd the game, with the daily puzzle as the Director's desk (still shareable, and still playable without a company) and Learn as its own lane. The demo runs as the daily; GoatCounter's company events then show whether puzzle players take to the studio. The game is now called Debuggit (item 2c). See item 2c in `CLAUDE.md`.
+- **Puzzle formats** (decided; see item 3b in `CLAUDE.md`): the weekly difficulty rotation is built, with every day using "what does this output" for now. Still to come are the other formats, which follow the week too. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debuggit Ltd desk pay) rises with difficulty.
 - **Learn track:** lessons per language played in order at any time, teaching one concept each with a "try this next" for the sandbox. Lessons earn XP but don't count towards the streak. Monday's daily puzzles are learn-level too.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.
-- **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debugg Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `CLAUDE.md`.
-- **Debugg Ltd:** its own roadmap is in `CLAUDE.md`. Tests are done. Next are versioning and the balance pass, and a big company stats panel is planned (item 15d).
+- **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debuggit Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `CLAUDE.md`.
+- **Debuggit Ltd:** its own roadmap is in `CLAUDE.md`. Tests are done. Next are versioning and the balance pass, and a big company stats panel is planned (item 15d).
 
 ## Other ideas
 
-`ideas/contract-debugger-concept.md` is the original brainstorm that Debugg Ltd grew out of. `ideas/bbq-idle-concept.md` sketches a separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now.
+`ideas/contract-debugger-concept.md` is the original brainstorm that Debuggit Ltd grew out of. `ideas/bbq-idle-concept.md` sketches a separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now.

@@ -1,4 +1,4 @@
-// Debugg's Rust puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
+// Debuggit's Rust puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
 // after adding one: it runs every snippet and checks it prints the puzzle's answer. Rust snippets
 // are compiled with rustc in debug mode, as the Rust Playground runs them by default.
 (window.DEBUGG_PUZZLES = window.DEBUGG_PUZZLES || []).push(
