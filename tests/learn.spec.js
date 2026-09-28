@@ -159,3 +159,28 @@ test('the daily page links to Learn, and resetting puzzles keeps Learn progress'
   await expect(page.locator('h1')).toHaveText('Learn Python');
   await expect(page.locator('.lesson-row').nth(0)).toContainText('★★★');
 });
+
+test('pressing Enter on a wrong typed answer shows why, and waits for Continue', async ({ page }) => {
+  // Regression: Enter used to check the answer and also press the Continue button that took the
+  // focus, so the explanation flashed past and the lesson jumped ahead.
+  await page.click('[data-action=lesson][data-lesson=print]');
+  while((await current(page)).type !== 'predict') await answer(page);
+  const predict = await current(page);
+  await page.fill('#answer', 'definitely not it');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#stepFeedback')).toHaveClass(/wrong/);
+  await expect(page.locator('#stepFeedback')).toContainText('It prints ' + predict.display);
+  await expect(page.locator('#continueBtn')).toBeVisible();
+  expect(await current(page)).toEqual(predict);
+  // Enter again (on the focused Continue button) moves on, once.
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#stepFeedback')).toHaveCount(0);
+  expect(await current(page)).not.toEqual(predict);
+
+  // A right answer by Enter behaves the same way.
+  while((await current(page)).type !== 'predict') await answer(page);
+  await page.fill('#answer', (await current(page)).display);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
+  await expect(page.locator('#continueBtn')).toBeVisible();
+});
