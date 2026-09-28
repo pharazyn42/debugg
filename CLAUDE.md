@@ -646,7 +646,8 @@ top of the puzzle page, with the Python course's Unit 1, *Values and printing* (
 a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
-  modular, one file each; the course lists them in order and names the planned ones.
+  modular, one file each; the course lists them in order and names the planned ones. A course
+  with `soon: true` and no files (C, for now) shows as a "soon" tab with only its planned units.
 - **Steps:** teaching points, multiple choice (each wrong option explains itself), "what does
   this print?", fill the blank (pick the missing piece) and "tap the line with the bug".
 - **Progress:** lessons unlock in order; a wrong answer is explained, shows the right answer,
@@ -729,6 +730,32 @@ at your own pace. It expands the "Learn track" sketched in 3b.
   - Order against the other Phase 1 work: the lesson formats overlap with
     3b's multiple choice and fill-the-blank, so building those formats
     first serves both.
+
+#### 3e. Embedded C track
+Planned in detail in `ideas/embedded-c-roadmap.md`. The C that runs on microcontrollers
+(bits, registers, fixed-width types, interrupts, timing) as puzzles, a Learn course and,
+later, Debuggit Ltd's Embedded/Controls contracts.
+
+- **Checking stays honest:** hardware is simulated with plain variables and made-up register
+  names; fixed-width types by default; new C checker modes such as `target: 'arm'` (also
+  compiles with `-funsigned-char`, ARM's default: `char c = 200; c > 127` prints 0 on x86
+  and 1 on ARM) and captured `-Wall -Wextra -Wconversion` warnings for explanations.
+- **New question types:** register value (hex/binary/decimal accepted, shown as bit
+  boxes), flip the bits (build a mask), which line needs `volatile` / spot the race, trace the
+  pins (a virtual board of LEDs replaying a trace the checker records), and timelines for
+  wrapping tick counters.
+- **Learn course, 10 units:** fixed-width types, bits and masks, registers, data layout
+  (padding, endianness), integer maths and fixed point, time, interrupts, structure (state
+  machines, ring buffers, no heap), robust firmware, and the classic traps.
+- **Daily puzzles:** embedded-tagged C puzzles (`topic: 'embedded'`); about 30 before C joins
+  the rotation. Maybe later "Embedded" as its own rotation language with its own XP.
+- **Phases:** (1) puzzles and checker modes on today's engine; (2) course Units 1–3 with the
+  register viewer and bit flipper; (3) the virtual board, Units 4–7; (4) Ltd's
+  Embedded/Controls domain (with item 16); (5) maybe C in the browser (picoc/TinyCC in
+  WebAssembly, or an emulator like avr8js).
+- **Decided:** C99 as the baseline.
+- **Open questions:** hobbyist or professional audience; generic registers or a named chip
+  family (AVR, Cortex-M); whether to cover Arduino's C++; separate Embedded XP.
 
 ### Phase 2 — Make the core loop feel right
 

@@ -8,6 +8,15 @@ window.DEBUGG_LEARN = {
       name: 'Python',
       files: ['learn/python/01-values.js'],
       planned: ['Strings', 'Lists', 'Conditions', 'Loops', 'Functions', 'Dictionaries', 'The classic traps']
+    },
+    // Coming soon: a tab with the planned units, and no lessons yet. The embedded units follow
+    // ideas/embedded-c-roadmap.md.
+    c: {
+      name: 'C',
+      soon: true,
+      files: [],
+      planned: ['Values and printf', 'Types and integer maths', 'Conditions and loops', 'Functions',
+        'Arrays and strings', 'Pointers', 'Structs and memory', 'Embedded C: bits and registers']
     }
   },
   units: []  // filled in by the unit files
