@@ -8,7 +8,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const PYODIDE_DIR = process.env.PYODIDE_DIR;
 const TYPES = {
-  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
+  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.json': 'application/json', '.wasm': 'application/wasm', '.zip': 'application/zip'
 };
 

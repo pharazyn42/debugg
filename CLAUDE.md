@@ -41,6 +41,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
 | `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
 | `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
+| `img/` | The Debuggit duck: `duck.svg` (logo and favicon), `duck-180.png` (home-screen icon) and `share.png` (the 1200×630 link-preview card). The PNGs are rendered from the SVG; redo them if the duck changes. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
@@ -841,8 +842,12 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
   company, the studio with a few staff, the team picker, the employee
   panel, the board), list what feels off, and agree a direction before
   changing anything.
-- **Visual identity.** A logo or wordmark for Debugg, a favicon, and a
-  social share image. Settle the colour palette, type scale, spacing
+- **Visual identity.** Started: the Debuggit duck (a rubber duck, for
+  rubber-duck debugging) is the logo, favicon and home-screen icon, beside
+  the language wordmark; it has a link-preview card (`img/share.png`,
+  with Open Graph tags on the puzzle page) and reacts after each puzzle
+  and Learn lesson. Still to do: a duck on the share card itself, more
+  expressions, and the duck as the hint voice and Learn guide. Settle the colour palette, type scale, spacing
   and icon style as design tokens in `base.css`, and have `ltd/ltd.css`
   and the sandbox use them rather than their own values.
 - **The daily puzzle.** The first impression and the end-of-game screen

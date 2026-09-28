@@ -227,7 +227,7 @@ window.DebuggLearn = (function(){
       session.done++;
       if(session.kind === 'checkpoint') session.correct++;
       fb.className = 'feedback show correct';
-      fb.innerHTML = '<b>Correct!</b> ' + s.explain;
+      fb.innerHTML = '<b>Quack! Correct.</b> ' + s.explain;
     }else{
       session.mistakes++;
       if(session.kind === 'lesson') session.queue.push(session.current);  // it comes back later
@@ -297,7 +297,7 @@ window.DebuggLearn = (function(){
       track('lesson/' + key + '/' + stars + '-stars');
       const i = u.lessons.indexOf(session.lesson);
       const nextLesson = u.lessons[i + 1];
-      html = '<div class="summary" id="summary"><p class="big-stars" aria-label="' + stars + ' of 3 stars">' + starText(stars) + '</p>' +
+      html = '<div class="summary" id="summary"><img class="summary-duck" src="img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-stars" aria-label="' + stars + ' of 3 stars">' + starText(stars) + '</p>' +
         '<h2>Lesson complete</h2><p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right.' : 'No mistakes.') +
         ' <b>+' + xp + ' XP</b>' + (before && !xp ? ' (you’d already earned these stars)' : '') + '</p>' +
         '<p>Learn streak: <b>' + streak() + '</b></p><div class="step-actions">' +
@@ -320,7 +320,7 @@ window.DebuggLearn = (function(){
       track('checkpoint/' + key + '/' + (passed ? 'passed' : 'not-passed'));
       const units = unitsOf(lang);
       const nextUnit = units[units.indexOf(u) + 1];
-      html = '<div class="summary" id="summary"><p class="big-score">' + session.correct + '/' + total + '</p>' +
+      html = '<div class="summary" id="summary"><img class="summary-duck' + (passed ? '' : ' dizzy') + '" src="img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-score">' + session.correct + '/' + total + '</p>' +
         '<h2>' + (passed ? 'Checkpoint passed!' : 'Not this time') + '</h2>' +
         '<p>' + (passed ? (xp ? '<b>+' + xp + ' XP.</b> ' : '') + (nextUnit ? 'Unit ' + (units.indexOf(nextUnit) + 1) + ' is unlocked.' : 'That’s every unit written so far. More are coming.')
           : 'You need ' + u.checkpoint.pass + ' to pass. Go over the lessons, then try again: there’s no limit.') + '</p>' +

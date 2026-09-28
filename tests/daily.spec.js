@@ -111,6 +111,35 @@ test('the wordmark is "debug it" in the day\'s language, and each page has its o
   await expect(page.locator('.wordmark')).toHaveText('debugg.it()');
 });
 
+test('the Debuggit duck is the logo and favicon, and reacts to how the game went', async ({ page }) => {
+  await openAt(page, 'index.html', 3);
+  await fresh(page);
+  await expect(page.locator('.brand .duck-logo')).toHaveAttribute('src', 'img/duck.svg');
+  await expect.poll(() => page.evaluate(() => document.querySelector('.brand .duck-logo').naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('link[rel=icon]')).toHaveAttribute('href', 'img/duck.svg');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /img\/share\.png$/);
+  await expect(page.locator('#duckSays')).toBeHidden();
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await expect(page.locator('#duckSays')).toHaveClass(/happy/);
+  await expect(page.locator('#duckLine')).toHaveText('Quack! First try, no hints.');
+
+  // A solve with a hint and a miss.
+  await page.clock.setFixedTime(dayDate(4));
+  await page.reload();
+  await page.click('#hintBtn');
+  await guess(page, 'nope');
+  await guess(page, (await puzzleFor(page, 4)).display);
+  await expect(page.locator('#duckLine')).toHaveText('Quack! Debugged it in 2 guesses, with 1 hint.');
+
+  // A reveal gets a wobble, and it's still there after a reload.
+  await page.clock.setFixedTime(dayDate(5));
+  await page.reload();
+  await page.click('#revealBtn');
+  await expect(page.locator('#duckSays')).toHaveClass(/dizzy/);
+  await page.reload();
+  await expect(page.locator('#duckLine')).toContainText('Even the duck gets stuck sometimes');
+});
+
 test('answers are matched loosely', async ({ page }) => {
   await openAt(page, 'index.html');
   for(const variant of ['1,2', '1 2', '[1,2]', '[1, 2]']){
