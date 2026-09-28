@@ -558,6 +558,58 @@ Decided with the player-owner after the naming search (September 2026).
   storage keys, the `debugg:puzzle-finished` event and `window.Debugg`
   are invisible to players, and renaming them would break every save.
 
+#### 2d. Private repo, a new host, and dev / release sites (to do, when the player-owner says)
+Discussed September 2026; not started. The goal: make the repository private, start inviting
+people to try Debuggit, and test new features on a dev site before they reach players.
+
+- **Why move off GitHub Pages:** on a free account, Pages stops when the repository goes
+  private (GitHub Pro, about $4/month, keeps it, but the site stays public with no access
+  control). Saves live in the browser per web address, so moving host means players start
+  again (backup codes carry progress over); the demo resets at v0.1 anyway, so the move is
+  cheapest before then. A custom domain (e.g. `debuggit.com`) makes later host moves painless.
+- **Options compared** (September 2026 pricing):
+  - **Cloudflare Pages (recommended):** free, private repos, unlimited bandwidth, 500
+    deploys/month; every branch gets its own address (so its own saves); **Cloudflare
+    Access** makes a site invite-only for up to 50 emails free (one-time PIN by email).
+  - **Netlify:** free 300 credits/month as a hard cap (roughly 20 deploys; sites pause when
+    it runs out); branch previews free; password protection is $20/month for new accounts.
+  - **Vercel Hobby:** free but non-commercial only; its deployment protection is for your
+    own Vercel team, not outside testers.
+- **The plan with Cloudflare Pages:**
+  - **Public site** (`debugg.pages.dev` or the custom domain) builds from a `release` branch
+    and only changes on "release": merge `main` into `release`, tag a version (`v0.x.y`), add
+    a `CHANGELOG.md` entry (item 2). Optionally invite-only via Cloudflare Access.
+  - **Dev site** builds from `main`, so every merge lands there first; Access-locked to the
+    player-owner; a "DEV" badge in the header; analytics off.
+  - Leave a redirect at the old address: a separate tiny public repository (e.g. the
+    `pharazyn42.github.io` user site with `debugg/index.html`), since this repo's Pages turns
+    off when it goes private.
+  - GoatCounter: add the new address in its settings. GitHub Actions tests keep running on a
+    private repo (the free minutes are plenty).
+- **Player-owner's part:** create the Cloudflare account, connect GitHub, create the two
+  projects (public from `release`, dev from `main`, no build command, output = the repo
+  root), set up Access, then make the repo private. **Claude's part:** the `release` branch,
+  the dev badge and analytics switch, the release routine and changelog, the redirect page.
+- **If staying on GitHub Pages instead:** public from `release`, dev at `/debugg/dev/` via an
+  Actions workflow; both share one address, so dev needs its own save keys (7 files touch
+  `localStorage`).
+
+#### 2e. Three pages: Daily, Learn and Ltd (to do, with 2d)
+The player-owner wants the three ideas split out when the hosting move happens: **Daily** (the
+puzzle), **Learn** and **Ltd** (the company) each on its own page, all linking to each other
+(today's Daily | Learn | Ltd tabs). Learn already is its own page (`learn.html`); Ltd lives
+inside `index.html` (the `?ltd` tab and the studio slots), so the work is mostly giving Ltd
+its own page. Things to settle then:
+- **The desk:** today the puzzle sits in the studio and pays it through the
+  `debugg:puzzle-finished` event on the same page. On a separate Ltd page, the desk could
+  show today's result with a link to Daily, and pay when the Ltd page next loads (reading the
+  day's saved result, with the `paid` ledger stopping double pay). The Daily page could then
+  stop loading `ltd/` at all.
+- **Addresses:** separate pages on one site (e.g. `/`, `/learn`, `/ltd`), or separate
+  sites/subdomains. Separate addresses split the browser saves, so one site with three pages
+  is much simpler (the pages share saves, XP and the backup code).
+- Keep `?ltd` (and `/studio/`) redirecting to the new Ltd page.
+
 #### 3. Languages only for now — done
 - Domains are gone from offers, the skill rule, skill match (speed,
   payout and success chance), XP, promotions (Junior 1 / Senior 3 /
