@@ -64,7 +64,9 @@ Ltd tab). On the Daily tab a running company is loaded but hidden (`body.ltd-run
 `ltd-on`), with a one-line note linking to Ltd, so the puzzle still pays it.
 `DebuggLtd.start({ stats, studio, board })` renders into the three slots and either resumes the
 saved company, imports an old one, or founds a new one. `body.ltd-on` shows the studio in the
-two-column layout.
+two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title), with the
+puzzle as "Your desk: what does this print?". On a phone (≤ 800px), a puzzle already finished
+today folds to its tiles there (`body.desk-folded`, with a Show/Fold button).
 
 **Languages and the rotation.** There's one puzzle a day, and the
 languages take turns. `LANG_INFO` in `shared.js` describes every language
@@ -178,6 +180,9 @@ state = {
   tiersVersion, boardVersion,                     // save-shape markers for the boot migrations
   enabled, pausedAt,                              // false / a time while the player has it paused
   paid: { 'python-5': true, … },                  // desk puzzles already paid for (last 14 days)
+  applicants: [ { id, role, person, cost, expiresAt } ], nextApplicantAt,
+  guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
+  stage,                                          // the business stage last announced ('startup', 'small', …)
   market: { prices: { Graduate: 1.08, … }, nextAt } // hire-cost multipliers, and when the market next moves
 }
 ```
@@ -308,6 +313,31 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **Business stages** (`STAGES`, `stageIndex()`, shown in a stage bar above the stats, with a
+  step track and what the next stage needs): **Start-up** (no managers), **Small business** (1
+  manager), **Mid-size company** (3 managers, 25 staff), **Large company** (6, 60),
+  **Multinational** (12, 150); headcount includes the Director. Decided with the player-owner:
+  a start-up is run by hand and lives on the daily puzzle; from a small business on,
+  **managers staff idle developers** (`managersStaff()`, every tick and on load: the biggest
+  team contracts a free team can take, by "Suggest a team", then hotfixes; all on repeat, and
+  never the offer open in the picker), and **desk pay shrinks** by stage (`desk`: 100%, 50%,
+  25%, 10%, 5%; reputation from puzzles doesn't). A change of stage is logged, announced and
+  tracked (`ltd/stage/<key>`); `state.stage` remembers the last one. In the demo managers are
+  locked, so every company stays a start-up (the bar says managers come in v0.1). This is the
+  start of item 13.
+- **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
+  top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
+  they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
+  It ends (`state.guideDone`) once those are done, or when dismissed. After that, warnings stay:
+  devs on the bench and what they cost ("On the bench · −¤2/min" on their card too), and cash
+  below zero. The welcome message can be dismissed. Added after a playtest where an unstaffed
+  grad left the company ¤315 in debt three hours in.
+- **Slot counts** explain themselves: when a level is full but there's room for more devs, a
+  note under the counts says why (everyone needs someone a level up) and what makes room. Hire
+  buttons say e.g. "grads full — a junior makes room for 3 more".
+- **The board folds offers nobody can take**: offers in languages nobody on staff knows sit
+  behind a "Show 3 in languages nobody on staff knows" toggle (`state.showUnknownOffers`), unless
+  nobody's been hired yet.
 - **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): only
   graduates and managers have hire buttons. Juniors, seniors and principals *apply*: one
   every 8–24 hours (the first 2 hours after founding), at most 3 waiting, each asking the
@@ -925,7 +955,9 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
   matter most:
   - a clear result summary;
   - a Wordle-style share card (guesses and hints as squares, no
-    spoilers);
+    spoilers). **Done as text** (September 2026): "Share your result" under the duck copies
+    (or, on phones, opens the share sheet with) e.g. `debugg(it) Day 3 · Python`, `🟥🟩⬛⬛ · 1
+    hint`, `Debugged it in 2` and the link; an image card is still to do;
   - the streak and XP level-ups made to feel like rewards.
 - **Debugg Ltd.** Less wall-of-text and more at-a-glance:
   - icons or colour for roles and languages;
@@ -967,6 +999,9 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   concept doc intended.
 
 #### 13. Business tiers
+- **Started** (September 2026): the stages, the stage bar, managers staffing idle developers
+  and desk pay shrinking by stage are built (see "Business stages" above). Still to do: stages
+  unlocking things (below), and managers only when the demo allows them.
 - Show a business-tier label that grows with headcount: Start-up →
   Small business → … → something massive (e.g. Multinational).
 - Thresholds and names are TBD. The current Director-as-manager phase is

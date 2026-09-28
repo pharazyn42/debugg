@@ -36,6 +36,7 @@ window.DebuggLtd = (function(){
 
     [statsSlot, studioSlot, boardSlot].forEach(el => { el.classList.add('ltd'); el.hidden = false; });
     statsSlot.innerHTML =
+      '<div class="stage-bar" id="stageBar"></div>' +
       '<div class="stat-bar">' +
         '<div class="stat"><div class="label">Cash</div><div class="value money" id="statMoney">¤0</div></div>' +
         '<div class="stat"><div class="label">Reputation</div><div class="value rep" id="statRep">0</div></div>' +
@@ -46,7 +47,9 @@ window.DebuggLtd = (function(){
     studioSlot.innerHTML =
       '<div class="panel">' +
         '<h2>Studio <span class="tag" id="rosterCount">1 person</span></h2>' +
+        '<div id="guide"></div>' +
         '<div class="structure" id="structure"></div>' +
+        '<p class="structure-note" id="structureNote"></p>' +
         '<div class="roster" id="roster"></div>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
         '<h3>Applicants</h3>' +
@@ -77,6 +80,7 @@ window.DebuggLtd = (function(){
     const $ = id => document.getElementById(id);
     const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
+    const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
     const welcomeToast = $('welcomeToast');
@@ -131,6 +135,23 @@ window.DebuggLtd = (function(){
     const INFLATION = [0.02, 0.04];               // every role, per move
     const COMPETITION = [0.06, 0.15];             // one role, per move
     const COMPETITION_CHANCE = 0.4;
+
+    // The business's stage, by managers and headcount (the Director included). A start-up has
+    // no managers: you staff every contract yourself, and the daily puzzle pays in full. From a
+    // small business on, managers put idle developers on contracts, and the puzzle pays less
+    // (`desk`), since the company earns its keep without you.
+    const STAGES = [
+      { key: 'startup', name: 'Start-up',        managers: 0,  heads: 0,   desk: 1,
+        text: 'You run the team yourself: staff every contract, and your daily puzzle pays in full.' },
+      { key: 'small',   name: 'Small business',  managers: 1,  heads: 0,   desk: 0.5,
+        text: 'Your managers put idle developers on contracts. The daily puzzle pays half.' },
+      { key: 'midsize', name: 'Mid-size company', managers: 3, heads: 25,  desk: 0.25,
+        text: 'Your managers keep everyone busy. The daily puzzle pays a quarter.' },
+      { key: 'large',   name: 'Large company',   managers: 6,  heads: 60,  desk: 0.1,
+        text: 'The company runs itself. The daily puzzle pays a tenth: it’s for you now.' },
+      { key: 'multinational', name: 'Multinational', managers: 12, heads: 150, desk: 0.05,
+        text: 'A household name. The daily puzzle is pocket money.' }
+    ];
 
     // Applicants: every APPLICANT_EVERY_H hours or so (at random) an experienced developer
     // applies, asking the market price ± a little, and their offer stays open for
@@ -507,10 +528,10 @@ window.DebuggLtd = (function(){
         return c.Manager ? 'managers are at capacity — hire another manager'
                          : 'you can only look after ' + DIRECTOR_SPAN + ' devs — hire a manager';
       }
-      if(c.Principal > cap.Principal) return 'no principal slot — hire another manager';
-      if(c.Senior > cap.Senior) return 'no senior slot — needs another principal';
-      if(c.Junior > cap.Junior) return 'no junior slot — needs another senior';
-      if(c.Graduate > cap.Graduate) return 'no grad slot — needs another junior';
+      if(c.Principal > cap.Principal) return 'principals full — a manager makes room for more';
+      if(c.Senior > cap.Senior) return 'seniors full — a principal makes room for 3 more';
+      if(c.Junior > cap.Junior) return 'juniors full — a senior makes room for 3 more';
+      if(c.Graduate > cap.Graduate) return 'grads full — a junior makes room for 3 more';
       return null;
     }
     function problemWith(change){
@@ -781,8 +802,11 @@ window.DebuggLtd = (function(){
 
     function showToast(text){
       welcomeToast.className = 'toast show';
-      welcomeToast.textContent = text;
+      welcomeToast.innerHTML = '<button class="toast-close" data-action="close-toast" aria-label="Dismiss">✕</button>' + esc(text);
     }
+    welcomeToast.addEventListener('click', (e) => {
+      if(e.target.closest('[data-action=close-toast]')) welcomeToast.className = 'toast';
+    });
 
     // Founder's bonus: ¤1 per puzzle XP earned before the company existed, up to ¤1,000.
     function founderBonus(){
@@ -831,8 +855,7 @@ window.DebuggLtd = (function(){
       track('founded');
       opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
-        '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too. ' +
-        'Debuggit Ltd is in beta, so its numbers may change as it’s balanced.' +
+        '. Debuggit Ltd is in beta, so its numbers may change.' +
         (DEMO ? ' In the demo it runs hotfixes with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
@@ -860,7 +883,8 @@ window.DebuggLtd = (function(){
       // d.day is the puzzle's day; on a Sunday, the weekend puzzle belongs to Saturday.
       if(d.day !== D.slotDay(D.today()) || state.paid[key] || !(d.xp > 0)) return;
       const bonus = d.solved ? Math.min(STREAK_BONUS_CAP, STREAK_BONUS_PER_DAY * Math.max(0, (d.streak || 0) - 1)) : 0;
-      const cash = Math.round(d.xp * CASH_PER_XP * (1 + bonus));
+      const cut = stage().desk;
+      const cash = Math.round(d.xp * CASH_PER_XP * (1 + bonus) * cut);
       const rep = d.xp / XP_PER_REP;
       state.money += cash;
       state.reputation += rep;
@@ -869,6 +893,7 @@ window.DebuggLtd = (function(){
       const name = (D.LANG_INFO[d.lang] || { name: d.lang }).name;
       const text = 'Today’s ' + name + ' puzzle ' + (d.solved ? 'paid ' : 'still paid ') + fmt(cash) +
         (bonus ? ' (incl. +' + Math.round(bonus * 100) + '% streak bonus)' : '') +
+        (cut < 1 ? ' (a ' + stage().name.toLowerCase() + ' gets ' + Math.round(cut * 100) + '% of desk pay)' : '') +
         ' and +' + (Math.round(rep * 10) / 10) + ' reputation.';
       addLog(d.solved ? 'ok' : 'info', '✓ Desk: ' + text);
       showToast(text);
@@ -878,6 +903,126 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // Rendering: stats, studio, board
     // ---------------------------------------------------------------------
+
+    function stageIndex(){
+      const managers = state.roster.filter(p => p.role === 'Manager').length;
+      let i = 0;
+      STAGES.forEach((st, k) => { if(managers >= st.managers && state.roster.length >= st.heads) i = k; });
+      return i;
+    }
+    function stage(){ return STAGES[stageIndex()]; }
+    // What it takes to reach the next stage.
+    function nextStageText(){
+      const next = STAGES[stageIndex() + 1];
+      if(!next) return '';
+      const managers = state.roster.filter(p => p.role === 'Manager').length;
+      const needs = [];
+      if(managers < next.managers) needs.push(next.managers === 1 ? 'your first manager' : next.managers + ' managers (you have ' + managers + ')');
+      if(state.roster.length < next.heads) needs.push(next.heads + ' staff (you have ' + state.roster.length + ')');
+      return 'Next: ' + next.name + ', with ' + needs.join(' and ') +
+        (DEMO && DEMO_LOCKED_ROLES.includes('Manager') && managers < next.managers ? ' (managers are coming in v0.1)' : '') + '.';
+    }
+    // Logs and announces a change of stage (either way), once.
+    function checkStage(){
+      const st = stage();
+      if(!state.stage){ state.stage = st.key; return; }
+      if(state.stage === st.key) return;
+      const up = STAGES.findIndex(x => x.key === st.key) > STAGES.findIndex(x => x.key === state.stage);
+      state.stage = st.key;
+      const text = 'Debuggit Ltd is ' + (up ? 'now' : 'back to being') + ' a ' + st.name.toLowerCase() + '. ' + st.text;
+      addLog(up ? 'ok' : 'info', (up ? '★ ' : '') + text);
+      showToast(text);
+      track('stage/' + st.key);
+    }
+
+    // From a small business on, managers put idle developers to work: first on the biggest team
+    // contracts a free team can take ("Suggest a team"'s choice), then each one left on a hotfix
+    // in a language they know. Everything they start repeats. The offer open in the picker is left alone.
+    function managersStaff(){
+      if(stageIndex() < 1) return 0;
+      let placed = [];
+      const free = () => { const busy = busyIds(); return state.roster.filter(p => p.role !== 'Director' && !busy.has(p.id)); };
+      for(let ti = TIERS.length - 1; ti > 0; ti--){
+        const tier = TIERS[ti];
+        state.board.filter(o => o.tier === ti && !(picker && picker.offerId === o.id)).forEach(o => {
+          const pool = free().filter(p => eligibleFor(tier, p));
+          const ids = suggestTeam(tier, o, pool);
+          if(ids.length < tier.min || !evaluateTeam(tier, o, ids.map(person)).valid) return;
+          if(startJob(o.id, ids, true)) placed = placed.concat(ids.filter(id => isDev(person(id))));
+        });
+      }
+      free().filter(isDev).forEach(d => {
+        const o = state.board.filter(o => isHotfix(o.tier) && qualifiedFor(d, o) && !(picker && picker.offerId === o.id))
+          .sort((a, b) => bars(d.lang[b.lang]) - bars(d.lang[a.lang]))[0];
+        if(o && startJob(o.id, [d.id], true)) placed.push(d.id);
+      });
+      if(placed.length){
+        const names = placed.map(id => person(id).name);
+        addLog('info', 'Your managers put ' + (names.length <= 2 ? names.join(' and ') : names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more') + ' to work.');
+      }
+      return placed.length;
+    }
+
+    // The first steps, shown as one "next step" card until the player has a dev on a contract and
+    // has solved a desk puzzle (or dismisses it): hire a grad, put them on a hotfix they can
+    // take (with repeat on), solve today's puzzle. Returns { key, text, offerId? } or null.
+    function guideStep(){
+      if(state.guideDone) return null;
+      const devs = state.roster.filter(isDev);
+      if(!devs.length){
+        return { key: 'hire', text: '<b>Hire a graduate.</b> They write the code; you run the company. It costs ' +
+          fmt(hireCost('Graduate')) + ' and ¤' + ROLES.Graduate.salary + '/min in salary.' };
+      }
+      if(!state.jobs.length){
+        const d = devs[0];
+        const offer = state.board.find(o => TIERS[o.tier].key === 'hotfix' && qualifiedFor(d, o));
+        return { key: 'staff', offerId: offer && offer.id,
+          text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
+            esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
+            'while you’re away. Staff on the bench still get paid.' };
+      }
+      const today = D.slotDay(D.today());
+      if(!D.isFinished(today)){
+        return { key: 'desk', text: '<b>Solve today’s puzzle at your desk.</b> It pays the company up to ' +
+          fmt(D.baseXp(today) * CASH_PER_XP * stage().desk) + ', and a new one comes out every day.' };
+      }
+      state.guideDone = true;
+      save();
+      return null;
+    }
+    // Warnings that stay: people on the bench costing money, and cash below zero.
+    function renderGuide(){
+      const step = guideStep();
+      let html = '';
+      if(step){
+        html += '<div class="guide" data-step="' + step.key + '"><button class="toast-close" data-action="skip-guide" aria-label="Hide the guide">✕</button>' +
+          '<span class="guide-label">Next step</span>' + step.text + '</div>';
+      }
+      const busy = busyIds();
+      const idle = state.roster.filter(p => isDev(p) && !busy.has(p.id));
+      if(idle.length && !(step && step.key === 'staff')){
+        const cost = idle.reduce((n, p) => n + ROLES[p.role].salary, 0);
+        html += '<div class="alert" data-alert="idle">⚠ ' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
+          ' on the bench, costing ¤' + cost + '/min. ' +
+          (stageIndex() >= 1 ? 'Your managers will put them to work once there’s a contract they can take.' : 'Staff them on a contract below.') + '</div>';
+      }
+      if(state.money < 0){
+        html += '<div class="alert bad" data-alert="debt">⚠ The company is ' + fmt(-state.money) + ' in debt, and salaries keep going out. ' +
+          'Put everyone on contracts, solve today’s puzzle, or let someone go.</div>';
+      }
+      setHTML(guideEl, html);
+      return step;
+    }
+
+    function renderStage(){
+      const i = stageIndex();
+      const st = STAGES[i];
+      setHTML(stageBar,
+        '<div class="stage-steps" aria-hidden="true">' + STAGES.map((x, k) =>
+          '<span class="stage-step' + (k < i ? ' done' : k === i ? ' now' : '') + '" title="' + esc(x.name) + '"></span>').join('') + '</div>' +
+        '<div class="stage-name" data-stage="' + st.key + '">' + esc(st.name) + '</div>' +
+        '<div class="stage-text">' + esc(st.text) + ' <span class="stage-next">' + esc(nextStageText()) + '</span></div>');
+    }
 
     function renderStats(){
       statMoney.textContent = fmt(state.money);
@@ -979,6 +1124,20 @@ window.DebuggLtd = (function(){
         slot('Juniors', c.Junior, cap.Junior) +
         slot('Grads', c.Graduate, cap.Graduate) +
         slot('Devs', c.devs, cap.devs));
+      // Why a level is full while there's still room for devs overall: every level needs
+      // someone at the level above (or you) to look after it.
+      const LEVEL_NOTES = [
+        ['Graduate', 'Grads', 'Each junior can look after ' + MENTOR_SPAN + ' more grads: hire one from Applicants below, or promote a grad.'],
+        ['Junior', 'Juniors', 'Each senior can look after ' + MENTOR_SPAN + ' more juniors: wait for one to apply, or promote a junior.'],
+        ['Senior', 'Seniors', 'Each principal can look after ' + MENTOR_SPAN + ' more seniors: wait for one to apply, or promote a senior.']
+      ];
+      const full = c.devs < cap.devs && LEVEL_NOTES.find(([role]) => c[role] >= cap[role]);
+      const room = cap.devs - c.devs;
+      structureNote.innerHTML = full
+        ? '<b>' + full[1] + ' ' + c[full[0]] + '/' + cap[full[0]] + '</b> are full, though you have room for ' + room + ' more dev' + (room === 1 ? '' : 's') +
+          ' (<b>Devs ' + c.devs + '/' + cap.devs + '</b>): everyone needs someone a level up, and you look after one per level. ' + full[2]
+        : '';
+      structureNote.hidden = !full;
 
       rosterCount.textContent = state.roster.length + (state.roster.length === 1 ? ' person' : ' people');
 
@@ -1022,7 +1181,8 @@ window.DebuggLtd = (function(){
         const cost = hireCost(role);
         const broke = state.money < cost;
         const rise = Math.round((cost / ROLES[role].cost - 1) * 100);
-        hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') + '" data-action="hire" data-role="' + role + '"' +
+        hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') +
+                (guide && guide.key === 'hire' && role === 'Graduate' ? ' guide-target' : '') + '" data-action="hire" data-role="' + role + '"' +
                 (why || broke ? ' disabled' : '') + '>' +
                 '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost"' +
                   (rise > 0 ? ' title="Up ' + rise + '% since the company started, from inflation and competition"' : '') + '>' + fmt(cost) +
@@ -1067,6 +1227,7 @@ window.DebuggLtd = (function(){
         : job
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
+        : isDev(p) ? '<span class="status-idle warn">On the bench · −¤' + role.salary + '/min</span>'
         : '<span class="status-idle">Idle</span>';
 
       let promo = '';
@@ -1125,11 +1286,26 @@ window.DebuggLtd = (function(){
             '<span class="level-name">' + t.plural + '</span>' +
             '<span class="level-count">×' + offers.length + (running ? ' · ' + running + ' running' : '') + '</span></div>' +
             '<div class="level-sum board-sum">' + t.req + '</div>' +
-          '</div><div class="level-body board-body">' +
-          offers.map(offerHTML).join('') +
-          '</div></div>';
+          '</div><div class="level-body board-body">' + offersHTML(offers) + '</div></div>';
       });
       setHTML(boardEl, html);
+    }
+
+    // Offers someone on staff can take come first. The rest (languages nobody knows) fold
+    // behind one toggle, unless nobody's been hired yet.
+    function offersHTML(offers){
+      const devs = state.roster.filter(isDev);
+      if(!devs.length) return offers.map(offerHTML).join('');
+      const can = offers.filter(o => devs.some(d => qualifiedFor(d, o)));
+      const rest = offers.filter(o => !can.includes(o));
+      let html = can.map(offerHTML).join('');
+      if(rest.length){
+        html += '<button class="board-more" data-action="toggle-unknown">' +
+          (state.showUnknownOffers ? 'Hide' : 'Show') + ' ' + rest.length + ' in language' + (rest.length === 1 ? '' : 's') +
+          ' nobody on staff knows' + (state.showUnknownOffers ? '' : ' ▾') + '</button>';
+        if(state.showUnknownOffers) html += rest.map(offerHTML).join('');
+      }
+      return html;
     }
 
     function offerHTML(o){
@@ -1141,7 +1317,7 @@ window.DebuggLtd = (function(){
         '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
           t.xpPerMin + ' XP/min</div>' +
         '<div class="detail" style="color:var(--text-faint)">Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken</div>' +
-        '<button class="btn-ghost btn-small" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
+        '<button class="btn-ghost btn-small' + (guide && guide.offerId === o.id ? ' guide-target' : '') + '" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
         '</div>';
     }
 
@@ -1201,8 +1377,11 @@ window.DebuggLtd = (function(){
       renderAll();
     });
 
+    let guide = null;
     function renderAll(){
       const now = Date.now();
+      guide = renderGuide();
+      renderStage();
       renderStats();
       renderStudio(now);
       renderBoard();
@@ -1408,6 +1587,10 @@ window.DebuggLtd = (function(){
         state.roster.push(hire);
         addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
         track('hired/' + role.toLowerCase());
+      }else if(action === 'toggle-unknown'){
+        state.showUnknownOffers = !state.showUnknownOffers;
+      }else if(action === 'skip-guide'){
+        state.guideDone = true;
       }else if(action === 'hire-applicant'){
         const a = (state.applicants || []).find(x => x.id === btn.dataset.id);
         if(!a || state.money < a.cost || hireProblem(a.role)) return;
@@ -1504,6 +1687,7 @@ window.DebuggLtd = (function(){
     refreshBoard(Date.now());
     moveMarket(Date.now());
     moveApplicants(Date.now());
+    checkStage();
 
     const now = Date.now();
     const elapsedSeconds = Math.max(0, (now - (state.lastTick || now)) / 1000);
@@ -1522,6 +1706,8 @@ window.DebuggLtd = (function(){
     state.lastTick = now;
     save();
 
+    managersStaff();
+    save();
     renderAll();
     if(opening) showToast(opening);
 
@@ -1533,6 +1719,8 @@ window.DebuggLtd = (function(){
       refreshBoard(t);
       moveMarket(t);
       moveApplicants(t);
+      checkStage();
+      managersStaff();
       renderAll();
       save();
     }, 1000);

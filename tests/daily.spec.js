@@ -341,3 +341,28 @@ test('fonts load from the site itself, and nothing loads from anywhere else', as
   expect(loaded).toEqual(expect.arrayContaining(['Sora 700', 'JetBrains Mono 400']));
   expect(outside).toEqual([]);
 });
+
+test('sharing copies a spoiler-free result', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openAt(page, 'index.html#python');
+  await fresh(page);
+  await expect(page.locator('#shareRow')).toBeHidden();
+  const p = await puzzleFor(page, 3);
+  await guess(page, 'definitely not it');
+  await page.click('#hintBtn');
+  await guess(page, p.display);
+  await page.click('#shareBtn');
+  await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  const site = new URL('.', page.url()).href;
+  expect(text).toBe('debugg(it) Day 3 · Python\n🟥🟩⬛⬛ · 1 hint\nDebugged it in 2\n' + site);
+  expect(text).not.toContain(p.display);
+
+  // A revealed puzzle shares too, and still with the puzzle's own wordmark on the Ltd tab.
+  await page.clock.setFixedTime(dayDate(4));
+  await page.goto('index.html?ltd');
+  await page.click('#revealBtn');
+  await page.click('#shareBtn');
+  await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^debugg\(it\) Day 4 · Python\n🟥🟥🟥🟥\nNot this time 🦆\n/);
+});

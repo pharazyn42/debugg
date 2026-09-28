@@ -56,6 +56,35 @@
 .ltd .stat .value.money.neg{ color: var(--red); }
 .ltd .stat .value.rep{ color: var(--blue); }
 .ltd .stat .value.rate{ color: var(--red); font-size: 14px; }
+/* The business's stage: a step track, its name, what it means and what's next. */
+.ltd .stage-bar{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "name steps" "text text";
+  align-items: center;
+  gap: 4px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 14px 0 0;
+}
+.ltd .stage-name{ grid-area: name; font-weight: 700; font-size: 15px; color: var(--amber); }
+.ltd .stage-steps{ grid-area: steps; display: flex; gap: 4px; justify-self: end; }
+.ltd .stage-step{ width: 22px; height: 6px; border-radius: 3px; background: var(--line); }
+.ltd .stage-step.done{ background: var(--amber-dim, #7a5a20); }
+.ltd .stage-step.now{ background: var(--amber); }
+.ltd .stage-text{ grid-area: text; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.ltd .stage-next{ color: var(--text-faint); }
+
+/* Phones: the four stats in one row. */
+@media (max-width: 560px){
+  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
+  .ltd .stat{ min-width: 0; padding: 7px 4px; }
+  .ltd .stat .label{ font-size: 8.5px; letter-spacing: 0.04em; }
+  .ltd .stat .value{ font-size: 14px; }
+  .ltd .stat .value.rate{ font-size: 12px; }
+}
 
 
 .ltd .panel h2{
@@ -216,6 +245,21 @@
 }
 .ltd .status-busy{ color: var(--amber); }
 .ltd .status-idle{ color: var(--text-dim); }
+.ltd .status-idle.warn{ color: var(--amber); }
+.ltd .board-more{
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  align-self: stretch;
+  grid-column: 1 / -1;
+}
+.ltd .board-more:hover{ color: var(--text); border-color: var(--text-faint); }
+.ltd .structure-note{ font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: -4px 0 12px; }
+.ltd .structure-note b{ color: var(--amber); font-family: var(--mono); font-weight: 500; }
 .ltd .promo{ font-size: 11px; color: var(--text-faint); }
 .ltd .promo.blocked{ color: var(--amber); }
 .ltd .foot-actions{ display: flex; gap: 6px; align-items: center; }
@@ -320,6 +364,41 @@
   display: none;
 }
 .ltd .toast.show{ display: block; }
+.ltd .toast-close{
+  float: right;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  margin: -2px -4px 0 8px;
+}
+.ltd .toast-close:hover{ color: var(--text); }
+
+/* The first steps, and warnings about the bench and debt */
+.ltd .guide, .ltd .alert{
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ltd .guide{ background: rgba(255, 190, 80, 0.08); border: 1px solid var(--amber); color: var(--text); }
+.ltd .guide-label{
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 3px;
+}
+.ltd .alert{ background: var(--panel-2); border: 1px solid var(--amber); color: var(--amber); }
+.ltd .alert.bad{ border-color: var(--red); color: #ffc9c9; background: var(--red-dim); }
+.ltd .guide-target{ outline: 2px solid var(--amber); outline-offset: 2px; animation: guide-pulse 1.6s ease-in-out infinite; }
+@keyframes guide-pulse{ 50%{ outline-color: transparent; } }
+@media (prefers-reduced-motion: reduce){ .ltd .guide-target{ animation: none; } }
 
 /* Team picker */
 .ltd .modal-back{
