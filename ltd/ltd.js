@@ -435,9 +435,10 @@ window.DebuggLtd = (function(){
     // The Director's languages come from the daily puzzles
     // ---------------------------------------------------------------------
 
-    // Puzzle languages are keyed 'python' / 'javascript'; the studio uses display names.
+    // Puzzle languages are keyed 'python' / 'c' / …; the studio uses its own names ('C/C++').
+    // Only languages in the puzzle rotation count.
     function puzzleKey(langName){
-      return Object.keys(D.LANGS).find(k => D.LANGS[k].name === langName) || null;
+      return Object.keys(D.LANGS).find(k => D.LANGS[k].studio === langName) || null;
     }
     function directorLevel(key){
       return D.levelFor(D.readXp()[key] || 0);
@@ -703,7 +704,7 @@ window.DebuggLtd = (function(){
       state.enabled = true;
       state.pausedAt = null;
       track('imported');
-      opening = 'Your company has moved in with the daily puzzles. The desk is now today’s puzzles, one per language, and each one pays the company.';
+      opening = 'Your company has moved in with the daily puzzles. The desk is now today’s puzzle, and it pays the company.';
     }else{
       const bonus = founderBonus();
       state = freshState(START_CASH + bonus);
@@ -745,7 +746,7 @@ window.DebuggLtd = (function(){
       state.reputation += rep;
       state.paid[key] = true;
       pruneLedger();
-      const name = (D.LANGS[d.lang] || { name: d.lang }).name;
+      const name = (D.LANG_INFO[d.lang] || { name: d.lang }).name;
       const text = 'Today’s ' + name + ' puzzle ' + (d.solved ? 'paid ' : 'still paid ') + fmt(cash) +
         (bonus ? ' (incl. +' + Math.round(bonus * 100) + '% streak bonus)' : '') +
         ' and +' + (Math.round(rep * 10) / 10) + ' reputation.';
@@ -864,7 +865,7 @@ window.DebuggLtd = (function(){
       const director = state.roster.find(p => p.role === 'Director');
       const c0 = headcounts(state.roster);
       const skills = Object.keys(D.LANGS).map(k => {
-        const boost = directorBoost(D.LANGS[k].name);
+        const boost = directorBoost(D.LANGS[k].studio);
         return esc(D.LANGS[k].name) + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
       }).join(' · ');
       let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +

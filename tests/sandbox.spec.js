@@ -15,8 +15,10 @@ async function run(page, timeout = 60000){
   await expect(page.locator('#runBtn')).toBeEnabled({ timeout });
   return (await page.textContent('#out')).trim();
 }
+// The sandbox runs the languages in the puzzle rotation, so switch JavaScript into it.
+const BOTH = [{ lang: 'python' }, { lang: 'javascript' }];
 async function openSandbox(page, lang){
-  await openAt(page, 'sandbox.html');
+  await openAt(page, 'sandbox.html', 3, { rotation: BOTH });
   await fresh(page);
   await page.click('.lang-tab:has-text("' + (lang === 'python' ? 'Python' : 'JavaScript') + '")');
 }

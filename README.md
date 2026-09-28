@@ -1,20 +1,26 @@
 # Debugg
 
-A Wordle-style daily game where you guess what a short, buggy Python or JavaScript snippet actually prints — no coding required, just read the code and reason it out.
+A Wordle-style daily game where you guess what a short, buggy code snippet actually prints — no coding required, just read the code and reason it out. The languages take turns: Python for now, with C, Rust and JavaScript written and ready to join.
 
 **This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debugg Ltd is cut down to hotfixes and patches with no managers (see "Debugg Ltd" below).
 
-**For now the game is Python only.** JavaScript (its puzzles, the sandbox runner, and the language tabs) is built but switched off: add `'javascript'` back to `ENABLED_LANGS` in `shared.js` to bring it back.
+**One puzzle a day, and the languages take turns.** `ROTATION` in `shared.js` lists the languages in play and the day each one joins; for now it's Python only. With more than one, they share the week's six puzzles (Monday to Friday and the weekend), shifting one day along each week so every language gets every difficulty in turn. A newly added language only gets Monday and Tuesday, the easy days, for its first two weeks. C, Rust and JavaScript puzzles are written and checked; to introduce one, add it to `ROTATION` with the day it joins.
 
-There's a new puzzle in each language every day at local midnight; with more than one language on, pick one with the tabs at the top. **Difficulty follows the week:** Monday is a warm-up, then easy, medium, tricky, and Friday is hard. Saturday and Sunday share one harder weekend puzzle (solving it on either day counts for both). Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving at least one puzzle a day, in any language, builds your bug streak.
+There's a new puzzle every day at local midnight. **Difficulty follows the week:** Monday is a warm-up, then easy, medium, tricky, and Friday is hard. Saturday and Sunday share one harder weekend puzzle (solving it on either day counts for both). Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving the daily puzzle builds your bug streak.
 
-Each puzzle also earns XP, tracked separately for each language so you level up in each one. A first-guess, no-hint solve earns the day's XP:
+Each puzzle also earns XP in its language, so you level up in each language you play, and all of it adds up to an **overall level** shown above them. A first-guess, no-hint solve earns the day's XP:
 
 | Monday | Tuesday | Wednesday | Thursday | Friday | Weekend |
 |---|---|---|---|---|---|
 | 60 | 80 | 100 | 120 | 150 | 200 |
 
 Solving on the 2nd, 3rd or 4th guess earns 75%, 50% or 25% of that, and each hint takes off a quarter (1 hint: 75%, 2 hints: 50%). For example, a Wednesday puzzle solved on the 2nd guess with 1 hint earns 100 × 0.75 × 0.75 = 56. Running out of guesses or revealing the answer still earns 10 XP. Level 2 starts at 100 XP, and each level after that needs 100 more than the last (300, 600, 1000, …).
+
+## Learn
+
+`learn.html` (the **Learn** tab next to **Daily**) teaches a language from the very start, one short lesson at a time. A course is made of units, each with a few lessons and a checkpoint. Lessons mix quick teaching points with questions: multiple choice, "what does this print?", fill the blank, and "tap the line with the bug". Answer a question wrong and you're told why, then it comes back before the end of the lesson; stars show how cleanly you got through. Passing a unit's checkpoint unlocks the next unit, and anyone can take it straight away to skip what they already know.
+
+Learn has its **own XP and streak**, separate from the daily puzzles. The Python course's Unit 1 (Values and printing) is built; the next units are listed as coming soon. `learn/README.md` explains the format for writing more, and the puzzle checker runs every lesson snippet too.
 
 ## Playing
 
@@ -28,6 +34,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - **JavaScript** runs in a fresh Web Worker each time, with `console.log` output formatted much like Node's.
 - Both run off the main page, so code that runs too long (10 seconds for Python, 5 for JavaScript) is stopped instead of freezing the tab.
 - Drafts are saved per language in your browser.
+- The sandbox shows the languages in the puzzle rotation that can run in a browser. C and Rust can't yet: a Rust puzzle links to the Rust Playground instead, and a C puzzle has no run link.
 
 `shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, XP levels, the syntax highlighter and the base theme.
 
@@ -57,9 +64,15 @@ The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on
 
 ## Adding a puzzle
 
-Puzzles live in `puzzles.js`, each with a `difficulty` from 1 (warm-up) to 5 (hard). The demo's Day 1 is Monday 5 October 2026; days before it show a "Preview" puzzle. The calendar in `shared.js` gives each day the first unused puzzle with that weekday's difficulty (Monday 1 to Friday 5; the weekend gets a 5), falling back to the nearest difficulty when a pool runs out, and starts over once every puzzle has been used. Add new puzzles to the end of their language's section, and keep the pools balanced: each week uses one puzzle of difficulty 1 to 4 and two of difficulty 5. The comment at the top of the file explains each field. Before adding a puzzle, run the snippet for real (Python, or Node for JavaScript) to check its output.
+Puzzles live in `puzzles/`, one file per language (`python.js`, `c.js`, `rust.js`, `javascript.js`), each with a `difficulty` from 1 (warm-up) to 5 (hard). `puzzles/README.md` explains the fields and how days are scheduled. The demo's Day 1 is Monday 5 October 2026; days before it show a "Preview" puzzle. Add new puzzles to the end of their file, then run:
 
-To add a new language, add it to `LANGS` and `SYNTAX` in `shared.js` (name, file extension, indent, keywords, comment and string syntax), then add puzzles with that `lang`.
+```sh
+npm run check-puzzles
+```
+
+It runs every snippet with the real toolchain (`python3`, `node`, `gcc` and `clang`, `rustc`) and checks it prints exactly the puzzle's answer, and it also runs in CI. It prints how many puzzles each language has at each difficulty: a language on its own uses one each of difficulties 1 to 4 a week and two of 5.
+
+To add a new language: add it to `LANG_INFO`, `PUZZLE_FILES` and `SYNTAX` in `shared.js` (name, file extension, keywords, comment and string syntax), give the checker a runner for it in `tools/check-puzzles.js`, write its puzzles, then add it to `ROTATION` with the day it joins.
 
 ## Tests
 

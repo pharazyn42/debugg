@@ -38,7 +38,7 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   await expect(page.locator('#foundCard')).toBeVisible();
   await page.click('#foundBtn');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  await expect(page.locator('#kicker')).toHaveText('Debugg Ltd · Day 3 · Wednesday · medium');
+  await expect(page.locator('#kicker')).toHaveText('Debugg Ltd · Day 3 · Wednesday · medium · Python');
 });
 
 test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
@@ -56,31 +56,34 @@ test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async (
 test('desk puzzles pay the company once, by XP earned', async ({ page }) => {
   await found(page);
   await expect(page.locator('#statMoney')).toHaveText('¤150');
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   await expect(page.locator('#statMoney')).toHaveText('¤350');
   await expect(page.locator('#statRep')).toHaveText('5');
   await expect(page.locator('#welcomeToast')).toContainText('Today’s Python puzzle paid ¤200');
   await page.reload();
   await expect(page.locator('#statMoney')).toHaveText('¤350');
 
+  expect((await ltd(page)).paid).toEqual({ 'python-3': true });
+
   // A revealed puzzle still earns 10 XP, so ¤20.
-  await page.click('a[href="#javascript"]');
+  await page.clock.setFixedTime(new Date(2026, 9, 8, 12));  // Day 4
+  await page.reload();
   await page.click('#revealBtn');
   await expect(page.locator('#statMoney')).toHaveText('¤370');
-  expect((await ltd(page)).paid).toEqual({ 'python-3': true, 'javascript-3': true });
+  expect((await ltd(page)).paid).toEqual({ 'python-3': true, 'python-4': true });
 });
 
 test('a streak adds 10% per day beyond the first', async ({ page }) => {
   // A 2-day streak ending yesterday; solving today makes it 3, so +20%.
   await withStorage(page, { 'debugg-streak': { count: 2, lastDay: 6 } });
   await found(page);
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   await expect(page.locator('#statMoney')).toHaveText('¤390');
   await expect(page.locator('#welcomeToast')).toContainText('+20% streak bonus');
 });
 
 test('puzzles finished before the company existed are not paid', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   await found(page);
   // ¤150 plus the ¤100 founder's bonus for that puzzle's XP, and no desk payment.
   await expect(page.locator('#statMoney')).toHaveText('¤250');
@@ -243,14 +246,14 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
 });
 
 test('closing the company keeps puzzle progress; resetting puzzles keeps the company', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   await found(page);
   await page.click('#resetLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   expect(await ltd(page)).not.toBeNull();
   expect(await readJson(page, 'debugg-xp')).toBeNull();
 
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#ltdClose');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await ltd(page)).toBeNull();

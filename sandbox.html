@@ -282,12 +282,18 @@ def _debugg_run(src):
   };
 </script>
 
-<script src="puzzles.js"></script>
+<script src="puzzles/python.js"></script>
+<script src="puzzles/javascript.js"></script>
+<script src="puzzles/c.js"></script>
+<script src="puzzles/rust.js"></script>
 <script src="shared.js"></script>
 <script src="analytics.js"></script>
 <script>
 (function(){
-  const { LANGS, highlight } = window.Debugg;
+  // The sandbox runs the languages that have joined the puzzle rotation and can run in a browser.
+  const LANGS = {};
+  Object.keys(window.Debugg.LANGS).forEach(k => { if(window.Debugg.LANGS[k].runnable) LANGS[k] = window.Debugg.LANGS[k]; });
+  const { highlight } = window.Debugg;
   const DAY = window.Debugg.today();
   const LANG_KEY = 'debugg-lang';
   const DRAFT_KEY = l => 'debugg-sandbox-' + l;
@@ -534,8 +540,9 @@ def _debugg_run(src):
       const slot = D.slotDay(d);  // a weekend's two days share one puzzle
       if(seenDays.has(slot)) continue;
       seenDays.add(slot);
-      if(slot === today && !D.isFinished(l, slot)) continue;
-      const puzzle = D.puzzleFor(l, slot);
+      if(slot === today && !D.isFinished(slot)) continue;
+      const puzzle = D.puzzleFor(slot);
+      if(puzzle.lang !== l) continue;
       if(seenPuzzles.has(puzzle)) continue;
       seenPuzzles.add(puzzle);
       res.push({ day: slot, puzzle });

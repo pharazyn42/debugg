@@ -6,7 +6,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   page.on('dialog', d => d.accept());
   await openAt(page, 'index.html#python');
   await fresh(page);
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#ltdLink');
   // ¤150 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
   await expect(page.locator('#statMoney')).toHaveText('¤250');
@@ -43,7 +43,7 @@ test('feedback links open a prefilled GitHub issue for the puzzle', async ({ pag
   const url = new URL(href);
   expect(url.origin + url.pathname).toBe('https://github.com/pharazyn42/debugg/issues/new');
   expect(url.searchParams.get('title')).toBe('Puzzle problem: Python Day 5');
-  expect(url.searchParams.get('body')).toContain('Expected answer: `' + (await puzzleFor(page, 'python', 5)).display + '`');
+  expect(url.searchParams.get('body')).toContain('Expected answer: `' + (await puzzleFor(page, 5)).display + '`');
   await expect(page.locator('#feedbackLink')).toHaveAttribute('href', 'https://github.com/pharazyn42/debugg/issues/new');
 });
 
@@ -63,13 +63,14 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
     body: 'window.goatcounter = { count: e => (window.__sent = window.__sent || []).push(e.path) };'
   }));
   await fresh(page);
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);  // 100 XP: level 2
+  await guess(page, (await puzzleFor(page, 3)).display);  // 100 XP: level 2
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
   await page.click('[data-action=hire][data-role=Graduate]');
   await page.click('#backupLink');
   await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
     'level/python/2',
+    'level/overall/2',
     'puzzle/python/day-3/solved-in-1',
     'ltd/founded',
     'ltd/hired/graduate',

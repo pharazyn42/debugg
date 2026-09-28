@@ -108,6 +108,7 @@
     padding: 0 4px;
     vertical-align: 1px;
   }
+  .modes{ display: flex; justify-content: center; gap: 6px; margin: 0 0 16px; }
   .demo-badge{
     font-family: var(--mono);
     font-size: 9.5px;
@@ -206,12 +207,25 @@
   }
   .xp-num{ font-variant-numeric: tabular-nums; }
   .xp-row.levelup .xp-level{ animation: pop 0.5s ease 2; }
+  /* The overall level sits above the languages, a little bolder. */
+  .xp-row.overall{ color: var(--text-dim); padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 2px; }
+  .xp-row.overall .xp-lang{ color: var(--text); font-weight: 600; }
+  .xp-row.overall .xp-bar{ height: 8px; }
+  .lang-name{
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <header>
+    <nav class="modes" aria-label="Debugg"><a class="lang-tab" href="index.html" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a></nav>
     <p class="kicker"><span id="kicker">Debugg</span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1>What does this print?</h1>
     <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
@@ -223,8 +237,6 @@
   <div class="columns">
   <main class="desk">
   <h2 class="desk-title">Your desk <span class="desk-tag">today’s puzzles pay the company</span></h2>
-
-  <nav class="langs" id="langs" aria-label="Language"></nav>
 
   <div class="tiles" id="tiles"></div>
   <div class="hint-track" id="hintTrack">
@@ -239,6 +251,7 @@
     <div class="editor-bar">
       <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
       <span class="filename" id="filename"></span>
+      <span class="lang-name" id="langName"></span>
     </div>
     <pre><code id="code"></code></pre>
   </div>
@@ -290,19 +303,22 @@
 <dialog id="demoNotice" aria-labelledby="demoTitle">
   <h2 id="demoTitle">This is the Debugg demo</h2>
   <p>Thanks for trying Debugg early. The daily puzzles are all here, and Debugg Ltd, the company you can start, is a cut-down version for now: hotfixes and patches, with up to four developers.</p>
-  <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak and company. Sandbox drafts are kept. There's no release date yet.</p>
+  <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
   <p>Found something wrong, or have an idea? The feedback link at the bottom of the page opens a GitHub issue.</p>
   <div class="backup-actions"><button class="btn-primary" id="demoOk" type="button">Got it</button></div>
 </dialog>
 
-<script src="puzzles.js"></script>
+<script src="puzzles/python.js"></script>
+<script src="puzzles/javascript.js"></script>
+<script src="puzzles/c.js"></script>
+<script src="puzzles/rust.js"></script>
 <script src="shared.js"></script>
 <script src="analytics.js"></script>
 <script src="backup.js"></script>
 <script>
 (function(){
   const MAX_GUESSES = 4;
-  const { LANGS, highlight: highlightIn } = window.Debugg;
+  const { LANG_INFO, highlight: highlightIn } = window.Debugg;
 
   const tilesEl = document.getElementById('tiles');
   const kickerEl = document.getElementById('kicker');
@@ -323,30 +339,17 @@
   const resetLink = document.getElementById('resetLink');
   const xpEl = document.getElementById('xp');
 
-  const LANG_KEY = 'debugg-lang';
   const STREAK_KEY = 'debugg-streak';
   const XP_KEY = 'debugg-xp';
 
-  // Each language has its own daily puzzle. The chosen language comes from the URL (#javascript),
-  // then the last one played, then Python.
-  function pickLang(){
-    const fromHash = location.hash.slice(1);
-    if(LANGS[fromHash]) return fromHash;
-    try{
-      const saved = localStorage.getItem(LANG_KEY);
-      if(LANGS[saved]) return saved;
-    }catch(e){}
-    return 'python';
-  }
-
+  // There's one puzzle a day, and the languages take turns (see the rotation in shared.js).
   const DAY = window.Debugg.today();
-  const lang = pickLang();
-  try{ localStorage.setItem(LANG_KEY, lang); }catch(e){}
-
   // The day this puzzle belongs to: on a Sunday, the weekend puzzle is Saturday's.
   const SLOT = window.Debugg.slotDay(DAY);
-  const puzzle = window.Debugg.puzzleFor(lang, DAY);
-  const STATE_KEY = window.Debugg.stateKey(lang, DAY);
+  const puzzle = window.Debugg.puzzleFor(DAY);
+  const lang = puzzle.lang;
+  const LANG = LANG_INFO[lang];
+  const STATE_KEY = window.Debugg.stateKey(DAY);
 
   let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
   let flagEl = null;
@@ -361,7 +364,7 @@
     try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
   }
 
-  // Streak counts consecutive days with at least one solve, in any language.
+  // Streak counts consecutive days with a solve.
   // It's stored as { count, lastDay }, where lastDay is the last day that added to it.
   // Older versions stored a bare number; treat that as a streak ending on day 1.
   function readStreak(){
@@ -383,7 +386,7 @@
   }
 
   // --- XP -------------------------------------------------------------------
-  // XP is tracked separately per language: { python: 120, ... }.
+  // XP is tracked separately per language: { python: 120, ... }, and the overall XP is their total.
   // A first-guess, no-hint solve earns the day's base XP (Monday 60 up to Friday 150, weekend 200;
   // see shared.js). Later guesses earn 75/50/25% of it, and each hint takes off a quarter.
   // Failing or revealing still earns a little for finishing and reading the explanation.
@@ -396,33 +399,36 @@
     return Math.round(window.Debugg.baseXp(DAY) * GUESS_SHARE[guesses - 1] * HINT_MULTIPLIER[hintLevel || 0]);
   }
 
-  const { readXp, levelStart, levelFor } = window.Debugg;
+  const { readXp, totalXp, levelStart, levelFor } = window.Debugg;
   function writeXp(x){
     try{ localStorage.setItem(XP_KEY, JSON.stringify(x)); }catch(e){}
   }
 
-  // One row per language with XP, plus the current puzzle's language (first) even at 0 XP.
+  // The overall XP first, then today's language (even at 0 XP), then every other language with XP.
+  // `levelledUp` lists the rows that just went up a level ('overall' and/or a language).
   function renderXp(levelledUp){
+    levelledUp = levelledUp || [];
     const all = readXp();
-    const keys = [lang].concat(Object.keys(all).filter(k => k !== lang && all[k] > 0 && LANGS[k]));
+    const keys = ['overall', lang].concat(Object.keys(all).filter(k => k !== lang && all[k] > 0 && LANG_INFO[k]));
     const prevWidths = {};
     xpEl.querySelectorAll('.xp-row').forEach(r => { prevWidths[r.dataset.lang] = r.querySelector('.xp-fill').style.width; });
     xpEl.innerHTML = '';
     keys.forEach(k => {
-      const xp = all[k] || 0;
+      const xp = k === 'overall' ? totalXp(all) : (all[k] || 0);
       const lv = levelFor(xp);
       const start = levelStart(lv), next = levelStart(lv + 1);
+      const up = levelledUp.includes(k);
       const row = document.createElement('div');
       row.dataset.lang = k;
-      row.className = 'xp-row' + (k === lang ? ' current' : '') + (k === lang && levelledUp ? ' levelup' : '');
+      row.className = 'xp-row' + (k === 'overall' ? ' overall' : '') + (k === lang ? ' current' : '') + (up ? ' levelup' : '');
       row.innerHTML = '<span class="xp-lang"></span><span class="xp-level"></span>' +
         '<div class="xp-bar"><div class="xp-fill"></div></div><span class="xp-num"></span>';
-      row.querySelector('.xp-lang').textContent = LANGS[k] ? LANGS[k].name : k;
+      row.querySelector('.xp-lang').textContent = k === 'overall' ? 'Overall' : LANG_INFO[k].name;
       row.querySelector('.xp-level').textContent = 'Lv ' + lv;
       // Start from the old width (0 after a level up) so the bar visibly fills.
       const fill = row.querySelector('.xp-fill');
       const width = Math.round((xp - start) / (next - start) * 100) + '%';
-      fill.style.width = levelledUp && k === lang ? '0%' : (prevWidths[k] || width);
+      fill.style.width = up ? '0%' : (prevWidths[k] || width);
       requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = width; }));
       row.querySelector('.xp-num').textContent = xp + ' / ' + next + ' XP';
       xpEl.appendChild(row);
@@ -435,15 +441,25 @@
     if(typeof state.xp === 'number') return '';
     const earned = puzzleXp(state.solved, state.attempts.length, state.hintLevel);
     const all = readXp();
-    const before = all[lang] || 0;
+    const before = all[lang] || 0, totalBefore = totalXp(all);
     all[lang] = before + earned;
     writeXp(all);
     state.xp = earned;
     save();
-    const up = levelFor(all[lang]) > levelFor(before);
-    if(up) window.DebuggAnalytics.event('level/' + lang + '/' + levelFor(all[lang]));
-    renderXp(up);
-    return ' +' + earned + ' XP' + (up ? '. Level up: ' + LANGS[lang].name + ' Lv ' + levelFor(all[lang]) + '!' : '.');
+    const ups = [];
+    if(levelFor(all[lang]) > levelFor(before)){
+      ups.push(lang);
+      window.DebuggAnalytics.event('level/' + lang + '/' + levelFor(all[lang]));
+    }
+    if(levelFor(totalXp(all)) > levelFor(totalBefore)){
+      ups.push('overall');
+      window.DebuggAnalytics.event('level/overall/' + levelFor(totalXp(all)));
+    }
+    renderXp(ups);
+    const notes = [];
+    if(ups.includes(lang)) notes.push(LANG.name + ' Lv ' + levelFor(all[lang]));
+    if(ups.includes('overall')) notes.push('overall Lv ' + levelFor(totalXp(all)));
+    return ' +' + earned + ' XP' + (notes.length ? '. Level up: ' + notes.join(', ') + '!' : '.');
   }
 
   // --- Code rendering -------------------------------------------------------
@@ -470,7 +486,7 @@
 
   // A prefilled GitHub issue about this puzzle. GitHub issues are public, so it asks for nothing personal.
   function reportUrl(){
-    const which = LANGS[lang].name + ' ' + window.Debugg.dayLabel(DAY) + (window.Debugg.isPreview(DAY) ? ' (day ' + SLOT + ')' : '');
+    const which = LANG.name + ' ' + window.Debugg.dayLabel(DAY) + (window.Debugg.isPreview(DAY) ? ' (day ' + SLOT + ')' : '');
     const firstLine = puzzle.code.split('\n').find(l => l.trim()) || '';
     const body = '**What’s wrong?** (e.g. my answer should have counted, the explanation is wrong, a typo)\n\n\n' +
       '**What did you answer?**\n\n\n' +
@@ -485,9 +501,21 @@
     document.getElementById('fixOut').innerHTML = puzzle.fix;
     document.getElementById('takeawayOut').innerHTML = puzzle.takeaway;
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
-    document.getElementById('tryLink').href = 'sandbox.html?lang=' + lang + '&day=' + SLOT;
+    // Languages the sandbox can't run link to a playground site instead, where there is one.
+    const tryLink = document.getElementById('tryLink');
+    if(LANG.runnable){
+      tryLink.href = 'sandbox.html?lang=' + lang + '&day=' + SLOT;
+    }else if(LANG.playground){
+      const pg = LANG.playground(puzzle.code);
+      tryLink.href = pg.url;
+      tryLink.target = '_blank';
+      tryLink.rel = 'noopener';
+      tryLink.textContent = 'Run it yourself in ' + pg.name + ' →';
+    }else{
+      tryLink.parentElement.hidden = true;
+    }
     document.getElementById('reportLink').href = reportUrl();
-    document.getElementById('sandboxLink').href = 'sandbox.html#' + lang;
+    document.getElementById('sandboxLink').href = 'sandbox.html' + (LANG.runnable ? '#' + lang : '');
   }
 
   // --- Game -----------------------------------------------------------------
@@ -550,16 +578,8 @@
     startCountdown();
   }
 
-  // Loose match so "[1, 2]", "1,2" and "1 2" all count, as do answers with or without quotes.
-  // Colons keep their neighbours so dict output like {1: 'bool'} normalises to "1:bool".
-  function normalise(text){
-    return text.toLowerCase()
-      .replace(/['"`]/g, '')
-      .replace(/[\[\]{}()]/g, ' ')
-      .replace(/\s*:\s*/g, ':')
-      .replace(/[\s,]+/g, ',')
-      .replace(/^,|,$/g, '');
-  }
+  // Loose matching (see normaliseAnswer in shared.js).
+  const normalise = window.Debugg.normaliseAnswer;
   function checkGuess(text){
     const g = normalise(text);
     return puzzle.answers.some(a => normalise(a) === g);
@@ -573,44 +593,9 @@
       writeStreak({ count: currentStreak() + 1, lastDay: SLOT });
     }
     streakEl.textContent = currentStreak();
-    renderLangs();
   }
 
-  // Tabs for each language, marked ✓ or ✕ once today's puzzle in it is finished.
-  function renderLangs(){
-    const nav = document.getElementById('langs');
-    nav.innerHTML = '';
-    // With only one language there's nothing to switch between.
-    nav.hidden = Object.keys(LANGS).length < 2;
-    Object.keys(LANGS).forEach(l => {
-      const done = window.Debugg.readState(l, DAY);
-      const a = document.createElement('a');
-      a.className = 'lang-tab';
-      a.href = '#' + l;
-      a.textContent = LANGS[l].name;
-      if(l === lang) a.setAttribute('aria-current', 'page');
-      if(done && (done.solved || done.revealed)){
-        const mark = document.createElement('span');
-        mark.className = 'mark ' + (done.solved ? 'won' : 'lost');
-        mark.textContent = done.solved ? '✓' : '✕';
-        mark.setAttribute('aria-label', done.solved ? 'solved' : 'not solved');
-        a.appendChild(mark);
-      }
-      nav.appendChild(a);
-    });
-  }
-
-  // Switching tabs changes the hash; reload so the page starts clean for the other language.
-  window.addEventListener('hashchange', () => {
-    const l = location.hash.slice(1);
-    if(LANGS[l] && l !== lang){
-      try{ localStorage.setItem(LANG_KEY, l); }catch(e){}
-      location.reload();
-    }
-  });
-
-  // Tells anything listening (Debugg Ltd, when it's switched on) that today's puzzle in this
-  // language just ended. Fired only when a game ends, never when a finished game is reloaded.
+  // Tells anything listening (Debugg Ltd, when it's switched on) that today's puzzle just ended. Fired only when a game ends, never when a finished game is reloaded.
   function announceFinish(){
     document.dispatchEvent(new CustomEvent('debugg:puzzle-finished', { detail: {
       lang, day: SLOT, solved: state.solved, guesses: state.attempts.length,
@@ -693,22 +678,22 @@
     announceFinish();
   });
 
-  // Clears every saved day, XP, the streak and sandbox drafts. A Debugg Ltd company is kept;
-  // it has its own "Close company" button.
+  // Clears every saved day, XP, the streak and sandbox drafts. A Debugg Ltd company is kept (it has
+  // its own "Close company" button), and so is Learn progress (learn.html has its own reset).
   resetLink.addEventListener('click', (e) => {
     e.preventDefault();
-    if(!confirm('Reset your puzzle progress, XP and streak? Your company, if you have one, is kept.')) return;
+    if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && k !== 'debugg-ltd' && k !== 'debugg-demo-seen').forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen'].includes(k)).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });
 
-  renderLangs();
   kickerEl.textContent = window.Debugg.isPreview(DAY)
     ? 'Debugg · Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    : 'Debugg · ' + window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY);
-  filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.' + LANGS[lang].ext;
+    : 'Debugg · ' + window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name;
+  filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.' + LANG.ext;
+  document.getElementById('langName').textContent = LANG.name;
   renderCode();
   renderReveal();
   load();

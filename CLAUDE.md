@@ -27,7 +27,9 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | File | What it is |
 |---|---|
 | `index.html` | The daily puzzle page. It also holds the slots the studio renders into, and the loader that switches the studio on. |
-| `puzzles.js` | The puzzle bank, one list per language. |
+| `puzzles/` | The puzzle bank, one file per language (`python.js`, `javascript.js`, `c.js`, `rust.js`), and a README on the fields and scheduling. |
+| `tools/check-puzzles.js` | Runs every puzzle and every Learn snippet with its real toolchain and checks it prints what it says (`npm run check-puzzles`; also a CI job). |
+| `learn.html`, `learn/` | Debugg Learn: the page, the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
@@ -51,11 +53,24 @@ URL has `?ltd`. `DebuggLtd.start({ stats, studio, board })` renders into the
 three slots and either resumes the saved company, imports an old one, or
 founds a new one. `body.ltd-on` switches the page to the two-column layout.
 
-**Languages.** `ENABLED_LANGS` in `shared.js` is the list players see;
-it's `['python']` for the demo. JavaScript's puzzles, sandbox runner
-and saves are kept, and adding it back to the list restores it everywhere.
-Tests switch it on (`window.DEBUGG_LANGS`, set in `tests/helpers.js`) so it
-stays covered; pass `{ langs: null }` to `openAt` to test what players see.
+**Languages and the rotation.** There's one puzzle a day, and the
+languages take turns. `LANG_INFO` in `shared.js` describes every language
+with puzzles (Python, JavaScript, C, Rust: name, extension, whether the
+sandbox can run it, its Debugg Ltd name, e.g. C is the studio's `C/C++`,
+and a playground link for Rust). `ROTATION` lists the languages in play and
+the day each joins (`from`); it's Python only for the demo. The week's six
+slots (Monday to Friday, then the weekend) go to the settled languages in
+turn, shifting one slot each week (`weekLangs()`), so each language gets
+every difficulty. A language in its first `NEW_LANG_WEEKS` (2) weeks only
+gets Monday and Tuesday. `LANGS` is the languages that have joined by today
+(the sandbox shows the runnable ones; the Director's skills show them all).
+Tests set the rotation with `openAt(page, path, day, { rotation })`
+(`window.DEBUGG_ROTATION`); left out, tests see what players see.
+
+**XP.** Kept per language in `debugg-xp` (`{ python: 120, rust: 40 }`);
+the overall XP is their total (`totalXp()`), shown as an "Overall" row
+above the languages, with the same level curve. Level-ups fire
+`level/<lang>/<n>` and `level/overall/<n>` analytics events.
 
 **The demo.** `DEMO` in `shared.js` is on. It shows a notice on the first
 visit (again from the **demo** badge in the header; tests switch the
@@ -86,16 +101,17 @@ drafts.
 5), and Saturday and Sunday share one weekend puzzle (a stand-in 5 until
 the code challenges exist), saved under Saturday's day number: its
 *slot* (`slotDay()`). The schedule is computed from Day 1 in every
-browser: each slot takes the first unused puzzle of its difficulty in
-`puzzles.js` order, else the nearest difficulty (easier first), and
-everything's reused once all are used. Streaks run slot to slot, so the
+browser: each slot's language (from the rotation) takes its first unused
+puzzle of that difficulty, in its file's order, else the nearest difficulty
+(easier first), and a language's puzzles are reused once all are used. Streaks run slot to slot, so the
 weekend counts once. XP for a perfect solve follows the day (`BASE_XP`:
 60, 80, 100, 120, 150, weekend 200), and so does desk pay. Adding puzzles
 to the end only changes future days (and days that had fallen back), so
 it's safe to add them before they're due.
 
-**Saves.** Puzzle progress is `debugg-day<N>` (Python) and
-`debugg-<lang>-day<N>`, plus `debugg-xp`, `debugg-streak` and `debugg-lang`.
+**Saves.** Puzzle progress is `debugg-day<N>` (one per day, whatever
+the language), plus `debugg-xp`, `debugg-streak` and the sandbox's
+`debugg-lang` and `debugg-sandbox-<lang>` drafts.
 The company is `debugg-ltd`. Pre-merge studio saves
 (`contract-debugger-state-v3`) are imported once into `debugg-ltd` (dropping
 the old desk's `activeContract`), then removed. The boot sequence in
@@ -149,7 +165,7 @@ state = {
 
 ## What's implemented
 
-- **The desk is the daily puzzles**, one per language per day (see 3b
+- **The desk is the daily puzzle**, one a day in the rotation's language (see 3b
   for the planned formats and weekly rotation). Each one finished while the company is running pays
   `CASH_PER_XP` per XP it earned (¤200 for a first-guess, no-hint solve,
   ¤20 for a reveal) and 1 reputation per 20 XP. Solves get +10% per streak
@@ -541,9 +557,17 @@ for its contracts; they no longer name puzzles.
     (which lessons are done) and doesn't pay in Debugg Ltd, which stays
     daily.
 - **Built so far:** every puzzle has a `difficulty`; the calendar,
-  weekend slot, day labels ("Day 8 · Thursday · tricky") and XP by day are
-  live (see "The weekly rotation" above). Every day still uses "what does
-  this output", and the weekend uses a hard one.
+  weekend slot, day labels ("Day 8 · Thursday · tricky · Python") and XP by
+  day are live (see "The weekly rotation" above). Every day still uses
+  "what does this output", and the weekend uses a hard one.
+- **Changed since:** it's now one puzzle a day across all languages, not
+  one per language, with the languages rotating through the week (see
+  "Languages and the rotation" above). Puzzles are hand-written and
+  run-checked (`tools/check-puzzles.js`). Stock: Python 44 (8 each at
+  difficulties 1–4, 12 at 5), C 14, Rust 15 and JavaScript 11, so C and Rust
+  are ready to join the rotation. Each language needs its own pools topped
+  up as it's used: on its own, a language uses one each of difficulties
+  1–4 a week and two 5s.
 - **Data and engine changes still to do:**
   - Each puzzle gets a `format`, plus
     the fields its format needs: `options`, the blank, `lines` (to
@@ -590,6 +614,31 @@ for its contracts; they no longer name puzzles.
   of progress. Desk pay follows XP, so harder days pay the company more.
 
 #### 3d. Learn channel: learn languages in a fun way
+
+**Built so far** (September 2026): `learn.html`, reached from a **Daily | Learn** switch at the
+top of the puzzle page, with the Python course's Unit 1, *Values and printing* (3 lessons and
+a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the sketch below:
+
+- **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
+  modular, one file each; the course lists them in order and names the planned ones.
+- **Steps:** teaching points, multiple choice (each wrong option explains itself), "what does
+  this print?", fill the blank (pick the missing piece) and "tap the line with the bug".
+- **Progress:** lessons unlock in order; a wrong answer is explained, shows the right answer,
+  and comes back at the end of the lesson, which ends once every question is right. Stars by
+  mistakes (0 → 3, 1–2 → 2, more → 1). Checkpoints: pass mark out of 8, retry any time, and
+  can be taken first to test out of a unit; passing unlocks the next unit.
+- **XP and streak are separate from the daily puzzles** (not shared, as the sketch below
+  said): Learn XP per language (10 per new lesson, 5 per new star, 30 per checkpoint) with its
+  own levels, and a Learn streak of days with a lesson finished. Learn doesn't pay Debugg Ltd
+  or boost the Director. Saved as `debugg-learn`; "reset puzzles" keeps it.
+- **Checked like the puzzles:** `tools/check-puzzles.js` runs every lesson snippet, and
+  checks right and wrong options and "tap the line" errors against the real output.
+- **Still to do:** the rest of the Python course (Strings, Lists, Conditions, Loops,
+  Functions, Dictionaries, the classic traps), a review queue of missed questions (spaced
+  repetition), other languages' courses, the Rosetta-style "second language" lessons, and
+  badges.
+
+The original sketch:
 This is the idea that started Debugg: a fun way to learn different
 programming languages. The daily puzzle tests what you know; the Learn
 channel teaches it. It sits alongside the daily puzzles as its own

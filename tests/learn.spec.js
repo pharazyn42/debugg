@@ -1,0 +1,161 @@
+// Debugg Learn: the course map, lessons (with wrong answers coming back), checkpoints, and Learn's own
+// XP and streak, kept apart from the daily puzzles.
+const { test, expect } = require('@playwright/test');
+const { dayDate, openAt, fresh, readJson } = require('./helpers');
+
+const current = page => page.evaluate(() => window.DebuggLearn.current());
+const learnSave = page => readJson(page, 'debugg-learn');
+
+async function pickOption(page, text){
+  await page.evaluate(t => [...document.querySelectorAll('#step .option')].find(b => b.dataset.text === t).click(), text);
+}
+
+// Answers the step on screen, right or wrong, then continues.
+async function answer(page, right = true){
+  const s = await current(page);
+  if(s.type === 'teach'){
+    await page.click('#continueBtn');
+    return s;
+  }
+  if(s.type === 'predict'){
+    await page.fill('#answer', right ? s.display : 'definitely not it');
+    await page.click('#checkBtn');
+  }else if(s.type === 'line'){
+    const n = right ? s.line : (s.line === 1 ? 2 : 1);
+    await page.click('#step .code-line[data-line="' + n + '"]');
+  }else{
+    await pickOption(page, s.options.find(o => right ? o.correct : !o.correct).text);
+  }
+  await expect(page.locator('#stepFeedback')).toHaveClass(right ? /correct/ : /wrong/);
+  await page.click('#continueBtn');
+  return s;
+}
+// Answers every step right until the lesson or checkpoint ends.
+async function finishAll(page){
+  while(!(await page.locator('#summary').count())) await answer(page, true);
+}
+
+test.beforeEach(async ({ page }) => {
+  page.on('dialog', d => d.accept());
+  await openAt(page, 'learn.html');
+  await fresh(page);
+});
+
+test('the course map opens with the first lesson, and every unit file is loaded', async ({ page }) => {
+  await expect(page.locator('h1')).toHaveText('Learn Python');
+  const unit = page.locator('.unit[data-unit=values]');
+  await expect(unit.locator('h2')).toHaveText('Values and printing');
+  const rows = unit.locator('.lesson-row');
+  await expect(rows).toHaveCount(4);
+  await expect(rows.nth(0)).toBeEnabled();
+  await expect(rows.nth(1)).toBeDisabled();
+  await expect(rows.nth(2)).toBeDisabled();
+  // The checkpoint can be taken straight away, to test out of the unit.
+  await expect(rows.nth(3)).toBeEnabled();
+  await expect(rows.nth(3)).toContainText('Test out');
+  await expect(page.locator('.unit.planned').first()).toContainText('Strings');
+  await expect(page.locator('#learnStreak')).toHaveText('0');
+  // learn.html loads every unit file its course lists.
+  expect(await page.evaluate(() => Object.values(DEBUGG_LEARN.courses).reduce((n, c) => n + c.files.length, 0)))
+    .toBe(await page.evaluate(() => DEBUGG_LEARN.units.length));
+});
+
+test('a perfect lesson earns 3 stars and Learn XP, and opens the next lesson', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await finishAll(page);
+  await expect(page.locator('#summary .big-stars')).toHaveText('★★★');
+  await expect(page.locator('#summary')).toContainText('+25 XP');
+  await expect(page.locator('#learnStreak')).toHaveText('1');
+  expect(await learnSave(page)).toMatchObject({ lessons: { 'python/values/print': { stars: 3 } }, xp: { python: 25 } });
+  // Learn keeps its own XP and streak: the daily puzzles' are untouched.
+  expect(await readJson(page, 'debugg-xp')).toBeNull();
+  expect(await readJson(page, 'debugg-streak')).toBeNull();
+
+  await page.click('#summary [data-action=quit]');
+  await expect(page.locator('.lesson-row').nth(0)).toContainText('★★★');
+  await expect(page.locator('.lesson-row').nth(1)).toBeEnabled();
+
+  // Replaying it doesn't pay again.
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await finishAll(page);
+  await expect(page.locator('#summary')).toContainText('+0 XP');
+  expect((await learnSave(page)).xp.python).toBe(25);
+});
+
+test('a wrong answer is explained and comes back before the lesson ends', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await answer(page);                    // the first teach step
+  const missed = await answer(page, false);
+  const later = [];
+  while(!(await page.locator('#summary').count())) later.push(await answer(page));
+  // It's asked again, last: the lesson only ends once every question has been answered right.
+  expect(later[later.length - 1]).toEqual(missed);
+  expect(later.filter(s => s.type !== 'teach')).toHaveLength(5);
+  await expect(page.locator('#summary .big-stars')).toHaveText('★★☆');
+  await expect(page.locator('#summary')).toContainText('1 mistake, all put right');
+  expect((await learnSave(page)).lessons['python/values/print']).toEqual({ stars: 2 });
+  // 10 for the lesson and 5 per star.
+  expect((await learnSave(page)).xp.python).toBe(20);
+});
+
+test('the wrong answer shows why it is wrong and what the right one is', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await page.click('#continueBtn');
+  await pickOption(page, '"Ready"');
+  await expect(page.locator('#stepFeedback')).toContainText('The quotes only mark where the string starts and ends');
+  await expect(page.locator('#stepFeedback')).toContainText('The answer is Ready');
+  await expect(page.locator('#stepFeedback')).toContainText('comes back before the end of the lesson');
+  await expect(page.locator('#step .option.wrong')).toHaveCount(1);
+  await expect(page.locator('#step .option.right')).toHaveCount(1);
+});
+
+test('passing the checkpoint tests out of the unit; failing it can be retried', async ({ page }) => {
+  // 6 of 8 isn't enough.
+  await page.click('[data-action=checkpoint][data-unit=values]');
+  let wrong = 2;
+  while(!(await page.locator('#summary').count())) await answer(page, !(wrong-- > 0));
+  await expect(page.locator('#summary .big-score')).toHaveText('6/8');
+  await expect(page.locator('#summary h2')).toHaveText('Not this time');
+  expect(await learnSave(page)).toMatchObject({ checkpoints: {}, xp: {} });
+
+  // 7 of 8 passes, pays 30 XP and opens every lesson in the unit.
+  await page.click('#summary [data-action=checkpoint]');
+  wrong = 1;
+  while(!(await page.locator('#summary').count())) await answer(page, !(wrong-- > 0));
+  await expect(page.locator('#summary h2')).toHaveText('Checkpoint passed!');
+  await expect(page.locator('#summary')).toContainText('+30 XP');
+  expect(await learnSave(page)).toMatchObject({ checkpoints: { 'python/values': { passed: true, best: 7 } }, xp: { python: 30 } });
+  await page.click('#summary [data-action=quit]');
+  await expect(page.locator('.unit[data-unit=values]')).toHaveClass(/passed/);
+  for(let i = 0; i < 3; i++) await expect(page.locator('.lesson-row').nth(i)).toBeEnabled();
+  await expect(page.locator('.lesson-row.checkpoint')).toContainText('7/8');
+});
+
+test('the Learn streak counts days with a lesson finished', async ({ page }) => {
+  const lessonOn = async (day, id) => {
+    await page.clock.setFixedTime(dayDate(day));
+    await page.reload();
+    await page.click('[data-action=lesson][data-lesson=' + id + ']');
+    await finishAll(page);
+  };
+  await lessonOn(3, 'print');
+  await expect(page.locator('#learnStreak')).toHaveText('1');
+  await lessonOn(4, 'numbers');
+  await expect(page.locator('#learnStreak')).toHaveText('2');
+  // A day with no lesson breaks it.
+  await page.clock.setFixedTime(dayDate(6));
+  await page.reload();
+  await expect(page.locator('#learnStreak')).toHaveText('0');
+  await lessonOn(6, 'variables');
+  await expect(page.locator('#learnStreak')).toHaveText('1');
+});
+
+test('the daily page links to Learn, and resetting puzzles keeps Learn progress', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await finishAll(page);
+  await page.goto('index.html');
+  await page.click('#resetLink');
+  await page.click('#learnLink');
+  await expect(page.locator('h1')).toHaveText('Learn Python');
+  await expect(page.locator('.lesson-row').nth(0)).toContainText('★★★');
+});
