@@ -120,6 +120,9 @@ Each unit: 3–4 lessons and a checkpoint, as in the Python course.
 
 ## Decided
 
+- **Embedded C is a section of the C course** in Learn: the "Embedded C" heading and its 10
+  units come after the plain C units on the C tab (`sections` in `learn/courses.js`), rather
+  than being a course or tab of its own.
 - **C standard: C99.** Puzzles and lessons compile with `-std=c99`; C11 extras (`_Static_assert`,
   `<stdatomic.h>`) stay out, and critical sections are taught the C99 way (disabling interrupts).
 

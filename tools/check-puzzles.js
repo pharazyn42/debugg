@@ -222,8 +222,9 @@ function checkLearn(ctx, only){
         if(problems.length) fail(where + ' step ' + (i + 1) + ' (' + s.type + ')', problems);
       }));
     });
+    const planned = (course.planned || []).length + (course.sections || []).reduce((n, s) => n + (s.planned || []).length, 0);
     summary.push('  ' + (lang + ':').padEnd(12) + units.length + ' unit' + (units.length === 1 ? '' : 's') + ', ' + lessons + ' lessons' +
-      (course.planned && course.planned.length ? ', ' + course.planned.length + ' more planned' : ''));
+      (planned ? ', ' + planned + ' more planned' : ''));
   }
   return { failed, steps, summary };
 }

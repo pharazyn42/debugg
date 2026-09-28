@@ -71,7 +71,12 @@ test('C is a coming-soon tab with its planned units', async ({ page }) => {
   await expect(page.locator('#sub')).toContainText('coming soon');
   await expect(page.locator('.lesson-row')).toHaveCount(0);
   await expect(page.locator('.unit.planned').first()).toContainText('Values and printf');
-  await expect(page.locator('.unit.planned').last()).toContainText('Embedded C');
+  // Embedded C is a section of the C course, with its own heading and units.
+  const section = page.locator('.course-section[data-section=embedded]');
+  await expect(section.locator('h2')).toHaveText('Embedded C');
+  await expect(page.locator('.course-section + .unit.planned')).toContainText('Unit 8');
+  await expect(page.locator('.course-section + .unit.planned')).toContainText('Fixed-width types');
+  await expect(page.locator('.unit.planned')).toHaveCount(17);
   await tabs.nth(0).click();
   await expect(page.locator('h1')).toHaveText('Learn Python');
 });

@@ -125,9 +125,15 @@ window.DebuggLearn = (function(){
       if(!allDone && !passed) html += '<p class="unit-note">Already know this? Pass the checkpoint to skip ahead.</p>';
       html += '</section>';
     });
-    (L.courses[lang].planned || []).forEach((title, i) => {
-      html += '<section class="unit planned"><div class="unit-head"><span class="unit-num">Unit ' + (units.length + i + 1) + '</span>' +
-        '<span class="unit-badge soon">coming soon</span></div><h2>' + esc(title) + '</h2></section>';
+    let num = units.length;
+    const planned = title => '<section class="unit planned"><div class="unit-head"><span class="unit-num">Unit ' + (++num) + '</span>' +
+      '<span class="unit-badge soon">coming soon</span></div><h2>' + esc(title) + '</h2></section>';
+    (L.courses[lang].planned || []).forEach(title => { html += planned(title); });
+    // Later parts of the course (e.g. C's Embedded C), under their own heading.
+    (L.courses[lang].sections || []).forEach(s => {
+      html += '<div class="course-section" data-section="' + esc(s.id) + '"><h2 class="section-title">' + esc(s.title) + '</h2>' +
+        (s.summary ? '<p class="section-summary">' + esc(s.summary) + '</p>' : '') + '</div>';
+      (s.planned || []).forEach(title => { html += planned(title); });
     });
     $('view').innerHTML = html;
   }

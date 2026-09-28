@@ -9,14 +9,21 @@ window.DEBUGG_LEARN = {
       files: ['learn/python/01-values.js'],
       planned: ['Strings', 'Lists', 'Conditions', 'Loops', 'Functions', 'Dictionaries', 'The classic traps']
     },
-    // Coming soon: a tab with the planned units, and no lessons yet. The embedded units follow
-    // ideas/embedded-c-roadmap.md.
+    // Coming soon: a tab with the planned units, and no lessons yet. `sections` are later parts of
+    // the same course, shown under their own heading; Embedded C follows ideas/embedded-c-roadmap.md.
     c: {
       name: 'C',
       soon: true,
       files: [],
       planned: ['Values and printf', 'Types and integer maths', 'Conditions and loops', 'Functions',
-        'Arrays and strings', 'Pointers', 'Structs and memory', 'Embedded C: bits and registers']
+        'Arrays and strings', 'Pointers', 'Structs and memory'],
+      sections: [{
+        id: 'embedded',
+        title: 'Embedded C',
+        summary: 'The C that runs on microcontrollers: bits, registers, interrupts and timing.',
+        planned: ['Fixed-width types', 'Bits and masks', 'Registers', 'Data layout', 'Integer maths',
+          'Time', 'Interrupts', 'Structure', 'Robust firmware', 'The classic traps']
+      }]
     }
   },
   units: []  // filled in by the unit files
