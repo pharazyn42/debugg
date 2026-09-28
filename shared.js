@@ -54,16 +54,43 @@ window.Debugg = (function(){
     }catch(e){}
   })();
 
-  const ALL_LANGS = {
-    python: { name: 'Python', ext: 'py', indent: '    ' },
-    javascript: { name: 'JavaScript', ext: 'js', indent: '  ' }
+  // Every language with puzzles. `runnable` ones run in the sandbox; `studio` is the name Debugg Ltd
+  // uses for it; `playground` makes a link that runs a snippet on another site.
+  const LANG_INFO = {
+    python: { name: 'Python', ext: 'py', indent: '    ', runnable: true, studio: 'Python' },
+    javascript: { name: 'JavaScript', ext: 'js', indent: '  ', runnable: true, studio: 'JavaScript' },
+    c: { name: 'C', ext: 'c', indent: '    ', studio: 'C/C++' },
+    rust: { name: 'Rust', ext: 'rs', indent: '    ', studio: 'Rust',
+            playground: code => ({ name: 'the Rust Playground',
+              url: 'https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&code=' + encodeURIComponent(code) }) }
   };
-  // The languages players can see. JavaScript is switched off for the demo: its puzzles,
-  // sandbox runner and saves are all kept, and adding it back here brings everything back.
-  // window.DEBUGG_LANGS overrides this, so tests keep covering the hidden languages.
-  const ENABLED_LANGS = window.DEBUGG_LANGS || ['python'];
-  const LANGS = {};
-  ENABLED_LANGS.forEach(k => { if(ALL_LANGS[k]) LANGS[k] = ALL_LANGS[k]; });
+  // The puzzle files, one per language, in load order (the checker, tools/check-puzzles.js, reads them too).
+  const PUZZLE_FILES = ['puzzles/python.js', 'puzzles/javascript.js', 'puzzles/c.js', 'puzzles/rust.js'];
+
+  // --- The language rotation --------------------------------------------------
+  // There's one puzzle a day, and the languages take turns. ROTATION lists the languages in play and
+  // the day each one joins (`from`; left out, it's there from the start). Languages are introduced
+  // gradually: add one here with the day it joins, once its puzzles are written and checked.
+  //
+  // Each week has six puzzle slots, Monday (easiest) to Friday (hardest) and the weekend. Languages
+  // that have been in for NEW_LANG_WEEKS weeks or more share them in turn, shifting one slot along
+  // each week, so over a few weeks every language gets every difficulty. A newcomer only gets
+  // Monday and Tuesday for its first NEW_LANG_WEEKS weeks, so players meet it on the easy days.
+  // window.DEBUGG_ROTATION overrides this for tests.
+  const ROTATION = window.DEBUGG_ROTATION || [
+    { lang: 'python' }
+  ];
+  const NEW_LANG_WEEKS = 2;
+  const EASY_SLOTS = 2;  // Monday and Tuesday
+
+  // Languages that have joined by `day`, keyed like LANG_INFO, in rotation order.
+  function langsBy(day){
+    const res = {};
+    ROTATION.forEach(r => { if(r.from == null || r.from <= day) res[r.lang] = LANG_INFO[r.lang]; });
+    return res;
+  }
+  // The languages players can see today (the sandbox's tabs, the Director's skills).
+  const LANGS = langsBy(slotDay(dayNumber(new Date())));
 
   // Day number from the player's local calendar date (UTC maths avoids daylight-saving off-by-ones).
   function dayNumber(date){
@@ -108,61 +135,101 @@ window.Debugg = (function(){
   }
 
   function puzzlesFor(lang){
-    return window.DEBUGG_PUZZLES.filter(p => p.lang === lang);
+    return (window.DEBUGG_PUZZLES || []).filter(p => p.lang === lang);
   }
 
-  // The schedule, from Day 1: each slot takes the first unused puzzle (in puzzles.js order) of its
-  // day's difficulty, or the nearest difficulty if none is left (easier first on a tie). Once every
-  // puzzle has been used, they're all available again. It's worked out the same way in every
-  // browser, so everyone gets the same puzzle on the same date. Adding puzzles to the end of the
-  // list only changes days that would otherwise have fallen back to another difficulty.
-  const schedules = {};
-  function scheduled(lang, slot){
-    const list = puzzlesFor(lang);
-    const sch = schedules[lang] || (schedules[lang] = { next: 1, used: new Set(), bySlot: {} });
-    for(; sch.next <= slot; sch.next++){
-      const d = sch.next;
+  // Week 0 starts on Day 1, a Monday. Its slots are its Monday to Saturday (Sunday shares Saturday's).
+  function weekOf(day){ return Math.floor((day - 1) / 7); }
+  function joinWeek(r){ return r.from == null ? -Infinity : weekOf(r.from); }
+
+  // Which language each of week w's six slots gets (Monday first, the weekend last).
+  function weekLangs(w){
+    const inPlay = ROTATION.filter(r => joinWeek(r) <= w && puzzlesFor(r.lang).length);
+    const newcomers = inPlay.filter(r => w - joinWeek(r) < NEW_LANG_WEEKS).map(r => r.lang);
+    const settled = inPlay.filter(r => w - joinWeek(r) >= NEW_LANG_WEEKS).map(r => r.lang);
+    const slots = [];
+    for(let i = 0; i < 6; i++){
+      if(!settled.length) slots.push(newcomers[(i + w) % newcomers.length]);
+      else if(newcomers.length && i < EASY_SLOTS) slots.push(newcomers[(i + w) % newcomers.length]);
+      else{
+        const k = newcomers.length ? i - EASY_SLOTS : i;
+        slots.push(settled[(k + w) % settled.length]);
+      }
+    }
+    return slots;
+  }
+  // The language of a day's puzzle. Preview days (before Day 1) use the first language.
+  function langFor(day){
+    const slot = slotDay(day);
+    if(slot < 1) return ROTATION[0].lang;
+    const kind = dayKind(slot);
+    return weekLangs(weekOf(slot))[kind === 'weekend' ? 5 : kind - 1];
+  }
+
+  // The schedule, from Day 1: each slot takes, in its language, the first unused puzzle (in the
+  // order of its puzzle file) of the day's difficulty, or the nearest difficulty if none is left
+  // (easier first on a tie). Once all of a language's puzzles have been used, they're all available
+  // again. It's worked out the same way in every browser, so everyone gets the same puzzle on the
+  // same date. Adding puzzles to the end of a file only changes days that would otherwise have
+  // fallen back to another difficulty; adding a language to ROTATION only changes days from its
+  // first week on.
+  const schedule = { next: 1, used: {}, bySlot: {} };
+  function scheduled(slot){
+    for(; schedule.next <= slot; schedule.next++){
+      const d = schedule.next;
       if(slotDay(d) !== d) continue;  // Sundays share Saturday's puzzle
-      if(sch.used.size >= list.length) sch.used.clear();
+      const lang = langFor(d);
+      const list = puzzlesFor(lang);
+      const used = schedule.used[lang] || (schedule.used[lang] = new Set());
+      if(used.size >= list.length) used.clear();
       const kind = dayKind(d);
       const want = kind === 'weekend' ? WEEKEND_STAND_IN : kind;
       let pick = null;
       for(let delta = 0; !pick && delta <= 4; delta++){
         for(const t of delta ? [want - delta, want + delta] : [want]){
-          pick = list.find(p => !sch.used.has(p) && (p.difficulty || 3) === t);
+          pick = list.find(p => !used.has(p) && (p.difficulty || 3) === t);
           if(pick) break;
         }
       }
-      sch.used.add(pick);
-      sch.bySlot[d] = pick;
+      used.add(pick);
+      schedule.bySlot[d] = pick;
     }
-    return sch.bySlot[slot];
+    return schedule.bySlot[slot];
   }
 
-  function puzzleFor(lang, day){
+  // The day's puzzle (its `lang` says which language it's in).
+  function puzzleFor(day){
     const slot = slotDay(day);
-    if(slot >= 1) return scheduled(lang, slot);
-    // Preview days (before Day 1) count backwards from the end of the list.
-    const list = puzzlesFor(lang);
+    if(slot >= 1) return scheduled(slot);
+    // Preview days count backwards from the end of the first language's list.
+    const list = puzzlesFor(langFor(slot));
     return list[(((slot - 1) % list.length) + list.length) % list.length];
   }
 
-  // Python keeps the original key so progress saved before languages existed still loads.
-  // Keyed by slot, so a weekend puzzle has one save for Saturday and Sunday.
-  function stateKey(lang, day){
-    day = slotDay(day);
-    return lang === 'python' ? 'debugg-day' + day : 'debugg-' + lang + '-day' + day;
+  // One save per day, whatever the language. Keyed by slot, so a weekend puzzle has one save for
+  // Saturday and Sunday.
+  function stateKey(day){ return 'debugg-day' + slotDay(day); }
+  function readState(day){
+    try{ return JSON.parse(localStorage.getItem(stateKey(day))); }catch(e){ return null; }
   }
-  function readState(lang, day){
-    try{ return JSON.parse(localStorage.getItem(stateKey(lang, day))); }catch(e){ return null; }
-  }
-  function isFinished(lang, day){
-    const s = readState(lang, day);
+  function isFinished(day){
+    const s = readState(day);
     return !!(s && (s.solved || s.revealed));
   }
 
+  // Loose answer matching, so "[1, 2]", "1,2" and "1 2" all count, as do answers with or without
+  // quotes. Colons keep their neighbours so dict output like {1: 'bool'} normalises to "1:bool".
+  function normaliseAnswer(text){
+    return String(text).toLowerCase()
+      .replace(/['"`]/g, '')
+      .replace(/[\[\]{}()]/g, ' ')
+      .replace(/\s*:\s*/g, ':')
+      .replace(/[\s,]+/g, ',')
+      .replace(/^,|,$/g, '');
+  }
+
   // --- XP and levels -------------------------------------------------------------
-  // Puzzle XP is stored per language key: { python: 120, javascript: 40 }.
+  // Puzzle XP is stored per language key: { python: 120, rust: 40 }. The overall XP is their total.
   function readXp(){
     try{
       const raw = JSON.parse(localStorage.getItem('debugg-xp'));
@@ -173,6 +240,9 @@ window.Debugg = (function(){
   // Level n starts at 100 * (n-1) * n / 2 XP: 0, 100, 300, 600, 1000, …
   // so each level needs 100 more XP than the one before.
   function levelStart(n){ return 100 * (n - 1) * n / 2; }
+  function totalXp(xp){
+    return Object.values(xp || readXp()).reduce((a, b) => a + (b > 0 ? b : 0), 0);
+  }
   function levelFor(xp){
     let n = 1;
     while(xp >= levelStart(n + 1)) n++;
@@ -195,6 +265,20 @@ window.Debugg = (function(){
         'finally','throw','break','continue','switch','case','default','async','await'],
       comment: '\\/\\/.*$',
       string: `"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'|\`(?:[^\`\\\\]|\\\\.)*\``
+    },
+    c: {
+      keywords: ['int','char','short','long','unsigned','signed','float','double','void','const','static',
+        'struct','union','enum','typedef','sizeof','return','if','else','for','while','do','switch','case',
+        'default','break','continue','goto','NULL','bool','true','false'],
+      comment: '\\/\\/.*$|\\/\\*.*?\\*\\/',
+      string: `"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)'|#\\w+`
+    },
+    rust: {
+      keywords: ['fn','let','mut','const','static','if','else','match','for','while','loop','in','return',
+        'break','continue','struct','enum','impl','trait','pub','use','mod','as','ref','move','self','Self',
+        'true','false','Some','None','Ok','Err','where','dyn','type','unsafe'],
+      comment: '\\/\\/.*$',
+      string: `b?"(?:[^"\\\\]|\\\\.)*"|b?'(?:[^'\\\\]|\\\\.)'`
     }
   };
   const compiled = {};
@@ -203,7 +287,7 @@ window.Debugg = (function(){
       const s = SYNTAX[lang];
       compiled[lang] = {
         keywords: new Set(s.keywords),
-        source: '(' + s.comment + ')|(' + s.string + ')|(\\b\\d+(?:\\.\\d+)?\\b)|([A-Za-z_$][\\w$]*)(?=\\s*\\()|([A-Za-z_$][\\w$]*)'
+        source: '(' + s.comment + ')|(' + s.string + ')|(\\b\\d\\w*(?:\\.\\d+)?\\b)|([A-Za-z_$][\\w$]*!?)(?=\\s*\\()|([A-Za-z_$][\\w$]*)'
       };
     }
     return compiled[lang];
@@ -231,7 +315,8 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  return { DEMO, SAVE_VERSION, isWipedVersion, LANGS, dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
-           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished,
-           readXp, levelStart, levelFor, highlight, escapeHtml };
+  return { DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
+           dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
+           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished, normaliseAnswer,
+           readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };
 })();

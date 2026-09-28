@@ -7,13 +7,13 @@ function dayDate(n){
 }
 
 // Opens a page with the clock fixed to game day `day` (timers still run normally).
-// JavaScript is hidden from players for now, but the tests switch it back on so it stays
-// covered; pass { langs: null } to test the site exactly as players see it.
 // Day 3 (a Wednesday, 100 XP for a perfect solve) is the default.
+// `rotation` replaces the languages' rotation (ROTATION in shared.js), e.g. [{ lang: 'python' },
+// { lang: 'rust', from: 8 }]; left out, the site runs with the rotation players get.
 // The demo notice that opens on a first visit is off unless { notice: true }.
-async function openAt(page, path, day = 3, { langs = ['python', 'javascript'], notice = false } = {}){
+async function openAt(page, path, day = 3, { rotation = null, notice = false } = {}){
   await page.clock.setFixedTime(dayDate(day));
-  if(langs) await page.addInitScript(l => { window.DEBUGG_LANGS = l; }, langs);
+  if(rotation) await page.addInitScript(r => { window.DEBUGG_ROTATION = r; }, rotation);
   if(!notice) await page.addInitScript(() => { window.DEBUGG_DEMO_NOTICE = false; });
   // Tests never count as real visits (the analytics test switches it on against a stand-in).
   await page.addInitScript(() => { if(!('DEBUGG_GOATCOUNTER' in window)) window.DEBUGG_GOATCOUNTER = ''; });
@@ -37,9 +37,9 @@ async function withStorage(page, values){
   await page.reload();
 }
 
-// The puzzle a language shows on a given day.
-function puzzleFor(page, lang, day){
-  return page.evaluate(([l, d]) => window.Debugg.puzzleFor(l, d), [lang, day]);
+// The puzzle for a given day.
+function puzzleFor(page, day){
+  return page.evaluate(d => window.Debugg.puzzleFor(d), day);
 }
 
 async function guess(page, text){

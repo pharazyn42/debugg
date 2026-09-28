@@ -6,6 +6,19 @@ on:
     branches: [main]
 
 jobs:
+  # Runs every puzzle with the real toolchain (python3, node, gcc and clang, rustc; all on the
+  # runner image) and checks it prints its answer.
+  puzzles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: python3 --version && gcc --version | head -1 && clang --version | head -1 && rustc --version
+      - run: node tools/check-puzzles.js
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -1,21 +1,7 @@
-// Debugg puzzle data. Each language has its own daily puzzle, and the calendar in shared.js picks
-// it: each day takes the first unused puzzle (in the order they appear here) with that weekday's
-// difficulty, and once a language's puzzles have all been used they start over.
-// Loaded with a plain <script> tag (not fetch) so index.html still works when opened straight from disk.
-//
-// Fields:
-//   lang       language key: 'python' or 'javascript' (see LANGS in shared.js)
-//   difficulty 1 (warm-up) to 5 (hard); the calendar gives Mondays 1 up to Fridays 5 (see shared.js)
-//   code       the snippet; the last line is the print the player has to predict
-//   flag       { line, text } marks the buggy bit, underlined once the game ends
-//   answers    accepted guesses; compared after normalising (case, spaces, quotes and brackets ignored)
-//   display    the exact output, as shown to the player
-//   nudge      feedback after a wrong guess
-//   hints      two hints, gentle then strong
-//   explain    why it prints what it does (HTML)
-//   fix        how to write it properly (HTML)
-//   takeaway   the general rule to remember, in a sentence or two (HTML)
-window.DEBUGG_PUZZLES = [
+// Debugg's Python puzzles. See puzzles/README.md for the fields, and run `npm run check-puzzles`
+// after adding one: it runs every snippet and checks it prints the puzzle's answer.
+(window.DEBUGG_PUZZLES = window.DEBUGG_PUZZLES || []).push(
+
   {
     lang: 'python',
     difficulty: 3,
@@ -547,214 +533,286 @@ print(n)`,
     takeaway: 'A loop’s <code>else</code> runs when the loop ends normally, and is skipped when it ends with <code>break</code>. Read it as “no break”.'
   },
 
-  // --- JavaScript ---------------------------------------------------------------
+  // --- Added for the rotation: four more of each of difficulties 1 to 4 -------------------------
   {
-    lang: 'javascript',
-    difficulty: 2,
-    code: `const scores = [10, 9, 1];
-scores.sort();
-console.log(scores);`,
-    flag: { line: 2, text: 'scores.sort()' },
-    answers: ['1,10,9'],
-    display: '[1, 10, 9]',
-    nudge: 'Not quite. How does sort() compare items if you don\'t tell it how?',
-    hints: [
-      'With no compare function, sort() doesn\'t compare the numbers as numbers. What does it compare?',
-      'sort() turns each item into a string and sorts alphabetically, and "10" comes before "9".'
-    ],
-    explain: 'With no compare function, <code>sort()</code> converts every item to a <b>string</b> and sorts them in dictionary order. As strings, <code>"10"</code> comes before <code>"9"</code> because <code>"1"</code> comes before <code>"9"</code>. So the order is 1, 10, 9.',
-    fix: 'Pass a compare function: <code>scores.sort((a, b) =&gt; a - b)</code>.',
-    takeaway: '<code>sort()</code> compares items as strings unless you give it a compare function. For numbers use <code>sort((a, b) =&gt; a - b)</code>.'
-  },
-  {
-    lang: 'javascript',
+    lang: 'python',
     difficulty: 1,
-    code: `const user = null;
-console.log(typeof user);`,
-    flag: { line: 2, text: 'typeof user' },
-    answers: ['object'],
-    display: 'object',
-    nudge: 'Not quite. typeof has a famous quirk with exactly this value.',
+    code: `slices = 7
+people = 2
+print(slices / people)`,
+    flag: { line: 3, text: 'slices / people' },
+    answers: ['3.5'],
+    display: '3.5',
+    nudge: 'Not quite. Does / throw away the remainder?',
     hints: [
-      'This is a well-known quirk of typeof. It isn\'t "null".',
-      'typeof null is "object", a leftover from the very first version of JavaScript.'
+      'In Python 3, what type does / give back, even for two whole numbers?',
+      '/ is true division: it always gives a float, remainder included. // is the one that rounds down.'
     ],
-    explain: '<code>typeof null</code> is <code>"object"</code>, even though <code>null</code> isn\'t an object. It\'s a bug from JavaScript\'s first version that was never fixed. That\'s why a check like <code>typeof x === "object"</code> lets <code>null</code> through, and the code then crashes on <code>x.name</code>.',
-    fix: 'Check for null directly: <code>user === null</code>, or <code>user !== null &amp;&amp; typeof user === "object"</code> for "a real object".',
-    takeaway: '<code>typeof null</code> is <code>"object"</code>, a leftover bug from JavaScript’s first version. Check for null with <code>=== null</code>.'
+    explain: 'In Python 3, <code>/</code> is <b>true division</b>: it always returns a float, so <code>7 / 2</code> is <code>3.5</code>. Many languages (and Python 2) drop the remainder when both numbers are whole; Python 3 doesn\'t.',
+    fix: 'If you want whole slices each, use floor division: <code>slices // people</code> gives <code>3</code>, and <code>slices % people</code> gives the 1 left over.',
+    takeaway: '<code>/</code> always gives a float in Python 3. Use <code>//</code> for whole-number division and <code>%</code> for the remainder.'
   },
   {
-    lang: 'javascript',
-    difficulty: 3,
-    code: `const price = "5";  // from a form input
-const shipping = 2;
-console.log(price + shipping - shipping);`,
-    flag: { line: 3, text: 'price + shipping' },
-    answers: ['50'],
-    display: '50',
-    nudge: 'Not quite. price is a string. What does + do with a string?',
+    lang: 'python',
+    difficulty: 1,
+    code: `greeting = "hello world"
+print(len(greeting))`,
+    flag: { line: 2, text: 'len(greeting)' },
+    answers: ['11'],
+    display: '11',
+    nudge: 'Not quite. Count every character, not just the letters.',
     hints: [
-      'Work left to right. What is "5" + 2 when one side is a string?',
-      '"5" + 2 joins them into the string "52". Then - only works on numbers, so "52" - 2 is 50.'
+      'Is the space between the words a character?',
+      '"hello" is 5, "world" is 5, and the space in the middle counts too.'
     ],
-    explain: 'Work left to right. <code>+</code> with a string <b>joins</b> text, so <code>"5" + 2</code> is <code>"52"</code>. But <code>-</code> only means subtraction, so JavaScript converts <code>"52"</code> to a number: <code>52 - 2</code> is <code>50</code>. Two operators that look like opposites treat strings completely differently.',
-    fix: 'Convert input as soon as you read it: <code>const price = Number(input.value);</code>',
-    takeaway: '<code>+</code> joins strings, but <code>-</code>, <code>*</code> and <code>/</code> convert to numbers. Convert input with <code>Number()</code> as soon as you read it.'
+    explain: '<code>len()</code> counts every character in a string, including spaces and punctuation. "hello" (5) + the space (1) + "world" (5) = 11.',
+    fix: 'To count only letters: <code>sum(c.isalpha() for c in greeting)</code>. To count words: <code>len(greeting.split())</code>.',
+    takeaway: '<code>len()</code> of a string counts every character: spaces, punctuation and newlines included.'
   },
   {
-    lang: 'javascript',
-    difficulty: 5,
-    code: `const nums = ["1", "7", "11"].map(parseInt);
-console.log(nums);`,
-    flag: { line: 1, text: 'map(parseInt)' },
-    answers: ['1,nan,3'],
-    display: '[1, NaN, 3]',
-    nudge: 'Not quite. map() passes more than one argument to the function it calls.',
+    lang: 'python',
+    difficulty: 1,
+    code: `queue = ["Ada", "Grace", "Linus"]
+print(queue[-1])`,
+    flag: { line: 2, text: 'queue[-1]' },
+    answers: ['linus'],
+    display: 'Linus',
+    nudge: 'Not quite. Where does counting start when the index is negative?',
     hints: [
-      'map() calls your function with (value, index, array). parseInt takes a second argument too. What is it?',
-      'parseInt\'s second argument is the base. So this runs parseInt("1", 0), parseInt("7", 1) and parseInt("11", 2).'
+      'Negative indexes count from the other end of the list.',
+      '-1 is the last item, -2 the one before it, and so on.'
     ],
-    explain: '<code>map</code> calls the function with <b>(value, index, array)</b>, and <code>parseInt</code>\'s second argument is the number base. So you get <code>parseInt("1", 0)</code>, which is 1 (base 0 means "work it out"), <code>parseInt("7", 1)</code>, which is NaN (base 1 isn\'t valid), and <code>parseInt("11", 2)</code>, which is 3 (11 in binary).',
-    fix: '<code>["1", "7", "11"].map(Number)</code>, or <code>.map(s =&gt; parseInt(s, 10))</code>.',
-    takeaway: '<code>map()</code> calls your function with (value, index, array). Only pass a function straight in if it ignores the extra arguments.'
+    explain: 'Negative indexes count back from the end: <code>queue[-1]</code> is the last item, <code>queue[-2]</code> the second to last. It\'s the same as <code>queue[len(queue) - 1]</code>, without the arithmetic.',
+    fix: 'Nothing to fix: <code>[-1]</code> is the tidy way to get the last item. For the first, use <code>[0]</code>.',
+    takeaway: 'Negative indexes count from the end: <code>[-1]</code> is the last item, <code>[-2]</code> the one before.'
   },
   {
-    lang: 'javascript',
-    difficulty: 4,
-    code: `const fns = [];
-for (var i = 0; i < 3; i++) {
-  fns.push(() => i);
-}
-console.log(fns.map(f => f()));`,
-    flag: { line: 2, text: 'var i = 0' },
-    answers: ['3,3,3'],
-    display: '[3, 3, 3]',
-    nudge: 'Not quite. How many i variables does this loop create?',
+    lang: 'python',
+    difficulty: 1,
+    code: `left, right = "L", "R"
+left, right = right, left
+print(left, right)`,
+    flag: { line: 2, text: 'left, right = right, left' },
+    answers: ['r l', 'r,l'],
+    display: 'R L',
+    nudge: 'Not quite. Is the right-hand side worked out before or after anything is assigned?',
     hints: [
-      'var creates one variable for the whole function, not one per loop. When do the arrow functions read it?',
-      'All three functions share the same i, and they run after the loop, when i has reached 3.'
+      'Python works out the whole right-hand side first, then assigns.',
+      'right, left makes the pair ("R", "L") before either name changes, then unpacks it into left and right.'
     ],
-    explain: '<code>var</code> creates <b>one</b> <code>i</code> for the whole function. Each arrow function reads <code>i</code> when it\'s <b>called</b>, not when it\'s created. They\'re all called on line 5, after the loop has finished, and the loop only stops once <code>i</code> reaches 3.',
-    fix: 'Use <code>let</code>: <code>for (let i = 0; i &lt; 3; i++)</code> gives each loop iteration its own <code>i</code>.',
-    takeaway: '<code>var</code> makes one variable for the whole function. <code>let</code> gives each loop iteration its own, so use <code>let</code> in loops.'
+    explain: 'Python evaluates the whole right-hand side first, building the tuple <code>("R", "L")</code>, and only then unpacks it into <code>left</code> and <code>right</code>. So the values really do swap, with no temporary variable needed. <code>print</code> with two arguments separates them with a space.',
+    fix: 'Nothing to fix: this is the idiomatic swap in Python.',
+    takeaway: '<code>a, b = b, a</code> swaps two values: the right-hand side is built in full before anything is assigned.'
   },
   {
-    lang: 'javascript',
-    difficulty: 4,
-    code: `function getConfig() {
-  return
-  {
-    debug: true
-  };
-}
-console.log(getConfig());`,
-    flag: { line: 2, text: 'return' },
-    answers: ['undefined'],
-    display: 'undefined',
-    nudge: 'Not quite. Look at what\'s on the same line as return.',
-    hints: [
-      'JavaScript can add semicolons for you. Where might it add one here?',
-      'JavaScript puts a semicolon straight after return, because nothing follows it on that line. The function returns nothing.'
-    ],
-    explain: 'JavaScript inserts missing semicolons for you, and a line break straight after <code>return</code> ends the statement. So this is really <code>return;</code>, which returns <code>undefined</code>. The <code>{ debug: true }</code> below is never reached. It\'s parsed as a block, not an object.',
-    fix: 'Keep the opening brace on the same line: <code>return {</code>.',
-    takeaway: 'A line break straight after <code>return</code> ends the statement. Always start the returned value on the same line as <code>return</code>.'
-  },
-  {
-    lang: 'javascript',
+    lang: 'python',
     difficulty: 2,
-    code: `const input = "0";
-if (input == false) {
-  console.log("empty");
-} else {
-  console.log("has value");
-}`,
-    flag: { line: 2, text: 'input == false' },
-    answers: ['empty'],
-    display: 'empty',
-    nudge: 'Not quite. What does == do when the two sides are different types?',
+    code: `scores = [30, 10, 20]
+ranked = scores.sort()
+print(ranked)`,
+    flag: { line: 2, text: 'ranked = scores.sort()' },
+    answers: ['none'],
+    display: 'None',
+    nudge: 'Not quite. What does sort() give back?',
     hints: [
-      '== converts both sides before comparing. What does "0" become? And false?',
-      'Both sides become the number 0, so "0" == false is true.'
+      'sort() changes the list it\'s called on. Does it also return it?',
+      'Methods that change a list in place, like sort(), append() and reverse(), return None.'
     ],
-    explain: '<code>==</code> converts both sides to the same type before comparing. <code>false</code> becomes 0 and <code>"0"</code> becomes 0, so they\'re equal. That\'s despite <code>"0"</code> being a non-empty string, which counts as true in an <code>if (input)</code>. So a real value gets treated as empty.',
-    fix: 'Use <code>===</code>, which never converts: <code>input === ""</code>.',
-    takeaway: '<code>==</code> converts types before comparing, with surprising results. Use <code>===</code>, which never converts.'
+    explain: '<code>list.sort()</code> sorts the list <b>in place</b> and returns <code>None</code>, so <code>ranked</code> is <code>None</code>. <code>scores</code> itself is now <code>[10, 20, 30]</code>.',
+    fix: 'Use <code>ranked = sorted(scores)</code> for a new sorted list, or call <code>scores.sort()</code> on its own line and use <code>scores</code>.',
+    takeaway: 'List methods that change the list in place (<code>sort</code>, <code>append</code>, <code>reverse</code>) return <code>None</code>. <code>sorted()</code> returns a new list.'
   },
   {
-    lang: 'javascript',
-    difficulty: 3,
-    code: `// Christmas: month 12, day 25?
-const xmas = new Date(2026, 12, 25);
-console.log(xmas.getFullYear());`,
-    flag: { line: 2, text: '12' },
-    answers: ['2027'],
-    display: '2027',
-    nudge: 'Not quite. What number is January in a JavaScript Date?',
-    hints: [
-      'Months in JavaScript\'s Date are counted from 0. So which month is 12?',
-      'January is 0 and December is 11. Month 12 rolls over into January of the next year.'
-    ],
-    explain: 'Months in <code>Date</code> run from <b>0 to 11</b>, so 12 is one past December. Instead of raising an error, <code>Date</code> rolls the extra month into the next year, giving 25 January 2027. Days and years are counted normally, which makes this easy to miss.',
-    fix: 'Use 11 for December: <code>new Date(2026, 11, 25)</code>, or pass an ISO string like <code>"2026-12-25"</code>.',
-    takeaway: '<code>Date</code> months run from 0 (January) to 11 (December), and out-of-range values roll over into the next month or year.'
-  },
-  {
-    lang: 'javascript',
-    difficulty: 3,
-    code: `const orderId = 9007199254740993;
-console.log(orderId);`,
-    flag: { line: 1, text: '9007199254740993' },
-    answers: ['9007199254740992'],
-    display: '9007199254740992',
-    nudge: 'Not quite. How big a whole number can a JavaScript number store exactly?',
-    hints: [
-      'All JavaScript numbers are floating point. Above a certain size, not every whole number can be stored.',
-      'Above 2⁵³ (9007199254740992), only every other whole number can be stored, so this one is rounded.'
-    ],
-    explain: 'Every JavaScript number is a 64-bit float, and whole numbers are only exact up to <b>2⁵³</b> (9007199254740992). Past that, the gaps between numbers you can store grow larger than 1, so <code>9007199254740993</code> gets rounded to the nearest one that fits. No error, just a different number.',
-    fix: 'Keep big IDs as strings, or use <code>BigInt</code>: <code>9007199254740993n</code>.',
-    takeaway: 'JavaScript numbers are exact only up to 2<sup>53</sup> (<code>Number.MAX_SAFE_INTEGER</code>). Keep bigger IDs as strings, or use <code>BigInt</code>.'
-  },
-  {
-    lang: 'javascript',
-    difficulty: 3,
-    code: `const user = { name: "Ada", roles: ["admin"] };
-const guest = { ...user };
-guest.roles.push("guest");
-console.log(user.roles);`,
-    flag: { line: 2, text: '{ ...user }' },
-    answers: ['admin,guest'],
-    display: "['admin', 'guest']",
-    nudge: 'Not quite. Does spreading copy the roles array, or share it?',
-    hints: [
-      '{ ...user } makes a new object. But what about the objects and arrays inside it?',
-      'Spreading is a shallow copy: guest.roles and user.roles are the same array.'
-    ],
-    explain: '<code>{ ...user }</code> makes a <b>shallow</b> copy: a new outer object, but its properties still point at the same values. <code>guest.roles</code> is the very same array as <code>user.roles</code>, so pushing to one changes both, and the admin now has a guest role too.',
-    fix: 'Copy the nested array too (<code>{ ...user, roles: [...user.roles] }</code>) or deep-copy with <code>structuredClone(user)</code>.',
-    takeaway: 'Spread (<code>{ ...obj }</code>) is a shallow copy: nested arrays and objects are still shared. Use <code>structuredClone()</code> for a deep copy.'
-  },
-  {
-    lang: 'javascript',
+    lang: 'python',
     difficulty: 2,
-    code: `function hasNegative(nums) {
-  nums.forEach(n => {
-    if (n < 0) return true;
-  });
-  return false;
-}
-console.log(hasNegative([3, -1, 2]));`,
-    flag: { line: 3, text: 'return true' },
-    answers: ['false'],
-    display: 'false',
-    nudge: 'Not quite. Which function does that return true return from?',
+    code: `answer = "False"  # read from a settings file
+print(bool(answer))`,
+    flag: { line: 2, text: 'bool(answer)' },
+    answers: ['true'],
+    display: 'True',
+    nudge: 'Not quite. bool() doesn\'t read the words in a string.',
     hints: [
-      'That return is inside an arrow function. Does it return from hasNegative?',
-      'return true only ends the arrow function for that one item. forEach ignores it, and hasNegative carries on to return false.'
+      'What makes a string count as true or false?',
+      'Only the empty string "" is false. Any other string, even "False", is true.'
     ],
-    explain: 'The <code>return true</code> is inside the <b>arrow function</b>, so it only ends that call, for the item -1. <code>forEach</code> ignores return values and keeps going, then <code>hasNegative</code> reaches its own <code>return false</code>. The negative number was found, and the result was thrown away.',
-    fix: 'Use <code>some</code>, which stops at the first match: <code>return nums.some(n =&gt; n &lt; 0);</code>',
-    takeaway: '<code>return</code> inside <code>forEach</code> only ends that one callback. To stop early, use <code>some()</code>, <code>find()</code> or a <code>for...of</code> loop.'
+    explain: '<code>bool()</code> of a string only checks whether it\'s empty. <code>"False"</code> has five characters, so it\'s <code>True</code>. Python never looks at what the text says.',
+    fix: 'Compare the text: <code>answer.strip().lower() == "true"</code>, or use a proper format (JSON, configparser\'s <code>getboolean()</code>) that parses booleans for you.',
+    takeaway: 'Any non-empty string is truthy, even <code>"False"</code> and <code>"0"</code>. Compare the text to parse a boolean from a string.'
+  },
+  {
+    lang: 'python',
+    difficulty: 2,
+    code: `price = 3.99
+print(int(price))`,
+    flag: { line: 2, text: 'int(price)' },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. Does int() round?',
+    hints: [
+      'int() doesn\'t round to the nearest whole number.',
+      'int() cuts off everything after the decimal point, towards zero.'
+    ],
+    explain: '<code>int()</code> on a float <b>truncates</b>: it drops the fractional part, moving towards zero. <code>int(3.99)</code> is <code>3</code>, and <code>int(-3.99)</code> is <code>-3</code>.',
+    fix: 'Use <code>round(price)</code> to round to the nearest whole number, or <code>math.floor()</code> / <code>math.ceil()</code> to round down or up.',
+    takeaway: '<code>int()</code> chops off the decimals rather than rounding. Use <code>round()</code>, <code>math.floor()</code> or <code>math.ceil()</code> when you mean one of those.'
+  },
+  {
+    lang: 'python',
+    difficulty: 2,
+    code: `basket = ["apple", "pear"]
+backup = basket
+backup.append("plum")
+print(len(basket))`,
+    flag: { line: 2, text: 'backup = basket' },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. Did line 2 make a copy?',
+    hints: [
+      'Assigning a list to a new name doesn\'t copy it.',
+      'backup and basket are two names for the same list, so appending through either changes both.'
+    ],
+    explain: '<code>backup = basket</code> doesn\'t copy anything: it gives the same list a second name. Appending through <code>backup</code> changes the one list, so <code>basket</code> has 3 items too.',
+    fix: 'Make a real copy: <code>backup = basket.copy()</code> or <code>backup = list(basket)</code>.',
+    takeaway: 'Assignment never copies. Two names for one list see each other\'s changes; use <code>.copy()</code> when you need a separate list.'
+  },
+  {
+    lang: 'python',
+    difficulty: 3,
+    code: `a = [1, 2, 3]
+b = [1, 2, 3]
+print(a == b, a is b)`,
+    flag: { line: 3, text: 'a is b' },
+    answers: ['true false', 'true,false'],
+    display: 'True False',
+    nudge: 'Not quite. == and is ask different questions.',
+    hints: [
+      '== asks whether two things have the same value. What does is ask?',
+      'is asks whether two names point at the very same object. These are two separate lists that happen to be equal.'
+    ],
+    explain: '<code>==</code> compares values: both lists hold 1, 2, 3, so it\'s <code>True</code>. <code>is</code> checks identity, whether both names refer to the <b>same object</b>. Each list literal makes a new list, so it\'s <code>False</code>.',
+    fix: 'Use <code>==</code> to compare values. Keep <code>is</code> for singletons like <code>None</code>: <code>if x is None</code>.',
+    takeaway: '<code>==</code> compares values; <code>is</code> checks it\'s the same object. Use <code>is</code> only for <code>None</code> (and <code>True</code>/<code>False</code>).'
+  },
+  {
+    lang: 'python',
+    difficulty: 3,
+    code: `filename = "text.txt"
+print(filename.rstrip(".txt"))`,
+    flag: { line: 2, text: 'rstrip(".txt")' },
+    answers: ['te'],
+    display: 'te',
+    nudge: 'Not quite. rstrip() doesn\'t remove a suffix.',
+    hints: [
+      'rstrip(".txt") doesn\'t remove the text ".txt". It removes characters.',
+      'It keeps removing any of the characters ".", "t" and "x" from the right until it meets one that isn\'t in that set.'
+    ],
+    explain: 'The argument to <code>strip</code>, <code>lstrip</code> and <code>rstrip</code> is a <b>set of characters</b>, not a string to remove. <code>rstrip(".txt")</code> strips any ".", "t" or "x" from the right: t, x, t, ., t, x all go, and it stops at the "e", leaving <code>"te"</code>.',
+    fix: 'Use <code>filename.removesuffix(".txt")</code> (Python 3.9+), or <code>pathlib.Path(filename).stem</code> for file names.',
+    takeaway: '<code>strip()</code> and friends remove a set of characters, not a word. Use <code>removesuffix()</code> or <code>removeprefix()</code> to cut off exact text.'
+  },
+  {
+    lang: 'python',
+    difficulty: 3,
+    code: `countdown = list(range(10, 0, -3))
+print(countdown)`,
+    flag: { line: 1, text: 'range(10, 0, -3)' },
+    answers: ['10,7,4,1'],
+    display: '[10, 7, 4, 1]',
+    nudge: 'Not quite. Step down by 3 from 10, and remember where range stops.',
+    hints: [
+      'With a negative step, range counts down and stops before reaching the stop value.',
+      '10, 7, 4, 1… the next would be -2, which is past 0, so it stops.'
+    ],
+    explain: '<code>range(10, 0, -3)</code> starts at 10 and steps by -3 while the value is still <b>greater than</b> the stop, 0: 10, 7, 4, 1. The stop value is never included, whichever direction you count.',
+    fix: 'Nothing to fix. To include the stop value when counting down, go one past it: <code>range(10, -1, -1)</code> is 10 down to 0.',
+    takeaway: '<code>range</code> never includes its stop value, counting up or down. With a negative step it stops once it would reach or pass the stop.'
+  },
+  {
+    lang: 'python',
+    difficulty: 3,
+    code: `row = "Ada,,London"  # name, email, city
+fields = row.split(",")
+print(len(fields))`,
+    flag: { line: 2, text: 'row.split(",")' },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. What happens between two commas with nothing in between?',
+    hints: [
+      'split(",") keeps empty fields: ",," has an empty string between the commas.',
+      'The fields are "Ada", "" and "London".'
+    ],
+    explain: '<code>split(",")</code> with a separator keeps empty fields, so the missing email becomes <code>""</code>: <code>["Ada", "", "London"]</code>, 3 fields. That\'s what you want for CSV-style data, where position matters.',
+    fix: 'For real CSV (quotes, commas inside fields), use the <code>csv</code> module. To drop empty pieces: <code>[f for f in row.split(",") if f]</code>.',
+    takeaway: '<code>split(sep)</code> keeps empty strings between separators. Only <code>split()</code> with no argument drops empty pieces (and splits on any whitespace).'
+  },
+  {
+    lang: 'python',
+    difficulty: 4,
+    code: `defaults = {"tags": ["new"]}
+settings = dict(defaults)
+settings["tags"].append("sale")
+print(defaults)`,
+    flag: { line: 2, text: 'dict(defaults)' },
+    answers: ["{'tags': ['new', 'sale']}", 'tags:new,sale'],
+    display: "{'tags': ['new', 'sale']}",
+    nudge: 'Not quite. How deep does dict() copy?',
+    hints: [
+      'dict(defaults) makes a new dictionary. Does it also copy the list inside it?',
+      'It\'s a shallow copy: the new dict points at the same list object, so appending to it changes defaults too.'
+    ],
+    explain: '<code>dict(defaults)</code> (like <code>.copy()</code> and <code>{**defaults}</code>) makes a <b>shallow</b> copy: a new dictionary whose values are the same objects. Both dicts share one <code>["new"]</code> list, so appending <code>"sale"</code> through <code>settings</code> shows up in <code>defaults</code>.',
+    fix: 'Use <code>copy.deepcopy(defaults)</code>, or copy the nested list yourself: <code>settings = {"tags": list(defaults["tags"])}</code>.',
+    takeaway: '<code>dict()</code>, <code>.copy()</code> and <code>{**d}</code> are shallow copies: nested lists and dicts are still shared. Use <code>copy.deepcopy()</code> for a fully separate copy.'
+  },
+  {
+    lang: 'python',
+    difficulty: 4,
+    code: `def count(*items):
+    return len(items)
+
+print(count([1, 2, 3]))`,
+    flag: { line: 4, text: 'count([1, 2, 3])' },
+    answers: ['1'],
+    display: '1',
+    nudge: 'Not quite. How many arguments does line 4 pass?',
+    hints: [
+      '*items collects each argument into a tuple. How many arguments are there?',
+      'The list is a single argument, so items is ([1, 2, 3],): a tuple with one thing in it.'
+    ],
+    explain: '<code>*items</code> gathers the positional arguments into a tuple. Line 4 passes <b>one</b> argument, a list, so <code>items</code> is <code>([1, 2, 3],)</code> and its length is 1.',
+    fix: 'Unpack the list when calling: <code>count(*[1, 2, 3])</code> passes three arguments. Or have the function take a list: <code>def count(items)</code>.',
+    takeaway: '<code>*args</code> collects each argument you pass, so a list counts as one. Use <code>f(*my_list)</code> to spread a list into separate arguments.'
+  },
+  {
+    lang: 'python',
+    difficulty: 4,
+    code: `print(max("apple", "Banana"))`,
+    flag: { line: 1, text: 'max("apple", "Banana")' },
+    answers: ['apple'],
+    display: 'apple',
+    nudge: 'Not quite. How do uppercase and lowercase letters compare?',
+    hints: [
+      'Strings compare character by character, by their Unicode code points.',
+      'Every uppercase letter (A–Z are 65–90) comes before every lowercase one (a–z are 97–122), so "a" > "B".'
+    ],
+    explain: 'Strings compare by their characters\' Unicode code points, first character first. <code>"a"</code> is 97 and <code>"B"</code> is 66, so <code>"apple"</code> is the bigger string, even though B comes after A in the alphabet.',
+    fix: 'Compare case-insensitively with a key: <code>max("apple", "Banana", key=str.lower)</code> gives <code>"Banana"</code>.',
+    takeaway: 'String comparison is by code point, so every capital letter sorts before every lowercase one. Pass <code>key=str.lower</code> to compare alphabetically.'
+  },
+  {
+    lang: 'python',
+    difficulty: 4,
+    code: `print(any([]), all([]))`,
+    flag: { line: 1, text: 'all([])' },
+    answers: ['false true', 'false,true'],
+    display: 'False True',
+    nudge: 'Not quite. What should "all of nothing" be?',
+    hints: [
+      'any() is True if at least one item is truthy. Is there one in an empty list?',
+      'all() is True unless it finds a falsy item. An empty list has none, so all([]) is True.'
+    ],
+    explain: '<code>any()</code> looks for one truthy item and returns <code>False</code> if it finds none, so <code>any([])</code> is <code>False</code>. <code>all()</code> looks for one falsy item and returns <code>True</code> if it finds none, so <code>all([])</code> is <code>True</code>. It\'s "vacuous truth": every item in an empty list passes any test.',
+    fix: 'If an empty input should fail a check, test for it: <code>if items and all(ok(x) for x in items)</code>.',
+    takeaway: '<code>all([])</code> is <code>True</code> and <code>any([])</code> is <code>False</code>. Check for an empty list first when "no items" shouldn\'t count as passing.'
   }
-];
+);

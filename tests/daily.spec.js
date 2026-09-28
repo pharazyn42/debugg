@@ -1,31 +1,28 @@
-// The daily puzzle page: every puzzle, language tabs, streak, XP and old saves.
+// The daily puzzle page: every puzzle, the language rotation, streak, XP and old saves.
 const { test, expect } = require('@playwright/test');
 const { dayDate, openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
 
-const LANGS = ['python', 'javascript'];
+const EXT = { python: 'py', javascript: 'js', c: 'c', rust: 'rs' };
+const NAME = { python: 'Python', javascript: 'JavaScript', c: 'C', rust: 'Rust' };
 
-// Switching language only changes the URL hash, and the page reloads itself to show the
-// other puzzle, so wait for that puzzle before doing anything else.
-async function gotoLang(page, lang, day){
-  await page.goto('index.html#' + lang);
-  await expect(page.locator('#filename')).toHaveText('day' + day + (lang === 'python' ? '.py' : '.js'));
-}
-
-for(const lang of LANGS){
-  test(`every ${lang} puzzle is scheduled, shows its code and accepts its answer`, async ({ page }) => {
-    await openAt(page, 'index.html#' + lang);
+// Each language on its own, so every one of its puzzles comes up in turn.
+for(const lang of Object.keys(EXT)){
+  test(`every ${NAME[lang]} puzzle is scheduled, shows its code and accepts its answer`, async ({ page }) => {
+    await openAt(page, 'index.html', 1, { rotation: [{ lang }] });
     const count = await page.evaluate(l => window.Debugg.puzzlesFor(l).length, lang);
     expect(count).toBeGreaterThan(5);
     const seen = new Set();
-    for(let day = 1; seen.size < count && day <= 60; day++){
+    for(let day = 1; seen.size < count && day <= 150; day++){
       const info = await page.evaluate(d => ({ slot: Debugg.slotDay(d), label: Debugg.dayLabel(d), title: Debugg.dayTitle(d) }), day);
       if(info.slot !== day) continue;  // Sunday shares Saturday's puzzle
       await page.clock.setFixedTime(dayDate(day));
       await fresh(page);
-      const p = await puzzleFor(page, lang, day);
+      const p = await puzzleFor(page, day);
+      expect(p.lang).toBe(lang);
       seen.add(p.code);
-      await expect(page.locator('#kicker')).toHaveText('Debugg · ' + info.label + ' · ' + info.title);
-      await expect(page.locator('#filename')).toHaveText('day' + day + (lang === 'python' ? '.py' : '.js'));
+      await expect(page.locator('#kicker')).toHaveText('Debugg · ' + info.label + ' · ' + info.title + ' · ' + NAME[lang]);
+      await expect(page.locator('#filename')).toHaveText('day' + day + '.' + EXT[lang]);
+      await expect(page.locator('#langName')).toHaveText(NAME[lang]);
       await expect(page.locator('#flag')).toHaveCount(1);
       await guess(page, 'definitely not the answer');
       await expect(page.locator('#feedback')).toHaveClass(/wrong/);
@@ -38,22 +35,66 @@ for(const lang of LANGS){
 }
 
 test('the week runs from an easy Monday to a hard Friday, then one weekend puzzle', async ({ page }) => {
-  await openAt(page, 'index.html#python');
+  await openAt(page, 'index.html');
   const week = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 7].map(d => {
-    const p = Debugg.puzzleFor('python', d);
-    return { title: Debugg.dayTitle(d), label: Debugg.dayLabel(d), xp: Debugg.baseXp(d), difficulty: p.difficulty, code: p.code };
+    const p = Debugg.puzzleFor(d);
+    return { title: Debugg.dayTitle(d), label: Debugg.dayLabel(d), xp: Debugg.baseXp(d), difficulty: p.difficulty, code: p.code, lang: p.lang };
   }));
   expect(week.map(w => w.title)).toEqual(['Monday · warm-up', 'Tuesday · easy', 'Wednesday · medium',
     'Thursday · tricky', 'Friday · hard', 'Weekend · hard', 'Weekend · hard']);
   expect(week.map(w => w.xp)).toEqual([60, 80, 100, 120, 150, 200, 200]);
   expect(week.map(w => w.label)).toEqual(['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Days 6–7', 'Days 6–7']);
-  // Monday to Thursday get puzzles of their own difficulty, and Sunday is Saturday's puzzle.
-  expect(week.slice(0, 4).map(w => w.difficulty)).toEqual([1, 2, 3, 4]);
+  expect(week.map(w => w.difficulty)).toEqual([1, 2, 3, 4, 5, 5, 5]);
+  // Sunday is Saturday's puzzle, and for now every day is Python.
   expect(week[6].code).toBe(week[5].code);
+  expect(new Set(week.map(w => w.lang))).toEqual(new Set(['python']));
+});
+
+test('languages take turns, shifting a day each week, and a new one starts on the easy days', async ({ page }) => {
+  // Python and JavaScript from the start; Rust joins in week 2 (Day 15).
+  await openAt(page, 'index.html', 1, { rotation: [{ lang: 'python' }, { lang: 'javascript' }, { lang: 'rust', from: 15 }] });
+  const weeks = await page.evaluate(() => [0, 1, 2, 3, 4].map(w => Debugg.weekLangs(w).join(' ')));
+  expect(weeks).toEqual([
+    'python javascript python javascript python javascript',
+    'javascript python javascript python javascript python',
+    // Rust's first two weeks: Monday and Tuesday only.
+    'rust rust python javascript python javascript',
+    'rust rust javascript python javascript python',
+    // Then it takes its turn at every difficulty.
+    'javascript rust python javascript rust python'
+  ]);
+  // Each day's puzzle is in that day's language, at that day's difficulty, or the nearest one when
+  // the language has run out: JavaScript has only one warm-up, used in week 0, so Day 29 gets a 2.
+  const days = await page.evaluate(() => [15, 16, 17, 29, 30, 33].map(d => [Debugg.puzzleFor(d).lang, Debugg.puzzleFor(d).difficulty]));
+  expect(days).toEqual([['rust', 1], ['rust', 2], ['python', 3], ['javascript', 2], ['rust', 2], ['rust', 5]]);
+});
+
+test('a Rust day shows Rust, links to the Rust Playground and earns Rust XP', async ({ page }) => {
+  await openAt(page, 'index.html', 1, { rotation: [{ lang: 'rust' }] });
+  await fresh(page);
+  await expect(page.locator('#kicker')).toHaveText('Debugg · Day 1 · Monday · warm-up · Rust');
+  await expect(page.locator('#filename')).toHaveText('day1.rs');
+  const p = await puzzleFor(page, 1);
+  await guess(page, p.display);
+  const link = page.locator('#tryLink');
+  await expect(link).toHaveText('Run it yourself in the Rust Playground →');
+  const href = new URL(await link.getAttribute('href'));
+  expect(href.origin).toBe('https://play.rust-lang.org');
+  expect(href.searchParams.get('code')).toBe(p.code);
+  expect(await readJson(page, 'debugg-xp')).toEqual({ rust: 60 });
+});
+
+test("a C day has no run link, since C doesn't run in the browser yet", async ({ page }) => {
+  await openAt(page, 'index.html', 1, { rotation: [{ lang: 'c' }] });
+  await fresh(page);
+  await page.click('#revealBtn');
+  await expect(page.locator('#takeawayOut')).not.toBeEmpty();
+  await expect(page.locator('.try')).toBeHidden();
+  await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'sandbox.html');
 });
 
 test('answers are matched loosely', async ({ page }) => {
-  await openAt(page, 'index.html#python');
+  await openAt(page, 'index.html');
   for(const variant of ['1,2', '1 2', '[1,2]', '[1, 2]']){
     await fresh(page);
     await guess(page, variant);
@@ -61,38 +102,23 @@ test('answers are matched loosely', async ({ page }) => {
   }
 });
 
-test('language tabs switch puzzles, remember the choice and show results', async ({ page }) => {
-  await openAt(page, 'index.html');
-  await fresh(page);
-  await expect(page.locator('.lang-tab[aria-current]')).toHaveText('Python');
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
-  await page.click('a[href="#javascript"]');
-  await expect(page.locator('#filename')).toHaveText('day3.js');
-  await expect(page.locator('a[href="#python"]')).toContainText('✓');
-  await page.click('#revealBtn');
-  await expect(page.locator('a[href="#javascript"]')).toContainText('✕');
-  await page.goto('index.html');
-  await expect(page.locator('#filename')).toHaveText('day3.js');
-});
-
-test('the streak counts days with at least one solve, and the weekend as one', async ({ page }) => {
+test('the streak counts days with a solve, and the weekend as one', async ({ page }) => {
   // Days 7, 14, 21… are Sundays, which play Saturday's puzzle.
   const slotOf = day => (day % 7 === 0 ? day - 1 : day);
-  const solveOn = async (day, lang = 'python') => {
+  const solveOn = async day => {
     await page.clock.setFixedTime(dayDate(day));
-    await page.goto('index.html?d=' + day + '#' + lang);  // a full page load, not just a hash change
-    await expect(page.locator('#filename')).toHaveText('day' + slotOf(day) + (lang === 'python' ? '.py' : '.js'));
-    await guess(page, (await puzzleFor(page, lang, day)).display);
+    await page.goto('index.html?d=' + day);  // a full page load at the new time
+    await expect(page.locator('#filename')).toHaveText('day' + slotOf(day) + '.py');
+    await guess(page, (await puzzleFor(page, day)).display);
   };
-  await openAt(page, 'index.html#python', 3);  // Wednesday
+  await openAt(page, 'index.html', 3);  // Wednesday
   await fresh(page);
   await solveOn(3);
   await expect(page.locator('#streak')).toHaveText('1');
-  await solveOn(4, 'javascript');
+  await solveOn(4);
   await expect(page.locator('#streak')).toHaveText('2');
-  // A second solve the same day doesn't add to it, and a loss doesn't reset it.
-  await gotoLang(page, 'python', 4);
-  await page.click('#revealBtn');
+  // Reloading a solved day doesn't add to it.
+  await page.reload();
   await expect(page.locator('#streak')).toHaveText('2');
   await solveOn(5);
   await expect(page.locator('#streak')).toHaveText('3');
@@ -100,7 +126,7 @@ test('the streak counts days with at least one solve, and the weekend as one', a
   // Saturday isn't played; solving the weekend puzzle on Sunday still carries the streak on.
   await solveOn(7);
   await expect(page.locator('#streak')).toHaveText('4');
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Days 6–7 · Weekend · hard');
+  await expect(page.locator('#kicker')).toHaveText('Debugg · Days 6–7 · Weekend · hard · Python');
   // Monday: still alive until Monday's puzzle is missed.
   await page.clock.setFixedTime(dayDate(8));
   await page.reload();
@@ -111,10 +137,10 @@ test('the streak counts days with at least one solve, and the weekend as one', a
 });
 
 test('a weekend puzzle solved on Saturday is still solved on Sunday', async ({ page }) => {
-  await openAt(page, 'index.html#python', 6);
+  await openAt(page, 'index.html', 6);
   await fresh(page);
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Days 6–7 · Weekend · hard');
-  await guess(page, (await puzzleFor(page, 'python', 6)).display);
+  await expect(page.locator('#kicker')).toHaveText('Debugg · Days 6–7 · Weekend · hard · Python');
+  await guess(page, (await puzzleFor(page, 6)).display);
   expect((await readJson(page, 'debugg-xp')).python).toBe(200);
   await page.clock.setFixedTime(dayDate(7));
   await page.reload();
@@ -124,11 +150,11 @@ test('a weekend puzzle solved on Saturday is still solved on Sunday', async ({ p
 
 test('XP depends on the day, guesses and hints, and is only awarded once', async ({ page }) => {
   const xp = () => readJson(page, 'debugg-xp');
-  await openAt(page, 'index.html#python', 3);  // Wednesday: 100
+  await openAt(page, 'index.html', 3);  // Wednesday: 100
   await fresh(page);
-  await guess(page, (await puzzleFor(page, 'python', 3)).display);
+  await guess(page, (await puzzleFor(page, 3)).display);
   expect((await xp()).python).toBe(100);
-  await expect(page.locator('#feedback')).toContainText('+100 XP. Level up: Python Lv 2!');
+  await expect(page.locator('#feedback')).toContainText('+100 XP. Level up: Python Lv 2, overall Lv 2!');
   await page.reload();
   expect((await xp()).python).toBe(100);
 
@@ -137,26 +163,44 @@ test('XP depends on the day, guesses and hints, and is only awarded once', async
   await page.reload();
   await page.click('#hintBtn');
   await guess(page, 'nope');
-  await guess(page, (await puzzleFor(page, 'python', 4)).display);
+  await guess(page, (await puzzleFor(page, 4)).display);
   expect((await xp()).python).toBe(168);
 
-  // Revealing earns 10, in its own language.
-  await gotoLang(page, 'javascript', 4);
+  // Friday: revealing earns 10.
+  await page.clock.setFixedTime(dayDate(5));
+  await page.reload();
   await page.click('#revealBtn');
-  expect(await xp()).toEqual({ python: 168, javascript: 10 });
-  await expect(page.locator('.xp-row').first()).toContainText('JavaScript');
+  expect((await xp()).python).toBe(178);
 
   // Monday is a warm-up: 60.
   await page.clock.setFixedTime(dayDate(8));
-  await gotoLang(page, 'python', 8);
-  await guess(page, (await puzzleFor(page, 'python', 8)).display);
-  expect((await xp()).python).toBe(228);
+  await page.reload();
+  await guess(page, (await puzzleFor(page, 8)).display);
+  expect((await xp()).python).toBe(238);
 });
 
-test('saves from before languages and XP still load', async ({ page }) => {
+test('XP is kept per language, with an overall level above them', async ({ page }) => {
+  // Python and JavaScript alternate: Wednesday (Day 3) is Python, Thursday JavaScript.
+  await openAt(page, 'index.html', 3, { rotation: [{ lang: 'python' }, { lang: 'javascript' }] });
+  await fresh(page);
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await page.clock.setFixedTime(dayDate(4));
+  await page.reload();
+  await expect(page.locator('#kicker')).toContainText('JavaScript');
+  await page.click('#revealBtn');
+  expect(await readJson(page, 'debugg-xp')).toEqual({ python: 100, javascript: 10 });
+  // Overall first, then today's language, then the others.
+  const rows = page.locator('.xp-row');
+  await expect(rows.locator('.xp-lang')).toHaveText(['Overall', 'JavaScript', 'Python']);
+  await expect(rows.nth(0).locator('.xp-level')).toHaveText('Lv 2');
+  await expect(rows.nth(0).locator('.xp-num')).toHaveText('110 / 300 XP');
+  await expect(rows.nth(1).locator('.xp-level')).toHaveText('Lv 1');
+  await expect(rows.nth(2).locator('.xp-level')).toHaveText('Lv 2');
+});
+
+test('saves from before XP still load', async ({ page }) => {
   // Old bare-number streaks are read as ending on Day 1, so this runs on Day 2 (a Tuesday).
-  await openAt(page, 'index.html#python', 2);
-  // Old formats, but under the current calendar (the remembered Day 1 date is kept).
+  await openAt(page, 'index.html', 2);
   await fresh(page);
   await withStorage(page, {
     'debugg-streak': '3',
@@ -179,23 +223,23 @@ test('works at phone width', async ({ page }) => {
 });
 
 test('days before Day 1 are previews with their own saves', async ({ page }) => {
-  await openAt(page, 'index.html#python', -2);  // Friday 2 October 2026
+  await openAt(page, 'index.html', -2);  // Friday 2 October 2026
   await fresh(page);
   await expect(page.locator('#kicker')).toHaveText('Debugg · Preview · Day 1 is 5 October');
   await expect(page.locator('#filename')).toHaveText('preview.py');
-  await guess(page, (await puzzleFor(page, 'python', -2)).display);
+  await guess(page, (await puzzleFor(page, -2)).display);
   await expect(page.locator('#feedback')).toHaveClass(/correct/);
   expect(await readJson(page, 'debugg-day-2')).toMatchObject({ solved: true });
 
   // Day 1 is a fresh puzzle.
   await page.clock.setFixedTime(dayDate(1));
   await page.reload();
-  await expect(page.locator('#kicker')).toHaveText('Debugg · Day 1 · Monday · warm-up');
+  await expect(page.locator('#kicker')).toHaveText('Debugg · Day 1 · Monday · warm-up · Python');
   await expect(page.locator('#feedback')).not.toHaveClass(/correct/);
 });
 
 test('moving Day 1 clears progress saved under the old day numbers', async ({ page }) => {
-  await openAt(page, 'index.html#python', 1);
+  await openAt(page, 'index.html', 1);
   await page.evaluate(() => {
     localStorage.clear();  // no remembered calendar, as for saves made before it existed
     localStorage.setItem('debugg-day1', JSON.stringify({ attempts: ['correct'], solved: true, revealed: true, hintLevel: 0, xp: 100 }));
@@ -220,19 +264,21 @@ test('moving Day 1 clears progress saved under the old day numbers', async ({ pa
   expect(kept.company).toMatchObject({ money: 500, paid: {} });
 
   // Once the calendar is remembered, nothing else is cleared.
-  await guess(page, (await puzzleFor(page, 'python', 1)).display);
+  await guess(page, (await puzzleFor(page, 1)).display);
   await page.reload();
   await expect(page.locator('#feedback')).toHaveClass(/correct/);
 });
 
-test('players see only Python for the soft launch', async ({ page }) => {
-  await openAt(page, 'index.html#javascript', 1, { langs: null });
+test('players get Python only for now, in the puzzles and the sandbox', async ({ page }) => {
+  await openAt(page, 'index.html', 1);
   await fresh(page);
   await expect(page.locator('#filename')).toHaveText('day1.py');
-  await expect(page.locator('#langs')).toBeHidden();
-  // Earlier JavaScript XP is kept, just not shown.
-  await withStorage(page, { 'debugg-xp': { python: 10, javascript: 500 } });
-  await expect(page.locator('.xp-row')).toHaveCount(1);
+  const langs = await page.evaluate(() => {
+    const seen = new Set();
+    for(let d = 1; d <= 70; d++) seen.add(Debugg.puzzleFor(d).lang);
+    return [...seen];
+  });
+  expect(langs).toEqual(['python']);
   await page.goto('sandbox.html#javascript');
   await expect(page.locator('#filename')).toHaveText('main.py');
   await expect(page.locator('#langs')).toBeHidden();
