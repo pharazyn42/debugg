@@ -646,7 +646,8 @@ top of the puzzle page, with the Python course's Unit 1, *Values and printing* (
 a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
-  modular, one file each; the course lists them in order and names the planned ones.
+  modular, one file each; the course lists them in order and names the planned ones. A course
+  with `soon: true` and no files (C, for now) shows as a "soon" tab with only its planned units.
 - **Steps:** teaching points, multiple choice (each wrong option explains itself), "what does
   this print?", fill the blank (pick the missing piece) and "tap the line with the bug".
 - **Progress:** lessons unlock in order; a wrong answer is explained, shows the right answer,
@@ -752,8 +753,9 @@ later, Debuggit Ltd's Embedded/Controls contracts.
   register viewer and bit flipper; (3) the virtual board, Units 4–7; (4) Ltd's
   Embedded/Controls domain (with item 16); (5) maybe C in the browser (picoc/TinyCC in
   WebAssembly, or an emulator like avr8js).
+- **Decided:** C99 as the baseline.
 - **Open questions:** hobbyist or professional audience; generic registers or a named chip
-  family (AVR, Cortex-M); C99 or C11; whether to cover Arduino's C++; separate Embedded XP.
+  family (AVR, Cortex-M); whether to cover Arduino's C++; separate Embedded XP.
 
 ### Phase 2 — Make the core loop feel right
 

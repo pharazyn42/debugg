@@ -60,6 +60,22 @@ test('the course map opens with the first lesson, and every unit file is loaded'
     .toBe(await page.evaluate(() => DEBUGG_LEARN.units.length));
 });
 
+test('C is a coming-soon tab with its planned units', async ({ page }) => {
+  const tabs = page.locator('#langs .lang-tab');
+  await expect(tabs).toHaveCount(2);
+  await expect(tabs.nth(0)).toHaveAttribute('aria-current', 'page');
+  await expect(tabs.nth(1)).toContainText('C');
+  await expect(tabs.nth(1).locator('.soon-badge')).toHaveText('soon');
+  await tabs.nth(1).click();
+  await expect(page.locator('h1')).toHaveText('Learn C');
+  await expect(page.locator('#sub')).toContainText('coming soon');
+  await expect(page.locator('.lesson-row')).toHaveCount(0);
+  await expect(page.locator('.unit.planned').first()).toContainText('Values and printf');
+  await expect(page.locator('.unit.planned').last()).toContainText('Embedded C');
+  await tabs.nth(0).click();
+  await expect(page.locator('h1')).toHaveText('Learn Python');
+});
+
 test('a perfect lesson earns 3 stars and Learn XP, and opens the next lesson', async ({ page }) => {
   await page.click('[data-action=lesson][data-lesson=print]');
   await finishAll(page);

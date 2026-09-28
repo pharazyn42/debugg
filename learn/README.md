@@ -29,6 +29,8 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
 
 1. Write `learn/<lang>/NN-name.js`, pushing one unit onto `window.DEBUGG_LEARN.units` (copy an existing one).
 2. Add the file to the course's `files` in `learn/courses.js` (and remove its title from `planned`).
+   A new course can start as `soon: true` with `files: []`: its tab says "soon" and lists only
+   the planned units. Drop `soon` when its first unit goes in.
 3. Add a `<script>` tag for it in `learn.html`. (A test checks the page loads every listed file.)
 4. Run `npm run check-puzzles`: it runs every snippet in every lesson.
 

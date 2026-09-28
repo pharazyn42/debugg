@@ -80,7 +80,7 @@ window.DebuggLearn = (function(){
     const nav = $('langs');
     nav.hidden = langs.length < 2;
     nav.innerHTML = langs.map(l => '<a class="lang-tab" href="#' + l + '"' + (l === lang ? ' aria-current="page"' : '') + '>' +
-      esc(L.courses[l].name) + '</a>').join('');
+      esc(L.courses[l].name) + (L.courses[l].soon ? ' <span class="soon-badge">soon</span>' : '') + '</a>').join('');
   }
 
   function starText(n){ return '★'.repeat(n) + '☆'.repeat(3 - n); }
@@ -88,7 +88,9 @@ window.DebuggLearn = (function(){
   function renderMap(){
     session = null;
     $('title').textContent = 'Learn ' + L.courses[lang].name;
-    $('sub').textContent = 'Short lessons that build up from the very start. Get each question right to move on.';
+    $('sub').textContent = L.courses[lang].soon
+      ? 'The ' + L.courses[lang].name + ' course is coming soon. Here’s what it will cover.'
+      : 'Short lessons that build up from the very start. Get each question right to move on.';
     renderStats();
     const units = unitsOf(lang);
     let html = '';

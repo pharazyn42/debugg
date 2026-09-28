@@ -118,12 +118,16 @@ Each unit: 3–4 lessons and a checkpoint, as in the Python course.
      against value;
    - a real-hardware bonus: "try it on an Arduino / Raspberry Pi Pico" links from lessons.
 
+## Decided
+
+- **C standard: C99.** Puzzles and lessons compile with `-std=c99`; C11 extras (`_Static_assert`,
+  `<stdatomic.h>`) stay out, and critical sections are taught the C99 way (disabling interrupts).
+
 ## Open questions
 
 - **Audience**: hobbyists (Arduino, Pico) or professional firmware engineers? It decides the
   examples (LEDs and buttons vs UARTs and DMA) and how deep units 7–9 go.
 - **Chip flavour**: generic made-up registers (portable, vendor-neutral), or a named family
   (e.g. AVR or ARM Cortex-M) so lessons map to real datasheets?
-- **C standard**: C99 or C11 as the baseline (C11 adds `_Static_assert` and atomics)?
 - **C++**: Arduino code is C++; include a later "Embedded C++" unit, or stay pure C?
 - **Separate XP**: count embedded puzzles as C XP, or give Embedded its own XP and level?
