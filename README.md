@@ -8,7 +8,7 @@ A Wordle-style daily game where you guess what a short, buggy code snippet actua
 
 **One puzzle a day, and the languages take turns.** `ROTATION` in `shared.js` lists the languages in play and the day each one joins; for now it's Python only. With more than one, they share the week's six puzzles (Monday to Friday and the weekend), shifting one day along each week so every language gets every difficulty in turn. A newly added language only gets Monday and Tuesday, the easy days, for its first two weeks. C, Rust and JavaScript puzzles are written and checked; to introduce one, add it to `ROTATION` with the day it joins.
 
-There's a new puzzle every day at local midnight. **Difficulty follows the week:** Monday is a warm-up, then easy, medium, tricky, and Friday is hard. Saturday and Sunday share one harder weekend puzzle (solving it on either day counts for both). Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving the daily puzzle builds your bug streak.
+There's a new puzzle every day at local midnight. **Difficulty follows the week:** Monday is a warm-up, then easy, medium, tricky, and Friday is hard. Saturday and Sunday share one harder weekend puzzle (solving it on either day counts for both). Each puzzle gives you 4 guesses. Two optional hints are available and don't cost you a guess; using them is tracked and shown alongside your result. Once the game ends you get the explanation, the fix, and a one-line **takeaway**: the general rule to remember. Solving the daily puzzle builds your bug streak. When it's over, **Share your result** copies a spoiler-free line of squares (right, wrong, unused) and hints, Wordle-style.
 
 Each puzzle also earns XP in its language, so you level up in each language you play, and all of it adds up to an **overall level** shown above them. A first-guess, no-hint solve earns the day's XP:
 
@@ -49,7 +49,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Debuggit Ltd
 
-The **Ltd** tab at the top (next to Daily and Learn; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily and Learn; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
 
 - **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
@@ -59,6 +59,8 @@ The **Ltd** tab at the top (next to Daily and Learn; "Start your own company" th
 - **Pause company** stops the clock completely (no salaries, no progress) until you switch it back on. **Close company** deletes it; puzzle progress, XP and the streak are kept. The footer's "reset puzzles" does the opposite: it keeps the company.
 
 Patches and bigger contracts only come to the board once the company has more than 10 staff, the Director included.
+
+A **Next step** card walks a new company through its first hire, its first contract and the desk puzzle; after that, the studio warns about anyone left on the bench (they're still paid) and about debt. The board shows the contracts your staff can take, with the rest folded away.
 
 **In the demo** the company is the start-up slice: no managers, so you can have up to 4 devs, which means hotfixes only (patches need more than 10 staff). Minor and major releases show on the board as "coming in v0.1".
 

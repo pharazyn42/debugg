@@ -64,7 +64,9 @@ Ltd tab). On the Daily tab a running company is loaded but hidden (`body.ltd-run
 `ltd-on`), with a one-line note linking to Ltd, so the puzzle still pays it.
 `DebuggLtd.start({ stats, studio, board })` renders into the three slots and either resumes the
 saved company, imports an old one, or founds a new one. `body.ltd-on` shows the studio in the
-two-column layout.
+two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title), with the
+puzzle as "Your desk: what does this print?". On a phone (≤ 800px), a puzzle already finished
+today folds to its tiles there (`body.desk-folded`, with a Show/Fold button).
 
 **Languages and the rotation.** There's one puzzle a day, and the
 languages take turns. `LANG_INFO` in `shared.js` describes every language
@@ -178,6 +180,8 @@ state = {
   tiersVersion, boardVersion,                     // save-shape markers for the boot migrations
   enabled, pausedAt,                              // false / a time while the player has it paused
   paid: { 'python-5': true, … },                  // desk puzzles already paid for (last 14 days)
+  applicants: [ { id, role, person, cost, expiresAt } ], nextApplicantAt,
+  guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
   market: { prices: { Graduate: 1.08, … }, nextAt } // hire-cost multipliers, and when the market next moves
 }
 ```
@@ -308,6 +312,19 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
+  top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
+  they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
+  It ends (`state.guideDone`) once those are done, or when dismissed. After that, warnings stay:
+  devs on the bench and what they cost ("On the bench · −¤2/min" on their card too), and cash
+  below zero. The welcome message can be dismissed. Added after a playtest where an unstaffed
+  grad left the company ¤315 in debt three hours in.
+- **Slot counts** explain themselves: when a level is full but there's room for more devs, a
+  note under the counts says why (everyone needs someone a level up) and what makes room. Hire
+  buttons say e.g. "grads full — a junior makes room for 3 more".
+- **The board folds offers nobody can take**: offers in languages nobody on staff knows sit
+  behind a "Show 3 in languages nobody on staff knows" toggle (`state.showUnknownOffers`), unless
+  nobody's been hired yet.
 - **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): only
   graduates and managers have hire buttons. Juniors, seniors and principals *apply*: one
   every 8–24 hours (the first 2 hours after founding), at most 3 waiting, each asking the
@@ -925,7 +942,9 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
   matter most:
   - a clear result summary;
   - a Wordle-style share card (guesses and hints as squares, no
-    spoilers);
+    spoilers). **Done as text** (September 2026): "Share your result" under the duck copies
+    (or, on phones, opens the share sheet with) e.g. `debugg(it) Day 3 · Python`, `🟥🟩⬛⬛ · 1
+    hint`, `Debugged it in 2` and the link; an image card is still to do;
   - the streak and XP level-ups made to feel like rewards.
 - **Debugg Ltd.** Less wall-of-text and more at-a-glance:
   - icons or colour for roles and languages;

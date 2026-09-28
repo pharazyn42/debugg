@@ -196,6 +196,63 @@ test('experienced developers apply now and then; only grads and managers have hi
   await expect(page.locator('#log')).toContainText('Sam Q. (senior) took a job elsewhere.');
 });
 
+test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', async ({ page }) => {
+  await withStorage(page, { 'debugg-xp': { python: 100 } });
+  await found(page);
+  await expect(page.locator('h1')).toHaveText('Debuggit Ltd');
+  await expect(page).toHaveTitle('Debuggit Ltd');
+  // 1. Hire a graduate.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'hire');
+  await expect(page.locator('[data-action=hire][data-role=Graduate]')).toHaveClass(/guide-target/);
+  await page.click('[data-action=hire][data-role=Graduate]');
+  // 2. Put them on a hotfix they can take, with repeat on.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'staff');
+  const grad = (await ltd(page)).roster[1];
+  const lang = Object.keys(grad.lang)[0];
+  await expect(page.locator('.guide')).toContainText('Put ' + grad.name + ' to work');
+  const target = page.locator('[data-action=staff].guide-target');
+  await expect(target).toHaveCount(1);
+  await expect(page.locator('.offer:has(.guide-target) .chip.lang')).toHaveText(lang);
+  // Grads are full at one while you're alone, and the note says why.
+  await expect(page.locator('#structureNote')).toContainText('Grads 1/1 are full, though you have room for 3 more devs (Devs 1/4)');
+  await target.click();
+  await page.click('[data-pick="' + grad.id + '"]');
+  await page.click('[data-action=pick-start]');
+  // 3. Solve today's puzzle.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'desk');
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await expect(page.locator('.guide')).toHaveCount(0);
+  expect((await ltd(page)).guideDone).toBe(true);
+});
+
+test('staff on the bench and debt are flagged; the welcome can be dismissed', async ({ page }) => {
+  await found(page);
+  await page.click('#welcomeToast [data-action=close-toast]');
+  await expect(page.locator('#welcomeToast')).toBeHidden();
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.money = -50;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+  });
+  await expect(page.locator('.guide')).toHaveCount(0);
+  await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench, costing ¤2/min');
+  await expect(page.locator('[data-alert=debt]')).toContainText('The company is ¤50 in debt');
+  await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · −¤2/min');
+});
+
+test('on a phone, the Ltd tab folds a finished puzzle to its tiles', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await page.click('#foundBtn');
+  await expect(page.locator('#statMoney')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/desk-folded/);
+  await expect(page.locator('#code')).toBeHidden();
+  await expect(page.locator('#tiles')).toBeVisible();
+  await page.click('#deskToggle');
+  await expect(page.locator('#code')).toBeVisible();
+  await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
@@ -209,7 +266,7 @@ test('the board has a hotfix in every language, and no domains', async ({ page }
 
 // Adds staff until the company has `n` people, the Director included.
 const staffUpTo = n => new Function('s', `
-  while(s.roster.length < ${n}) s.roster.push({ id: 'g' + s.roster.length, name: 'Grad ' + s.roster.length, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });`);
+  while(s.roster.length < ${n}) s.roster.push({ id: 'g' + s.roster.length, name: 'Grad ' + s.roster.length, role: 'Graduate', since: Date.now(), lang: { Python: 10, 'C/C++': 10, JavaScript: 10, Rust: 10 } });`);
 
 test('patches only come to the board above 10 staff', async ({ page }) => {
   await found(page);
@@ -256,7 +313,15 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Rust: 10 } });
     s.board.find(o => o.tier === 0 && o.lang === 'Rust').id = 'rust1';
   });
-  await expect(page.locator('.board-group[data-tier=hotfix] .offer').nth(1)).toContainText('Nobody on staff knows C/C++');
+  // Only the Rust hotfix can be taken; the other three fold away.
+  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
+  await expect(hotfixes).toHaveCount(1);
+  await expect(hotfixes.locator('.chip.lang')).toHaveText('Rust');
+  await page.click('.board-group[data-tier=hotfix] [data-action=toggle-unknown]');
+  await expect(hotfixes).toHaveCount(4);
+  await expect(hotfixes.nth(1)).toContainText('Nobody on staff knows');
+  await page.click('.board-group[data-tier=hotfix] [data-action=toggle-unknown]');
+  await expect(hotfixes).toHaveCount(1);
   await page.click('[data-action=staff][data-offer=rust1]');
   await page.click('[data-pick=g1]');
   await page.click('[data-action=pick-start]');

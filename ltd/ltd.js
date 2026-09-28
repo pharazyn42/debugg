@@ -46,7 +46,9 @@ window.DebuggLtd = (function(){
     studioSlot.innerHTML =
       '<div class="panel">' +
         '<h2>Studio <span class="tag" id="rosterCount">1 person</span></h2>' +
+        '<div id="guide"></div>' +
         '<div class="structure" id="structure"></div>' +
+        '<p class="structure-note" id="structureNote"></p>' +
         '<div class="roster" id="roster"></div>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
         '<h3>Applicants</h3>' +
@@ -77,6 +79,7 @@ window.DebuggLtd = (function(){
     const $ = id => document.getElementById(id);
     const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
+    const guideEl = $('guide'), structureNote = $('structureNote');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
     const welcomeToast = $('welcomeToast');
@@ -507,10 +510,10 @@ window.DebuggLtd = (function(){
         return c.Manager ? 'managers are at capacity — hire another manager'
                          : 'you can only look after ' + DIRECTOR_SPAN + ' devs — hire a manager';
       }
-      if(c.Principal > cap.Principal) return 'no principal slot — hire another manager';
-      if(c.Senior > cap.Senior) return 'no senior slot — needs another principal';
-      if(c.Junior > cap.Junior) return 'no junior slot — needs another senior';
-      if(c.Graduate > cap.Graduate) return 'no grad slot — needs another junior';
+      if(c.Principal > cap.Principal) return 'principals full — a manager makes room for more';
+      if(c.Senior > cap.Senior) return 'seniors full — a principal makes room for 3 more';
+      if(c.Junior > cap.Junior) return 'juniors full — a senior makes room for 3 more';
+      if(c.Graduate > cap.Graduate) return 'grads full — a junior makes room for 3 more';
       return null;
     }
     function problemWith(change){
@@ -781,8 +784,11 @@ window.DebuggLtd = (function(){
 
     function showToast(text){
       welcomeToast.className = 'toast show';
-      welcomeToast.textContent = text;
+      welcomeToast.innerHTML = '<button class="toast-close" data-action="close-toast" aria-label="Dismiss">✕</button>' + esc(text);
     }
+    welcomeToast.addEventListener('click', (e) => {
+      if(e.target.closest('[data-action=close-toast]')) welcomeToast.className = 'toast';
+    });
 
     // Founder's bonus: ¤1 per puzzle XP earned before the company existed, up to ¤1,000.
     function founderBonus(){
@@ -831,8 +837,7 @@ window.DebuggLtd = (function(){
       track('founded');
       opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
-        '. Hire a graduate and staff a hotfix to get going. Each daily puzzle you finish from now on pays the company too. ' +
-        'Debuggit Ltd is in beta, so its numbers may change as it’s balanced.' +
+        '. Debuggit Ltd is in beta, so its numbers may change.' +
         (DEMO ? ' In the demo it runs hotfixes with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
@@ -878,6 +883,56 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // Rendering: stats, studio, board
     // ---------------------------------------------------------------------
+
+    // The first steps, shown as one "next step" card until the player has a dev on a contract and
+    // has solved a desk puzzle (or dismisses it): hire a grad, put them on a hotfix they can
+    // take (with repeat on), solve today's puzzle. Returns { key, text, offerId? } or null.
+    function guideStep(){
+      if(state.guideDone) return null;
+      const devs = state.roster.filter(isDev);
+      if(!devs.length){
+        return { key: 'hire', text: '<b>Hire a graduate.</b> They write the code; you run the company. It costs ' +
+          fmt(hireCost('Graduate')) + ' and ¤' + ROLES.Graduate.salary + '/min in salary.' };
+      }
+      if(!state.jobs.length){
+        const d = devs[0];
+        const offer = state.board.find(o => TIERS[o.tier].key === 'hotfix' && qualifiedFor(d, o));
+        return { key: 'staff', offerId: offer && offer.id,
+          text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
+            esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
+            'while you’re away. Staff on the bench still get paid.' };
+      }
+      const today = D.slotDay(D.today());
+      if(!D.isFinished(today)){
+        return { key: 'desk', text: '<b>Solve today’s puzzle at your desk.</b> It pays the company up to ' +
+          fmt(D.baseXp(today) * CASH_PER_XP) + ', and a new one comes out every day.' };
+      }
+      state.guideDone = true;
+      save();
+      return null;
+    }
+    // Warnings that stay: people on the bench costing money, and cash below zero.
+    function renderGuide(){
+      const step = guideStep();
+      let html = '';
+      if(step){
+        html += '<div class="guide" data-step="' + step.key + '"><button class="toast-close" data-action="skip-guide" aria-label="Hide the guide">✕</button>' +
+          '<span class="guide-label">Next step</span>' + step.text + '</div>';
+      }
+      const busy = busyIds();
+      const idle = state.roster.filter(p => isDev(p) && !busy.has(p.id));
+      if(idle.length && !(step && step.key === 'staff')){
+        const cost = idle.reduce((n, p) => n + ROLES[p.role].salary, 0);
+        html += '<div class="alert" data-alert="idle">⚠ ' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
+          ' on the bench, costing ¤' + cost + '/min. Staff them on a contract below.</div>';
+      }
+      if(state.money < 0){
+        html += '<div class="alert bad" data-alert="debt">⚠ The company is ' + fmt(-state.money) + ' in debt, and salaries keep going out. ' +
+          'Put everyone on contracts, solve today’s puzzle, or let someone go.</div>';
+      }
+      setHTML(guideEl, html);
+      return step;
+    }
 
     function renderStats(){
       statMoney.textContent = fmt(state.money);
@@ -979,6 +1034,20 @@ window.DebuggLtd = (function(){
         slot('Juniors', c.Junior, cap.Junior) +
         slot('Grads', c.Graduate, cap.Graduate) +
         slot('Devs', c.devs, cap.devs));
+      // Why a level is full while there's still room for devs overall: every level needs
+      // someone at the level above (or you) to look after it.
+      const LEVEL_NOTES = [
+        ['Graduate', 'Grads', 'Each junior can look after ' + MENTOR_SPAN + ' more grads: hire one from Applicants below, or promote a grad.'],
+        ['Junior', 'Juniors', 'Each senior can look after ' + MENTOR_SPAN + ' more juniors: wait for one to apply, or promote a junior.'],
+        ['Senior', 'Seniors', 'Each principal can look after ' + MENTOR_SPAN + ' more seniors: wait for one to apply, or promote a senior.']
+      ];
+      const full = c.devs < cap.devs && LEVEL_NOTES.find(([role]) => c[role] >= cap[role]);
+      const room = cap.devs - c.devs;
+      structureNote.innerHTML = full
+        ? '<b>' + full[1] + ' ' + c[full[0]] + '/' + cap[full[0]] + '</b> are full, though you have room for ' + room + ' more dev' + (room === 1 ? '' : 's') +
+          ' (<b>Devs ' + c.devs + '/' + cap.devs + '</b>): everyone needs someone a level up, and you look after one per level. ' + full[2]
+        : '';
+      structureNote.hidden = !full;
 
       rosterCount.textContent = state.roster.length + (state.roster.length === 1 ? ' person' : ' people');
 
@@ -1022,7 +1091,8 @@ window.DebuggLtd = (function(){
         const cost = hireCost(role);
         const broke = state.money < cost;
         const rise = Math.round((cost / ROLES[role].cost - 1) * 100);
-        hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') + '" data-action="hire" data-role="' + role + '"' +
+        hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') +
+                (guide && guide.key === 'hire' && role === 'Graduate' ? ' guide-target' : '') + '" data-action="hire" data-role="' + role + '"' +
                 (why || broke ? ' disabled' : '') + '>' +
                 '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost"' +
                   (rise > 0 ? ' title="Up ' + rise + '% since the company started, from inflation and competition"' : '') + '>' + fmt(cost) +
@@ -1067,6 +1137,7 @@ window.DebuggLtd = (function(){
         : job
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
+        : isDev(p) ? '<span class="status-idle warn">On the bench · −¤' + role.salary + '/min</span>'
         : '<span class="status-idle">Idle</span>';
 
       let promo = '';
@@ -1125,11 +1196,26 @@ window.DebuggLtd = (function(){
             '<span class="level-name">' + t.plural + '</span>' +
             '<span class="level-count">×' + offers.length + (running ? ' · ' + running + ' running' : '') + '</span></div>' +
             '<div class="level-sum board-sum">' + t.req + '</div>' +
-          '</div><div class="level-body board-body">' +
-          offers.map(offerHTML).join('') +
-          '</div></div>';
+          '</div><div class="level-body board-body">' + offersHTML(offers) + '</div></div>';
       });
       setHTML(boardEl, html);
+    }
+
+    // Offers someone on staff can take come first. The rest (languages nobody knows) fold
+    // behind one toggle, unless nobody's been hired yet.
+    function offersHTML(offers){
+      const devs = state.roster.filter(isDev);
+      if(!devs.length) return offers.map(offerHTML).join('');
+      const can = offers.filter(o => devs.some(d => qualifiedFor(d, o)));
+      const rest = offers.filter(o => !can.includes(o));
+      let html = can.map(offerHTML).join('');
+      if(rest.length){
+        html += '<button class="board-more" data-action="toggle-unknown">' +
+          (state.showUnknownOffers ? 'Hide' : 'Show') + ' ' + rest.length + ' in language' + (rest.length === 1 ? '' : 's') +
+          ' nobody on staff knows' + (state.showUnknownOffers ? '' : ' ▾') + '</button>';
+        if(state.showUnknownOffers) html += rest.map(offerHTML).join('');
+      }
+      return html;
     }
 
     function offerHTML(o){
@@ -1141,7 +1227,7 @@ window.DebuggLtd = (function(){
         '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
           t.xpPerMin + ' XP/min</div>' +
         '<div class="detail" style="color:var(--text-faint)">Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken</div>' +
-        '<button class="btn-ghost btn-small" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
+        '<button class="btn-ghost btn-small' + (guide && guide.offerId === o.id ? ' guide-target' : '') + '" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
         '</div>';
     }
 
@@ -1201,8 +1287,10 @@ window.DebuggLtd = (function(){
       renderAll();
     });
 
+    let guide = null;
     function renderAll(){
       const now = Date.now();
+      guide = renderGuide();
       renderStats();
       renderStudio(now);
       renderBoard();
@@ -1408,6 +1496,10 @@ window.DebuggLtd = (function(){
         state.roster.push(hire);
         addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
         track('hired/' + role.toLowerCase());
+      }else if(action === 'toggle-unknown'){
+        state.showUnknownOffers = !state.showUnknownOffers;
+      }else if(action === 'skip-guide'){
+        state.guideDone = true;
       }else if(action === 'hire-applicant'){
         const a = (state.applicants || []).find(x => x.id === btn.dataset.id);
         if(!a || state.money < a.cost || hireProblem(a.role)) return;

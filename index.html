@@ -122,6 +122,9 @@
   /* The Debuggit duck's reaction after a game. */
   .duck-says{ display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
   .duck-says[hidden]{ display: none; }
+  .share-row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
+  .share-row[hidden]{ display: none; }
+  .share-note{ font-size: 13px; color: var(--text-dim); white-space: pre-line; }
   .duck-says img{ width: 44px; height: 44px; flex: none; }
   .duck-says p{
     margin: 0;
@@ -194,6 +197,22 @@
     padding: 2px 6px;
   }
   body.ltd-running .found, body.ltd-view .found{ display: none; }
+  /* The Ltd tab: once today's puzzle is done, phones fold it to its tiles to save scrolling. */
+  .desk-toggle{
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+  body.desk-folded .desk > :not(.desk-title):not(.tiles){ display: none; }
+  body.desk-folded .desk .tiles{ margin-bottom: 0; }
+  @media (max-width: 700px){
+    body.ltd-view .sub{ display: none; }
+    body.ltd-view h1{ font-size: 26px; margin-bottom: 4px; }
+    body.ltd-view .desk-tag{ display: none; }
+  }
   body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard{ display: none !important; }
   .ltd-intro{
     background: var(--panel);
@@ -268,8 +287,8 @@
     <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd</a></nav>
     <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
-    <h1>What does this print?</h1>
-    <p class="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
+    <h1 id="title">What does this print?</h1>
+    <p class="sub" id="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
 
   <!-- The Ltd tab without a running company: what it is, and a button to start (or resume) one. -->
@@ -286,7 +305,8 @@
 
   <div class="columns">
   <main class="desk">
-  <h2 class="desk-title">Your desk <span class="desk-tag">today’s puzzles pay the company</span></h2>
+  <h2 class="desk-title">Your desk: what does this print? <span class="desk-tag">pays the company</span>
+    <button class="desk-toggle" id="deskToggle" type="button" hidden>Show ▾</button></h2>
 
   <div class="tiles" id="tiles"></div>
   <div class="hint-track" id="hintTrack">
@@ -319,6 +339,7 @@
     </div>
     <div class="feedback" id="feedback"></div>
     <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
+    <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button><span class="share-note" id="shareNote" role="status"></span></div>
     <div class="reveal" id="reveal">
       <p><b>Answer:</b> <code id="answerOut"></code></p>
       <p id="explainOut"></p>
@@ -629,7 +650,41 @@
     save();
     startCountdown();
     duckSay();
+    document.getElementById('shareRow').hidden = false;
   }
+
+  // The spoiler-free result, Wordle-style: the wordmark, the day and language, a square per
+  // guess (green right, red wrong, black unused), hints, and a link.
+  let shareMark = 'debugg.it()';  // today's language's wordmark (the Ltd tab shows its own)
+  function shareText(){
+    const squares = Array.from({ length: MAX_GUESSES }, (_, i) =>
+      state.attempts[i] === 'correct' ? '🟩' : state.attempts[i] === 'wrong' ? '🟥' : '⬛').join('');
+    const h = state.hintLevel || 0;
+    const n = state.attempts.length;
+    const site = location.href.split(/[?#]/)[0].replace(/index\.html$/, '');
+    return shareMark + ' ' + window.Debugg.dayLabel(DAY) + ' · ' + LANG.name + '\n' +
+      squares + (h ? ' · ' + h + ' hint' + (h === 1 ? '' : 's') : '') + '\n' +
+      (state.solved ? (n === 1 && !h ? 'Debugged it first try 🦆' : 'Debugged it in ' + n) : 'Not this time 🦆') + '\n' + site;
+  }
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+    const text = shareText();
+    const note = document.getElementById('shareNote');
+    let how = 'copied';
+    try{
+      if(navigator.share && matchMedia('(pointer: coarse)').matches){
+        how = 'shared';
+        await navigator.share({ text });
+      }else{
+        await navigator.clipboard.writeText(text);
+        note.textContent = 'Copied. Paste it anywhere.';
+      }
+    }catch(err){
+      if(err && err.name === 'AbortError') return;
+      how = 'shown';
+      note.textContent = text;
+    }
+    window.DebuggAnalytics.event('share/' + how);
+  });
 
   // The Debuggit duck reacts once the game is over: a hop for a solve, a wobble for a miss.
   function duckSay(){
@@ -758,6 +813,7 @@
 
   // The wordmark is "debug it" in today's language (see renderWordmark in shared.js).
   window.Debugg.renderWordmark(document.getElementById('wordmark'), lang);
+  shareMark = document.getElementById('wordmark').dataset.wordmark;
   kickerEl.textContent = window.Debugg.isPreview(DAY)
     ? 'Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
     : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name;
@@ -815,9 +871,19 @@
       if(!new URLSearchParams(location.search).has('ltd'))
         history.replaceState(null, '', location.pathname + (location.search ? location.search + '&ltd' : '?ltd') + location.hash);
       window.Debugg.renderWordmark($('wordmark'), 'ltd');
+      $('title').textContent = 'Debuggit Ltd';
+      $('sub').textContent = 'Your software studio. Hire developers and put them on contracts that keep running while you’re away. ' +
+        'Today’s puzzle is your desk: solving it pays the company.';
+      document.title = 'Debuggit Ltd';
     }
     $('ltdIntro').hidden = !ltdView || document.body.classList.contains('ltd-running');
   }
+
+  function setDeskFolded(on){
+    document.body.classList.toggle('desk-folded', on);
+    $('deskToggle').textContent = on ? 'Show ▾' : 'Fold ▴';
+  }
+  $('deskToggle').addEventListener('click', () => setDeskFolded(!document.body.classList.contains('desk-folded')));
 
   if(saved && !saved.enabled){
     $('ltdIntroText').textContent = $('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
@@ -837,7 +903,14 @@
     const js = document.createElement('script');
     js.src = 'ltd/ltd.js';
     js.onload = () => {
-      if(ltdView) document.body.classList.add('ltd-on');
+      if(ltdView){
+        document.body.classList.add('ltd-on');
+        // A puzzle already finished today folds to its tiles on a phone (it can be opened again).
+        if(window.Debugg.isFinished(window.Debugg.slotDay(window.Debugg.today()))){
+          $('deskToggle').hidden = false;
+          setDeskFolded(matchMedia('(max-width: 800px)').matches);
+        }
+      }
       else $('ltdNote').hidden = false;
       window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard') });
     };
