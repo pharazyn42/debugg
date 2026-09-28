@@ -146,7 +146,11 @@ LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old s
 BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
 
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
-PROMOTION = { Junior: {minutes:60, lang:1}, Senior: {8h, 3}, Principal: {3 days, 5} }  // contract time only
+// costs: Manager 900, Graduate 180, Junior 750, Senior 3000, Principal 12000 (× the market's prices)
+PROMOTION = { Junior: {12h, lang:1}, Senior: {3 days, 3}, Principal: {14 days, 5} }  // contract time only
+LINE_RATE = 1                            // ¤ per SLOC delivered, × tier multiplier (skill doesn't raise pay)
+MARKET_EVERY_H = [12, 36], INFLATION = [2%, 4%] (every role), COMPETITION = [6%, 15%] (one role),
+COMPETITION_CHANCE = 0.4                 // hiring prices only go up
 SKILL_SPEED = 1.0, SKILL_CHANCE = 0.05   // full bars in the contract's language: 2× SLOC/min, +5% success
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
 TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
@@ -173,7 +177,8 @@ state = {
   collapsedTiers: [],                             // contract board groups folded in the UI ('hotfix', …)
   tiersVersion, boardVersion,                     // save-shape markers for the boot migrations
   enabled, pausedAt,                              // false / a time while the player has it paused
-  paid: { 'python-5': true, … }                   // desk puzzles already paid for (last 14 days)
+  paid: { 'python-5': true, … },                  // desk puzzles already paid for (last 14 days)
+  market: { prices: { Graduate: 1.08, … }, nextAt } // hire-cost multipliers, and when the market next moves
 }
 ```
 
@@ -217,8 +222,10 @@ state = {
   - Principals: a language at 5, plus two more at lower bars.
 - **Promotions** need three things, and the player confirms with a
   "Promote" button:
-  - **Contract time at the current level**: 1 hour for Junior, 8 hours for
-    Senior, 3 days for Principal. Only time spent on contracts counts;
+  - **Contract time at the current level**: 12 hours for Junior, 3 days for
+    Senior, 14 days for Principal. Deliberately slow (September 2026, after a playtest
+    where the first promotion came an hour in): hiring at a level is the quick route,
+    growing your own people the cheap one. Only time spent on contracts counts;
     time on the bench doesn't. It's credited when each contract finishes
     (`p.worked`) and resets on promotion.
   - **Skill bars** in their best language: 1 for Junior, 3 for Senior, 5
@@ -271,15 +278,15 @@ state = {
     More senior, bigger or better-matched teams finish sooner. The picker
     shows each person's SLOC/min on that contract, plus the team total with
     the skill-match boost and the resulting time.
-  - Payout = SLOC target × `LINE_RATE` × tier multiplier × skill match. So
-    a contract pays the same whoever does it; faster teams simply earn more
-    per minute and pay less salary per contract.
+  - Payout = SLOC target × `LINE_RATE` × tier multiplier. So a contract pays the same
+    whoever does it; faster (more skilled) teams simply earn more per minute and pay less
+    salary per contract. Skill used to raise the payout too, which squared its effect.
   - Success chance = average reliability by level, plus up to
     `SKILL_CHANCE` (+5%) scaled by the team's average bars in the
     language (a grad with 1 bar adds +1%), plus the Director's boost.
   - On delivery, everyone on the team gains the tier's XP in that
-    language. XP is per minute spent on it (`xpPerMin`: 1 /
-    1.2 / 1.33 / 1.5 by tier), independent of team speed, so skill bars
+    language. XP is per minute spent on it (`xpPerMin`: 0.33 /
+    0.4 / 0.45 / 0.5 by tier), independent of team speed, so skill bars
     build at roughly the pace of the contract-time promotion timers. This is the placeholder skill-gain
     mechanic; it doesn't yet model supervision.
   - **Retry on failure**: a failed contract can be retried once, in half
@@ -301,6 +308,11 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **The hiring market** (`moveMarket()`): hire costs only go up. Every 12–36 hours (at
+  random), either inflation raises every role's cost by 2–4%, or a rival studio competing
+  for one level raises that one by 6–15%. Each move is logged, and hire buttons show the
+  rise since founding ("¤270 ↑50%"). Moves happen while the page is closed (not while
+  paused), and are kept in `state.market`.
 
 ## Known gaps — not wired in yet
 
@@ -870,8 +882,16 @@ Replace the current flat reliability-by-level model:
 - Hire costs, salaries, `LINE_RATE`, tier multipliers, XP rates and
   promotion timers are all first guesses. Do a proper pass once the
   success-chance rework, speed multiplier and deadlines are in, since
-  those shift the numbers. Known symptom: a grad on repeat now nets
-  ~¤400/hour, which makes early hires cheap relative to income.
+  those shift the numbers.
+- **First pass done** (September 2026), from a playtest of the demo's first hours. Before:
+  the first promotion came at 61 minutes and 4 devs had ¤14,000 after 4 hours. Changes:
+  `LINE_RATE` 2 → 1, hire costs ×3, promotions 1h/8h/3d → 12h/3d/14d, XP a third as fast,
+  skill no longer raises pay, and the hiring market. After: a grad nets about ¤160/hour,
+  the first junior is affordable after about 3 hours, and a demo-sized team (a junior and
+  3 grads) nets about ¤1,150/hour.
+- **Still to do:** the demo has nothing to spend on once its 4 devs are hired, so cash just
+  piles up; it needs a money sink (training, item 14; office space, item 15) or a bigger
+  demo. Reputation builds fast (0.5 a hotfix) for when it gates anything (item 12).
 
 #### 10b. Look and feel
 A design pass over the whole site: the daily puzzles, Debugg Ltd, the

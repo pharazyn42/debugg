@@ -236,6 +236,7 @@
 .ltd .hire-btn:hover:not(:disabled){ border-color: var(--blue); }
 .ltd .hire-btn .role{ font-size: 13px; }
 .ltd .hire-btn .cost{ font-family: var(--mono); font-size: 11px; color: var(--green); font-weight: 500; }
+.ltd .hire-btn .rise{ color: var(--amber); font-size: 10px; }
 .ltd .hire-btn .why{ display: block; font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); font-weight: 400; margin-top: 3px; }
 .ltd .hire-btn:disabled{ opacity: 0.55; }
 
