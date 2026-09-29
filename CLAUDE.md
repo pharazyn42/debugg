@@ -117,10 +117,13 @@ looked (`debugg-seen-version`; a first visit just records it). The routine:
   the same PR, written for players.
 - When the player-owner says **release** (optionally "release 0.1.0"; otherwise the next patch
   number): `node tools/release.js bump <version>` (dates the Unreleased notes and sets
-  `APP_VERSION`), commit, PR, merge; then tag the merge commit `v<version>` and push the tag.
-- The tag runs `.github/workflows/release.yml`: every test (it calls `tests.yml`), a check that
-  `shared.js` and `CHANGELOG.md` agree with the tag, then a GitHub Release with that version's
-  notes. Tests failing means no release.
+  `APP_VERSION`), commit, PR, merge; then run the **Release** workflow on `main` with that
+  version (`workflow_dispatch`; Claude starts it through the GitHub connection, since this
+  session can't push tags, or the player-owner can from the Actions tab). Pushing a
+  `v<version>` tag also starts it.
+- `.github/workflows/release.yml` runs every test (it calls `tests.yml`), checks that
+  `shared.js` and `CHANGELOG.md` agree with the version, then creates the `v<version>` tag and a
+  GitHub Release with that version's notes. Tests failing means no release.
 - Until item 2d, `main` still deploys straight to GitHub Pages, so a release is a label and a
   changelog entry; with 2d the public site will follow releases and `main` will go to a dev site.
 
