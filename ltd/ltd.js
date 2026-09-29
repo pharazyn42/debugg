@@ -40,7 +40,7 @@ window.DebuggLtd = (function(){
       '<div class="stat-bar">' +
         '<div class="stat"><div class="label">Cash</div><div class="value money" id="statMoney">¤0</div></div>' +
         '<div class="stat"><div class="label">Reputation</div><div class="value rep" id="statRep">0</div></div>' +
-        '<div class="stat"><div class="label">Payroll</div><div class="value rate" id="statPayroll">¤0/min</div></div>' +
+        '<div class="stat"><div class="label" id="statPayrollLabel">Payroll</div><div class="value rate" id="statPayroll">¤0/min</div></div>' +
         '<div class="stat"><div class="label">Headcount</div><div class="value" id="statHeads">1</div></div>' +
       '</div>' +
       '<div class="toast" id="welcomeToast"></div>';
@@ -50,6 +50,7 @@ window.DebuggLtd = (function(){
         '<div id="guide"></div>' +
         '<div class="structure" id="structure"></div>' +
         '<p class="structure-note" id="structureNote"></p>' +
+        '<div class="office" id="office"></div>' +
         '<div class="roster" id="roster"></div>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
         '<h3>Applicants</h3>' +
@@ -78,9 +79,9 @@ window.DebuggLtd = (function(){
     document.body.appendChild(modals);
 
     const $ = id => document.getElementById(id);
-    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads');
+    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
-    const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar');
+    const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
     const welcomeToast = $('welcomeToast');
@@ -268,13 +269,13 @@ window.DebuggLtd = (function(){
     // keeps turning over even if nobody on staff can take what's on it. A
     // replacement hotfix keeps its language.
 
-    // The demo is the start-up slice: hotfixes and patches only, and no managers (and with
-    // patches needing more than PATCH_HEADCOUNT staff, that means hotfixes in practice),
-    // so the Director looks after up to DIRECTOR_SPAN devs. The rest is shown as
-    // coming in v0.1. Old saves keep what they have; they just get no more of it.
+    // The demo is the start-up slice: hotfixes and patches only (patches need more than
+    // PATCH_HEADCOUNT staff, so managers and co-working desks). Managers were locked in the demo
+    // until October 2026, when they came in with desks as the demo's money sink. The rest is
+    // shown as coming in v0.1. Old saves keep what they have; they just get no more of it.
     const DEMO = !!D.DEMO;
     const DEMO_TIERS = ['hotfix', 'patch'];
-    const DEMO_LOCKED_ROLES = ['Manager'];
+    const DEMO_LOCKED_ROLES = [];
     const COMING = 'coming in v0.1';
     // Patches (and every bigger type) only come to the board once the company has more than
     // PATCH_HEADCOUNT people, the Director included. Hotfixes are always open.
@@ -382,7 +383,8 @@ window.DebuggLtd = (function(){
         boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
-        paid: {}              // desk puzzles already paid for, e.g. { 'python-5': true }
+        paid: {},             // desk puzzles already paid for, e.g. { 'python-5': true }
+        office: { cowork: 0 } // co-working desks rented beyond the spare room
       };
     }
 
@@ -598,9 +600,29 @@ window.DebuggLtd = (function(){
       return structureProblem(c);
     }
 
+    // ---------------------------------------------------------------------
+    // The office: desks (phase 1 of ideas/company-growth-roadmap.md)
+    // ---------------------------------------------------------------------
+    // Everyone on staff needs a desk; the Director works from home, at the daily puzzle. The
+    // spare room has SPARE_ROOM_DESKS, free. Past that, co-working desks: rented one at a time
+    // (up to COWORK_MAX), COWORK_RATE per desk per minute, charged like payroll (offline too,
+    // not while paused), and given up any time a desk is free. Business units come next.
+    const SPARE_ROOM_DESKS = 4;
+    const COWORK_RATE = 1;
+    const COWORK_MAX = 8;
+    function coworkDesks(){ return (state.office && state.office.cowork) || 0; }
+    function deskCount(){ return SPARE_ROOM_DESKS + coworkDesks(); }
+    function desksUsed(){ return state.roster.filter(p => p.role !== 'Director').length; }
+    function rentPerMinute(){ return coworkDesks() * COWORK_RATE; }
+    function deskProblem(){
+      if(desksUsed() < deskCount()) return null;
+      return coworkDesks() < COWORK_MAX ? 'no free desk — rent a co-working desk'
+                                        : 'every desk is taken — bigger premises are coming in v0.1';
+    }
+
     function hireProblem(role){
       if(DEMO && DEMO_LOCKED_ROLES.includes(role)) return COMING;
-      return problemWith({ [role]: 1 });
+      return problemWith({ [role]: 1 }) || deskProblem();
     }
     function releaseProblem(p){
       if(jobFor(p.id)) return 'on a contract';
@@ -875,7 +897,7 @@ window.DebuggLtd = (function(){
       return state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + benchPerMinute(p), 0);
     }
     function paySalaries(seconds){
-      if(seconds > 0) state.money -= (payrollPerMinute() - benchIncomePerMinute()) * seconds / 60;
+      if(seconds > 0) state.money -= (payrollPerMinute() + rentPerMinute() - benchIncomePerMinute()) * seconds / 60;
     }
     // "¤1.5", "¤2": per-minute amounts to one decimal place.
     function fmtRate(n){ return '¤' + (Math.round(n * 10) / 10).toLocaleString('en-GB'); }
@@ -940,7 +962,7 @@ window.DebuggLtd = (function(){
       opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Debuggit Ltd is in beta, so its numbers may change.' +
-        (DEMO ? ' In the demo it runs hotfixes with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
+        (DEMO ? ' In the demo it runs hotfixes, and patches once you have more than ' + PATCH_HEADCOUNT + ' staff; it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
     save();
@@ -1112,7 +1134,10 @@ window.DebuggLtd = (function(){
       statMoney.textContent = fmt(state.money);
       statMoney.classList.toggle('neg', state.money < 0);
       statRep.textContent = Math.floor(state.reputation).toLocaleString('en-GB');
-      statPayroll.textContent = '−¤' + payrollPerMinute() + '/min';
+      const rent = rentPerMinute();
+      statPayroll.textContent = '−¤' + (payrollPerMinute() + rent) + '/min';
+      statPayroll.title = rent ? '¤' + payrollPerMinute() + '/min salaries + ¤' + rent + '/min rent' : 'Salaries';
+      statPayrollLabel.textContent = rent ? 'Payroll + rent' : 'Payroll';
       statHeads.textContent = state.roster.length;
     }
 
@@ -1206,7 +1231,17 @@ window.DebuggLtd = (function(){
         slot('Seniors', c.Senior, cap.Senior) +
         slot('Juniors', c.Junior, cap.Junior) +
         slot('Grads', c.Graduate, cap.Graduate) +
-        slot('Devs', c.devs, cap.devs));
+        slot('Devs', c.devs, cap.devs) +
+        slot('Desks', desksUsed(), deskCount()));
+      const cowork = coworkDesks();
+      setHTML(officeEl,
+        '<div class="office-text"><b>Office</b> · your spare room, ' + SPARE_ROOM_DESKS + ' desks' +
+          (cowork ? ' + ' + cowork + ' co-working desk' + (cowork === 1 ? '' : 's') + ' (' + fmtRate(rentPerMinute()) + '/min)' : '') +
+          ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span></div>' +
+        '<div class="office-actions">' +
+          '<button class="btn-small btn-ghost" data-action="cowork-add"' + (cowork >= COWORK_MAX ? ' disabled title="Bigger premises are coming in v0.1"' : '') + '>+ Co-working desk · ' + fmtRate(COWORK_RATE) + '/min</button>' +
+          (cowork ? '<button class="btn-small btn-ghost" data-action="cowork-drop"' + (desksUsed() > deskCount() - 1 ? ' disabled title="Every desk is in use"' : '') + '>− Give one up</button>' : '') +
+        '</div>');
       // Why a level is full while there's still room for devs overall: every level needs
       // someone at the level above (or you) to look after it.
       const LEVEL_NOTES = [
@@ -1700,6 +1735,15 @@ window.DebuggLtd = (function(){
         state.roster.push(hire);
         addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
         track('hired/' + role.toLowerCase());
+      }else if(action === 'cowork-add'){
+        if(coworkDesks() >= COWORK_MAX) return;
+        state.office.cowork = coworkDesks() + 1;
+        addLog('info', 'Rented a co-working desk (' + fmtRate(COWORK_RATE) + '/min).');
+        track('office/cowork');
+      }else if(action === 'cowork-drop'){
+        if(!coworkDesks() || desksUsed() > deskCount() - 1) return;
+        state.office.cowork = coworkDesks() - 1;
+        addLog('info', 'Gave up a co-working desk.');
       }else if(action === 'toggle-unknown'){
         state.showUnknownOffers = !state.showUnknownOffers;
       }else if(action === 'skip-guide'){
@@ -1767,6 +1811,8 @@ window.DebuggLtd = (function(){
 
     if(!state.collapsedLevels) state.collapsedLevels = [];
     if(!state.collapsedTiers) state.collapsedTiers = [];
+    // Saves from before desks: enough co-working desks for everyone already on staff.
+    if(!state.office) state.office = { cowork: Math.max(0, state.roster.filter(p => p.role !== 'Director').length - SPARE_ROOM_DESKS) };
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.

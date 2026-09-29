@@ -18,6 +18,12 @@ things to play and the last one for fixes and balance changes.
   checkpoint.
 
 ### Debuggit Ltd
+- **Managers are in the demo.** Hire one once you're running four developers, and they'll put
+  idle developers to work for you: your company becomes a small business. Patches open once you
+  have more than 10 staff.
+- **Everyone needs a desk.** Your spare room has 4. After that, rent co-working desks from the
+  new Office line, ¤1 a minute each (up to 8), and give them up when you don't need them. You work
+  from home, at the daily puzzle.
 - Once today's puzzle is done, the Ltd tab folds it down to its result, on any screen, so the
   studio has room. **Show** opens it again, and it remembers how you left it.
 - Language skills are levels with no top (Python Lv 6), each with a bar showing the XP to the

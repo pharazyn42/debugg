@@ -299,7 +299,7 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   await found(page);
   await expect(page.locator('.stage-name')).toHaveText('Start-up');
   await expect(page.locator('.stage-bar')).toContainText('your daily puzzle pays in full');
-  await expect(page.locator('.stage-bar')).toContainText('Next: Small business, with your first manager (managers are coming in v0.1).');
+  await expect(page.locator('.stage-bar')).toContainText('Next: Small business, with your first manager.');
   await expect(page.locator('.stage-step.now')).toHaveCount(1);
 
   // A manager joins (from an old save, say): it's a small business, and they staff the idle grad.
@@ -421,11 +421,13 @@ test('patches only come to the board above 10 staff', async ({ page }) => {
   expect((await ltd(page)).board.filter(o => o.tier === 1)).toHaveLength(0);
 });
 
-test('the demo runs hotfixes and patches, with no managers yet', async ({ page }) => {
+test('the demo runs hotfixes and patches, with managers', async ({ page }) => {
   await found(page);
-  await expect(page.locator('#welcomeToast')).toContainText('In the demo it runs hotfixes');
+  await expect(page.locator('#welcomeToast')).toContainText('In the demo it runs hotfixes, and patches once you have more than 10 staff');
   await expect(page.locator('#welcomeToast')).toContainText('reset when v0.1 comes out');
-  // Patches still open above 10 staff (only an old save can get there without managers).
+  // Managers can be hired (this company just can't afford one yet).
+  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('not enough cash');
+  // Patches open above 10 staff.
   await editCompany(page, staffUpTo(11));
   await expect(page.locator('.board-group[data-tier=patch] .offer')).toHaveCount(2);
   for(const tier of ['minor', 'major']){
@@ -433,8 +435,6 @@ test('the demo runs hotfixes and patches, with no managers yet', async ({ page }
     await expect(page.locator('.board-group[data-tier=' + tier + '] .level-count')).toHaveText('coming in v0.1');
     await expect(page.locator('.board-group[data-tier=' + tier + '] .offer')).toHaveCount(0);
   }
-  await expect(page.locator('[data-action=hire][data-role=Manager]')).toBeDisabled();
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('coming in v0.1');
 
   // A company from before the demo keeps its staff, but its bigger offers go.
   await editCompany(page, s => {
@@ -466,6 +466,53 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
   expect(board.map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
   expect(board.find(o => o.id === 'rust1')).toBeUndefined();
   await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×5 · 1 running');
+});
+
+test('everyone needs a desk: the spare room has 4, then co-working desks for rent', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('.office')).toContainText('your spare room, 4 desks · 0/4 desks used');
+  await expect(page.locator('[data-action=cowork-drop]')).toHaveCount(0);
+  await editCompany(page, s => {
+    s.money = 5000;
+    s.roster.push({ id: 'j0', name: 'Jun 0', role: 'Junior', since: Date.now(), lang: { Python: 150 } });
+    for(let i = 0; i < 3; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+  });
+  // The spare room is full, so even a manager has nowhere to sit.
+  await expect(page.locator('.slot', { hasText: 'Desks' })).toHaveText('Desks 4/4');
+  await expect(page.locator('[data-action=hire][data-role=Manager]')).toBeDisabled();
+  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no free desk — rent a co-working desk');
+  await page.click('[data-action=cowork-add]');
+  await expect(page.locator('.office')).toContainText('+ 1 co-working desk (¤1/min) · 4/5 desks used');
+  await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + rent');
+  await expect(page.locator('#statPayroll')).toHaveText('−¤12/min');  // ¤11 salaries + ¤1 rent
+  await page.click('[data-action=hire][data-role=Manager]');
+  await expect(page.locator('.office')).toContainText('5/5 desks used');
+  // Every desk is in use, so none can be given up.
+  await expect(page.locator('[data-action=cowork-drop]')).toBeDisabled();
+  expect((await ltd(page)).office).toEqual({ cowork: 1 });
+
+  // Rent is paid every second, like salaries, while away too: 10 minutes of ¤1/min.
+  await editCompany(page, s => {
+    s.roster = s.roster.filter(p => p.role === 'Director');
+    s.money = 100;
+    s.lastTick = Date.now() - 10 * 60000;
+  });
+  expect(Math.round((await ltd(page)).money)).toBe(90);
+  await page.click('[data-action=cowork-drop]');
+  expect((await ltd(page)).office).toEqual({ cowork: 0 });
+  await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll');
+});
+
+test('a company from before desks gets co-working desks for everyone it has', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => { delete s.office; });
+  expect((await ltd(page)).office).toEqual({ cowork: 0 });
+  await editCompany(page, s => {
+    delete s.office;
+    for(let i = 0; i < 6; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+  });
+  expect((await ltd(page)).office).toEqual({ cowork: 2 });
+  await expect(page.locator('.office')).toContainText('6/6 desks used');
 });
 
 test('expert contracts need someone at a skill level, and pay more', async ({ page }) => {
