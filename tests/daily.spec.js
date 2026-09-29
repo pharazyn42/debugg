@@ -401,3 +401,33 @@ test('a missed puzzle links to Debuggit Learn: the unit it names, or the course'
   await expect(page.locator('#learnMoreLink')).toHaveText('Learn Python from the start in Debuggit Learn →');
   await expect(page.locator('#learnMoreLink')).toHaveAttribute('href', 'learn/#python');
 });
+
+test('the stats panel counts games played, the win rate, streaks and guesses, Wordle-style', async ({ page }) => {
+  await openAt(page, 'index.html', 5);
+  await withStorage(page, {
+    'debugg-day1': { attempts: ['correct'], solved: true, revealed: true, hintLevel: 0 },
+    'debugg-day2': { attempts: ['wrong', 'wrong', 'correct'], solved: true, revealed: true, hintLevel: 1 },
+    'debugg-day3': { attempts: ['wrong', 'wrong', 'wrong', 'wrong'], solved: false, revealed: true, hintLevel: 0 },
+    'debugg-day4': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 0 },
+    'debugg-practice-day2': { attempts: ['correct'], solved: true, revealed: true, hintLevel: 0 },  // practice doesn't count
+    'debugg-streak': { count: 1, lastDay: 4 }
+  });
+  await page.click('#statsLink');
+  const d = page.locator('#statsDialog');
+  await expect(d).toBeVisible();
+  await expect(d.locator('#statPlayed')).toHaveText('4');
+  await expect(d.locator('#statWin')).toHaveText('75%');
+  await expect(d.locator('#statStreak')).toHaveText('1');
+  await expect(d.locator('#statBest')).toHaveText('2');
+  await expect(d.locator('.dist-bar')).toHaveText(['1', '1', '1', '0']);
+  await expect(d).toContainText('2 of 3 solved without hints. Missed or revealed: 1.');
+  await d.locator('[data-close]').click();
+  await expect(d).toBeHidden();
+  // After today's solve, its bar is picked out.
+  const p = await puzzleFor(page, 5);
+  await guess(page, 'nope');
+  await guess(page, p.display);
+  await page.click('#statsBtn');
+  await expect(d.locator('.dist-bar.today')).toHaveText('2');
+  await expect(d.locator('#statPlayed')).toHaveText('5');
+});

@@ -140,6 +140,18 @@
   @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
   @media (prefers-reduced-motion: reduce){ .duck-says.happy img{ animation: none; } }
   .dialog-duck{ display: block; margin: 0 auto 6px; }
+  /* Stats (daily/stats.js) */
+  dialog.stats{ width: min(400px, calc(100vw - 32px)); }
+  .stat-boxes{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 16px; text-align: center; }
+  .stat-box{ display: flex; flex-direction: column; gap: 2px; }
+  .stat-num{ font-size: 24px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .stat-cap{ font-size: 11.5px; color: var(--text-faint); }
+  .dist{ display: flex; flex-direction: column; gap: 5px; margin: 6px 0 12px; }
+  .dist-row{ display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; }
+  .dist-n{ width: 10px; color: var(--text-dim); }
+  .dist-bar{ background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 4px; padding: 2px 6px; text-align: right; min-width: 22px; box-sizing: border-box; }
+  .dist-bar.today{ background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .stat-foot{ font-size: 12.5px !important; }
   .demo-badge{
     font-family: var(--mono);
     font-size: 9.5px;
@@ -339,7 +351,8 @@
     </div>
     <div class="feedback" id="feedback"></div>
     <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
-    <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button><span class="share-note" id="shareNote" role="status"></span></div>
+    <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button>
+      <button class="btn-ghost" id="statsBtn" type="button">Your stats</button><span class="share-note" id="shareNote" role="status"></span></div>
     <div class="reveal" id="reveal">
       <p><b>Answer:</b> <code id="answerOut"></code></p>
       <p id="explainOut"></p>
@@ -366,7 +379,7 @@
 
   <footer>
     <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
-    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="learn/sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
+    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="learn/sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="statsLink">stats</a> · <a href="#" id="backupLink">backup</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> ·
       <a href="#" id="resetLink">reset puzzles</a></div>
@@ -390,6 +403,7 @@
 <script src="shared.js"></script>
 <script src="analytics.js"></script>
 <script src="backup.js"></script>
+<script src="daily/stats.js"></script>
 <script src="learn/courses.js"></script>
 <script>
 (function(){
@@ -701,6 +715,14 @@
     }
     window.DebuggAnalytics.event('share/' + how);
   });
+
+  // Stats, from the saved days (daily/stats.js). After a solve, today's bar is picked out.
+  function openStats(e){
+    if(e) e.preventDefault();
+    window.DebuggStats.open(SLOT, state.solved ? state.attempts.length : 0);
+  }
+  document.getElementById('statsBtn').addEventListener('click', openStats);
+  document.getElementById('statsLink').addEventListener('click', openStats);
 
   // The Debuggit duck reacts once the game is over: a hop for a solve, a wobble for a miss.
   function duckSay(){
