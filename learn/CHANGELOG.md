@@ -7,6 +7,10 @@ one for fixes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.4 — 29 September 2026
+
 - A **Continue** card at the top of the course takes you straight to your next lesson or
   checkpoint, so you can pick up where you left off in one tap.
 - **Review**: questions you get wrong come back the next day in a short review round, then again

@@ -23,7 +23,7 @@ window.Debugg = (function(){
   // during the demo, 0.1.0 for the launch (which resets demo saves). Both are separate from
   // SAVE_VERSION, which only changes when saves have to be reset.
   const APP_VERSION = '0.0.3';
-  const LEARN_VERSION = '0.0.3';
+  const LEARN_VERSION = '0.0.4';
   const SEEN_KEY = 'debugg-seen-version';
   const LEARN_SEEN_KEY = 'debugg-seen-learn-version';
   // Per product: its version, where "seen" is kept, which saves mean a returning player, and its What's new.
