@@ -94,6 +94,46 @@ window.DebuggLearn = (function(){
 
   function starText(n){ return '★'.repeat(n) + '☆'.repeat(3 - n); }
 
+  // What to do next in a course: the first unit not yet passed, and in it the first lesson not
+  // done yet, or its checkpoint once every lesson is. A unit passed by testing out counts as done.
+  // Returns { kind: 'lesson' | 'checkpoint' | 'done', unit, unitIndex, lesson, lessonIndex }.
+  function nextStep(l){
+    const units = unitsOf(l);
+    for(let ui = 0; ui < units.length; ui++){
+      const u = units[ui];
+      if(unitPassed(u)) continue;
+      if(!unitOpen(u)) break;
+      const li = u.lessons.findIndex((les, i) => !lessonDone(u, les) && lessonOpen(u, i));
+      if(li >= 0) return { kind: 'lesson', unit: u, unitIndex: ui, lesson: u.lessons[li], lessonIndex: li };
+      return { kind: 'checkpoint', unit: u, unitIndex: ui };
+    }
+    return { kind: 'done' };
+  }
+  // The card at the top of the course map: pick up where you left off in one tap.
+  function continueHTML(){
+    if(L.courses[lang].soon || !unitsOf(lang).length) return '';
+    const next = nextStep(lang);
+    const started = Object.keys(save.lessons).concat(Object.keys(save.checkpoints)).some(k => k.startsWith(lang + '/'));
+    if(next.kind === 'done'){
+      const planned = (L.courses[lang].planned || [])[0];
+      return '<section class="continue done" id="continue"><span class="continue-label">All caught up</span>' +
+        '<h2>You’ve finished every unit written so far</h2>' +
+        '<p>' + (planned ? 'Next up: <b>' + esc(planned) + '</b>, coming soon. ' : '') + 'Replay any lesson to earn more stars.</p></section>';
+    }
+    const u = next.unit;
+    const where = 'Unit ' + (next.unitIndex + 1) + ': ' + esc(u.title);
+    const title = next.kind === 'lesson' ? esc(next.lesson.title) : 'Checkpoint';
+    const detail = next.kind === 'lesson'
+      ? 'Lesson ' + (next.lessonIndex + 1) + ' of ' + u.lessons.length
+      : 'Pass it to unlock the next unit';
+    const button = next.kind === 'lesson'
+      ? '<button class="btn-primary" data-action="lesson" data-unit="' + u.id + '" data-lesson="' + next.lesson.id + '">' + (started ? 'Continue' : 'Start') + ' →</button>'
+      : '<button class="btn-primary" data-action="checkpoint" data-unit="' + u.id + '">Take the checkpoint →</button>';
+    return '<section class="continue" id="continue"><div class="continue-text">' +
+      '<span class="continue-label">' + (started ? 'Continue' : 'Start here') + '</span>' +
+      '<h2>' + title + '</h2><p>' + where + ' · ' + detail + '</p></div>' + button + '</section>';
+  }
+
   function renderMap(){
     session = null;
     $('title').textContent = 'Learn ' + L.courses[lang].name;
@@ -102,7 +142,7 @@ window.DebuggLearn = (function(){
       : 'Short lessons that build up from the very start. Get each question right to move on.';
     renderStats();
     const units = unitsOf(lang);
-    let html = '';
+    let html = continueHTML();
     units.forEach((u, ui) => {
       const open = unitOpen(u);
       const passed = unitPassed(u);
