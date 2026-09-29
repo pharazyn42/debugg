@@ -827,5 +827,474 @@ print(count([1, 2, 3]))`,
     explain: '<code>any()</code> looks for one truthy item and returns <code>False</code> if it finds none, so <code>any([])</code> is <code>False</code>. <code>all()</code> looks for one falsy item and returns <code>True</code> if it finds none, so <code>all([])</code> is <code>True</code>. It\'s "vacuous truth": every item in an empty list passes any test.',
     fix: 'If an empty input should fail a check, test for it: <code>if items and all(ok(x) for x in items)</code>.',
     takeaway: '<code>all([])</code> is <code>True</code> and <code>any([])</code> is <code>False</code>. Check for an empty list first when "no items" shouldn\'t count as passing.'
+  },
+
+  // --- Other formats (see puzzles/README.md). Monday: multiple choice and "what's the value?";
+  // Tuesday: "how many times?"; Wednesday: "will it error?" and "order the lines"; Thursday: "spot the bug".
+
+  {
+    lang: 'python',
+    format: 'choice',
+    difficulty: 1,
+    code: `word = "debug"
+print(word * 2)`,
+    flag: { line: 2, text: 'word * 2' },
+    options: ['debugdebug', 'debug debug', 'debug2', "['debug', 'debug']"],
+    display: 'debugdebug',
+    nudge: 'Not quite. What does * do when one side is a string?',
+    hints: ['Multiplying a string by a whole number repeats it, with nothing in between.'],
+    explain: '<code>*</code> between a string and a whole number repeats the string that many times, joined with nothing in between: <code>"debug" * 2</code> is <code>"debugdebug"</code>.',
+    fix: 'To repeat with spaces, join a list: <code>" ".join([word] * 2)</code> gives <code>debug debug</code>.',
+    takeaway: '<code>text * n</code> repeats the text n times, with no spaces added.',
+    learn: 'strings'
+  },
+  {
+    lang: 'python',
+    format: 'choice',
+    difficulty: 1,
+    code: `scores = [3, 1, 2]
+scores.sort()
+print(scores[0])`,
+    flag: { line: 2, text: 'scores.sort()' },
+    options: ['1', '3', '2', '[1, 2, 3]'],
+    display: '1',
+    nudge: 'Not quite. What does sort() do to the list?',
+    hints: ['sort() rearranges the list itself, smallest first. Then [0] is the first item.'],
+    explain: '<code>scores.sort()</code> sorts the list in place, smallest first, so it becomes <code>[1, 2, 3]</code>. <code>scores[0]</code> is its first item: <code>1</code>.',
+    fix: 'To keep the original order, sort a copy: <code>sorted(scores)[0]</code>, or just use <code>min(scores)</code>.',
+    takeaway: '<code>list.sort()</code> changes the list itself, smallest first. Index 0 is the first item.',
+    learn: 'lists'
+  },
+  {
+    lang: 'python',
+    format: 'choice',
+    difficulty: 1,
+    code: `pages = 10
+per_day = 5
+print(pages / per_day)`,
+    flag: { line: 3, text: 'pages / per_day' },
+    options: ['2.0', '2', '0.5', '50'],
+    display: '2.0',
+    nudge: 'Close. What kind of number does / always give?',
+    hints: ['In Python 3, / always gives a float, even when it divides exactly.'],
+    explain: 'In Python 3, <code>/</code> is "true division" and always gives a <b>float</b>, even when the answer is whole. So <code>10 / 5</code> is <code>2.0</code>, not <code>2</code>.',
+    fix: 'Use <code>//</code> for whole-number division: <code>pages // per_day</code> is <code>2</code>.',
+    takeaway: '<code>/</code> always gives a float (<code>2.0</code>); <code>//</code> gives a whole number when both sides are ints.',
+    learn: 'values'
+  },
+  {
+    lang: 'python',
+    format: 'choice',
+    difficulty: 1,
+    code: `name = "Ada"
+name.upper()
+print(name)`,
+    flag: { line: 2, text: 'name.upper()' },
+    options: ['Ada', 'ADA', 'ada', 'None'],
+    display: 'Ada',
+    nudge: 'Not quite. Does upper() change the string it\'s called on?',
+    hints: ['Strings can\'t be changed. upper() makes a new string, and line 2 throws it away.'],
+    explain: 'Strings are immutable: no method can change them. <code>name.upper()</code> returns a <b>new</b> string, <code>"ADA"</code>, but line 2 doesn\'t keep it, so <code>name</code> is still <code>"Ada"</code>.',
+    fix: 'Keep the result: <code>name = name.upper()</code>.',
+    takeaway: 'String methods return a new string. Assign it (<code>name = name.upper()</code>) or it\'s lost.',
+    learn: 'strings'
+  },
+
+  {
+    lang: 'python',
+    format: 'value',
+    difficulty: 1,
+    code: `count = 0
+for word in ["tea", "cake", "tea"]:
+    if word == "tea":
+        count += 1`,
+    flag: { line: 3, text: 'word == "tea"' },
+    ask: { name: 'count' },
+    answers: ['2'],
+    display: '2',
+    nudge: 'Not quite. Go through the list one word at a time.',
+    hints: [
+      'The loop visits "tea", then "cake", then "tea" again.',
+      'count only goes up when the word is "tea", which happens twice.'
+    ],
+    explain: 'The loop looks at each word in turn. <code>count</code> goes up by 1 for each <code>"tea"</code>: the first and third words. <code>"cake"</code> is skipped. So <code>count</code> ends at <code>2</code>.',
+    fix: 'For counting one value, lists have a method for it: <code>["tea", "cake", "tea"].count("tea")</code>.',
+    takeaway: 'A counter that starts at 0 and adds 1 under a condition counts how many items pass it.',
+    learn: 'values'
+  },
+  {
+    lang: 'python',
+    format: 'value',
+    difficulty: 1,
+    code: `colours = ["red", "green"]
+colours.insert(0, "blue")
+colours.pop()`,
+    flag: { line: 3, text: 'colours.pop()' },
+    ask: { name: 'colours' },
+    answers: ["['blue', 'red']", 'blue, red'],
+    display: "['blue', 'red']",
+    nudge: 'Not quite. Where does insert(0, …) put the new item, and which item does pop() take?',
+    hints: [
+      'insert(0, "blue") puts "blue" at the very front.',
+      'pop() with no index removes the last item.'
+    ],
+    explain: '<code>insert(0, "blue")</code> adds <code>"blue"</code> at index 0, the front: <code>["blue", "red", "green"]</code>. <code>pop()</code> with no index removes the <b>last</b> item, <code>"green"</code>, leaving <code>["blue", "red"]</code>.',
+    fix: 'To remove the first item instead, use <code>pop(0)</code>.',
+    takeaway: '<code>insert(0, x)</code> adds at the front; <code>pop()</code> removes from the end, and <code>pop(0)</code> from the front.',
+    learn: 'lists'
+  },
+  {
+    lang: 'python',
+    format: 'value',
+    difficulty: 1,
+    code: `total = 10
+total = total - 3
+total *= 2`,
+    flag: { line: 3, text: 'total *= 2' },
+    ask: { name: 'total' },
+    answers: ['14'],
+    display: '14',
+    nudge: 'Not quite. Work through the lines one at a time.',
+    hints: [
+      'After line 2, total is 7.',
+      'total *= 2 is short for total = total * 2.'
+    ],
+    explain: 'Each line uses the value from the line before: <code>total</code> starts at 10, becomes <code>10 - 3 = 7</code>, then <code>*= 2</code> doubles it to <code>14</code>.',
+    fix: 'Nothing to fix. <code>total *= 2</code> is the usual short way to write <code>total = total * 2</code>.',
+    takeaway: 'A variable holds one value at a time; each assignment replaces it. <code>x *= 2</code> means <code>x = x * 2</code>.',
+    learn: 'values'
+  },
+  {
+    lang: 'python',
+    format: 'value',
+    difficulty: 1,
+    code: `greeting = "hi"
+greeting.upper()
+shout = greeting + "!"`,
+    flag: { line: 2, text: 'greeting.upper()' },
+    ask: { name: 'shout' },
+    answers: ['hi!', "'hi!'"],
+    display: "'hi!'",
+    nudge: 'Not quite. Did line 2 change greeting?',
+    hints: [
+      'upper() gives back a new string. Is it stored anywhere?',
+      'greeting is still "hi", so shout is "hi" + "!".'
+    ],
+    explain: 'Strings can\'t be changed in place. <code>greeting.upper()</code> makes <code>"HI"</code>, but nothing keeps it, so <code>greeting</code> is still <code>"hi"</code>, and <code>shout</code> is <code>"hi!"</code>.',
+    fix: 'Keep the new string: <code>greeting = greeting.upper()</code>.',
+    takeaway: 'String methods return new strings. If you don\'t assign the result, the original is unchanged.',
+    learn: 'strings'
+  },
+
+  {
+    lang: 'python',
+    format: 'count',
+    difficulty: 2,
+    code: `for i in range(2, 10, 3):
+    print(i)`,
+    flag: { line: 1, text: 'range(2, 10, 3)' },
+    ask: { line: 2 },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. List the numbers range(2, 10, 3) gives.',
+    hints: [
+      'range(start, stop, step): start at 2, add 3 each time, stop before 10.',
+      'That\'s 2, 5 and 8. The next, 11, is past the stop.'
+    ],
+    explain: '<code>range(2, 10, 3)</code> starts at 2 and adds 3 each time, stopping before 10: <code>2, 5, 8</code>. Line 2 runs once for each, so <b>3</b> times.',
+    fix: 'To check how many numbers a range gives, use <code>len(range(2, 10, 3))</code>.',
+    takeaway: '<code>range(start, stop, step)</code> counts up by <code>step</code> and never reaches <code>stop</code>.'
+  },
+  {
+    lang: 'python',
+    format: 'count',
+    difficulty: 2,
+    code: `n = 10
+while n > 1:
+    n = n // 2`,
+    flag: { line: 3, text: 'n // 2' },
+    ask: { line: 3 },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. Follow n through each pass of the loop.',
+    hints: [
+      '// is whole-number division: 10 // 2 is 5, and 5 // 2 is 2.',
+      'n goes 10, 5, 2, 1, and the loop stops once n is 1.'
+    ],
+    explain: 'Each pass halves <code>n</code>, rounding down: 10 → 5 → 2 → 1. Then <code>n > 1</code> is false and the loop stops. Line 3 ran <b>3</b> times.',
+    fix: 'Nothing to fix. Halving until you reach 1 takes about log₂(n) steps, which is why it\'s fast.',
+    takeaway: 'A <code>while</code> loop runs until its condition is false. Trace the variable through each pass to count them.'
+  },
+  {
+    lang: 'python',
+    format: 'count',
+    difficulty: 2,
+    code: `def greet(name):
+    return "Hi " + name
+
+for n in ["Ann", "Bo"]:
+    print(greet(n))
+print(greet("Cy"))`,
+    flag: { line: 2, text: 'return "Hi " + name' },
+    ask: { line: 2 },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. Line 2 runs each time greet() is called. How many calls are there?',
+    hints: [
+      'Defining a function (line 1) doesn\'t run its body.',
+      'greet is called twice in the loop and once more on the last line.'
+    ],
+    explain: 'A function\'s body only runs when it\'s <b>called</b>. <code>greet</code> is called for "Ann" and "Bo" in the loop, then for "Cy" on line 6: <b>3</b> calls, so line 2 runs 3 times.',
+    fix: 'Nothing to fix. It\'s a reminder that <code>def</code> only defines the function.',
+    takeaway: 'A function body runs once per call, never when it\'s defined.'
+  },
+  {
+    lang: 'python',
+    format: 'count',
+    difficulty: 2,
+    code: `for row in range(3):
+    for col in range(row):
+        print(row, col)`,
+    flag: { line: 2, text: 'range(row)' },
+    ask: { line: 3 },
+    answers: ['3'],
+    display: '3',
+    nudge: 'Not quite. How many times does the inner loop run for each row?',
+    hints: [
+      'The inner loop depends on row: range(row) has row numbers in it.',
+      'row 0: none, row 1: one, row 2: two.'
+    ],
+    explain: 'The inner loop runs <code>range(row)</code>: for row 0 that\'s empty, for row 1 it\'s once, for row 2 twice. 0 + 1 + 2 = <b>3</b>.',
+    fix: 'Nothing to fix. This "triangle" pattern is how you visit each pair of items once.',
+    takeaway: 'When an inner loop depends on the outer one, count it row by row. <code>range(0)</code> is empty.'
+  },
+
+  {
+    lang: 'python',
+    format: 'error',
+    difficulty: 3,
+    code: `ages = {"ann": 31, "bo": 25}
+print(ages["Ann"])`,
+    flag: { line: 2, text: 'ages["Ann"]' },
+    options: ['Runs fine', 'KeyError', 'TypeError', 'NameError'],
+    display: 'KeyError',
+    nudge: 'Not quite. Look closely at the key it asks for.',
+    hints: ['Dictionary keys are case-sensitive: "Ann" and "ann" are different keys.'],
+    explain: 'Dictionary keys must match exactly, capitals included. The dict has <code>"ann"</code>, not <code>"Ann"</code>, so <code>ages["Ann"]</code> raises a <code>KeyError</code>.',
+    fix: 'Match the key (<code>ages["ann"]</code>), normalise it (<code>ages[name.lower()]</code>), or use <code>ages.get("Ann")</code>, which gives <code>None</code> instead of crashing.',
+    takeaway: 'A missing dict key raises <code>KeyError</code>. Keys are case-sensitive; <code>.get()</code> returns <code>None</code> instead.'
+  },
+  {
+    lang: 'python',
+    format: 'error',
+    difficulty: 3,
+    code: `count = 3
+print("Count: " + count)`,
+    flag: { line: 2, text: '"Count: " + count' },
+    options: ['Runs fine', 'TypeError', 'ValueError', 'SyntaxError'],
+    display: 'TypeError',
+    nudge: 'Not quite. What happens when you + a string and a number?',
+    hints: ['Python won\'t turn the number into text for you when adding.'],
+    explain: '<code>+</code> can join two strings or add two numbers, but not a string and an int. Python won\'t guess which you meant, so it raises a <code>TypeError</code>: "can only concatenate str (not "int") to str".',
+    fix: 'Convert it, or use an f-string: <code>print(f"Count: {count}")</code>.',
+    takeaway: 'Python never mixes strings and numbers with <code>+</code>. Use <code>str()</code> or an f-string.',
+    learn: 'strings'
+  },
+  {
+    lang: 'python',
+    format: 'error',
+    difficulty: 3,
+    code: `nums = [1, 2, 3]
+for i in range(len(nums)):
+    print(nums[i + 1])`,
+    flag: { line: 3, text: 'nums[i + 1]' },
+    options: ['Runs fine', 'IndexError', 'KeyError', 'TypeError'],
+    display: 'IndexError',
+    nudge: 'Not quite. What is i on the last pass, and what does it look up?',
+    hints: ['i goes 0, 1, 2. On the last pass it looks up nums[3].'],
+    explain: '<code>i</code> runs 0, 1, 2, so the code looks up <code>nums[1]</code>, <code>nums[2]</code> and then <code>nums[3]</code>. A 3-item list only has indexes 0 to 2, so it prints 2 and 3, then raises an <code>IndexError</code>.',
+    fix: 'Loop over the items you mean: <code>for n in nums[1:]: print(n)</code>.',
+    takeaway: 'Indexes go from 0 to <code>len - 1</code>. <code>i + 1</code> in a loop over every index runs off the end.',
+    learn: 'lists'
+  },
+  {
+    lang: 'python',
+    format: 'error',
+    difficulty: 3,
+    code: `letters = ["a", "b", "c"]
+print(letters[-1], letters[5:])`,
+    flag: { line: 2, text: 'letters[5:]' },
+    options: ['Runs fine', 'IndexError', 'KeyError', 'ValueError'],
+    display: 'Runs fine',
+    nudge: 'Not quite. Do slices complain when they go past the end?',
+    hints: ['An index past the end is an error, but a slice past the end just gives what\'s there.'],
+    explain: '<code>letters[-1]</code> is the last item, <code>"c"</code>. <code>letters[5:]</code> is a slice, and slices never raise errors: past the end they\'re just empty. So it runs fine and prints <code>c []</code>.',
+    fix: 'Nothing to fix, but be aware: <code>letters[5]</code> (no colon) would raise an <code>IndexError</code>.',
+    takeaway: 'Indexing past the end raises <code>IndexError</code>; slicing past the end quietly gives an empty or shorter list.',
+    learn: 'lists'
+  },
+
+  {
+    lang: 'python',
+    format: 'order',
+    difficulty: 3,
+    code: `text = ""
+for ch in "abc":
+    if ch == "c":
+        break
+    text += ch
+print(text)`,
+    flag: { line: 4, text: 'break' },
+    display: 'ab',
+    nudge: 'Not quite. Think about when the loop should stop, and when a letter gets added.',
+    hints: ['The check for "c" has to come before the letter is added, so "c" never gets in.'],
+    explain: 'The loop builds up <code>text</code> one letter at a time. Checking for <code>"c"</code> <b>before</b> adding means the loop stops as soon as it reaches <code>"c"</code>, so only <code>"ab"</code> is added. Swap the two and you get <code>"abc"</code>.',
+    fix: 'Nothing to fix. The order of lines inside a loop matters as much as the lines themselves.',
+    takeaway: '<code>break</code> leaves the loop at once, skipping the rest of that pass. Put the check before the work it should prevent.'
+  },
+  {
+    lang: 'python',
+    format: 'order',
+    difficulty: 3,
+    code: `def double(x):
+    return x * 2
+result = double(4)
+result = double(result)
+print(result)`,
+    flag: { line: 4, text: 'double(result)' },
+    display: '16',
+    nudge: 'Not quite. A function has to exist before it\'s called, and result has to exist before it\'s used.',
+    hints: ['Define double first, then call it on 4, then on the result.'],
+    explain: 'The function has to be defined before anything calls it, with <code>return</code> inside it. Then <code>double(4)</code> is 8, and <code>double(8)</code> is 16.',
+    fix: 'Nothing to fix. Python runs top to bottom, so definitions go before their use.',
+    takeaway: 'Python runs a file from top to bottom: define functions and variables before the lines that use them.'
+  },
+  {
+    lang: 'python',
+    format: 'order',
+    difficulty: 3,
+    code: `n = 5
+n = n * 2
+n = n - 3
+n = n * 10
+print(n)`,
+    flag: { line: 3, text: 'n - 3' },
+    display: '70',
+    nudge: 'Not quite. Try the three sums in different orders, starting from 5.',
+    hints: ['70 is 7 × 10, and 7 is 5 × 2 − 3.'],
+    explain: 'Each line changes <code>n</code>, so order matters: 5 × 2 = 10, then − 3 = 7, then × 10 = 70. Any other order gives something else (5 − 3 = 2, × 2 = 4, × 10 = 40, for example).',
+    fix: 'Nothing to fix. When each step uses the last one\'s result, the steps don\'t commute.',
+    takeaway: 'Reassigning a variable step by step is like a recipe: the same steps in a different order give a different result.'
+  },
+  {
+    lang: 'python',
+    format: 'order',
+    difficulty: 3,
+    code: `count = 3
+while count > 0:
+    print(count)
+    count -= 1
+print("Go!")`,
+    flag: { line: 4, text: 'count -= 1' },
+    display: '3\n2\n1\nGo!',
+    nudge: 'Not quite. Inside the loop, print before or after counting down?',
+    hints: ['To print 3 first, print count before taking 1 off it.'],
+    explain: 'The loop prints <code>count</code> and then takes one off, so it prints 3, 2, 1 and stops when <code>count</code> reaches 0. Counting down first would print 2, 1, 0. The last line is outside the loop, so it runs once at the end.',
+    fix: 'Nothing to fix. <code>for count in range(3, 0, -1)</code> would do the same in fewer lines.',
+    takeaway: 'Inside a loop, the order of "do the work" and "move on" decides which values you see.'
+  },
+
+  {
+    lang: 'python',
+    format: 'bug',
+    difficulty: 4,
+    code: `def last_three(items):
+    return items[-3:-1]
+
+print(last_three([1, 2, 3, 4, 5]))`,
+    flag: { line: 2, text: 'items[-3:-1]' },
+    expected: '[3, 4, 5]',
+    display: '[3, 4]',
+    bugLine: 2,
+    fixLine: '    return items[-3:]',
+    nudge: 'Not that line. Which one decides which items come back?',
+    hints: [
+      'A slice stops before its end index.',
+      'items[-3:-1] stops before the last item. Leave the end out to go all the way.'
+    ],
+    explain: 'A slice includes its start but stops <b>before</b> its end. <code>items[-3:-1]</code> starts three from the end and stops before the last item, giving <code>[3, 4]</code>.',
+    fix: 'Leave the end out to run to the end of the list: <code>items[-3:]</code>.',
+    takeaway: 'Slices exclude their end index. To go to the very end, leave it out: <code>items[-3:]</code>.',
+    learn: 'lists'
+  },
+  {
+    lang: 'python',
+    format: 'bug',
+    difficulty: 4,
+    code: `original = [1, 2, 3]
+backup = original
+original.append(4)
+print(backup)`,
+    flag: { line: 2, text: 'backup = original' },
+    expected: '[1, 2, 3]',
+    display: '[1, 2, 3, 4]',
+    bugLine: 2,
+    fixLine: 'backup = original.copy()',
+    nudge: 'Not that line. Is backup really a separate list?',
+    hints: [
+      'Assigning a list to a new name doesn\'t copy it.',
+      'backup and original are two names for the same list, so the append shows up in both.'
+    ],
+    explain: '<code>backup = original</code> doesn\'t copy anything: it gives the <b>same list</b> a second name. Appending through one name changes the list both names point to.',
+    fix: 'Make a real copy: <code>backup = original.copy()</code> (or <code>original[:]</code>).',
+    takeaway: '<code>b = a</code> never copies a list. Use <code>a.copy()</code> when you need a separate one.',
+    learn: 'lists'
+  },
+  {
+    lang: 'python',
+    format: 'bug',
+    difficulty: 4,
+    code: `def has_even(nums):
+    for n in nums:
+        if n % 2 == 0:
+            return True
+        return False
+
+print(has_even([1, 3, 4]))`,
+    flag: { line: 5, text: 'return False' },
+    expected: 'True',
+    display: 'False',
+    bugLine: 5,
+    fixLine: '    return False',
+    nudge: 'Not that line. How many numbers does the loop actually look at?',
+    hints: [
+      'Look at how far each line is indented.',
+      'return False is inside the loop, so the function gives up after the first number.'
+    ],
+    explain: '<code>return False</code> is indented inside the loop, so it runs on the <b>first</b> pass whenever the first number is odd. The function returns before it ever reaches the 4.',
+    fix: 'Dedent it so it runs only after the loop has checked every number: <code>    return False</code> in line with <code>for</code>. Or use <code>any(n % 2 == 0 for n in nums)</code>.',
+    takeaway: 'Indentation is logic in Python. A "not found" <code>return</code> belongs after the loop, not inside it.'
+  },
+  {
+    lang: 'python',
+    format: 'bug',
+    difficulty: 4,
+    code: `line = "  debug it  "
+words = line.split(" ")
+print(len(words))`,
+    flag: { line: 2, text: 'line.split(" ")' },
+    expected: '2',
+    display: '6',
+    bugLine: 2,
+    fixLine: 'words = line.split()',
+    nudge: 'Not that line. What does splitting on a single space do with extra spaces?',
+    hints: [
+      'split(" ") splits at every single space, even ones next to each other.',
+      'The spaces at each end make empty strings: [\'\', \'\', \'debug\', \'it\', \'\', \'\'].'
+    ],
+    explain: '<code>split(" ")</code> cuts at <b>every</b> space, so the two leading and two trailing spaces produce empty strings: <code>[\'\', \'\', \'debug\', \'it\', \'\', \'\']</code>, 6 items.',
+    fix: 'Call <code>split()</code> with no argument: it splits on any run of whitespace and drops the ends, giving <code>[\'debug\', \'it\']</code>.',
+    takeaway: '<code>split()</code> with no argument is almost always what you want for words; <code>split(" ")</code> keeps empty strings.',
+    learn: 'strings'
   }
 );

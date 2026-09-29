@@ -12,6 +12,16 @@ things to play and the last one for fixes and balance changes.
 - Missing a puzzle about lists now points you to Debuggit Learn's new Lists unit.
 - The sandbox has moved to Debuggit Learn. "Run it yourself" after a puzzle, and the footer's
   sandbox link, take you there, and your drafts come with it.
+- **New kinds of puzzle**, taking turns through the week from Day 1: multiple choice and "what's
+  the value?" on Mondays, "how many times does this line run?" on Tuesdays, "will it error?" and
+  "put the lines in order" on Wednesdays, and "spot the bug" on Thursdays. Choice puzzles give you 2
+  tries and 1 hint; ordering gives 3 checks.
+- **Step through it**: after a game, play the code back line by line, as Python really ran it, with
+  the variables and what's been printed so far.
+- **Your stats**: games played, how many you solved, your best streak and how many guesses your
+  solves took, from the footer or after a game.
+- **Share as a picture**: a card with the duck, your squares and no spoilers.
+- **Past puzzles**: play any earlier day again as practice, for no XP, streak or company pay.
 
 ## 0.0.3 — 29 September 2026
 

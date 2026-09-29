@@ -1,6 +1,6 @@
 // The daily puzzle page: every puzzle, the language rotation, streak, XP and old saves.
 const { test, expect } = require('@playwright/test');
-const { dayDate, openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
+const { dayDate, openAt, fresh, withStorage, puzzleFor, guess, solve, miss, readJson } = require('./helpers');
 
 const EXT = { python: 'py', javascript: 'js', c: 'c', rust: 'rs' };
 const NAME = { python: 'Python', javascript: 'JavaScript', c: 'C', rust: 'Rust' };
@@ -8,11 +8,11 @@ const NAME = { python: 'Python', javascript: 'JavaScript', c: 'C', rust: 'Rust' 
 // Each language on its own, so every one of its puzzles comes up in turn.
 for(const lang of Object.keys(EXT)){
   test(`every ${NAME[lang]} puzzle is scheduled, shows its code and accepts its answer`, async ({ page }) => {
-    await openAt(page, 'index.html', 1, { rotation: [{ lang }] });
+    await openAt(page, 'index.html', 1, { rotation: [{ lang }], formats: true });
     const count = await page.evaluate(l => window.Debugg.puzzlesFor(l).length, lang);
     expect(count).toBeGreaterThan(5);
     const seen = new Set();
-    for(let day = 1; seen.size < count && day <= 150; day++){
+    for(let day = 1; seen.size < count && day <= 400; day++){
       const info = await page.evaluate(d => ({ slot: Debugg.slotDay(d), label: Debugg.dayLabel(d), title: Debugg.dayTitle(d) }), day);
       if(info.slot !== day) continue;  // Sunday shares Saturday's puzzle
       await page.clock.setFixedTime(dayDate(day));
@@ -23,11 +23,12 @@ for(const lang of Object.keys(EXT)){
       await expect(page.locator('#kicker')).toHaveText(info.label + ' · ' + info.title + ' · ' + NAME[lang]);
       await expect(page.locator('#filename')).toHaveText('day' + day + '.' + EXT[lang]);
       await expect(page.locator('#langName')).toHaveText(NAME[lang]);
-      await expect(page.locator('#flag')).toHaveCount(1);
-      await guess(page, 'definitely not the answer');
+      if((p.format || 'output') !== 'order') await expect(page.locator('#flag')).toHaveCount(1);
+      await miss(page, day);
       await expect(page.locator('#feedback')).toHaveClass(/wrong/);
-      await guess(page, p.display);
+      await solve(page, day);
       await expect(page.locator('#feedback'), `day ${day}: ${p.display}`).toHaveClass(/correct/);
+      await expect(page.locator('#flag')).toHaveCount(1);
       await expect(page.locator('#takeawayOut')).not.toBeEmpty();
     }
     expect(seen.size, 'every puzzle comes up in the schedule').toBe(count);
@@ -534,4 +535,126 @@ test('after the game, Step through it plays the code back line by line, as real 
   await expect(page.locator('#trace')).toBeHidden();
   // Every Python puzzle has a trace.
   expect(await page.evaluate(() => Debugg.puzzlesFor('python').every(p => DebuggTrace.stepsFor(p)))).toBe(true);
+});
+
+test('from Day 1 the weekdays take turns with the puzzle formats', async ({ page }) => {
+  await openAt(page, 'index.html', 1, { formats: true });
+  const formats = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 8, 9, 10, 15, 17].map(d => (Debugg.puzzleFor(d).format || 'output') + '/' + Debugg.formatFor(d)));
+  expect(formats).toEqual(['choice/choice', 'output/output', 'error/error', 'bug/bug', 'output/output', 'output/output',
+    'output/output', 'count/count', 'output/output', 'value/value', 'order/order']);
+  // Preview days stay "what does this print?", so nothing already played changes.
+  expect(await page.evaluate(() => [0, -1, -2, -3, -4, -5].every(d => !Debugg.puzzleFor(d).format))).toBe(true);
+});
+
+test('multiple choice: pick what it prints, in 2 tries with 1 hint', async ({ page }) => {
+  await openAt(page, 'index.html', 1, { formats: true });
+  await fresh(page);
+  const p = await puzzleFor(page, 1);
+  expect(p.format).toBe('choice');
+  await expect(page.locator('#title')).toHaveText('What does this print?');
+  await expect(page.locator('#tiles .tile')).toHaveCount(2);
+  await expect(page.locator('#guessRow')).toBeHidden();
+  await expect(page.locator('#choices .choice')).toHaveCount(4);
+  await page.click('#hintBtn');
+  await expect(page.locator('#hint2Btn')).toBeHidden();
+  await expect(page.locator('#hintDot2')).toBeHidden();
+  await miss(page, 1);
+  await expect(page.locator('#choices .choice.wrong')).toHaveCount(1);
+  // A reload keeps the wrong pick marked.
+  await page.reload();
+  await expect(page.locator('#choices .choice.wrong')).toBeDisabled();
+  await solve(page, 1);
+  await expect(page.locator('#feedback')).toHaveText(/^Correct: debugdebug \(1 hint used\)\. \+23 XP\./);  // 60 × 50% × 75%
+  await expect(page.locator('#choices .choice.right')).toHaveText(p.display);
+  await expect(page.locator('#answerOut')).toHaveText(p.display);
+});
+
+test('will it error: runs fine, or which error, in 2 tries', async ({ page }) => {
+  await openAt(page, 'index.html', 3, { formats: true });
+  await fresh(page);
+  const p = await puzzleFor(page, 3);
+  expect(p.format).toBe('error');
+  await expect(page.locator('#title')).toHaveText('Will it run, or crash?');
+  await expect(page.locator('#ask')).toHaveText('Does it run fine, or stop with an error?');
+  await expect(page.locator('#choices .choice', { hasText: 'Runs fine' })).toHaveCount(1);
+  await miss(page, 3);
+  await miss(page, 3);
+  await expect(page.locator('#feedback')).toHaveText(/^Out of guesses/);
+  await expect(page.locator('#answerOut')).toHaveText('It stops with a KeyError.');
+  await expect(page.locator('#choices .choice.right')).toHaveText('KeyError');
+});
+
+test('spot the bug: see what it should print, then tap the line', async ({ page }) => {
+  await openAt(page, 'index.html', 4, { formats: true });
+  await fresh(page);
+  const p = await puzzleFor(page, 4);
+  expect(p.format).toBe('bug');
+  await expect(page.locator('#title')).toHaveText('Spot the bug');
+  await expect(page.locator('#ask .ask-out').first()).toHaveText(p.expected);
+  await expect(page.locator('#ask .ask-out.wrong')).toHaveText(p.display);
+  await expect(page.locator('#tiles .tile')).toHaveCount(4);
+  await miss(page, 4);
+  await expect(page.locator('#code .cl.wrong')).toHaveCount(1);
+  // Keyboard works too: focus the line and press Enter.
+  await page.locator('#code .cl[data-line="' + p.bugLine + '"]').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#feedback')).toHaveText(/^Correct: the bug is on line 2/);
+  await expect(page.locator('#code .cl.right')).toHaveAttribute('data-line', String(p.bugLine));
+  await expect(page.locator('#code')).not.toHaveClass(/tappable/);
+  await expect(page.locator('#answerOut')).toContainText('Fixed, it reads return items[-3:].');
+});
+
+test('what’s the value and how many times: typed, with the question above the code', async ({ page }) => {
+  await openAt(page, 'index.html', 9, { formats: true });
+  await fresh(page);
+  let p = await puzzleFor(page, 9);
+  expect(p.format).toBe('count');
+  await expect(page.locator('#title')).toHaveText('How many times does it run?');
+  await expect(page.locator('#ask')).toHaveText('How many times does line ' + p.ask.line + ' run?');
+  await expect(page.locator('#code .cl.asked')).toHaveAttribute('data-line', String(p.ask.line));
+  await expect(page.locator('#guess')).toHaveAttribute('placeholder', 'a number');
+  await solve(page, 9);
+  await expect(page.locator('#answerOut')).toHaveText('Line ' + p.ask.line + ' runs ' + p.display + ' times.');
+
+  await page.clock.setFixedTime(dayDate(15));
+  await page.reload();
+  p = await puzzleFor(page, 15);
+  expect(p.format).toBe('value');
+  await expect(page.locator('#title')).toHaveText('What’s the value of ' + p.ask.name + '?');
+  await guess(page, 'nope');
+  await expect(page.locator('#feedback')).toHaveText(p.nudge);
+  await guess(page, p.answers[0]);
+  await expect(page.locator('#answerOut')).toHaveText(p.ask.name + ' ends as ' + p.display + '.');
+});
+
+test('order the lines: tap to move or use the arrows, with 3 checks', async ({ page }) => {
+  await openAt(page, 'index.html', 17, { formats: true });
+  await fresh(page);
+  const p = await puzzleFor(page, 17);
+  expect(p.format).toBe('order');
+  await expect(page.locator('#title')).toHaveText('Put the lines in order');
+  await expect(page.locator('#ask .ask-out')).toHaveText(p.display);
+  await expect(page.locator('#tiles .tile')).toHaveCount(3);
+  const lines = p.code.split('\n');
+  const shown = () => page.locator('#code .order-code').allTextContents();
+  const start = await shown();
+  expect([...start].sort()).toEqual([...lines].sort());
+  expect(start).not.toEqual(lines);
+  // Tap a line, then tap where it goes.
+  await page.locator('#code .order-row').nth(start.indexOf(lines[0])).click();
+  await expect(page.locator('#code .order-row.picked')).toHaveCount(1);
+  await page.locator('#code .order-row').nth(0).click();
+  expect((await shown())[0]).toBe(lines[0]);
+  // A wrong check marks the lines already in place, and the order survives a reload.
+  await page.click('#checkOrder');
+  await expect(page.locator('#feedback')).toHaveClass(/wrong/);
+  await expect(page.locator('#code .order-row.placed').first()).toBeVisible();
+  const before = await shown();
+  await page.reload();
+  expect(await shown()).toEqual(before);
+  await solve(page, 17);
+  await expect(page.locator('#feedback')).toHaveText(/^Correct: that’s the order/);
+  // Once done, the code shows normally, in order.
+  await expect(page.locator('#code .order-row')).toHaveCount(0);
+  await expect(page.locator('#code .cl')).toHaveCount(lines.length);
 });

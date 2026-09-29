@@ -577,13 +577,19 @@ def _debugg_run(src):
       noteEl.textContent = window.Debugg.dayLabel(day) + '\'s ' + LANGS[lang].name + ' puzzle isn\'t unlocked yet. Finish it on the daily page first.';
       return false;
     }
-    replaceAll(it.puzzle.code + '\n');
+    // A "what's the value?" puzzle prints nothing, so it loads with a line that prints the value.
+    const p = it.puzzle, format = window.Debugg.formatOf(p);
+    replaceAll(p.code + (format === 'value' ? '\nprint(repr(' + p.ask.name + '))' : '') + '\n');
     saveDraft();
     noteEl.innerHTML = '';
-    noteEl.append('Loaded ' + (window.Debugg.isPreview(day) ? 'the preview puzzle' : 'Day ' + day) + '. It printed ');
-    const c = document.createElement('code');
-    c.textContent = it.puzzle.display;
-    noteEl.append(c, '. Try changing it and running it again.');
+    const c = t => { const el = document.createElement('code'); el.textContent = t; return el; };
+    noteEl.append('Loaded ' + (window.Debugg.isPreview(day) ? 'the preview puzzle' : 'Day ' + day) + '. ');
+    if(format === 'value') noteEl.append('At the end, ', c(p.ask.name), ' is ', c(p.display), '.');
+    else if(format === 'count') noteEl.append('Line ' + p.ask.line + ' runs ', c(p.display), ' times.');
+    else if(format === 'error') noteEl.append(p.display === 'Runs fine' ? 'It runs fine.' : 'It stops with a ', ...(p.display === 'Runs fine' ? [] : [c(p.display), '.']));
+    else if(format === 'bug') noteEl.append('It prints ', c(p.display), ' but should print ', c(p.expected), ': the bug is on line ' + p.bugLine + '.');
+    else noteEl.append('It printed ', c(p.display), '.');
+    noteEl.append(' Try changing it and running it again.');
     return true;
   }
   pick.addEventListener('change', () => {
