@@ -1105,6 +1105,9 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
     experience (e.g. training only up to bar 3)?
 
 #### 15. Office space: desks, contractors, and buildings
+- **Now planned together with business units and rentals** in `ideas/company-growth-roadmap.md`
+  (item 15e); that doc's property ladder, leases and phases supersede the sketch below where
+  they differ.
 - Another progression limiter. On-site staff need a desk.
 - **The first office caps headcount.** You start in one free room with 3
   or 4 desks. Hiring is blocked once it's full ("no free desk — get a
@@ -1176,6 +1179,33 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   - Save migration: companies that already have more staff than the first
     office holds need a sensible starting office (e.g. the smallest one
     that fits, free for a grace period).
+
+#### 15e. Business units, property and rentals (planned)
+Sketched September 2026 in `ideas/company-growth-roadmap.md`: where the company works as it
+grows, and what it does with space, tied to the business stages (item 13). A **business unit**
+here means commercial premises, a small office unit like one on a business park (the
+player-owner's meaning), not a division of the company.
+- **Desks** cap on-site headcount alongside supervision ("Devs 5/16 · Desks 5/8"); an Office
+  line in the Studio panel.
+- **Working from home** (the player-owner's idea): about 1 in 4 applicants are **WFH** and need
+  no desk ("Desks 5/8 · +2 WFH"); they keep working when the office is closed, but, decided,
+  they learn a little slower (−25% XP) and can't be learners, so WFH stays a trade-off. They still count towards supervision. They
+  replace item 15's separate contractors.
+- **Renting:** the free spare room (4 desks), co-working desks by the minute, then **business
+  units** (small 8 desks, large 16) on leases (longer is cheaper; deposit; early-exit fee; moving
+  takes 10 minutes; up to 3 units side by side), then office floors. Rent is a running cost like
+  payroll. A premises panel lists the units available now, which come and go; a property market
+  nudges rents and prices.
+- **Buying** (from Large): business units, office buildings and campuses; upkeep instead of rent;
+  a value that moves; sell at value.
+- **Rental units:** sublet spare desks while renting (Mid-size); let units or floors you own to
+  tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
+  tenant events via 15b.
+- **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
+  (2) business units on leases; (3) office floors and subletting; (4) buying property;
+  (5) rental units; (6) sites (item 18).
+- **Open questions** are in the doc: desks for the Director and managers, how harsh a full
+  office is, random listings or any size on demand, named tenants, buying purely to let.
 
 #### 15b. Shared event system
 - One system for everything that randomly (or conditionally) happens to
@@ -1458,6 +1488,8 @@ Big systems that depend on the earlier phases.
   make sense (reuse or extend `PAIRINGS`)?
 
 #### 18. Multiple sites, rooms and buildings
+- Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and premises in more than
+  one place.
 - At larger business tiers (item 13), add an option to expand to
   multiple sites (offices).
   - Each site would plausibly have its own headcount capacity and
