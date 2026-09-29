@@ -1587,28 +1587,41 @@ Big systems that depend on the earlier phases.
   bench.
 - **The supervising dev must be senior enough (decided).** They must be at the level of the
   most senior dev the contract requires: a senior for a patch, a principal for a minor or major
-  release. Any level can supervise on a hotfix.
-- **They scale up to a whole team.** One person plus agents can take on any contract, up to a
-  full team's worth of work, so a patch could run as "1 senior + agents".
+  release. Any level can supervise on a hotfix. They must also **know the contract's language
+  to the level it needs** (the skill rule, and the level on expert contracts), because the AI
+  itself isn't limited.
+- **Any language (decided).** Models can work on a contract in any language; the language
+  limit comes only from the supervising dev.
+- **A licence acts as a number of people (decided).** On early models it counts as **2 people**;
+  later models raise that, up to a **team of 10**. One person plus a licence can take on any
+  contract its size allows, so a patch could run as "1 senior + AI (acting as 2)", and only
+  late models reach the size of a full team.
 - **More people still help on big contracts (decided).** Success chance rises with the number
   of people on the team. One supervisor plus agents is enough to take a big contract on, but a
   bigger team makes it likelier to succeed. The size of the boost per extra person, by tier, is
   to be decided in the balance pass.
 - **Licences (decided).** Each AI licence runs **at most one contract at a time**. More
   contracts at once need more licences.
-- **Models unlock over time and must be bought (decided).** New models become available as
-  time passes, each better than the last:
-  - more SLOC/min;
-  - higher **quality**, meaning a higher success chance (early models fail more than people do,
-    later ones less).
+- **Models unlock over time and must be bought (decided).** New models arrive **very slowly**
+  (days to weeks apart), each better than the last:
+  - **speed:** the first models are **very slow**, and each one writes more SLOC/min;
+  - **accuracy:** the first models are **very inaccurate** (success well below a person's), and
+    later ones are better;
+  - **size:** each model acts as more people (from 2 up to 10, above).
 
-  Upgrading means buying the new model, as a one-off cost. Use made-up model names, never real
-  ones.
+  Upgrading means buying the new model. **Cost rises steeply:** the first models are cheap, and
+  the last ones cost as much to run as the full team a major release needs, or more. So AI is a
+  cheap, weak helper early and a costly, powerful option late, never a free win. Use made-up
+  model names, never real ones.
+- **News announces them (decided).** A news item comes before each new model, saying when it
+  arrives and what it does: how many people it acts as, its speed, success chance and price.
+  The player can then plan and save up for it. The news could also be the start of a wider news
+  feed (market moves, rival studios, events from 15b).
 - **Managers can assign AI (decided).** From a small business on, managers staff contracts with
   licences as well as people.
-- **Running costs.** A licence costs a subscription per minute, drawn like payroll and rent;
-  newer models cost more to run. It should work out cheaper than the people it replaces, which
-  makes AI a mid-to-late-game money sink.
+- **Running costs.** A licence costs a subscription per minute, drawn like payroll and rent,
+  rising with the model (see above). It's a money sink all the way through, and by the late
+  models it costs about as much as the people it replaces.
 - **Interactions with other systems:**
   - Agents need no desks (item 15e), which lets a studio grow its output past its office.
   - They earn no XP and are never promoted. The supervising dev still learns.
@@ -1618,9 +1631,11 @@ Big systems that depend on the earlier phases.
 - **Where it sits:** Phase 4, once the office phases and bigger contracts are open. An early,
   weak model could appear sooner as a taste.
 - **Still open:**
-  - How much work one licence does: a fixed team's worth, or more as the model improves?
-  - How often new models arrive, and what they cost.
-  - How the picker shows it, e.g. "AI model 3 · supervised by Grace (principal) · −8% success".
+  - The actual numbers: how many models, how many days apart, and each one's speed, success,
+    size, price and running cost. That's for the balance pass.
+  - Is the upgrade per licence, or one model for the whole studio?
+  - How the picker shows it, e.g. "AI model 3 (acts as 4) · supervised by Grace (principal) ·
+    −8% success".
   - Can a model be sold back or downgraded?
 
 #### 18. Multiple sites, rooms and buildings
