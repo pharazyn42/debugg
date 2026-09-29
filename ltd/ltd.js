@@ -1179,7 +1179,12 @@ window.DebuggLtd = (function(){
       const c0 = headcounts(state.roster);
       const skills = Object.keys(D.LANGS).map(k => {
         const boost = directorBoost(D.LANGS[k].studio);
-        return esc(D.LANGS[k].name) + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
+        // A language with a Debuggit Learn course links to it (Learn has its own XP; puzzle levels set these).
+        const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[k];
+        const name = course && !course.soon
+          ? '<a class="learn-lang" href="learn/#' + k + '" title="Learn ' + esc(D.LANGS[k].name) + ' in Debuggit Learn">' + esc(D.LANGS[k].name) + '</a>'
+          : esc(D.LANGS[k].name);
+        return name + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
       }).join(' · ');
       let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +
                  '<span class="card-level">Director</span></div>' +

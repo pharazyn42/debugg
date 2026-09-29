@@ -92,7 +92,9 @@ const RUNNERS = {
 
 const REQUIRED = ['lang', 'difficulty', 'code', 'flag', 'answers', 'display', 'nudge', 'hints', 'explain', 'fix', 'takeaway'];
 
-function checkFields(p, D){
+// `learn` (optional) names the Learn unit that teaches what the puzzle is about; the puzzle page links
+// to it after a missed puzzle, so it must be a written unit in the puzzle's language.
+function checkFields(p, D, L){
   const problems = [];
   REQUIRED.forEach(f => { if(p[f] === undefined || p[f] === '') problems.push('missing ' + f); });
   if(!(p.difficulty >= 1 && p.difficulty <= 5)) problems.push('difficulty must be 1 to 5');
@@ -100,6 +102,9 @@ function checkFields(p, D){
   if(p.flag){
     const line = (p.code || '').split('\n')[p.flag.line - 1];
     if(line === undefined || !line.includes(p.flag.text)) problems.push('flag text "' + p.flag.text + '" is not on line ' + p.flag.line);
+  }
+  if(p.learn !== undefined && !L.units.some(u => u.lang === p.lang && u.id === p.learn)){
+    problems.push('learn: no ' + p.lang + ' Learn unit "' + p.learn + '"');
   }
   if(Array.isArray(p.answers) && !p.answers.some(a => D.normaliseAnswer(a) === D.normaliseAnswer(p.display))){
     problems.push('the display "' + p.display + '" wouldn\'t be accepted as an answer');
@@ -244,7 +249,7 @@ function main(){
     counts[p.lang] = counts[p.lang] || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     counts[p.lang][p.difficulty] = (counts[p.lang][p.difficulty] || 0) + 1;
 
-    const problems = checkFields(p, D);
+    const problems = checkFields(p, D, ctx.DEBUGG_LEARN);
     const runner = RUNNERS[p.lang];
     if(!runner) problems.push('no runner for language "' + p.lang + '"');
     else if(!problems.length){

@@ -284,7 +284,7 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily</a><a class="lang-tab" href="learn.html" id="learnLink">Learn</a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd</a></nav>
+    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily</a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd</a></nav>
     <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1 id="title">What does this print?</h1>
@@ -349,6 +349,7 @@
         <p id="takeawayOut"></p>
       </div>
       <p class="try"><a id="tryLink" href="sandbox.html">Run it yourself in the sandbox →</a></p>
+      <p class="try" id="learnMore" hidden><a id="learnMoreLink" href="learn/"></a></p>
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
       <div class="found" id="foundCard">
         <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
@@ -365,7 +366,7 @@
 
   <footer>
     <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
-    <div class="footer-links"><a href="sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
+    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> ·
       <a href="#" id="resetLink">reset puzzles</a></div>
@@ -389,6 +390,7 @@
 <script src="shared.js"></script>
 <script src="analytics.js"></script>
 <script src="backup.js"></script>
+<script src="learn/courses.js"></script>
 <script>
 (function(){
   const MAX_GUESSES = 4;
@@ -652,6 +654,19 @@
     startCountdown();
     duckSay();
     document.getElementById('shareRow').hidden = false;
+    showLearnMore();
+  }
+
+  // After a missed puzzle (a wrong guess, or revealed), a link to Debuggit Learn: the unit that teaches
+  // this (the puzzle's `learn` tag), or the language's course from the start. Not after a first-guess solve.
+  function showLearnMore(){
+    const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[lang];
+    const el = document.getElementById('learnMore');
+    el.hidden = !course || course.soon || (state.solved && state.attempts.length <= 1);
+    if(el.hidden) return;
+    const a = document.getElementById('learnMoreLink');
+    a.href = 'learn/#' + lang + (puzzle.learn ? '/' + puzzle.learn : '');
+    a.textContent = puzzle.learn ? 'Brush up on this in Debuggit Learn →' : 'Learn ' + course.name + ' from the start in Debuggit Learn →';
   }
 
   // The spoiler-free result, Wordle-style: the wordmark, the day and language, a square per
@@ -802,7 +817,7 @@
   });
 
   // Clears every saved day, XP, the streak and sandbox drafts. A Debuggit Ltd company is kept (it has
-  // its own "Close company" button), and so is Learn progress (learn.html has its own reset).
+  // its own "Close company" button), and so is Learn progress (learn/ has its own reset).
   resetLink.addEventListener('click', (e) => {
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;

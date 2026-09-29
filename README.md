@@ -20,9 +20,11 @@ Solving on the 2nd, 3rd or 4th guess earns 75%, 50% or 25% of that, and each hin
 
 ## Learn
 
-`learn.html` (the **Learn** tab next to **Daily**) teaches a language from the very start, one short lesson at a time. A course is made of units, each with a few lessons and a checkpoint. Lessons mix quick teaching points with questions: multiple choice, "what does this print?", fill the blank, and "tap the line with the bug". Answer a question wrong and you're told why, then it comes back before the end of the lesson; stars show how cleanly you got through. Passing a unit's checkpoint unlocks the next unit, and anyone can take it straight away to skip what they already know.
+**Debuggit Learn** (`learn/`, its own section of the site, apart from the game) teaches a language from the very start, one short lesson at a time. A course is made of units, each with a few lessons and a checkpoint. Lessons mix quick teaching points with questions: multiple choice, "what does this print?", fill the blank, and "tap the line with the bug". Answer a question wrong and you're told why, then it comes back before the end of the lesson; stars show how cleanly you got through. Passing a unit's checkpoint unlocks the next unit, and anyone can take it straight away to skip what they already know.
 
 Learn has its **own XP and streak**, separate from the daily puzzles. The Python course's Unit 1 (Values and printing) and Unit 2 (Strings) are built; the next units are listed as coming soon. C has a coming-soon tab showing its planned units, with Embedded C as a section at the end. `learn/README.md` explains the format for writing more, and the puzzle checker runs every lesson snippet too.
+
+The game links into it without making it a tab: a **learn to code** link in the footer, the Director's languages in Debuggit Ltd, and, after a missed or revealed puzzle, a link to the unit that teaches it (a puzzle's `learn` field) or to the start of the course. `learn/#python/strings` opens a course with a unit picked out. Learn links back to the game, and it shares the same saves and backup code. The old address, `learn.html`, redirects.
 
 ## Playing
 
@@ -50,7 +52,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Debuggit Ltd
 
-The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily and Learn; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
 
 - **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.

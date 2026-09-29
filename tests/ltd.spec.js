@@ -542,8 +542,8 @@ test('/studio/ redirects to the main page with the studio on', async ({ page }) 
   await expect(page.locator('#statMoney')).toHaveText('¤150');
 });
 
-test('Daily, Learn and Ltd are tabs; on the Daily tab a running company is hidden but still paid', async ({ page }) => {
-  await expect(page.locator('.modes .lang-tab')).toHaveText(['Daily', 'Learn', 'Ltd']);
+test('Daily and Ltd are tabs; on the Daily tab a running company is hidden but still paid', async ({ page }) => {
+  await expect(page.locator('.modes .lang-tab')).toHaveText(['Daily', 'Ltd']);
   await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#ltdIntro')).toBeHidden();
   await page.click('#ltdTab');
@@ -567,9 +567,14 @@ test('Daily, Learn and Ltd are tabs; on the Daily tab a running company is hidde
   await page.click('#ltdNote a');
   await expect(page.locator('#statMoney')).toHaveText(/¤3[45]\d/);
 
-  // Learn links to the Ltd tab too.
-  await page.click('#learnLink');
-  await page.click('.modes a[href="index.html?ltd"]');
+  // The game has two tabs, Daily and Ltd; Learn is its own section, linked from the footer and the
+  // Director's languages, and it links back.
+  await expect(page.locator('.modes a')).toHaveText(['Daily', 'Ltd']);
+  await expect(page.locator('.card.director a.learn-lang')).toHaveText('Python');
+  await expect(page.locator('.card.director a.learn-lang')).toHaveAttribute('href', 'learn/#python');
+  await page.click('.card.director a.learn-lang');
+  await expect(page.locator('h1')).toHaveText('Learn Python');
+  await page.click('footer a[href="../index.html?ltd"]');
   await expect(page.locator('#statMoney')).toBeVisible();
 });
 

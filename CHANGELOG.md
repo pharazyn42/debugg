@@ -7,6 +7,12 @@ things to play and the last one for fixes and balance changes.
 ## Unreleased
 
 ### Learn
+- Debuggit Learn has its own home at `/learn/`, apart from the game: the daily puzzle and Debuggit
+  Ltd keep the Daily and Ltd tabs, and Learn has a link back to them. Old links still work, and
+  your progress comes with you.
+- After a missed or revealed puzzle, a link takes you to the Learn unit that teaches it (or to the
+  start of the course). The footer has a "learn to code" link, and in Debuggit Ltd the Director's
+  languages link to their courses.
 - Python Unit 2, "Strings": picking out characters, slices, string methods, f-strings and
   turning text into numbers. Four lessons and a checkpoint; it opens once you've passed Unit 1's
   checkpoint.

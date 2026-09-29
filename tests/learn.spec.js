@@ -37,7 +37,7 @@ async function finishAll(page){
 
 test.beforeEach(async ({ page }) => {
   page.on('dialog', d => d.accept());
-  await openAt(page, 'learn.html');
+  await openAt(page, 'learn/');
   await fresh(page);
 });
 
@@ -55,7 +55,7 @@ test('the course map opens with the first lesson, and every unit file is loaded'
   await expect(rows.nth(3)).toContainText('Test out');
   await expect(page.locator('.unit.planned').first()).toContainText('Lists');
   await expect(page.locator('#learnStreak')).toHaveText('0');
-  // learn.html loads every unit file its course lists.
+  // learn/index.html loads every unit file its course lists.
   expect(await page.evaluate(() => Object.values(DEBUGG_LEARN.courses).reduce((n, c) => n + c.files.length, 0)))
     .toBe(await page.evaluate(() => DEBUGG_LEARN.units.length));
 });
@@ -203,11 +203,31 @@ test('the Learn streak counts days with a lesson finished', async ({ page }) => 
 test('the daily page links to Learn, and resetting puzzles keeps Learn progress', async ({ page }) => {
   await page.click('[data-action=lesson][data-lesson=print]');
   await finishAll(page);
-  await page.goto('index.html');
+  await page.click('#gameLink');
+  await expect(page.locator('h1')).toHaveText('What does this print?');
+  // Learn isn't one of the game's tabs: it's linked from the footer.
+  await expect(page.locator('.modes a')).toHaveText(['Daily', 'Ltd']);
   await page.click('#resetLink');
-  await page.click('#learnLink');
+  await page.click('#learnFooter');
   await expect(page.locator('h1')).toHaveText('Learn Python');
   await expect(page.locator('.lesson-row').nth(0)).toContainText('★★★');
+});
+
+test('learn.html, the old address, redirects to learn/ and keeps the course', async ({ page }) => {
+  await page.goto('learn.html#c');
+  await expect(page).toHaveURL(/\/learn\/#c$/);
+  await expect(page.locator('h1')).toHaveText('Learn C');
+});
+
+test('a unit link opens the course with that unit picked out', async ({ page }) => {
+  await page.goto('learn/#python/strings');
+  await expect(page.locator('h1')).toHaveText('Learn Python');
+  await expect(page.locator('.unit[data-unit=strings]')).toHaveClass(/focus/);
+  await expect(page.locator('.unit[data-unit=values]')).not.toHaveClass(/focus/);
+  // The summary duck loads from the site's img/ folder.
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await finishAll(page);
+  expect(await page.locator('.summary-duck').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
 });
 
 test('pressing Enter on a wrong typed answer shows why, and waits for Continue', async ({ page }) => {

@@ -119,6 +119,7 @@ print(grid)`,
   {
     lang: 'python',
     difficulty: 1,
+    learn: 'strings',
     code: `name = "debugg"
 name.upper()
 print(name)`,
@@ -176,6 +177,7 @@ print(nums)`,
   {
     lang: 'python',
     difficulty: 3,
+    learn: 'values',
     code: `minutes_late = -7
 print(minutes_late // 2)`,
     flag: { line: 2, text: '// 2' },
@@ -283,6 +285,7 @@ print(round(total, 2) == 0.3)`,
   {
     lang: 'python',
     difficulty: 1,
+    learn: 'strings',
     code: `quantity = "3"  # from input()
 print(quantity * 2)`,
     flag: { line: 2, text: 'quantity * 2' },
@@ -537,6 +540,7 @@ print(n)`,
   {
     lang: 'python',
     difficulty: 1,
+    learn: 'values',
     code: `slices = 7
 people = 2
 print(slices / people)`,
@@ -555,6 +559,7 @@ print(slices / people)`,
   {
     lang: 'python',
     difficulty: 1,
+    learn: 'strings',
     code: `greeting = "hello world"
 print(len(greeting))`,
     flag: { line: 2, text: 'len(greeting)' },
@@ -696,6 +701,7 @@ print(a == b, a is b)`,
   {
     lang: 'python',
     difficulty: 3,
+    learn: 'strings',
     code: `filename = "text.txt"
 print(filename.rstrip(".txt"))`,
     flag: { line: 2, text: 'rstrip(".txt")' },
@@ -730,6 +736,7 @@ print(countdown)`,
   {
     lang: 'python',
     difficulty: 3,
+    learn: 'strings',
     code: `row = "Ada,,London"  # name, email, city
 fields = row.split(",")
 print(len(fields))`,
