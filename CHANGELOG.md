@@ -9,6 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.3 — 29 September 2026
+
 - What's new now lists the daily puzzle and Debuggit Ltd. Debuggit Learn has its own version
   number and its own What's new, linked from its pages.
 

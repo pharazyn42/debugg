@@ -7,6 +7,10 @@ one for fixes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.3 — 29 September 2026
+
 - Learn has its own version number and its own What's new, so you only hear about changes to
   Learn here.
 
