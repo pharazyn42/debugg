@@ -1,8 +1,15 @@
 name: Release
 
-# Pushing a version tag (v0.0.2) runs every test, checks shared.js and CHANGELOG.md are at that
-# version, then publishes a GitHub Release with that version's notes. See "Releases" in CLAUDE.md.
+# Publishes a version: runs every test, checks shared.js and CHANGELOG.md are at that version,
+# then creates the v<version> tag and a GitHub Release with that version's notes. Start it from
+# the Actions tab ("Run workflow", with the version), or by pushing a v<version> tag yourself.
+# See "Releases" in CLAUDE.md.
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 0.0.2 (must match APP_VERSION and CHANGELOG.md)'
+        required: true
   push:
     tags: ['v*']
 
@@ -15,13 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node tools/release.js check "${GITHUB_REF_NAME#v}"
-      - run: node tools/release.js notes "${GITHUB_REF_NAME#v}" > notes.md
-      - run: gh release create "$GITHUB_REF_NAME" --title "Debuggit $GITHUB_REF_NAME" --notes-file notes.md --verify-tag
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - run: echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
+      - run: node tools/release.js check "$VERSION"
+      - run: node tools/release.js notes "$VERSION" > notes.md
+      # Creates the tag on this commit if it doesn't exist yet (the Run workflow route).
+      - run: gh release create "v$VERSION" --target "$GITHUB_SHA" --title "Debuggit v$VERSION" --notes-file notes.md
