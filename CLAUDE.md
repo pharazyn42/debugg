@@ -177,6 +177,7 @@ MARKET_EVERY_H = [12, 36], INFLATION = [2%, 4%] (every role), COMPETITION = [6%,
 COMPETITION_CHANCE = 0.4                 // hiring prices only go up
 SKILL_SPEED = 1.0, SKILL_CHANCE = 0.05   // full bars in the contract's language: 2× SLOC/min, +5% success
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
+BENCH_RATE = 0.3                         // odd jobs on the bench: 30% of base SLOC/min × LINE_RATE
 TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
           minor release ~2,700 SLOC / 5-10 + principal,
           major release ~22,500 SLOC / 10+ incl. manager, 2 principals, 3 seniors ]
@@ -335,6 +336,12 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **Odd jobs** (the player-owner's call, September 2026): developers on no contract earn
+  `BENCH_RATE` (30%) of their level's base SLOC/min × `LINE_RATE`, netted against payroll every
+  second (and offline, by who was busy at the start). It's always under their salary (a grad
+  ¤1.5 vs ¤2/min, a senior ¤9 vs ¤12), with no XP or promotion time, so the bench costs a little
+  and contracts stay far better. Managers earn none. Cards read "On the bench · odd jobs ·
+  −¤0.5/min".
 - **Business stages** (`STAGES`, `stageIndex()`, shown in a stage bar above the stats, with a
   step track and what the next stage needs): **Start-up** (no managers), **Small business** (1
   manager), **Mid-size company** (3 managers, 25 staff), **Large company** (6, 60),

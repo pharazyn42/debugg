@@ -11,6 +11,11 @@ things to play and the last one for fixes and balance changes.
   turning text into numbers. Four lessons and a checkpoint; it opens once you've passed Unit 1's
   checkpoint.
 
+### Debuggit Ltd
+- Developers on the bench do odd jobs: they earn a little under their salary (a grad ¤1.5 a
+  minute against ¤2), so waiting for a contract costs much less. Contracts still pay far better,
+  and odd jobs don't count towards skills or promotion.
+
 ## 0.0.1 — 28 September 2026
 
 The first numbered release: the demo as it stands. Day 1 is Monday 5 October.

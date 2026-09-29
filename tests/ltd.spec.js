@@ -235,9 +235,9 @@ test('staff on the bench and debt are flagged; the welcome can be dismissed', as
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
   });
   await expect(page.locator('.guide')).toHaveCount(0);
-  await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench, costing ¤2/min');
+  await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench doing odd jobs, which leaves them costing ¤0.5/min more than they earn');
   await expect(page.locator('[data-alert=debt]')).toContainText('The company is ¤50 in debt');
-  await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · −¤2/min');
+  await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · odd jobs · −¤0.5/min');
 });
 
 test('on a phone, the Ltd tab folds a finished puzzle to its tiles', async ({ page }) => {
@@ -278,6 +278,26 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   await guess(page, (await puzzleFor(page, 3)).display);
   await expect(page.locator('#welcomeToast')).toContainText('paid ¤100');
   await expect(page.locator('#welcomeToast')).toContainText('a small business gets 50% of desk pay');
+});
+
+test('developers on the bench do odd jobs, which earn a little under their salary', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.money = 1000;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.roster.push({ id: 's1', name: 'Sam Q.', role: 'Senior', since: Date.now(), lang: { Rust: 150 } });
+  });
+  // An hour away: a grad earns ¤1.5/min on odd jobs against ¤2/min salary, a senior ¤9 against ¤12.
+  await page.clock.setFixedTime(at(13));
+  await page.reload();
+  await expect(page.locator('#statMoney')).toHaveText('¤790');
+  // No XP and no promotion time for the bench.
+  const saved = await ltd(page);
+  expect(saved.roster.find(p => p.id === 'g1')).toMatchObject({ lang: { Python: 10 } });
+  expect(saved.roster.find(p => p.id === 'g1').worked || 0).toBe(0);
+  await expect(page.locator('.card[data-id=s1]')).toContainText('On the bench · odd jobs · −¤3/min');
 });
 
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
