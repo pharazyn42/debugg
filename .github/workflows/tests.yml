@@ -20,6 +20,23 @@ jobs:
       - run: python3 --version && gcc --version | head -1 && clang --version | head -1 && rustc --version
       - run: node tools/check-puzzles.js
 
+  # A pull request changes Debuggit Learn or the game, not both, unless both changelogs have notes
+  # (tools/check-scope.js; see "Releases" in CLAUDE.md).
+  scope:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/check-scope.js
+        env:
+          SCOPE_BASE: origin/${{ github.base_ref }}
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15

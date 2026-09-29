@@ -1,17 +1,24 @@
 name: Release
 
-# Publishes a version: runs every test, checks shared.js and CHANGELOG.md are at that version,
-# then creates the v<version> tag and a GitHub Release with that version's notes. Start it from
-# the Actions tab ("Run workflow", with the version), or by pushing a v<version> tag yourself.
+# Publishes a version of Debuggit (the daily puzzle and Debuggit Ltd: product "game") or of
+# Debuggit Learn (product "learn"), which are released separately. It runs every test, checks
+# shared.js and that product's changelog are at that version, then creates the tag (v<version>,
+# or learn-v<version>) and a GitHub Release with that version's notes. Start it from the Actions
+# tab ("Run workflow", with the product and version), or by pushing the tag yourself.
 # See "Releases" in CLAUDE.md.
 on:
   workflow_dispatch:
     inputs:
+      product:
+        description: 'What to release: game (the daily puzzle and Debuggit Ltd) or learn (Debuggit Learn)'
+        type: choice
+        options: [game, learn]
+        default: game
       version:
-        description: 'Version to release, e.g. 0.0.2 (must match APP_VERSION and CHANGELOG.md)'
+        description: 'Version to release, e.g. 0.0.3 (must match shared.js and that product''s changelog)'
         required: true
   push:
-    tags: ['v*']
+    tags: ['v*', 'learn-v*']
 
 jobs:
   tests:
@@ -23,6 +30,7 @@ jobs:
     permissions:
       contents: write
     env:
+      PRODUCT: ${{ inputs.product || (startsWith(github.ref_name, 'learn-v') && 'learn') || 'game' }}
       VERSION: ${{ inputs.version || github.ref_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -30,8 +38,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
-      - run: node tools/release.js check "$VERSION"
-      - run: node tools/release.js notes "$VERSION" > notes.md
+      - run: |
+          V="${VERSION#learn-}"
+          echo "VERSION=${V#v}" >> "$GITHUB_ENV"
+      - run: node tools/release.js "$PRODUCT" check "$VERSION"
+      - run: node tools/release.js "$PRODUCT" notes "$VERSION" > notes.md
       # Creates the tag on this commit if it doesn't exist yet (the Run workflow route).
-      - run: gh release create "v$VERSION" --target "$GITHUB_SHA" --title "Debuggit v$VERSION" --notes-file notes.md
+      - run: |
+          TAG="$(node tools/release.js "$PRODUCT" tag "$VERSION")"
+          NAME="$(node tools/release.js "$PRODUCT" name "$VERSION")"
+          # The game's releases are the repository's "latest"; Learn's don't take that over.
+          LATEST=true; [ "$PRODUCT" = learn ] && LATEST=false
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$NAME" --notes-file notes.md --latest="$LATEST"

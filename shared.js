@@ -17,11 +17,22 @@ window.Debugg = (function(){
   // SAVE_VERSION to '0.1' and WIPED_VERSIONS to ['demo', ''] ('' is a save from before the marker).
   // Sandbox drafts are kept. Backup codes from a wiped version are refused (backup.js).
   const SAVE_VERSION = 'demo';
-  // The version players see (footer, What's new, releases), set by tools/release.js. Semantic
-  // versioning: 0.0.x during the demo, 0.1.0 for the launch (which resets demo saves). It's
-  // separate from SAVE_VERSION, which only changes when saves have to be reset.
+  // The versions players see (footer, What's new, releases), set by tools/release.js. Debuggit
+  // (the daily puzzle and Debuggit Ltd) and Debuggit Learn are released separately, each with its
+  // own version, changelog and tags (see "Releases" in CLAUDE.md). Semantic versioning: 0.0.x
+  // during the demo, 0.1.0 for the launch (which resets demo saves). Both are separate from
+  // SAVE_VERSION, which only changes when saves have to be reset.
   const APP_VERSION = '0.0.2';
+  const LEARN_VERSION = '0.0.2';
   const SEEN_KEY = 'debugg-seen-version';
+  const LEARN_SEEN_KEY = 'debugg-seen-learn-version';
+  // Per product: its version, where "seen" is kept, which saves mean a returning player, and its What's new.
+  const PRODUCTS = {
+    game:  { version: APP_VERSION, seen: SEEN_KEY, name: 'Debuggit', label: '', page: 'whatsnew.html',
+             returning: /^debugg-(day-?\d+|xp|ltd|streak)$/ },
+    learn: { version: LEARN_VERSION, seen: LEARN_SEEN_KEY, name: 'Debuggit Learn', label: 'Learn ', page: 'whatsnew.html?learn',
+             returning: /^debugg-learn$/ }
+  };
   const VERSION_KEY = 'debugg-version';
   const WIPED_VERSIONS = window.DEBUGG_WIPED_VERSIONS || [];
   function isWipedVersion(v){ return WIPED_VERSIONS.includes(v || ''); }
@@ -344,24 +355,26 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  // The footer's version link to What's new. A returning player sees "new" until they've looked at
-  // What's new for this version; a first visit just remembers the version, quietly. `root` is the way
-  // back to the site's top folder from a page in a subfolder (learn/ passes '../').
-  function renderVersion(el, root = ''){
+  // The footer's version link to What's new, for the game ('game') or Learn ('learn'). A returning
+  // player sees "new" until they've looked at What's new for this version; a first visit just
+  // remembers the version, quietly. `root` is the way back to the site's top folder from a page in a
+  // subfolder (learn/ passes '../').
+  function renderVersion(el, root = '', product = 'game'){
     if(!el) return;
+    const P = PRODUCTS[product];
     let seen = null;
     try{
-      seen = localStorage.getItem(SEEN_KEY);
-      const returning = Object.keys(localStorage).some(k => /^debugg-(day-?\d+|xp|ltd|learn|streak)$/.test(k));
-      if(!seen && !returning){ seen = APP_VERSION; localStorage.setItem(SEEN_KEY, APP_VERSION); }
+      seen = localStorage.getItem(P.seen);
+      const returning = Object.keys(localStorage).some(k => P.returning.test(k));
+      if(!seen && !returning){ seen = P.version; localStorage.setItem(P.seen, P.version); }
     }catch(e){}
-    const fresh = seen !== null && seen !== APP_VERSION;
-    el.innerHTML = '<a class="version-link' + (fresh ? ' new' : '') + '" href="' + root + 'whatsnew.html" title="What’s new in Debuggit">v' + APP_VERSION +
-      (DEMO ? ' demo' : '') + (fresh ? ' · new' : '') + '</a>';
+    const fresh = seen !== null && seen !== P.version;
+    el.innerHTML = '<a class="version-link' + (fresh ? ' new' : '') + '" href="' + root + P.page + '" title="What’s new in ' + P.name + '">' +
+      P.label + 'v' + P.version + (DEMO ? ' demo' : '') + (fresh ? ' · new' : '') + '</a>';
   }
-  function markVersionSeen(){ try{ localStorage.setItem(SEEN_KEY, APP_VERSION); }catch(e){} }
+  function markVersionSeen(product = 'game'){ try{ localStorage.setItem(PRODUCTS[product].seen, PRODUCTS[product].version); }catch(e){} }
 
-  return { NAME, APP_VERSION, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
+  return { NAME, APP_VERSION, LEARN_VERSION, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
            dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };
