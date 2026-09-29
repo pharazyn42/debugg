@@ -60,6 +60,52 @@ test('the course map opens with the first lesson, and every unit file is loaded'
     .toBe(await page.evaluate(() => DEBUGG_LEARN.units.length));
 });
 
+test('the Continue card starts the next lesson or checkpoint in one tap', async ({ page }) => {
+  const card = page.locator('#continue');
+  // A first visit starts at the very beginning.
+  await expect(card.locator('.continue-label')).toHaveText('Start here');
+  await expect(card.locator('h2')).toHaveText('print() and text');
+  await expect(card).toContainText('Unit 1: Values and printing · Lesson 1 of 3');
+  await card.locator('button').click();
+  await expect(page.locator('.session-top')).toBeVisible();
+  await finishAll(page);
+  await page.click('#summary [data-action=quit]');
+  // Then it picks up where you left off.
+  await expect(card.locator('.continue-label')).toHaveText('Continue');
+  await expect(card.locator('h2')).toHaveText('Numbers and arithmetic');
+  await expect(card.locator('button')).toHaveText('Continue →');
+  // With every lesson in a unit done, it's the checkpoint.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn'));
+    s.lessons['python/values/numbers'] = { stars: 3 };
+    s.lessons['python/values/variables'] = { stars: 2 };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await page.reload();
+  await expect(card.locator('h2')).toHaveText('Checkpoint');
+  await expect(card).toContainText('Pass it to unlock the next unit');
+  await card.locator('button').click();
+  await finishAll(page);
+  await page.click('#summary [data-action=quit]');
+  await expect(card.locator('h2')).toHaveText('Characters and length');
+  await expect(card).toContainText('Unit 2: Strings · Lesson 1 of 4');
+  // Testing out of a unit skips its lessons; with every unit passed, you're caught up.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn'));
+    s.checkpoints['python/strings'] = { passed: true, best: 8 };
+    s.checkpoints['python/lists'] = { passed: true, best: 8 };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await page.reload();
+  await expect(card.locator('.continue-label')).toHaveText('All caught up');
+  await expect(card).toContainText('Next up: Conditions, coming soon.');
+  await expect(card.locator('button')).toHaveCount(0);
+  // A coming-soon course has no card.
+  await page.goto('learn/#c');
+  await expect(page.locator('h1')).toHaveText('Learn C');
+  await expect(card).toHaveCount(0);
+});
+
 test('C is a coming-soon tab with its planned units', async ({ page }) => {
   const tabs = page.locator('#langs .lang-tab');
   await expect(tabs).toHaveCount(2);

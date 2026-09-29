@@ -923,6 +923,12 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   or boost the Director. Saved as `debugg-learn`; "reset puzzles" keeps it.
 - **Checked like the puzzles:** `tools/check-puzzles.js` runs every lesson snippet, and
   checks right and wrong options and "tap the line" errors against the real output.
+- **Continue card** (September 2026, the first of the player-owner's Learn experience items):
+  the top of the course map shows the next thing to do (`nextStep()`, `continueHTML()`): the first
+  unit not yet passed and, in it, the first lesson not done, or its checkpoint once every lesson
+  is. A unit passed by testing out counts as done. "Start here" on a first visit, "Continue" after;
+  "All caught up" (with the next planned unit) once every written unit is passed. No card on a
+  coming-soon course. The review round (item 2 of that list) will join this card.
 - **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
   never locked behind daily puzzles or anything else.
 - **Still to do:** the rest of the Python course (Conditions, Loops,
