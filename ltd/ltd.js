@@ -793,11 +793,11 @@ window.DebuggLtd = (function(){
       return state.roster.reduce((s, p) => s + ROLES[p.role].salary, 0);
     }
     // Developers on the bench (on no contract) do odd jobs: support tickets, tidying code, internal
-    // tools. It earns BENCH_RATE of what their lines would earn on a contract (their level's base
-    // SLOC/min, no skill boost), always a bit under their salary, with no XP or promotion time:
-    // the bench costs a little, and contracts are always better. Managers write no code, so no odd jobs.
-    const BENCH_RATE = 0.3;
-    function benchPerMinute(p){ return isDev(p) ? ROLES[p.role].sloc * LINE_RATE * BENCH_RATE : 0; }
+    // tools. It covers their salary with BENCH_MARGIN (5%) to spare, so a benched team grows the
+    // company slowly, with no XP or promotion time: contracts are still far better. (The
+    // player-owner's call.) Managers write no code, so no odd jobs.
+    const BENCH_MARGIN = 0.05;
+    function benchPerMinute(p){ return isDev(p) ? ROLES[p.role].salary * (1 + BENCH_MARGIN) : 0; }
     function benchIncomePerMinute(){
       const busy = busyIds();
       return state.roster.filter(p => !busy.has(p.id)).reduce((s, p) => s + benchPerMinute(p), 0);
@@ -991,7 +991,7 @@ window.DebuggLtd = (function(){
         return { key: 'staff', offerId: offer && offer.id,
           text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
-            'while you’re away. On the bench they only do odd jobs, which earn less than their salary.' };
+            'while you’re away. On the bench they only do odd jobs, which barely cover their salary.' };
       }
       const today = D.slotDay(D.today());
       if(!D.isFinished(today)){
@@ -1013,9 +1013,9 @@ window.DebuggLtd = (function(){
       const busy = busyIds();
       const idle = state.roster.filter(p => isDev(p) && !busy.has(p.id));
       if(idle.length && !(step && step.key === 'staff')){
-        const cost = idle.reduce((n, p) => n + ROLES[p.role].salary - benchPerMinute(p), 0);
-        html += '<div class="alert" data-alert="idle">⚠ ' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
-          ' on the bench doing odd jobs, which leaves them costing ' + fmtRate(cost) + '/min more than they earn. ' +
+        const spare = idle.reduce((n, p) => n + benchPerMinute(p) - ROLES[p.role].salary, 0);
+        html += '<div class="alert" data-alert="idle">' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
+          ' on the bench doing odd jobs, which only just cover their salary (+' + fmtRate(spare) + '/min). A contract earns far more. ' +
           (stageIndex() >= 1 ? 'Your managers will put them to work once there’s a contract they can take.' : 'Staff them on a contract below.') + '</div>';
       }
       if(state.money < 0){
@@ -1240,7 +1240,7 @@ window.DebuggLtd = (function(){
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
         : isDev(p) ? '<span class="status-idle warn" title="Odd jobs earn ' + fmtRate(benchPerMinute(p)) + '/min against a ¤' + role.salary + '/min salary">' +
-            'On the bench · odd jobs · −' + fmtRate(role.salary - benchPerMinute(p)) + '/min</span>'
+            'On the bench · odd jobs · +' + fmtRate(benchPerMinute(p) - role.salary) + '/min</span>'
         : '<span class="status-idle">Idle</span>';
 
       let promo = '';

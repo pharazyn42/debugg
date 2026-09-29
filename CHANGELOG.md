@@ -12,9 +12,9 @@ things to play and the last one for fixes and balance changes.
   checkpoint.
 
 ### Debuggit Ltd
-- Developers on the bench do odd jobs: they earn a little under their salary (a grad ¤1.5 a
-  minute against ¤2), so waiting for a contract costs much less. Contracts still pay far better,
-  and odd jobs don't count towards skills or promotion.
+- Developers on the bench do odd jobs, which cover their salary with 5% to spare, so a quiet
+  spell grows the company slowly instead of costing it. Contracts still pay far better, and odd
+  jobs don't count towards skills or promotion.
 
 ## 0.0.1 — 28 September 2026
 
