@@ -18,6 +18,10 @@ things to play and the last one for fixes and balance changes.
   checkpoint.
 
 ### Debuggit Ltd
+- Once today's puzzle is done, the Ltd tab folds it down to its result, on any screen, so the
+  studio has room. **Show** opens it again, and it remembers how you left it.
+- Language skills are levels with no top (Python Lv 6), each with a bar showing the XP to the
+  next level. Levels 1 to 5 need the same XP as the old five pips, so nobody's skills changed.
 - Developers on the bench do odd jobs, which cover their salary with 5% to spare, so a quiet
   spell grows the company slowly instead of costing it. Contracts still pay far better, and odd
   jobs don't count towards skills or promotion.

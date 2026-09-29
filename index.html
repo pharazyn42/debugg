@@ -197,7 +197,7 @@
     padding: 2px 6px;
   }
   body.ltd-running .found, body.ltd-view .found{ display: none; }
-  /* The Ltd tab: once today's puzzle is done, phones fold it to its tiles to save scrolling. */
+  /* The Ltd tab: once today's puzzle is done, it folds to its tiles (Show / Fold) to make room for the studio. */
   .desk-toggle{
     margin-left: auto;
     background: transparent;
@@ -896,11 +896,23 @@
     $('ltdIntro').hidden = !ltdView || document.body.classList.contains('ltd-running');
   }
 
-  function setDeskFolded(on){
+  // Once today's puzzle is done, the Ltd tab can fold it to its tiles. It opens folded (or as the
+  // player last left it), on any screen; a puzzle finished just now stays open to read.
+  const DESK_KEY = 'debugg-desk-folded';
+  function setDeskFolded(on, remember){
     document.body.classList.toggle('desk-folded', on);
     $('deskToggle').textContent = on ? 'Show ▾' : 'Fold ▴';
+    if(remember) try{ localStorage.setItem(DESK_KEY, on ? '1' : '0'); }catch(e){}
   }
-  $('deskToggle').addEventListener('click', () => setDeskFolded(!document.body.classList.contains('desk-folded')));
+  function deskFoldedPref(){
+    try{ return localStorage.getItem(DESK_KEY) !== '0'; }catch(e){ return true; }
+  }
+  $('deskToggle').addEventListener('click', () => setDeskFolded(!document.body.classList.contains('desk-folded'), true));
+  document.addEventListener('debugg:puzzle-finished', () => {
+    if(!document.body.classList.contains('ltd-on')) return;
+    $('deskToggle').hidden = false;
+    setDeskFolded(false);
+  });
 
   if(saved && !saved.enabled){
     $('ltdIntroText').textContent = $('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
@@ -922,10 +934,10 @@
     js.onload = () => {
       if(ltdView){
         document.body.classList.add('ltd-on');
-        // A puzzle already finished today folds to its tiles on a phone (it can be opened again).
+        // A puzzle already finished today folds to its tiles (it can be opened again).
         if(window.Debugg.isFinished(window.Debugg.slotDay(window.Debugg.today()))){
           $('deskToggle').hidden = false;
-          setDeskFolded(matchMedia('(max-width: 800px)').matches);
+          setDeskFolded(deskFoldedPref());
         }
       }
       else $('ltdNote').hidden = false;

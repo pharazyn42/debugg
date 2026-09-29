@@ -77,8 +77,10 @@ Ltd tab). On the Daily tab a running company is loaded but hidden (`body.ltd-run
 `DebuggLtd.start({ stats, studio, board })` renders into the three slots and either resumes the
 saved company, imports an old one, or founds a new one. `body.ltd-on` shows the studio in the
 two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title), with the
-puzzle as "Your desk: what does this print?". On a phone (≤ 800px), a puzzle already finished
-today folds to its tiles there (`body.desk-folded`, with a Show/Fold button).
+puzzle as "Your desk: what does this print?". Once today's puzzle is finished, the desk can fold to
+its tiles on any screen (`body.desk-folded`, a Show/Fold button): it opens folded on later visits,
+or as the player last left it (`debugg-desk-folded`), and a puzzle finished just now stays open to
+read.
 
 **Languages and the rotation.** There's one puzzle a day, and the
 languages take turns. `LANG_INFO` in `shared.js` describes every language
@@ -177,7 +179,9 @@ DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance p
 
 LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old saves fold it into C/C++
 // Languages only: domains were removed (item 3) and are planned to return later (item 16).
-BAR_XP = [10, 50, 150, 400, 1000]   // cumulative XP for skill bars 1..5
+SKILL_XP = [10, 50, 150, 400, 1000] // total XP for skill levels 1..5; no top level: each later gap is
+                                    // 800 longer (6 at 1,800, 7 at 3,400, 8 at 5,800…; skillXp())
+SKILL_FULL = 5                      // skill's effects stop growing at level 5
 
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
 // costs: Manager 900, Graduate 180, Junior 750, Senior 3000, Principal 12000 (× the market's prices)
@@ -185,7 +189,7 @@ PROMOTION = { Junior: {12h, lang:1}, Senior: {3 days, 3}, Principal: {14 days, 5
 LINE_RATE = 1                            // ¤ per SLOC delivered, × tier multiplier (skill doesn't raise pay)
 MARKET_EVERY_H = [12, 36], INFLATION = [2%, 4%] (every role), COMPETITION = [6%, 15%] (one role),
 COMPETITION_CHANCE = 0.4                 // hiring prices only go up
-SKILL_SPEED = 1.0, SKILL_CHANCE = 0.05   // full bars in the contract's language: 2× SLOC/min, +5% success
+SKILL_SPEED = 1.0, SKILL_CHANCE = 0.05   // level 5+ in the contract's language: 2× SLOC/min, +5% success
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
 BENCH_MARGIN = 0.05                      // odd jobs on the bench pay salary + 5%
 TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
@@ -267,7 +271,7 @@ state = {
     growing your own people the cheap one. Only time spent on contracts counts;
     time on the bench doesn't. It's credited when each contract finishes
     (`p.worked`) and resets on promotion.
-  - **Skill bars** in their best language: 1 for Junior, 3 for Senior, 5
+  - **A skill level** in their best language: 1 for Junior, 3 for Senior, 5
     for Principal (`PROMOTION`).
   - **A free slot** at the next level.
 - **Contract board**: shown as a tree like the roster, one foldable group
@@ -350,9 +354,12 @@ state = {
 - **Roster UI**: the Director card, then a collapsible tree grouped by
   level. Each group header shows its headcount, how many are busy, SLOC/min
   and salary/min. Collapse state persists. Clicking a card opens the
-  employee panel: all languages as pip bars with XP to the next bar,
-  current assignment, and a promotion checklist. Roster cards show a dev's
-  two best languages.
+  employee panel: every language as a level ("Lv 6", with no top; the best in amber) and a bar
+  of XP towards the next level ("2600/3400 xp"), current assignment, and a promotion checklist.
+  Roster cards show a dev's two best languages ("Python Lv 6 · Rust Lv 2"). Skill levels were
+  five pips until September 2026 (the player-owner's call); levels 1–5 need the same XP as the
+  five pips did, so nothing changed for existing staff, and levels above 5 don't yet add speed or
+  success (`SKILL_FULL`).
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
 - **Odd jobs** (the player-owner's call, September 2026): developers on no contract earn their

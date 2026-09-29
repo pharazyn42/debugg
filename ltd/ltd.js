@@ -98,8 +98,11 @@ window.DebuggLtd = (function(){
     // Contracts, skills and XP are by language only for now. Domains (Web Dev, Games,
     // Embedded…) are planned to return later as an unlock with specialist hires.
     const LANGS = ['Python', 'C/C++', 'JavaScript', 'Rust'];
-    const BAR_XP = [10, 50, 150, 400, 1000]; // cumulative XP needed for bars 1..5
-    const MAX_BARS = 5;
+    // Language skill levels have no top. Levels 1–5 need 10, 50, 150, 400 and 1,000 XP in all;
+    // after that each gap is 800 XP longer than the last (level 6 at 1,800, 7 at 3,400, 8 at
+    // 5,800…; skillXp()). Skill's effects (speed, success chance) stop growing at SKILL_FULL.
+    const SKILL_XP = [10, 50, 150, 400, 1000];
+    const SKILL_FULL = 5;
 
     const DEV_LEVELS = ['Graduate', 'Junior', 'Senior', 'Principal'];
     const ROLES = {
@@ -118,7 +121,7 @@ window.DebuggLtd = (function(){
     const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
 
     // To be promoted INTO a level: minutes spent working on contracts at the
-    // current level (bench time doesn't count), plus bars in their best language.
+    // current level (bench time doesn't count), plus a skill level in their best language.
     // Deliberately slow: hiring at a level is the quick way to get one; growing your
     // own people is the cheap way.
     const PROMOTION = {
@@ -187,15 +190,15 @@ window.DebuggLtd = (function(){
     // Bigger or more senior teams finish sooner.
     //
     // XP is earned per minute spent on the contract (xpPerMin, about 1 XP every
-    // 2–3 minutes), so skill bars build at roughly the pace of the contract-time
+    // 2–3 minutes), so skill levels build at roughly the pace of the contract-time
     // promotion timers regardless of how fast the team is. Bigger contracts pay
     // slightly more XP per minute to reward teamwork.
     const SLOC_SPREAD = 0.15;
     // Skill match speeds a dev up on a contract: their SLOC/min is multiplied
-    // by 1 + SKILL_SPEED × (bars in the contract's language) / 5 — so a dev at
-    // full bars in it works at double speed.
+    // by 1 + SKILL_SPEED × (their level in the contract's language, up to SKILL_FULL) / 5, so a
+    // dev at level 5 or more in it works at double speed.
     const SKILL_SPEED = 1.0;
-    // …and adds up to this much success chance (a full-bars team gets all of it).
+    // …and adds up to this much success chance (a team at level 5 or more gets all of it).
     const SKILL_CHANCE = 0.05;
     const MIN_JOB_MS = 5000; // floor, so a principal on a hotfix isn't instant
     // A failed contract can be retried once in RETRY_TIME of the time for
@@ -283,15 +286,19 @@ window.DebuggLtd = (function(){
     function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
     function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]); }
 
-    function bars(xp){
-      let b = 0;
-      while(b < MAX_BARS && (xp || 0) >= BAR_XP[b]) b++;
-      return b;
+    // Total XP needed for a language skill level (0 for none).
+    function skillXp(lv){
+      if(lv <= 0) return 0;
+      if(lv <= SKILL_XP.length) return SKILL_XP[lv - 1];
+      return SKILL_XP[SKILL_XP.length - 1] + 400 * (lv - 5) * (lv - 4);
     }
-    function xpForBars(b){ return b <= 0 ? 0 : BAR_XP[b - 1]; }
-    function barString(b){ return '■'.repeat(b) + '□'.repeat(MAX_BARS - b); }
-    function bestBars(skillMap){
-      return Object.values(skillMap).reduce((m, xp) => Math.max(m, bars(xp)), 0);
+    function skillLevel(xp){
+      let lv = 0;
+      while((xp || 0) >= skillXp(lv + 1)) lv++;
+      return lv;
+    }
+    function bestLevel(skillMap){
+      return Object.values(skillMap).reduce((m, xp) => Math.max(m, skillLevel(xp)), 0);
     }
 
     function isDev(p){ return DEV_LEVELS.indexOf(p.role) >= 0; }
@@ -402,7 +409,7 @@ window.DebuggLtd = (function(){
       const p = { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.',
                   role, since: Date.now(), lang: {} };
       const langs = shuffle(LANGS.slice());
-      const set = (b, i) => { if(b > 0) p.lang[langs[i]] = xpForBars(b); };
+      const set = (b, i) => { if(b > 0) p.lang[langs[i]] = skillXp(b); };
 
       if(role === 'Graduate'){
         // One language from uni.
@@ -414,7 +421,7 @@ window.DebuggLtd = (function(){
         set(3 + rand(2), 0);
         set(1 + rand(2), 1);
       }else if(role === 'Principal'){
-        // At least one language at full bars.
+        // At least one language at level 5.
         set(5, 0);
         set(2 + rand(3), 1);
         set(1 + rand(2), 2);
@@ -576,7 +583,7 @@ window.DebuggLtd = (function(){
       const missing = [];
       const left = req.minutes * 60000 - (p.worked || 0);
       if(left > 0) missing.push(fmtDuration(left) + ' more contract time');
-      if(bestBars(p.lang) < req.lang) missing.push('a language at ' + req.lang);
+      if(bestLevel(p.lang) < req.lang) missing.push('a language at level ' + req.lang);
       const blocked = missing.length ? null : problemWith({ [p.role]: -1, [next]: 1 });
       return { next, missing, blocked, ready: !missing.length && !blocked };
     }
@@ -612,21 +619,21 @@ window.DebuggLtd = (function(){
 
     // 0..1: how well a dev knows this contract's language.
     function matchFit(d, offer){
-      return bars(d.lang[offer.lang]) / MAX_BARS;
+      return Math.min(skillLevel(d.lang[offer.lang]), SKILL_FULL) / SKILL_FULL;
     }
     function devSlocOn(d, offer){
       return ROLES[d.role].sloc * (1 + SKILL_SPEED * matchFit(d, offer));
     }
 
-    // A dev "knows the stack" for a contract if they have at least one bar in
+    // A dev "knows the stack" for a contract if they have at least level 1 in
     // its language. Managers don't write code, so they're exempt.
     // Devs who don't can only join a team as learners: they write nothing,
     // each one costs the team LEARNER_DRAG of its output in mentoring time,
     // and there must be at least one dev who knows the stack per learner.
-    // It's the only way to pick up a first bar in something new.
+    // It's the only way to pick up a first level in something new.
     const LEARNER_DRAG = 0.10;
     function qualifiedFor(p, offer){
-      return !isDev(p) || bars(p.lang[offer.lang]) > 0;
+      return !isDev(p) || skillLevel(p.lang[offer.lang]) > 0;
     }
 
     function evaluateTeam(tier, offer, members){
@@ -666,7 +673,7 @@ window.DebuggLtd = (function(){
       const skill = devs.length ? devs.reduce((s, d) => s + matchFit(d, offer), 0) / devs.length : 0;
       const reliability = devs.length ? devs.reduce((s, d) => s + ROLES[d.role].reliability, 0) / devs.length : 0;
       const boost = devs.length ? directorBoost(offer.lang) : 0;
-      // Skill match adds up to +5%, scaled by the team's average bars in the language.
+      // Skill match adds up to +5%, scaled by the team's average level in the language (up to 5).
       const risk = riskOf(offer);
       const chance = devs.length ? Math.max(MIN_CHANCE, Math.min(0.98, reliability + SKILL_CHANCE * skill + boost + risk.chance)) : 0;
       const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
@@ -987,7 +994,7 @@ window.DebuggLtd = (function(){
       }
       free().filter(isDev).forEach(d => {
         const o = state.board.filter(o => isHotfix(o.tier) && qualifiedFor(d, o) && !(picker && picker.offerId === o.id))
-          .sort((a, b) => bars(d.lang[b.lang]) - bars(d.lang[a.lang]))[0];
+          .sort((a, b) => skillLevel(d.lang[b.lang]) - skillLevel(d.lang[a.lang]))[0];
         if(o && startJob(o.id, [d.id], true)) placed.push(d.id);
       });
       if(placed.length){
@@ -1073,18 +1080,17 @@ window.DebuggLtd = (function(){
     let inspectId = null;
 
     function skillRowsHTML(names, map, kind){
-      const top = names.reduce((m, n) => Math.max(m, bars(map[n])), 0);
+      const top = names.reduce((m, n) => Math.max(m, skillLevel(map[n])), 0);
       return names.map(name => {
         const xp = map[name] || 0;
-        const b = bars(xp);
-        let pips = '';
-        for(let i = 0; i < MAX_BARS; i++){
-          const filled = i < b;
-          pips += '<div class="skill-pip' + (filled ? ' filled ' + kind + (b === top ? ' best' : '') : '') + '"></div>';
-        }
-        const xpText = b >= MAX_BARS ? 'max' : Math.floor(xp) + '/' + BAR_XP[b];
-        return '<div class="skill-row"><span class="skill-name">' + esc(name) + '</span>' +
-               '<div class="skill-bar">' + pips + '</div><span class="skill-xp">' + xpText + ' xp</span></div>';
+        const lv = skillLevel(xp);
+        const from = skillXp(lv), to = skillXp(lv + 1);
+        const pct = Math.max(0, Math.min(100, (xp - from) / (to - from) * 100));
+        return '<div class="skill-row' + (lv ? '' : ' none') + '"><span class="skill-name">' + esc(name) + '</span>' +
+               '<span class="skill-level' + (lv && lv === top ? ' best' : '') + '">Lv ' + lv + '</span>' +
+               '<div class="skill-bar" role="progressbar" aria-label="' + esc(name) + ' XP to level ' + (lv + 1) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(pct) + '">' +
+               '<div class="skill-fill ' + kind + '" style="width:' + pct.toFixed(1) + '%"></div></div>' +
+               '<span class="skill-xp">' + Math.floor(xp) + '/' + to + ' xp</span></div>';
       }).join('');
     }
 
@@ -1108,7 +1114,7 @@ window.DebuggLtd = (function(){
           body += '<div class="skill-section-title">Promotion to ' + ps.next + '</div><div class="req-list">' +
             row(worked >= needMs, fmtDuration(needMs) + ' on contracts as ' + p.role.toLowerCase() +
                 (worked < needMs ? ' (' + fmtDuration(worked, true) + ' so far)' : '')) +
-            row(bestBars(p.lang) >= req.lang, 'A language at ' + req.lang + ' bar' + (req.lang > 1 ? 's' : '')) +
+            row(bestLevel(p.lang) >= req.lang, 'A language at level ' + req.lang) +
             (ps.blocked ? '<div class="no" style="color:var(--amber)">⚠ ' + esc(ps.blocked) + '</div>' : '') +
             '</div>';
         }else{
@@ -1298,9 +1304,9 @@ window.DebuggLtd = (function(){
     // Short summary of a dev's two best languages for a roster card; the full
     // breakdown is in the employee panel.
     function topSkillsText(p){
-      const known = Object.keys(p.lang).filter(k => bars(p.lang[k]) > 0)
+      const known = Object.keys(p.lang).filter(k => skillLevel(p.lang[k]) > 0)
         .sort((a, b) => p.lang[b] - p.lang[a]).slice(0, 2);
-      return known.length ? known.map(k => esc(k) + ' ' + bars(p.lang[k])).join(' · ') : 'no languages yet';
+      return known.length ? known.map(k => esc(k) + ' Lv ' + skillLevel(p.lang[k])).join(' · ') : 'no languages yet';
     }
 
     // The board is a tree like the roster: one foldable group per contract type,
@@ -1472,7 +1478,7 @@ window.DebuggLtd = (function(){
     }
 
     function suggestTeam(tier, offer, pool){
-      const fit = p => bars(p.lang[offer.lang]);
+      const fit = p => skillLevel(p.lang[offer.lang]);
       const byFit = pool.slice().sort((a, b) => fit(b) - fit(a) || levelRank(b.role) - levelRank(a.role));
       const chosen = [];
       const take = (pred, n) => {
@@ -1518,7 +1524,7 @@ window.DebuggLtd = (function(){
       const rows = pool.slice().sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role)).map(p => {
         const on = picker.selected.has(p.id);
         const meta = isDev(p)
-          ? '<span class="bars">' + barString(bars(p.lang[offer.lang])) + '</span>' +
+          ? '<span class="bars">Lv ' + skillLevel(p.lang[offer.lang]) + '</span>' +
             (qualifiedFor(p, offer) ? ' · ' + (Math.round(devSlocOn(p, offer) * 10) / 10) + ' SLOC/min'
                                     : ' · <span style="color:var(--amber)">learner, −' + Math.round(LEARNER_DRAG * 100) + '% team</span>')
           : 'no SLOC';
