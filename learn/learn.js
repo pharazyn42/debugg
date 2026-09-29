@@ -105,14 +105,24 @@ window.DebuggLearn = (function(){
   }
 
   // --- The header, stats and course map ------------------------------------------------------------
-  function renderStats(){
+  // With fromXp (the XP before something was just earned), the bar fills from there, from empty
+  // after a level-up.
+  function renderStats(fromXp){
     const xp = save.xp[lang] || 0;
     const lv = D.levelFor(xp), start = D.levelStart(lv), next = D.levelStart(lv + 1);
+    const pct = x => Math.round((x - start) / (next - start) * 100);
+    const from = fromXp == null ? pct(xp) : D.levelFor(fromXp) < lv ? 0 : pct(fromXp);
     $('stats').innerHTML =
       '<div class="stat"><span class="stat-label">Learn streak</span><span class="stat-value" id="learnStreak">' + streak() + '</span></div>' +
       '<div class="stat grow"><span class="stat-label">' + esc(L.courses[lang].name) + ' · Learn Lv <span id="learnLevel">' + lv + '</span></span>' +
-        '<div class="xp-bar"><div class="xp-fill" style="width:' + Math.round((xp - start) / (next - start) * 100) + '%"></div></div>' +
+        '<div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:' + from + '%"></div></div>' +
         '<span class="stat-note" id="learnXp">' + xp + ' / ' + next + ' XP</span></div>';
+    if(from !== pct(xp)) grow($('xpFill'), pct(xp));
+  }
+  // Sets a bar's width on the next frame, so its CSS transition runs from the width it was drawn at.
+  function grow(el, pct){
+    el.getBoundingClientRect();
+    requestAnimationFrame(() => { el.style.width = pct + '%'; });
   }
 
   function renderLangs(){
@@ -283,6 +293,9 @@ window.DebuggLearn = (function(){
     $('title').textContent = session.kind === 'lesson' ? session.lesson.title : session.kind === 'review' ? 'Review' : 'Checkpoint';
     $('sub').textContent = where;
     let body = '';
+    let key = 0;
+    const option = o => '<button class="option" data-action="choose" data-text="' + esc(o.text).replace(/"/g, '&quot;') + '">' +
+      '<kbd class="key" aria-hidden="true">' + (++key) + '</kbd><code>' + esc(o.text) + '</code></button>';
     if(s.type === 'teach'){
       body = (s.title ? '<h3>' + esc(s.title) + '</h3>' : '') + '<p class="teach">' + s.text + '</p>' +
         (s.code ? codeHtml(s.code) : '') +
@@ -291,13 +304,9 @@ window.DebuggLearn = (function(){
     }else{
       body = '<p class="question">' + s.question + '</p>';
       if(s.type === 'choice'){
-        body += (s.code ? codeHtml(s.code) : '') + '<div class="options">' +
-          shuffle(s.options.slice()).map(o => '<button class="option" data-action="choose" data-text="' + esc(o.text).replace(/"/g, '&quot;') + '">' +
-            '<code>' + esc(o.text) + '</code></button>').join('') + '</div>';
+        body += (s.code ? codeHtml(s.code) : '') + '<div class="options">' + shuffle(s.options.slice()).map(option).join('') + '</div>';
       }else if(s.type === 'blank'){
-        body += codeHtml(s.code, { gap: '___' }) + '<div class="options">' +
-          shuffle(s.options.slice()).map(o => '<button class="option" data-action="choose" data-text="' + esc(o.text).replace(/"/g, '&quot;') + '">' +
-            '<code>' + esc(o.text) + '</code></button>').join('') + '</div>';
+        body += codeHtml(s.code, { gap: '___' }) + '<div class="options">' + shuffle(s.options.slice()).map(option).join('') + '</div>';
       }else if(s.type === 'predict'){
         body += codeHtml(s.code) + '<div class="guess-row"><input type="text" id="answer" placeholder="what gets printed?" autocomplete="off">' +
           '<button class="btn-primary" data-action="check" id="checkBtn">Check</button></div>';
@@ -307,12 +316,16 @@ window.DebuggLearn = (function(){
       body += '<div class="feedback" id="stepFeedback" role="status"></div>' +
         '<div class="step-actions"><button class="btn-primary" data-action="continue" id="continueBtn" hidden>Continue</button></div>';
     }
+    // The bar is drawn where it was on the last step, then slides on.
     const pct = Math.round(session.done / session.total * 100);
+    const was = session.shownPct || 0;
+    session.shownPct = pct;
     $('view').innerHTML =
       '<div class="session-top"><button class="btn-ghost btn-small" data-action="quit">← Course</button>' +
-      '<div class="progress" aria-label="' + session.done + ' of ' + session.total + ' done"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="progress" aria-label="' + session.done + ' of ' + session.total + ' done"><div class="progress-fill" id="progressFill" style="width:' + was + '%"></div></div>' +
       '<span class="progress-num">' + session.done + '/' + session.total + '</span></div>' +
       '<article class="step" id="step" data-type="' + s.type + '">' + body + '</article>';
+    if(was !== pct) grow($('progressFill'), pct);
     const input = $('answer');
     if(input){
       input.focus();
@@ -332,12 +345,14 @@ window.DebuggLearn = (function(){
     session.answered = true;
     const s = session.steps[session.current];
     const fb = $('stepFeedback');
+    // The duck reacts: a hop when you're right, a wobble when you're not.
+    const duck = '<img class="fb-duck" src="../img/duck.svg" alt="" width="36" height="36">';
     document.querySelectorAll('#step .option, #step .code-line, #answer, #checkBtn').forEach(el => { el.disabled = true; });
     if(right){
       session.done++;
       if(session.kind === 'checkpoint') session.correct++;
       fb.className = 'feedback show correct';
-      fb.innerHTML = '<b>Quack! Correct.</b> ' + s.explain;
+      fb.innerHTML = duck + '<div><b>Quack! Correct.</b> ' + s.explain + '</div>';
     }else{
       session.mistakes++;
       if(session.kind === 'checkpoint') session.done++;
@@ -345,11 +360,11 @@ window.DebuggLearn = (function(){
       if(session.kind === 'review') session.missed.add(session.current);
       else addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
       fb.className = 'feedback show wrong';
-      fb.innerHTML = '<b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
+      fb.innerHTML = duck + '<div><b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
         '<span class="again">' + (session.kind === 'lesson' ? 'This one comes back before the end of the lesson, and in a review tomorrow.'
           : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
-          : 'This one comes back in a review tomorrow.') + '</span>';
+          : 'This one comes back in a review tomorrow.') + '</span></div>';
     }
     $('continueBtn').hidden = false;
     $('continueBtn').focus();
@@ -395,8 +410,25 @@ window.DebuggLearn = (function(){
   }
 
   // --- Finishing ----------------------------------------------------------------------------------
+  // What the summary celebrates: a new Learn level, and the streak going up today.
+  function celebrate(xpBefore, streakBefore){
+    const lv = D.levelFor(save.xp[lang] || 0);
+    let html = D.levelFor(xpBefore) < lv
+      ? '<p class="level-up" id="levelUp">Level up! ' + esc(L.courses[lang].name) + ' · Learn Lv ' + lv + '</p>' : '';
+    html += '<p class="streak-line">' + (streak() > streakBefore
+      ? '<span class="streak-up" id="streakUp">Learn streak: <b>' + streak() + '</b> day' + (streak() > 1 ? 's' : '') + ', +1 today</span>'
+      : 'Learn streak: <b>' + streak() + '</b>') + '</p>';
+    return html;
+  }
+  // Stars that pop in one after another.
+  function bigStars(n){
+    return '<p class="big-stars" aria-label="' + n + ' of 3 stars">' +
+      [0, 1, 2].map(i => '<span class="' + (i < n ? 'star on' : 'star') + '" style="animation-delay:' + (0.15 + i * 0.18) + 's">' + (i < n ? '★' : '☆') + '</span>').join('') + '</p>';
+  }
+
   function finish(){
     const u = session.unit;
+    const xpBefore = save.xp[lang] || 0, streakBefore = streak();
     let html = '';
     if(session.kind === 'review'){
       // Right first time moves a question to its next gap (1, 3, then 7 days); right three times
@@ -421,7 +453,7 @@ window.DebuggLearn = (function(){
         '<p>' + right + ' right first time' + (xp ? ' <b>+' + xp + ' XP</b>' : '') + '.' +
         (learnt ? ' ' + learnt + ' learnt for good.' : '') +
         (again ? ' ' + again + ' will come back tomorrow.' : '') + '</p>' +
-        '<p>Learn streak: <b>' + streak() + '</b></p><div class="step-actions">' +
+        celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
         (left ? '<button class="btn-primary" data-action="review">Review ' + Math.min(left, REVIEW_ROUND) + ' more</button>' : '') +
         '<button class="' + (left ? 'btn-ghost' : 'btn-primary') + '" data-action="quit">Back to the course</button></div></div>';
     }else if(session.kind === 'lesson'){
@@ -437,10 +469,10 @@ window.DebuggLearn = (function(){
       track('lesson/' + key + '/' + stars + '-stars');
       const i = u.lessons.indexOf(session.lesson);
       const nextLesson = u.lessons[i + 1];
-      html = '<div class="summary" id="summary"><img class="summary-duck" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-stars" aria-label="' + stars + ' of 3 stars">' + starText(stars) + '</p>' +
+      html = '<div class="summary" id="summary"><img class="summary-duck" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64">' + bigStars(stars) +
         '<h2>Lesson complete</h2><p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right.' : 'No mistakes.') +
         ' <b>+' + xp + ' XP</b>' + (before && !xp ? ' (you’d already earned these stars)' : '') + '</p>' +
-        '<p>Learn streak: <b>' + streak() + '</b></p><div class="step-actions">' +
+        celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
         (nextLesson ? '<button class="btn-primary" data-action="lesson" data-unit="' + u.id + '" data-lesson="' + nextLesson.id + '">Next: ' + esc(nextLesson.title) + '</button>'
           : '<button class="btn-primary" data-action="checkpoint" data-unit="' + u.id + '">Take the checkpoint</button>') +
         '<button class="btn-ghost" data-action="quit">Back to the course</button></div></div>';
@@ -464,12 +496,15 @@ window.DebuggLearn = (function(){
         '<h2>' + (passed ? 'Checkpoint passed!' : 'Not this time') + '</h2>' +
         '<p>' + (passed ? (xp ? '<b>+' + xp + ' XP.</b> ' : '') + (nextUnit ? 'Unit ' + (units.indexOf(nextUnit) + 1) + ' is unlocked.' : 'That’s every unit written so far. More are coming.')
           : 'You need ' + u.checkpoint.pass + ' to pass. Go over the lessons, then try again: there’s no limit.') + '</p>' +
+        (passed ? celebrate(xpBefore, streakBefore) : '') +
         '<div class="step-actions">' + (passed ? '' : '<button class="btn-primary" data-action="checkpoint" data-unit="' + u.id + '">Try again</button>') +
         '<button class="' + (passed ? 'btn-primary' : 'btn-ghost') + '" data-action="quit">Back to the course</button></div></div>';
     }
     session = null;
-    renderStats();
+    renderStats(xpBefore);
     $('view').innerHTML = html;
+    const first = document.querySelector('#summary .btn-primary');
+    if(first) first.focus();
   }
 
   // --- Events -------------------------------------------------------------------------------------
@@ -490,6 +525,20 @@ window.DebuggLearn = (function(){
     else if(a === 'pick-line') onPickLine(+btn.dataset.line, btn);
     else return;
     window.scrollTo(0, 0);
+  });
+  // Keys in a lesson: 1–9 pick an option (or a line of code, by its number), and Enter continues.
+  document.addEventListener('keydown', e => {
+    if(!session || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    if(e.target && e.target.id === 'answer') return;  // typing an answer (its own Enter checks it)
+    const cont = $('continueBtn');
+    if(e.key === 'Enter' && cont && !cont.hidden){
+      if(document.activeElement !== cont){ e.preventDefault(); cont.click(); }
+      return;
+    }
+    if(!/^[1-9]$/.test(e.key) || session.answered) return;
+    const n = +e.key;
+    const target = document.querySelectorAll('#step .option')[n - 1] || document.querySelector('#step .code-line[data-line="' + n + '"]');
+    if(target && !target.disabled){ e.preventDefault(); target.click(); }
   });
   window.addEventListener('hashchange', () => {
     const l = pickLang();

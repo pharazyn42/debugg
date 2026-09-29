@@ -167,6 +167,47 @@ test('missed questions come back in review rounds: tomorrow, then after 3 and 7 
   await expect(page.locator('#reviewBtn')).toHaveText('Review 8 →');
 });
 
+test('lessons play from the keyboard, and the summary celebrates stars, level-ups and the streak', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('debugg-learn', JSON.stringify({ xp: { python: 95 } })));
+  await page.reload();
+  await page.locator('#continue button').click();
+  // 1–9 pick an option (in the order shown) or a line of code; Enter continues.
+  while(!(await page.locator('#summary').count())){
+    const s = await current(page);
+    if(s.type === 'choice' || s.type === 'blank'){
+      const texts = await page.locator('#step .option').evaluateAll(els => els.map(e => e.dataset.text));
+      await expect(page.locator('#step .option .key').first()).toHaveText('1');
+      await page.keyboard.press(String(texts.indexOf(s.options.find(o => o.correct).text) + 1));
+    }else if(s.type === 'line'){
+      await page.keyboard.press(String(s.line));
+    }else if(s.type === 'predict'){
+      await page.fill('#answer', s.display);
+      await page.keyboard.press('Enter');
+    }
+    if(s.type !== 'teach'){
+      await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
+      await expect(page.locator('#stepFeedback .fb-duck')).toBeVisible();
+    }
+    await page.locator('body').click({ position: { x: 2, y: 2 } });  // Enter works wherever the focus is
+    await page.keyboard.press('Enter');
+  }
+  await expect(page.locator('#summary .big-stars')).toHaveText('★★★');
+  await expect(page.locator('#levelUp')).toHaveText('Level up! Python · Learn Lv 2');
+  await expect(page.locator('#streakUp')).toHaveText('Learn streak: 1 day, +1 today');
+  await expect(page.locator('#learnLevel')).toHaveText('2');
+  // The next lesson is one Enter away.
+  await page.keyboard.press('Enter');
+  await expect(page.locator('h1')).toHaveText('Numbers and arithmetic');
+  // The progress bar slides on as steps are done.
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.locator('#progressFill').evaluate(e => e.style.width)).not.toBe('0%');
+  // A second lesson the same day: no level-up, and the streak is already counted.
+  await finishAll(page);
+  await expect(page.locator('#levelUp')).toHaveCount(0);
+  await expect(page.locator('#streakUp')).toHaveCount(0);
+  await expect(page.locator('#summary .streak-line')).toHaveText('Learn streak: 1');
+});
+
 test('C is a coming-soon tab with its planned units', async ({ page }) => {
   const tabs = page.locator('#langs .lang-tab');
   await expect(tabs).toHaveCount(2);

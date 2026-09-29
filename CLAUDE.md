@@ -936,11 +936,17 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   time moves it on (1, 3, then 7 days; `REVIEW_DAYS`); right three times running, it leaves the queue;
   missed again, it starts over. 2 XP per question right first time, and a round counts for the Learn
   streak. The checker fails two questions with the same text and code in one lesson or checkpoint.
+- **Lesson feel** (the third experience item): keys 1–9 pick an option or a line and Enter continues
+  (hints on the options, hidden on touch screens); the duck hops or wobbles in each answer's
+  feedback; the progress and XP bars slide from where they were (`grow()`); the summary pops its
+  stars in, shows "Level up!" on a new Learn level and "+1 today" when the streak went up, and
+  focuses its main button. Still to do from that item: "run it yourself" links into the sandbox,
+  which need the sandbox to open code from a link (a game change, so its own PR first).
 - **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
   never locked behind daily puzzles or anything else.
 - **Still to do:** the rest of the Python course (Conditions, Loops,
-  Functions, Dictionaries, the classic traps), the other experience items (lesson feel, a visual
-  course path and daily goal, a phone and accessibility pass), other languages' courses, the Rosetta-style "second language" lessons, and
+  Functions, Dictionaries, the classic traps), the other experience items (sandbox links from lessons, a
+  visual course path and daily goal, a phone and accessibility pass), other languages' courses, the Rosetta-style "second language" lessons, and
   badges.
 
 The original sketch:
