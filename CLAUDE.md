@@ -44,6 +44,8 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `tools/release.js`, `tools/check-scope.js` | Cuts a release of the game or of Learn (`[learn] bump|notes|check|tag|name <version>`), and the CI check that keeps each PR to one of them. See "Releases" below. |
 | `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `img/` | The Debuggit duck: `duck.svg` (logo and favicon), `duck-180.png` (home-screen icon) and `share.png` (the 1200×630 link-preview card). The PNGs are rendered from the SVG; redo them if the duck changes. |
+| `daily/` | The daily page's parts: `formats.js` (each puzzle format's question and answer text), `stats.js` (the stats panel), `sharecard.js` (the share picture), `archive.js` (past puzzles, played as practice at `index.html?day=N`) and `trace.js` (Step through it). |
+| `tools/trace-puzzles.js`, `tools/trace.py`, `tools/probe.py` | `npm run traces` records every Python puzzle's step-by-step trace with real Python into `puzzles/traces-python.js`; `probe.py` counts line runs and tries line orders for the checker. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
@@ -842,6 +844,20 @@ for its contracts; they no longer name puzzles.
     streak**: only the daily puzzle does. The track has its own progress
     (which lessons are done) and doesn't pay in Debugg Ltd, which stays
     daily.
+- **Formats built** (September 2026, the player-owner's pick): `choice`, `value`, `count`, `error`,
+  `order` and `bug`, alongside `output` (`FORMATS` and `WEEK_FORMATS` in `shared.js`,
+  `daily/formats.js`, the engine in `index.html`; fields and checks in `puzzles/README.md`). From
+  Day 1 each weekday takes turns with its formats a week at a time (Monday choice / output / value,
+  Tuesday output / count, Wednesday error / output / order, Thursday bug / output); a missing format
+  falls back to output. Guesses and hints follow the table above (choice and error 2 / 1, order 3 /
+  1). The checker proves each with real Python, including that no other order of an `order`
+  puzzle's lines prints the target. 24 Python puzzles, 4 per format; preview days stay output-only.
+  Tests switch formats off by default (`openAt(…, { formats: true })` turns them on; `solve()` and
+  `miss()` in `tests/helpers.js` answer any format). Still to come: fill the blank, spot the
+  difference, which is faster, and the weekend code formats.
+- Also built with them: **Step through it** (a trace of every Python puzzle, played back after the
+  game), **stats** (played, win rate, streaks, guess distribution), a **share picture**, and **past
+  puzzles** as practice (saved as `debugg-practice-day<N>`; no XP, streak, share or desk pay).
 - **Built so far:** every puzzle has a `difficulty`; the calendar,
   weekend slot, day labels ("Day 8 · Thursday · tricky · Python") and XP by
   day are live (see "The weekly rotation" above). Every day still uses
@@ -1181,9 +1197,10 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
   matter most:
   - a clear result summary;
   - a Wordle-style share card (guesses and hints as squares, no
-    spoilers). **Done as text** (September 2026): "Share your result" under the duck copies
-    (or, on phones, opens the share sheet with) e.g. `debugg(it) Day 3 · Python`, `🟥🟩⬛⬛ · 1
-    hint`, `Debugged it in 2` and the link; an image card is still to do;
+    spoilers). **Done** (September 2026): "Share your result" under the duck copies (or, on
+    phones, opens the share sheet with) e.g. `debugg(it) Day 3 · Python`, `🟥🟩⬛⬛ · 1 hint`,
+    `Debugged it in 2` and the link, and "Share as a picture" makes a 1200×630 card
+    (`daily/sharecard.js`);
   - the streak and XP level-ups made to feel like rewards.
 - **Debugg Ltd.** Less wall-of-text and more at-a-glance:
   - icons or colour for roles and languages;

@@ -7,7 +7,8 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- The sandbox explains the daily puzzle's new kinds of question when you open one: what a variable
+  ends as, how many times a line runs, or which error it stops with.
 
 ## 0.0.4 — 29 September 2026
 

@@ -1,7 +1,7 @@
 // The sandbox: running JavaScript and Python, the editor, and which puzzles it can load.
 // Python needs Pyodide from the CDN, or a local copy via PYODIDE_DIR (see serve.js).
 const { test, expect } = require('@playwright/test');
-const { openAt, fresh, guess } = require('./helpers');
+const { openAt, fresh, guess, solve, readJson } = require('./helpers');
 
 async function setCode(page, code){
   await page.evaluate(c => {
@@ -84,15 +84,23 @@ test.describe('Python', () => {
     expect(await run(page, 120000)).toBe('back');
   });
 
-  test('every Python puzzle prints its answer', async ({ page }) => {
+  test('every Python puzzle does what it says in the browser too', async ({ page }) => {
     await openSandbox(page, 'python');
     const puzzles = await page.evaluate(() => window.Debugg.puzzlesFor('python'));
     await run(page, 120000);
     for(const p of puzzles){
-      await setCode(page, p.code);
-      const lines = (await run(page)).split('\n');
+      const format = p.format || 'output';
+      if(format === 'count') continue;  // counting runs needs a tracer; the checker does it with real Python
+      await setCode(page, p.code + (format === 'value' ? '\nprint(repr(' + p.ask.name + '))' : ''));
+      const out = await run(page);
+      if(format === 'error'){
+        if(p.display === 'Runs fine') expect(out, p.code).not.toMatch(/Error/);
+        else expect(out, p.code).toContain(p.display + ':');
+        continue;
+      }
+      const lines = out.split('\n');
       // The finally puzzle also prints Python 3.14's SyntaxWarning first.
-      expect(lines[lines.length - 1], p.code).toBe(p.display);
+      expect(lines[lines.length - 1], p.code).toBe(p.display.split('\n').pop());
     }
   });
 });
@@ -163,4 +171,15 @@ test('a Learn lesson\'s "Run it yourself" link opens its code in the sandbox', a
   await expect(page).toHaveURL(/learn\/sandbox\.html#python$/);
   await page.reload();
   await expect(page.locator('#src')).toHaveValue('print("Ready")\n');
+});
+
+test('a finished puzzle in another format loads with the right note', async ({ page }) => {
+  // Day 15 is a Monday "what's the value?" puzzle.
+  await openAt(page, 'index.html', 15, { formats: true });
+  await fresh(page);
+  const p = await solve(page, 15);
+  expect(p.format).toBe('value');
+  await page.goto('learn/sandbox.html?lang=python&day=15');
+  await expect(page.locator('#src')).toHaveValue(p.code + '\nprint(repr(' + p.ask.name + '))\n');
+  await expect(page.locator('#note')).toHaveText('Loaded Day 15. At the end, ' + p.ask.name + ' is ' + p.display + '. Try changing it and running it again.');
 });

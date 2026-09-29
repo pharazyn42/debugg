@@ -15,32 +15,11 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const vm = require('vm');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 
-// Load shared.js and the puzzle files the way the page does, with just enough of a browser around them.
-function loadGame(){
-  const store = {};
-  const ctx = { console };
-  ctx.window = ctx;
-  ctx.localStorage = {
-    getItem: k => (k in store ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v); },
-    removeItem: k => { delete store[k]; }
-  };
-  vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'shared.js'), 'utf8'), ctx, { filename: 'shared.js' });
-  for(const f of ctx.Debugg.PUZZLE_FILES){
-    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-  }
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'learn/courses.js'), 'utf8'), ctx, { filename: 'learn/courses.js' });
-  for(const course of Object.values(ctx.DEBUGG_LEARN.courses)){
-    for(const f of course.files) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-  }
-  return ctx;
-}
+const { loadGame } = require('./load-game');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'debugg-check-'));
 function run(cmd, args, opts = {}){
@@ -90,15 +69,38 @@ const RUNNERS = {
   }
 };
 
-const REQUIRED = ['lang', 'difficulty', 'code', 'flag', 'answers', 'display', 'nudge', 'hints', 'explain', 'fix', 'takeaway'];
+const REQUIRED = ['lang', 'difficulty', 'code', 'flag', 'display', 'nudge', 'hints', 'explain', 'fix', 'takeaway'];
+// What each format needs on top (see puzzles/README.md). Typed formats need `answers`.
+const FORMAT_FIELDS = { output: ['answers'], choice: ['options'], value: ['answers', 'ask'], count: ['answers', 'ask'],
+                        error: ['options'], order: [], bug: ['expected', 'bugLine', 'fixLine'] };
 
 // `learn` (optional) names the Learn unit that teaches what the puzzle is about; the puzzle page links
 // to it after a missed puzzle, so it must be a written unit in the puzzle's language.
 function checkFields(p, D, L){
   const problems = [];
-  REQUIRED.forEach(f => { if(p[f] === undefined || p[f] === '') problems.push('missing ' + f); });
+  const format = p.format || 'output';
+  if(!D.FORMATS[format]) return ['unknown format "' + p.format + '"'];
+  if(format !== 'output' && p.lang !== 'python') problems.push('only Python puzzles can use the ' + format + ' format so far');
+  REQUIRED.concat(FORMAT_FIELDS[format]).forEach(f => { if(p[f] === undefined || p[f] === '') problems.push('missing ' + f); });
   if(!(p.difficulty >= 1 && p.difficulty <= 5)) problems.push('difficulty must be 1 to 5');
-  if(!Array.isArray(p.hints) || p.hints.length !== 2) problems.push('needs exactly 2 hints');
+  const hints = D.FORMATS[format].hints;
+  if(!Array.isArray(p.hints) || p.hints.length !== hints) problems.push('needs exactly ' + hints + ' hint' + (hints > 1 ? 's' : ''));
+  if(p.options !== undefined){
+    if(!Array.isArray(p.options) || p.options.length !== 4) problems.push('needs exactly 4 options');
+    else if(new Set(p.options).size !== 4) problems.push('options must all be different');
+    else if(!p.options.includes(p.display)) problems.push('the display "' + p.display + '" isn\'t one of the options');
+  }
+  if(format === 'error' && Array.isArray(p.options) && !p.options.includes('Runs fine')) problems.push('an error puzzle offers "Runs fine" as an option');
+  if(format === 'count' && !(p.ask && p.ask.line >= 1 && p.ask.line <= p.code.split('\n').length)) problems.push('ask.line must be a line of the code');
+  if(format === 'value' && !(p.ask && /^[A-Za-z_]\w*$/.test(p.ask.name || ''))) problems.push('ask.name must be a variable name');
+  if(format === 'order'){
+    const n = (p.code || '').split('\n').length;
+    if(n < 3 || n > 7) problems.push('order puzzles have 3 to 7 lines');
+  }
+  if(format === 'bug'){
+    if(p.flag && p.flag.line !== p.bugLine) problems.push('the flag should be on the bug line');
+    if(p.expected === p.display) problems.push('what it should print is what it prints');
+  }
   if(p.flag){
     const line = (p.code || '').split('\n')[p.flag.line - 1];
     if(line === undefined || !line.includes(p.flag.text)) problems.push('flag text "' + p.flag.text + '" is not on line ' + p.flag.line);
@@ -106,8 +108,72 @@ function checkFields(p, D, L){
   if(p.learn !== undefined && !L.units.some(u => u.lang === p.lang && u.id === p.learn)){
     problems.push('learn: no ' + p.lang + ' Learn unit "' + p.learn + '"');
   }
-  if(Array.isArray(p.answers) && !p.answers.some(a => D.normaliseAnswer(a) === D.normaliseAnswer(p.display))){
+  if(FORMAT_FIELDS[format].includes('answers') && Array.isArray(p.answers) && !p.answers.some(a => D.normaliseAnswer(a) === D.normaliseAnswer(p.display))){
     problems.push('the display "' + p.display + '" wouldn\'t be accepted as an answer');
+  }
+  return problems;
+}
+
+function probe(req){
+  const r = spawnSync('python3', [path.join(__dirname, 'probe.py')], { input: JSON.stringify(req), encoding: 'utf8', timeout: 60000 });
+  if(r.error && r.error.code === 'ENOENT') return { missing: 'python3' };
+  if(r.status !== 0) return { error: 'probe.py failed: ' + (r.stderr || r.error).toString().trim().split('\n').pop() };
+  return JSON.parse(r.stdout);
+}
+
+// Checks a puzzle in a format other than "what does this print?" against what really happens.
+// Returns a list of problems, or { missing } when the toolchain isn't there.
+function checkFormat(p){
+  const f = p.format;
+  const problems = [];
+  const py = code => RUNNERS.python(code);
+  const plain = r => r.outputs[0];
+  if(f === 'choice' || f === 'order'){
+    const r = py(p.code);
+    if(r.missing) return r;
+    const o = plain(r);
+    if(o.code !== 0) problems.push('exits with an error: ' + o.err.trim().split('\n').pop());
+    else if(!matches(o.out, p.display)) problems.push('prints ' + JSON.stringify(o.out.replace(/\s+$/, '')) + ', not ' + JSON.stringify(p.display));
+    if(f === 'order' && !problems.length){
+      const lines = p.code.split('\n');
+      const t = probe({ mode: 'orders', lines, target: p.display });
+      if(t.missing) return t;
+      if(t.error) problems.push(t.error);
+      else{
+        const others = t.orders.filter(o => o.join(',') !== lines.map((_, i) => i).join(','));
+        if(others.length) problems.push('another order also prints it:\n      ' + others[0].map(i => lines[i]).join('\n      '));
+      }
+    }
+  }else if(f === 'value'){
+    const r = py(p.code + '\nprint(repr(' + p.ask.name + '))');
+    if(r.missing) return r;
+    const o = plain(r);
+    if(o.code !== 0) problems.push('exits with an error: ' + o.err.trim().split('\n').pop());
+    else if(!matches(o.out, p.display)) problems.push(p.ask.name + ' ends as ' + JSON.stringify(o.out.replace(/\s+$/, '')) + (o.out.split('\n').length > 2 ? ' (the snippet itself should print nothing)' : '') + ', not ' + JSON.stringify(p.display));
+  }else if(f === 'count'){
+    const t = probe({ mode: 'count', code: p.code, line: p.ask.line });
+    if(t.missing) return t;
+    if(t.error) problems.push(t.error);
+    else if(String(t.count) !== p.display) problems.push('line ' + p.ask.line + ' runs ' + t.count + ' times, not ' + p.display);
+  }else if(f === 'error'){
+    const r = py(p.code);
+    if(r.missing) return r;
+    const o = plain(r);
+    const m = /^(\w+)(?::|$)/m.exec(o.err.trim().split('\n').pop() || '');
+    const what = o.code === 0 ? 'Runs fine' : (m ? m[1] : 'an unknown error');
+    if(what !== p.display) problems.push('it ' + (o.code === 0 ? 'runs fine' : 'raises ' + what) + ', not ' + p.display);
+  }else if(f === 'bug'){
+    const r = py(p.code);
+    if(r.missing) return r;
+    const o = plain(r);
+    if(!matches(o.out, p.display)) problems.push('prints ' + JSON.stringify(o.out.replace(/\s+$/, '')) + ', not ' + JSON.stringify(p.display));
+    const lines = p.code.split('\n');
+    if(!(p.bugLine >= 1 && p.bugLine <= lines.length)) problems.push('bugLine is outside the code');
+    else{
+      lines[p.bugLine - 1] = p.fixLine;
+      const fixed = plain(py(lines.join('\n')));
+      if(!matches(fixed.out, p.expected)) problems.push('with the fixLine it prints ' + JSON.stringify(fixed.out.replace(/\s+$/, '')) + ', not the expected ' + JSON.stringify(p.expected));
+    }
   }
   return problems;
 }
@@ -245,6 +311,16 @@ function checkLearn(ctx, only){
   return { failed, steps, summary };
 }
 
+// The trace's last step matches what the puzzle says happens.
+function traceEndsRight(p, end){
+  if(!end || !end.end) return false;
+  const f = p.format || 'output';
+  if(f === 'value') return end.vars[p.ask.name] === p.display;
+  if(f === 'error') return p.display === 'Runs fine' ? !end.error : !!end.error && end.error.startsWith(p.display + ':');
+  if(f === 'count') return !end.error;
+  return end.out === p.display + '\n';
+}
+
 function main(){
   const ctx = loadGame();
   const D = global.D = ctx.Debugg;
@@ -263,7 +339,13 @@ function main(){
     const problems = checkFields(p, D, ctx.DEBUGG_LEARN);
     const runner = RUNNERS[p.lang];
     if(!runner) problems.push('no runner for language "' + p.lang + '"');
-    else if(!problems.length){
+    else if(!problems.length && p.format && p.format !== 'output'){
+      const r = checkFormat(p);
+      if(r.missing){
+        if(skipMissing){ skipped++; return; }
+        problems.push(r.missing + ' is not installed (set SKIP_MISSING=1 to skip)');
+      }else problems.push(...r);
+    }else if(!problems.length){
       const r = runner(p.code);
       if(r.missing){
         if(skipMissing){ skipped++; return; }
@@ -279,6 +361,12 @@ function main(){
         });
       }
     }
+    // Python puzzles have a step-through trace (npm run traces), which must end the way the puzzle does.
+    if(p.lang === 'python' && !problems.length){
+      const t = (ctx.DEBUGG_TRACES || {})[D.codeId(p.code)];
+      if(!t) problems.push('no step-through trace for this code: run npm run traces');
+      else if(!traceEndsRight(p, t[t.length - 1])) problems.push('its step-through trace is out of date: run npm run traces');
+    }
     if(problems.length){
       failed++;
       console.log('✗ ' + name + '\n    ' + problems.join('\n    '));
@@ -291,6 +379,9 @@ function main(){
     console.log('  ' + (l + ':').padEnd(12) + [1, 2, 3, 4, 5].map(d => d + ': ' + c[d]).join('  ') +
       '   total ' + Object.values(c).reduce((a, b) => a + b, 0));
   });
+  const byFormat = {};
+  puzzles.forEach(p => { const f = p.format || 'output'; byFormat[f] = (byFormat[f] || 0) + 1; });
+  console.log('\nBy format: ' + Object.entries(byFormat).map(([f, n]) => f + ' ' + n).join(', '));
   console.log('\nPuzzles: ' + (puzzles.length - failed - skipped) + ' passed' + (failed ? ', ' + failed + ' failed' : '') +
     (skipped ? ', ' + skipped + ' skipped (toolchain missing)' : '') + '.');
 

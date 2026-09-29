@@ -150,6 +150,31 @@ window.Debugg = (function(){
     return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   }
 
+  // --- Puzzle formats ------------------------------------------------------------
+  // How a puzzle is asked and answered (a puzzle's `format`; left out, it's 'output'). See
+  // puzzles/README.md for each format's fields. `guesses` and `hints` are how many it allows.
+  const FORMATS = {
+    output: { name: 'what does this print?', guesses: 4, hints: 2 },
+    choice: { name: 'multiple choice', guesses: 2, hints: 1 },
+    value:  { name: 'what’s the value?', guesses: 4, hints: 2 },
+    count:  { name: 'how many times?', guesses: 4, hints: 2 },
+    error:  { name: 'will it error?', guesses: 2, hints: 1 },
+    order:  { name: 'order the lines', guesses: 3, hints: 1 },
+    bug:    { name: 'spot the bug', guesses: 4, hints: 2 }
+  };
+  function formatOf(p){ return (p && FORMATS[p.format]) ? p.format : 'output'; }
+  // Which formats each weekday takes turns with, a week at a time, from Day 1 (the weekend and
+  // Friday stay "what does this print?" until the code challenges exist). A day whose format has no
+  // puzzle left falls back to 'output'. window.DEBUGG_WEEK_FORMATS overrides it for tests.
+  const WEEK_FORMATS = window.DEBUGG_WEEK_FORMATS || { 1: ['choice', 'output', 'value'], 2: ['output', 'count'], 3: ['error', 'output', 'order'],
+                         4: ['bug', 'output'], 5: ['output'], weekend: ['output'] };
+  function formatFor(day){
+    const slot = slotDay(day);
+    if(slot < 1) return 'output';
+    const list = WEEK_FORMATS[dayKind(slot)];
+    return list[weekOf(slot) % list.length];
+  }
+
   function puzzlesFor(lang){
     return (window.DEBUGG_PUZZLES || []).filter(p => p.lang === lang);
   }
@@ -183,8 +208,9 @@ window.Debugg = (function(){
   }
 
   // The schedule, from Day 1: each slot takes, in its language, the first unused puzzle (in the
-  // order of its puzzle file) of the day's difficulty, or the nearest difficulty if none is left
-  // (easier first on a tie). Once all of a language's puzzles have been used, they're all available
+  // order of its puzzle file) in the day's format (formatFor) at the day's difficulty; failing that,
+  // the first unused "what does this print?" puzzle of the day's difficulty, or the nearest difficulty
+  // if none is left (easier first on a tie). Once all of a language's puzzles have been used, they're all available
   // again. It's worked out the same way in every browser, so everyone gets the same puzzle on the
   // same date. Adding puzzles to the end of a file only changes days that would otherwise have
   // fallen back to another difficulty; adding a language to ROTATION only changes days from its
@@ -200,13 +226,16 @@ window.Debugg = (function(){
       if(used.size >= list.length) used.clear();
       const kind = dayKind(d);
       const want = kind === 'weekend' ? WEEKEND_STAND_IN : kind;
-      let pick = null;
+      // The day's format first (see WEEK_FORMATS), at the day's difficulty.
+      const format = formatFor(d);
+      let pick = format === 'output' ? null : list.find(p => !used.has(p) && formatOf(p) === format && (p.difficulty || 3) === want);
       for(let delta = 0; !pick && delta <= 4; delta++){
         for(const t of delta ? [want - delta, want + delta] : [want]){
-          pick = list.find(p => !used.has(p) && (p.difficulty || 3) === t);
+          pick = list.find(p => !used.has(p) && formatOf(p) === 'output' && (p.difficulty || 3) === t);
           if(pick) break;
         }
       }
+      if(!pick) pick = list.find(p => !used.has(p)) || list[0];  // only other formats left
       used.add(pick);
       schedule.bySlot[d] = pick;
     }
@@ -217,9 +246,17 @@ window.Debugg = (function(){
   function puzzleFor(day){
     const slot = slotDay(day);
     if(slot >= 1) return scheduled(slot);
-    // Preview days count backwards from the end of the first language's list.
-    const list = puzzlesFor(langFor(slot));
+    // Preview days count backwards from the end of the first language's "what does this print?" puzzles.
+    const list = puzzlesFor(langFor(slot)).filter(p => formatOf(p) === 'output');
     return list[(((slot - 1) % list.length) + list.length) % list.length];
+  }
+
+  // A short id for a puzzle's code (FNV-1a, as hex), so data made from the code, like the step-through
+  // traces in puzzles/traces-python.js, stays matched to it whatever order the puzzles are in.
+  function codeId(code){
+    let h = 0x811c9dc5;
+    for(let i = 0; i < code.length; i++){ h ^= code.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8, '0');
   }
 
   // One save per day, whatever the language. Keyed by slot, so a weekend puzzle has one save for
@@ -376,6 +413,6 @@ window.Debugg = (function(){
 
   return { NAME, APP_VERSION, LEARN_VERSION, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
-           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished, normaliseAnswer,
+           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, codeId, FORMATS, formatOf, formatFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };
 })();

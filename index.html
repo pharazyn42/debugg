@@ -54,6 +54,7 @@
     transition: background 0.2s ease;
   }
   .hint-dot.used{ background: var(--amber); }
+  .hint-dot[hidden], .guess-row[hidden], label[hidden]{ display: none; }
   .hint-track-label{
     font-family: var(--mono);
     font-size: 11px;
@@ -140,6 +141,89 @@
   @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
   @media (prefers-reduced-motion: reduce){ .duck-says.happy img{ animation: none; } }
   .dialog-duck{ display: block; margin: 0 auto 6px; }
+  /* Puzzle formats (daily/formats.js): the question above the code, and the ways to answer */
+  .ask{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 12px; font-size: 14.5px; line-height: 1.55; }
+  .ask[hidden]{ display: none; }
+  .ask code{ background: var(--bg); border-radius: 4px; padding: 1px 5px; color: var(--amber); }
+  .ask-out{ background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; margin: 6px 0 0; font-size: 13.5px; color: var(--green); white-space: pre-wrap; }
+  .ask-out.wrong{ color: var(--red); }
+  .ask-row{ display: block; margin-bottom: 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+  .ask-row:last-child{ margin-bottom: 0; }
+  .choices{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .choices[hidden]{ display: none; }
+  .choice{ text-align: left; background: var(--panel-2); color: var(--text); border: 1.5px solid var(--line); font-weight: 500; overflow-wrap: anywhere; }
+  .choice:hover:not(:disabled){ border-color: var(--amber); }
+  .choice:disabled{ cursor: default; opacity: 0.8; }
+  .choice.right{ border-color: var(--green); background: var(--green-dim); opacity: 1; }
+  .choice.wrong{ border-color: var(--red); background: var(--red-dim); }
+  @media (max-width: 420px){ .choices{ grid-template-columns: 1fr; } }
+  #code .cl.asked .ln{ color: var(--amber); font-weight: 700; }
+  #code .cl.asked{ border-left-color: var(--amber); }
+  #code.tappable .cl{ cursor: pointer; }
+  #code.tappable .cl:hover, #code.tappable .cl:focus-visible{ background: var(--panel-2); outline: none; border-left-color: var(--text-faint); }
+  #code .cl.wrong{ background: var(--red-dim); border-left-color: var(--red); }
+  #code .cl.right{ background: var(--green-dim); border-left-color: var(--green); }
+  .bug-help{ font-size: 13.5px; color: var(--text-dim); margin: 0; }
+  .bug-help[hidden], .order-actions[hidden]{ display: none; }
+  .order-actions{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .order-help{ font-size: 12.5px; color: var(--text-faint); }
+  #code.ordering .order-row{ display: flex; align-items: center; cursor: pointer; }
+  #code.ordering .order-row:hover, #code.ordering .order-row:focus-visible{ background: var(--panel-2); outline: none; }
+  .order-code{ flex: 1; white-space: pre; }
+  .order-row.picked{ background: var(--amber-dim) !important; border-left-color: var(--amber) !important; }
+  .order-row.placed{ border-left-color: var(--green); }
+  .order-moves{ display: flex; gap: 2px; margin-left: 8px; }
+  .order-move{ background: transparent; color: var(--text-faint); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; font-size: 10px; line-height: 18px; }
+  .order-move:hover:not(:disabled){ color: var(--text); border-color: var(--text-faint); }
+  .order-move:disabled{ opacity: 0.3; cursor: default; }
+  /* The code's lines, and Step through it (daily/trace.js) */
+  #code .cl{ display: block; margin: 0 -18px; padding: 0 18px; border-left: 3px solid transparent; }
+  #code .cl.now{ background: var(--amber-dim); border-left-color: var(--amber); }
+  .trace{ background: var(--panel); border: 1px solid var(--amber-dim); border-radius: 12px; padding: 14px 16px; margin: -8px 0 18px; }
+  .trace[hidden]{ display: none; }
+  .trace-head{ display: flex; align-items: center; gap: 10px; }
+  .trace-head .section-label{ margin: 0; }
+  .trace-num{ font-family: var(--mono); font-size: 12px; color: var(--text-faint); margin-left: auto; }
+  .trace .btn-small{ padding: 5px 10px; font-size: 12px; }
+  .trace-what{ font-size: 14.5px; color: var(--text); margin: 10px 0; }
+  .trace-what code, .tv-val{ background: var(--bg); border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--amber); }
+  .trace-scope{ font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); margin: 8px 0 4px; }
+  .trace-vars{ display: flex; flex-wrap: wrap; gap: 6px; }
+  .tv{ display: flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; font-size: 13px; max-width: 100%; }
+  .tv-name{ font-family: var(--mono); color: var(--text-dim); }
+  .tv-val{ overflow-wrap: anywhere; }
+  .tv.changed{ border-color: var(--amber); }
+  .trace-none{ font-size: 13px; color: var(--text-faint); }
+  .trace-out{ background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--green); margin: 0; }
+  .trace-cut{ font-size: 12.5px; color: var(--text-faint); margin: 8px 0 0; }
+  .trace-controls{ display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .trace-controls input[type=range]{ flex: 1; accent-color: var(--amber); min-width: 0; }
+  @media (max-width: 480px){ .trace-controls button{ padding: 9px 12px; } }
+  /* Practice (an earlier day, from daily/archive.js) */
+  .practice-note{ background: var(--amber-dim); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; }
+  .practice-note a{ color: var(--amber); white-space: nowrap; }
+  body.practice .ltd-note{ display: none; }
+  #practiceRow:has(> [hidden]:only-child){ display: none; }
+  /* Past puzzles (daily/archive.js) */
+  dialog.archive{ width: min(480px, calc(100vw - 32px)); }
+  .archive-list{ list-style: none; margin: 0 0 12px; padding: 0; max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .archive-row{ display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .archive-row.solved{ border-color: var(--green-dim); }
+  .archive-name{ display: block; font-size: 13.5px; color: var(--text); }
+  .archive-meta{ display: block; font-size: 12px; color: var(--text-faint); }
+  .archive-row .btn-small{ padding: 6px 10px; font-size: 12.5px; font-weight: 600; border-radius: 8px; text-decoration: none; white-space: nowrap; }
+  /* Stats (daily/stats.js) */
+  dialog.stats{ width: min(400px, calc(100vw - 32px)); }
+  .stat-boxes{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 16px; text-align: center; }
+  .stat-box{ display: flex; flex-direction: column; gap: 2px; }
+  .stat-num{ font-size: 24px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .stat-cap{ font-size: 11.5px; color: var(--text-faint); }
+  .dist{ display: flex; flex-direction: column; gap: 5px; margin: 6px 0 12px; }
+  .dist-row{ display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; }
+  .dist-n{ width: 10px; color: var(--text-dim); }
+  .dist-bar{ background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 4px; padding: 2px 6px; text-align: right; min-width: 22px; box-sizing: border-box; }
+  .dist-bar.today{ background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .stat-foot{ font-size: 12.5px !important; }
   .demo-badge{
     font-family: var(--mono);
     font-size: 9.5px;
@@ -308,6 +392,7 @@
   <h2 class="desk-title">Your desk: what does this print? <span class="desk-tag">pays the company</span>
     <button class="desk-toggle" id="deskToggle" type="button" hidden>Show ▾</button></h2>
 
+  <p class="practice-note" id="practiceNote" hidden><span id="practiceText"></span> <a href="index.html">Back to today →</a></p>
   <div class="tiles" id="tiles"></div>
   <div class="hint-track" id="hintTrack">
     <span class="hint-dot" id="hintDot1"></span>
@@ -317,6 +402,7 @@
 
   <div class="xp" id="xp"></div>
 
+  <div class="ask" id="ask" hidden></div>
   <div class="editor">
     <div class="editor-bar">
       <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
@@ -325,29 +411,38 @@
     </div>
     <pre><code id="code"></code></pre>
   </div>
+  <section class="trace" id="trace" hidden tabindex="-1" aria-label="Step through the code"></section>
 
   <div class="panel">
-    <label for="guess">Your guess</label>
-    <div class="guess-row">
+    <label for="guess" id="guessLabel">Your guess</label>
+    <div class="guess-row" id="guessRow">
       <input type="text" id="guess" placeholder="what gets printed?" autocomplete="off">
       <button class="btn-primary" id="submit">Check</button>
     </div>
+    <div class="choices" id="choices" hidden></div>
+    <div class="order-actions" id="orderActions" hidden><button class="btn-primary" id="checkOrder" type="button">Check the order</button>
+      <span class="order-help">Tap a line, then tap where it goes, or use its arrows.</span></div>
+    <p class="bug-help" id="bugHelp" hidden>Tap the line with the bug in the code above.</p>
     <div class="actions">
       <button class="btn-ghost" id="hintBtn">Show hint</button>
       <button class="btn-ghost" id="hint2Btn" hidden>Show another hint</button>
       <button class="btn-ghost" id="revealBtn">Reveal answer</button>
     </div>
     <div class="feedback" id="feedback"></div>
+    <div class="share-row" id="practiceRow"><button class="btn-ghost" id="playAgain" type="button" hidden>Play it again</button></div>
     <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
-    <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button><span class="share-note" id="shareNote" role="status"></span></div>
+    <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button>
+      <button class="btn-ghost" id="shareImageBtn" type="button">Share as a picture</button>
+      <button class="btn-ghost" id="statsBtn" type="button">Your stats</button><span class="share-note" id="shareNote" role="status"></span></div>
     <div class="reveal" id="reveal">
-      <p><b>Answer:</b> <code id="answerOut"></code></p>
+      <p><b>Answer:</b> <span id="answerOut"></span></p>
       <p id="explainOut"></p>
       <p><b>Fix:</b> <span id="fixOut"></span></p>
       <div class="takeaway">
         <p class="section-label">Takeaway</p>
         <p id="takeawayOut"></p>
       </div>
+      <p class="try" id="traceRow" hidden><button class="btn-ghost" id="traceBtn" type="button">Step through it, line by line</button></p>
       <p class="try"><a id="tryLink" href="learn/sandbox.html">Run it yourself in the sandbox →</a></p>
       <p class="try" id="learnMore" hidden><a id="learnMoreLink" href="learn/"></a></p>
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
@@ -365,8 +460,8 @@
   <div id="ltdBoard" hidden></div>
 
   <footer>
-    <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
-    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="learn/sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
+    <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span> · <a href="#" id="archiveLink">past puzzles</a></div>
+    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="learn/sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="statsLink">stats</a> · <a href="#" id="backupLink">backup</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> ·
       <a href="#" id="resetLink">reset puzzles</a></div>
@@ -390,11 +485,17 @@
 <script src="shared.js"></script>
 <script src="analytics.js"></script>
 <script src="backup.js"></script>
+<script src="daily/stats.js"></script>
+<script src="daily/sharecard.js"></script>
+<script src="daily/archive.js"></script>
+<script src="daily/formats.js"></script>
+<script src="puzzles/traces-python.js"></script>
+<script src="daily/trace.js"></script>
 <script src="learn/courses.js"></script>
 <script>
 (function(){
-  const MAX_GUESSES = 4;
   const { LANG_INFO, highlight: highlightIn } = window.Debugg;
+  const F = window.DebuggFormats;
 
   const tilesEl = document.getElementById('tiles');
   const kickerEl = document.getElementById('kicker');
@@ -419,15 +520,26 @@
   const XP_KEY = 'debugg-xp';
 
   // There's one puzzle a day, and the languages take turns (see the rotation in shared.js).
-  const DAY = window.Debugg.today();
+  // index.html?day=N plays an earlier day again as practice (see daily/archive.js): saved apart,
+  // with no XP, streak or company pay.
+  const TODAY = window.Debugg.today();
+  const wantedDay = parseInt(new URLSearchParams(location.search).get('day'), 10);
+  const PRACTICE = !isNaN(wantedDay) && window.Debugg.slotDay(wantedDay) < window.Debugg.slotDay(TODAY);
+  const DAY = PRACTICE ? wantedDay : TODAY;
   // The day this puzzle belongs to: on a Sunday, the weekend puzzle is Saturday's.
   const SLOT = window.Debugg.slotDay(DAY);
   const puzzle = window.Debugg.puzzleFor(DAY);
   const lang = puzzle.lang;
   const LANG = LANG_INFO[lang];
-  const STATE_KEY = window.Debugg.stateKey(DAY);
+  const STATE_KEY = PRACTICE ? 'debugg-practice-day' + SLOT : window.Debugg.stateKey(DAY);
+  // How the puzzle is asked and answered (shared.js FORMATS, daily/formats.js).
+  const FORMAT = window.Debugg.formatOf(puzzle);
+  const MAX_GUESSES = window.Debugg.FORMATS[FORMAT].guesses;
+  const MAX_HINTS = window.Debugg.FORMATS[FORMAT].hints;
+  const TYPED = ['output', 'value', 'count'].includes(FORMAT);
 
-  let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
+  // picks: the options or lines tried, in order; order: the lines' current order (order the lines).
+  let state = { attempts: [], solved: false, revealed: false, hintLevel: 0, picks: [] };
   let flagEl = null;
 
   function load(){
@@ -458,7 +570,7 @@
   // puzzle counts once, for Saturday and Sunday together.
   function currentStreak(){
     const s = readStreak();
-    return s.lastDay >= window.Debugg.previousSlot(DAY) ? s.count : 0;
+    return s.lastDay >= window.Debugg.previousSlot(TODAY) ? s.count : 0;
   }
 
   // --- XP -------------------------------------------------------------------
@@ -466,13 +578,14 @@
   // A first-guess, no-hint solve earns the day's base XP (Monday 60 up to Friday 150, weekend 200;
   // see shared.js). Later guesses earn 75/50/25% of it, and each hint takes off a quarter.
   // Failing or revealing still earns a little for finishing and reading the explanation.
-  const GUESS_SHARE = [1, 0.75, 0.5, 0.25];
+  // With 4 guesses that's 100/75/50/25%; with 2, 100/50%.
+  const guessShare = n => 1 - (n - 1) / MAX_GUESSES;
   const HINT_MULTIPLIER = [1, 0.75, 0.5];
   const FINISH_XP = 10;
 
   function puzzleXp(won, guesses, hintLevel){
     if(!won) return FINISH_XP;
-    return Math.round(window.Debugg.baseXp(DAY) * GUESS_SHARE[guesses - 1] * HINT_MULTIPLIER[hintLevel || 0]);
+    return Math.round(window.Debugg.baseXp(DAY) * guessShare(guesses) * HINT_MULTIPLIER[hintLevel || 0]);
   }
 
   const { readXp, totalXp, levelStart, levelFor } = window.Debugg;
@@ -514,6 +627,7 @@
   // Awards this puzzle's XP once; state.xp records what was given so a reload can't award it twice.
   // Returns a note for the feedback line.
   function awardXp(){
+    if(PRACTICE) return ' Practice: no XP.';
     if(typeof state.xp === 'number') return '';
     const earned = puzzleXp(state.solved, state.attempts.length, state.hintLevel);
     const all = readXp();
@@ -543,7 +657,11 @@
   function highlight(text){ return highlightIn(text, lang); }
 
   function renderCode(){
+    if(FORMAT === 'order' && !state.solved && !state.revealed) return renderOrder();
+    codeEl.classList.remove('ordering');
     const lines = puzzle.code.split('\n');
+    const tappable = FORMAT === 'bug' && !state.solved && !state.revealed;
+    codeEl.classList.toggle('tappable', tappable);
     codeEl.innerHTML = lines.map((line, i) => {
       let body = highlight(line);
       const f = puzzle.flag;
@@ -555,10 +673,58 @@
             highlight(line.slice(at + f.text.length));
         }
       }
-      return '<span class="ln">' + (i + 1) + '</span>' + body;
-    }).join('\n');
+      const n = i + 1;
+      const marks = (FORMAT === 'count' && puzzle.ask.line === n ? ' asked' : '') +
+        (FORMAT === 'bug' && ((state.picks || []).includes(n) || (!tappable && n === puzzle.bugLine)) ? (n === puzzle.bugLine ? ' right' : ' wrong') : '');
+      return '<span class="cl' + marks + '" data-line="' + n + '"' + (tappable ? ' role="button" tabindex="0" aria-label="Line ' + n + '"' : '') + '>' +
+        '<span class="ln">' + n + '</span>' + body + '</span>';
+    }).join('');
     flagEl = document.getElementById('flag');
+    if(state.solved || state.revealed) flagEl && flagEl.classList.add('on');
   }
+
+  // Order the lines: the code shows the lines in the player's current order, each with arrows.
+  // Tap one to pick it up, then tap another to move it there.
+  let picked = null;
+  function renderOrder(){
+    const lines = puzzle.code.split('\n');
+    if(!Array.isArray(state.order) || state.order.length !== lines.length) state.order = F.startOrder(puzzle);
+    codeEl.classList.add('ordering');
+    codeEl.innerHTML = state.order.map((idx, pos) =>
+      '<span class="cl order-row' + (picked === pos ? ' picked' : '') + (state.placed && state.placed[pos] ? ' placed' : '') + '" data-pos="' + pos + '" role="button" tabindex="0">' +
+        '<span class="ln">' + (pos + 1) + '</span><span class="order-code">' + highlight(lines[idx]) + '</span>' +
+        '<span class="order-moves"><button type="button" class="order-move" data-move="-1" aria-label="Move line up"' + (pos === 0 ? ' disabled' : '') + '>▲</button>' +
+        '<button type="button" class="order-move" data-move="1" aria-label="Move line down"' + (pos === lines.length - 1 ? ' disabled' : '') + '>▼</button></span></span>').join('');
+  }
+  function moveLine(from, to){
+    if(to < 0 || to >= state.order.length || from === to) return;
+    const [x] = state.order.splice(from, 1);
+    state.order.splice(to, 0, x);
+    state.placed = null;
+    save();
+    renderOrder();
+  }
+  codeEl.addEventListener('click', e => {
+    if(state.solved || state.revealed) return;
+    if(FORMAT === 'order'){
+      const row = e.target.closest('.order-row');
+      if(!row) return;
+      const pos = +row.dataset.pos;
+      const mv = e.target.closest('.order-move');
+      if(mv){ picked = null; moveLine(pos, pos + +mv.dataset.move); codeEl.querySelector('[data-pos="' + Math.max(0, Math.min(state.order.length - 1, pos + +mv.dataset.move)) + '"] .order-move[data-move="' + mv.dataset.move + '"]')?.focus(); return; }
+      if(picked === null){ picked = pos; renderOrder(); }
+      else{ const from = picked; picked = null; if(from === pos) renderOrder(); else moveLine(from, pos); }
+    }else if(FORMAT === 'bug'){
+      const line = e.target.closest('.cl');
+      if(line) submitPick(+line.dataset.line);
+    }
+  });
+  codeEl.addEventListener('keydown', e => {
+    if((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('cl')){
+      e.preventDefault();
+      e.target.click();
+    }
+  });
 
   // A prefilled GitHub issue about this puzzle. GitHub issues are public, so it asks for nothing personal.
   function reportUrl(){
@@ -572,14 +738,16 @@
   }
 
   function renderReveal(){
-    document.getElementById('answerOut').textContent = puzzle.display;
+    document.getElementById('answerOut').innerHTML = F.answerHtml(puzzle);
     document.getElementById('explainOut').innerHTML = puzzle.explain;
     document.getElementById('fixOut').innerHTML = puzzle.fix;
     document.getElementById('takeawayOut').innerHTML = puzzle.takeaway;
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
     // Languages the sandbox can't run link to a playground site instead, where there is one.
     const tryLink = document.getElementById('tryLink');
-    if(LANG.runnable){
+    if(PRACTICE && !window.Debugg.isFinished(SLOT)){
+      tryLink.parentElement.hidden = true;  // the sandbox only opens puzzles finished on the day
+    }else if(LANG.runnable){
       tryLink.href = 'learn/sandbox.html?lang=' + lang + '&day=' + SLOT;
     }else if(LANG.playground){
       const pg = LANG.playground(puzzle.code);
@@ -591,6 +759,13 @@
       tryLink.parentElement.hidden = true;
     }
     document.getElementById('reportLink').href = reportUrl();
+    // Step through it (daily/trace.js), for puzzles with a recorded trace.
+    const steps = window.DebuggTrace.stepsFor(puzzle);
+    document.getElementById('traceRow').hidden = !steps;
+    if(steps) document.getElementById('traceBtn').onclick = () => {
+      window.DebuggTrace.open(steps, document.getElementById('trace'), codeEl);
+      codeEl.closest('.editor').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
     document.getElementById('sandboxLink').href = 'learn/sandbox.html' + (LANG.runnable ? '#' + lang : '');
   }
 
@@ -622,6 +797,7 @@
   function updateHintDots(level){
     hintDot1.classList.toggle('used', level >= 1);
     hintDot2.classList.toggle('used', level >= 2);
+    hintDot2.hidden = MAX_HINTS < 2;
   }
 
   function hintSuffix(){
@@ -644,16 +820,26 @@
   function lockIn(){
     guessInput.disabled = true;
     submitBtn.disabled = true;
+    document.querySelectorAll('#choices .choice').forEach(b => {
+      b.disabled = true;
+      if(b.dataset.text === puzzle.display) b.classList.add('right');
+    });
+    document.getElementById('orderActions').hidden = true;
+    document.getElementById('bugHelp').hidden = true;
     hintBtn.hidden = true;
     hint2Btn.hidden = true;
     revealBtn.hidden = true;
-    if(flagEl) flagEl.classList.add('on');
     revealEl.classList.add('show');
     state.revealed = true;
     save();
-    startCountdown();
+    renderCode();  // the real code, with the flag underlined (and the bug line marked)
     duckSay();
-    document.getElementById('shareRow').hidden = false;
+    if(PRACTICE){
+      document.getElementById('playAgain').hidden = false;
+    }else{
+      startCountdown();
+      document.getElementById('shareRow').hidden = false;
+    }
     showLearnMore();
   }
 
@@ -672,16 +858,29 @@
   // The spoiler-free result, Wordle-style: the wordmark, the day and language, a square per
   // guess (green right, red wrong, black unused), hints, and a link.
   let shareMark = 'debugg.it()';  // today's language's wordmark (the Ltd tab shows its own)
+  const shareSite = () => location.href.split(/[?#]/)[0].replace(/index\.html$/, '');
+  function shareResult(){
+    const n = state.attempts.length, h = state.hintLevel || 0;
+    return state.solved ? (n === 1 && !h ? 'Debugged it first try' : 'Debugged it in ' + n) : 'Not this time';
+  }
   function shareText(){
     const squares = Array.from({ length: MAX_GUESSES }, (_, i) =>
       state.attempts[i] === 'correct' ? '🟩' : state.attempts[i] === 'wrong' ? '🟥' : '⬛').join('');
     const h = state.hintLevel || 0;
-    const n = state.attempts.length;
-    const site = location.href.split(/[?#]/)[0].replace(/index\.html$/, '');
     return shareMark + ' ' + window.Debugg.dayLabel(DAY) + ' · ' + LANG.name + '\n' +
       squares + (h ? ' · ' + h + ' hint' + (h === 1 ? '' : 's') : '') + '\n' +
-      (state.solved ? (n === 1 && !h ? 'Debugged it first try 🦆' : 'Debugged it in ' + n) : 'Not this time 🦆') + '\n' + site;
+      shareResult() + (state.solved && (state.attempts.length > 1 || h) ? '' : ' 🦆') + '\n' + shareSite();
   }
+  // The same result as a picture (daily/sharecard.js).
+  function shareCard(){
+    return { wordmark: shareMark, title: window.Debugg.dayLabel(DAY) + ' · ' + LANG.name, attempts: state.attempts.slice(),
+             max: MAX_GUESSES, hints: state.hintLevel || 0, solved: state.solved, result: shareResult(), site: shareSite(), duck: 'img/duck.svg' };
+  }
+  document.getElementById('shareImageBtn').addEventListener('click', async () => {
+    const how = await window.DebuggShareCard.share(shareCard(), 'debuggit-' + (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.png');
+    if(how === 'downloaded') document.getElementById('shareNote').textContent = 'Saved the picture. Post it anywhere.';
+    if(how !== 'cancelled') window.DebuggAnalytics.event('share/image-' + how);
+  });
   document.getElementById('shareBtn').addEventListener('click', async () => {
     const text = shareText();
     const note = document.getElementById('shareNote');
@@ -701,6 +900,14 @@
     }
     window.DebuggAnalytics.event('share/' + how);
   });
+
+  // Stats, from the saved days (daily/stats.js). After a solve, today's bar is picked out.
+  function openStats(e){
+    if(e) e.preventDefault();
+    window.DebuggStats.open(SLOT, state.solved ? state.attempts.length : 0);
+  }
+  document.getElementById('statsBtn').addEventListener('click', openStats);
+  document.getElementById('statsLink').addEventListener('click', openStats);
 
   // The Debuggit duck reacts once the game is over: a hop for a solve, a wobble for a miss.
   function duckSay(){
@@ -726,6 +933,7 @@
   // Only a solve changes the streak, and only the first solve of the day adds to it.
   // A loss changes nothing today; the streak just won't carry on unless something is solved.
   function finishRun(won){
+    if(PRACTICE) return;
     const s = readStreak();
     if(won && !(s.lastDay === SLOT && s.count > 0)){
       writeStreak({ count: currentStreak() + 1, lastDay: SLOT });
@@ -735,6 +943,7 @@
 
   // Tells anything listening (Debuggit Ltd, when it's switched on) that today's puzzle just ended. Fired only when a game ends, never when a finished game is reloaded.
   function announceFinish(){
+    if(PRACTICE) return;
     document.dispatchEvent(new CustomEvent('debugg:puzzle-finished', { detail: {
       lang, day: SLOT, solved: state.solved, guesses: state.attempts.length,
       hintLevel: state.hintLevel || 0, xp: state.xp, streak: currentStreak()
@@ -760,18 +969,42 @@
   submitBtn.addEventListener('click', () => {
     const val = guessInput.value.trim();
     if(!val || state.solved || state.revealed) return;
+    guessInput.value = '';
+    answer(checkGuess(val));
+  });
 
-    const correct = checkGuess(val);
+  // Picking an option (multiple choice, will it error) or a line (spot the bug).
+  function submitPick(pick){
+    if(state.solved || state.revealed || (state.picks || []).includes(pick)) return;
+    state.picks = (state.picks || []).concat(pick);
+    const correct = FORMAT === 'bug' ? pick === puzzle.bugLine : pick === puzzle.display;
+    if(FORMAT !== 'bug'){
+      const b = [...document.querySelectorAll('#choices .choice')].find(x => x.dataset.text === pick);
+      if(b){ b.classList.add(correct ? 'right' : 'wrong'); b.disabled = true; }
+    }
+    answer(correct);
+    if(FORMAT === 'bug' && !correct) renderCode();
+  }
+  document.getElementById('checkOrder').addEventListener('click', () => {
+    if(state.solved || state.revealed) return;
+    const correct = state.order.every((v, i) => v === i);
+    // Lines already in the right place stay marked until something moves.
+    state.placed = state.order.map((v, i) => v === i);
+    answer(correct);
+    if(!correct) renderOrder();
+  });
+
+  // Records a guess of any format, and ends the game on a solve or the last guess.
+  function answer(correct){
     state.attempts.push(correct ? 'correct' : 'wrong');
     renderTiles();
     popLastTile();
-    guessInput.value = '';
 
     if(correct){
       state.solved = true;
       lockIn();
       finishRun(true);
-      showFeedback('correct', 'Correct: ' + puzzle.display + hintSuffix() + '.' + awardXp());
+      showFeedback('correct', 'Correct: ' + F.answerShort(puzzle) + hintSuffix() + '.' + awardXp());
       announceFinish();
     }else if(state.attempts.length >= MAX_GUESSES){
       lockIn();
@@ -782,7 +1015,7 @@
       save();
       showFeedback('wrong', puzzle.nudge);
     }
-  });
+  }
 
   guessInput.addEventListener('keydown', (e) => {
     if(e.key === 'Enter') submitBtn.click();
@@ -794,7 +1027,7 @@
     showHints(1);
     updateHintDots(1);
     hintBtn.hidden = true;
-    hint2Btn.hidden = false;
+    hint2Btn.hidden = MAX_HINTS < 2;
   });
 
   hint2Btn.addEventListener('click', () => {
@@ -816,6 +1049,32 @@
     announceFinish();
   });
 
+  // The question and the way to answer, by format (daily/formats.js).
+  function setUpFormat(){
+    const q = F.question(puzzle);
+    document.getElementById('title').textContent = q.title;
+    document.getElementById('sub').textContent = q.sub;
+    document.querySelector('.desk-title').firstChild.textContent = 'Your desk: ' + q.title.charAt(0).toLowerCase() + q.title.slice(1) + ' ';
+    const ask = document.getElementById('ask');
+    ask.innerHTML = q.ask;
+    ask.hidden = !q.ask;
+    if(q.placeholder) guessInput.placeholder = q.placeholder;
+    document.getElementById('guessLabel').hidden = !TYPED;
+    document.getElementById('guessRow').hidden = !TYPED;
+    if(FORMAT === 'choice' || FORMAT === 'error'){
+      const box = document.getElementById('choices');
+      box.hidden = false;
+      box.innerHTML = F.options(puzzle).map(o => '<button type="button" class="choice" data-text="' + window.Debugg.escapeHtml(o).replace(/"/g, '&quot;') + '"><code>' +
+        window.Debugg.escapeHtml(o) + '</code></button>').join('');
+      box.querySelectorAll('.choice').forEach(b => {
+        if((state.picks || []).includes(b.dataset.text)){ b.classList.add(b.dataset.text === puzzle.display ? 'right' : 'wrong'); b.disabled = true; }
+        b.addEventListener('click', () => submitPick(b.dataset.text));
+      });
+    }
+    document.getElementById('orderActions').hidden = FORMAT !== 'order';
+    document.getElementById('bugHelp').hidden = FORMAT !== 'bug';
+  }
+
   // Clears every saved day, XP, the streak and sandbox drafts. A Debuggit Ltd company is kept (it has
   // its own "Close company" button), and so is Learn progress (learn/ has its own reset).
   resetLink.addEventListener('click', (e) => {
@@ -831,27 +1090,40 @@
   window.Debugg.renderWordmark(document.getElementById('wordmark'), lang);
   window.Debugg.renderVersion(document.getElementById('appVersion'));
   shareMark = document.getElementById('wordmark').dataset.wordmark;
-  kickerEl.textContent = window.Debugg.isPreview(DAY)
+  kickerEl.textContent = (PRACTICE ? 'Practice · ' : '') + (window.Debugg.isPreview(DAY)
     ? 'Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name;
+    : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name);
+  if(PRACTICE){
+    document.body.classList.add('practice');
+    const real = window.Debugg.readState(SLOT);
+    document.getElementById('practiceText').textContent = 'Practice: an earlier day’s puzzle, for no XP, streak or company pay. ' +
+      (real && real.solved ? 'You solved it on the day in ' + real.attempts.length + '.' : real && real.revealed ? 'You missed it on the day.' : 'You didn’t play it on the day.');
+    document.getElementById('practiceNote').hidden = false;
+    document.getElementById('playAgain').addEventListener('click', () => {
+      try{ localStorage.removeItem(STATE_KEY); }catch(e){}
+      location.reload();
+    });
+  }
+  document.getElementById('archiveLink').addEventListener('click', e => { e.preventDefault(); window.DebuggArchive.open(TODAY); });
   filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.' + LANG.ext;
   document.getElementById('langName').textContent = LANG.name;
+  load();
+  setUpFormat();
   renderCode();
   renderReveal();
-  load();
   renderTiles();
   streakEl.textContent = currentStreak();
   updateHintDots(state.hintLevel || 0);
   if(state.hintLevel >= 1){
     hintBtn.hidden = true;
-    hint2Btn.hidden = state.hintLevel >= 2;
+    hint2Btn.hidden = state.hintLevel >= 2 || MAX_HINTS < 2;
   }
   renderXp(false);
   // Games finished before XP existed get their XP now.
   if(state.solved){
     lockIn();
     const note = awardXp();
-    showFeedback('correct', 'Solved: ' + puzzle.display + hintSuffix() + '.' + (note || ' +' + state.xp + ' XP.'));
+    showFeedback('correct', 'Solved: ' + F.answerShort(puzzle) + hintSuffix() + '.' + (note || ' +' + state.xp + ' XP.'));
   }else if(state.revealed){
     lockIn();
     const note = awardXp();
