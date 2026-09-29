@@ -902,6 +902,30 @@ for its contracts; they no longer name puzzles.
   - Does a weekend challenge that's solved on Saturday leave anything
     for Sunday (e.g. a bonus golf round)?
 
+#### 3f. Daily puzzle: next features (on the roadmap, September 2026)
+After the formats, stats, share picture, past puzzles and Step through it (3b), the player-owner
+put these on the roadmap, in this order:
+- **Weekend code challenges** (next): the weekend becomes a coding challenge, replacing the hard
+  stand-in. **Fix it** (edit the code until it prints the target; locked lines or an edit limit
+  stop `print("target")`), **Make it pass** (fix a function until its tests pass, with hidden
+  tests too) and **Write it** (from scratch, against hidden tests). Python runs in the browser on
+  Pyodide, loaded only when a challenge opens (about 13 MB the first time), by pulling the
+  sandbox's worker out into a shared runner. Unlimited runs, 4 submissions, up to 2 nudge hints
+  (3b). The checker proves each has a working solution and that the hidden tests reject the
+  obvious wrong ones (hard-coded output, off-by-one). Open: whether the weekend earns more than
+  200 XP, whether solving on Saturday leaves a bonus round for Sunday (e.g. code golf, which
+  wants shared leaderboards, below), and whether "fix it" limits edits or locks lines.
+- **Hard mode**: no hints and one guess fewer, for more XP (e.g. +25%) and a mark on the share
+  card. Open: chosen per game, or a setting that stays on.
+- **Shared stats and common wrong answers**: after a game, "62% solved this, most in 2 guesses",
+  and the most common wrong answers, which show where a puzzle is unfair or the matching too
+  strict. Needs a small backend (item 2b step 2; Cloudflare Workers and a small database would sit
+  well with the Cloudflare Pages move in 2d), and a line in `privacy.html`: answers sent
+  anonymously, never with anything that identifies the player.
+- **Maybe, far future: reminders.** Installable as a phone app (a web app manifest and an offline
+  service worker, possible without a backend), with a daily nudge; reliable push needs the
+  backend above.
+
 #### 3c. One game: puzzles first, studio optional — done
 - Built from `ideas/debugg-ltd-merge-plan.md`, ahead of 3b: the desk is
   the daily puzzles (today all "what does this output"), and the other
