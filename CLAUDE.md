@@ -209,7 +209,7 @@ TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
 ```js
 state = {
   money, reputation, lastTick,
-  roster: [ { id, name, role, since, worked, lang: {name: xp}, away? } ],  // Director is roster[0]; worked = ms on contracts at current level;
+  roster: [ { id, name, role, since, worked, lang: {name: xp}, away?, notice?, raise? } ],  // Director is roster[0]; worked = ms on contracts at current level;
                                                                         // away = { kind: 'training'|'holiday'|'sick'…, until } (no odd jobs meanwhile)
   board:  [ { id, tier, lang, sloc, risk, expert, expiresAt } ],  // a hotfix per language + an expert hotfix + 2 of each other type; sloc = work target;
                                                           // risk = 'standard'|'risky'|'high'; expert = skill level needed (0 = none)
@@ -225,7 +225,8 @@ state = {
   guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
   stage,                                          // the business stage last announced ('startup', 'small', …)
   market: { prices: { Graduate: 1.08, … }, nextAt }, // hire-cost multipliers, and when the market next moves
-  office: { cowork }                              // co-working desks rented beyond the spare room's 4
+  office: { cowork },                             // co-working desks rented beyond the spare room's 4
+  nextNoticeAt                                    // when the next hourly notice roll is due
 }
 ```
 
@@ -435,10 +436,28 @@ state = {
   (`COWORK_MAX`, so 12 staff and the Director, enough for patches), rented and given up from the
   **Office** line in the Studio panel (a desk can only be given up while one is free). Rent is
   drawn with payroll every second (`paySalaries()`), offline too, not while paused; the stats bar
-  then reads "Payroll + rent". `deskProblem()` blocks hiring when every desk is taken ("no free
-  desk — rent a co-working desk"), after the structure rules; the structure line shows
-  "Desks 5/6". Saves from before desks get co-working desks for everyone they have. Business
-  units, WFH applicants and bigger premises are the next phases.
+  then reads "Payroll + rent". The structure line shows "Desks 5/6". Saves from before desks get
+  co-working desks for everyone they have. Business units, WFH applicants and bigger premises are
+  the next phases.
+- **A cramped office** (the player-owner's call, September 2026; `CRAM_MAX`, `CRAMPED`,
+  `cramLevel()`): a full office is cramped, and up to 2 more people can be squeezed in without
+  desks. Everyone writes 5% less code with every desk taken, 15% with one squeezed in and 30% with
+  two (applied in `devSlocOn()`, so to contracts started while it's cramped), and notices are
+  likelier. Past that, `deskProblem()` blocks hiring ("no room to squeeze anyone else in"); hire
+  buttons and applicants warn first ("no desk: squeezed in, everyone −15% speed"), and the Office
+  line says how cramped it is. A co-working desk can be given up as long as nobody more than
+  `CRAM_MAX` ends up without one.
+- **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
+  until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their
+  notice with `NOTICE_PER_DAY` (1.5%) / 24 chance, × `NOTICE_CRAMPED` (1, 3, 5, 7 by cramp
+  level); a cramped office gives the reason "the office is too cramped", otherwise "has a better
+  offer". They stay `NOTICE_H` (24) hours, then leave once off any running contract (a repeat
+  stops for them; a failed contract loses them). Turned around by a free desk (cramped notices
+  are withdrawn) or by the **Keep** button on their card, a pay rise of `ask` ¤/min (15–35% of
+  their level's salary, `RAISE`), kept in `p.raise`; `salaryOf(p)` is their pay everywhere. A
+  "handed in their notice" alert shows in the Studio panel. Only the last 4 hours roll while the
+  page is closed; paused time doesn't count. Leaving can break the supervision structure, which
+  then blocks hiring until it's fixed.
 
 ## Known gaps — not wired in yet
 
@@ -1269,8 +1288,9 @@ player-owner's meaning), not a division of the company.
   tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
   tenant events via 15b.
 - **Phase 1 is built** (September 2026): desks, co-working and managers in the demo (see "The
-  office" above). Decided then: the Director takes no desk; a full office blocks hiring. WFH
-  applicants weren't in it and are still to come.
+  office" above). Decided then: the Director takes no desk; a full office is cramped (slower,
+  and people hand in their notice) and takes up to 2 more squeezed in, rather than blocking
+  hiring. WFH applicants weren't in it and are still to come.
 - **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
   (2) business units on leases; (3) office floors and subletting; (4) buying property;
   (5) rental units; (6) sites (item 18).

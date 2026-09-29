@@ -69,7 +69,9 @@ A **Next step** card walks a new company through its first hire, its first contr
 
 **In the demo** the company is the early slice: hotfixes, and patches once it has more than 10 staff. Minor and major releases show on the board as "coming in v0.1", and so do bigger premises.
 
-**The office:** everyone on staff needs a desk (you, the Director, work from home at the daily puzzle). Your spare room has 4 desks, free; after that you rent **co-working desks**, ¤1 a minute each, up to 8, and can give one up whenever it's free. Rent is paid every second like salaries, including while you're away. With the Director able to look after 4 devs, the fifth person, your first manager, needs the first co-working desk. Business units and bigger premises come next (see `ideas/company-growth-roadmap.md`).
+**The office:** everyone on staff needs a desk (you, the Director, work from home at the daily puzzle). Your spare room has 4 desks, free; after that you rent **co-working desks**, ¤1 a minute each, up to 8, and can give one up whenever it's free. Rent is paid every second like salaries, including while you're away. With the Director able to look after 4 devs, the fifth person, your first manager, needs the first co-working desk. A full office is **cramped**: everyone works 5% slower, and you can squeeze up to 2 more in without desks, at 15% and 30% slower.
+
+**Notice:** now and then someone hands in their notice (far more often in a cramped office). They stay a day; free up a desk, or agree the pay rise on their card, and they'll stay. Business units and bigger premises come next (see `ideas/company-growth-roadmap.md`).
 
 The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 

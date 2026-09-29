@@ -24,6 +24,10 @@ things to play and the last one for fixes and balance changes.
 - **Everyone needs a desk.** Your spare room has 4. After that, rent co-working desks from the
   new Office line, ¤1 a minute each (up to 8), and give them up when you don't need them. You work
   from home, at the daily puzzle.
+- A full office is **cramped**, and everyone works a little slower. You can squeeze up to two more
+  people in without desks, but it slows everyone down more.
+- Now and then someone **hands in their notice**, far more often in a cramped office. They stay
+  for a day: find them a desk, or agree the pay rise they ask for, and they'll stay.
 - Once today's puzzle is done, the Ltd tab folds it down to its result, on any screen, so the
   studio has room. **Show** opens it again, and it remembers how you left it.
 - Language skills are levels with no top (Python Lv 6), each with a bar showing the XP to the

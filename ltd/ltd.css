@@ -156,6 +156,8 @@
 }
 .ltd .office b{ color: var(--text); font-weight: 600; }
 .ltd .office .full{ color: var(--amber); }
+.ltd .office .cramped{ color: var(--amber); margin-top: 3px; }
+.ltd .card-foot.notice{ margin-top: 6px; gap: 8px; }
 .ltd .office-actions{ display: flex; gap: 6px; flex-wrap: wrap; }
 
 .ltd .roster{
