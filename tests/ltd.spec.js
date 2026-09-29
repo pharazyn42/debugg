@@ -253,6 +253,48 @@ test('on a phone, the Ltd tab folds a finished puzzle to its tiles', async ({ pa
   await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
 });
 
+test('on any screen, a finished puzzle can be folded, and stays as the player left it', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('#deskToggle')).toBeHidden();
+  // Finished just now: it stays open to read, with a Fold button.
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
+  await expect(page.locator('#reveal')).toBeVisible();
+  await page.click('#deskToggle');
+  await expect(page.locator('body')).toHaveClass(/desk-folded/);
+  await expect(page.locator('#reveal')).toBeHidden();
+  await expect(page.locator('#code')).toBeHidden();
+  await expect(page.locator('#tiles')).toBeVisible();
+  // Coming back later, it opens folded; opened again, it's remembered.
+  await page.reload();
+  await expect(page.locator('#deskToggle')).toHaveText('Show ▾');
+  await expect(page.locator('#code')).toBeHidden();
+  await page.click('#deskToggle');
+  await page.reload();
+  await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
+  await expect(page.locator('#code')).toBeVisible();
+});
+
+test('language skills are open-ended levels, each with a bar towards the next', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.roster.push({ id: 'p1', name: 'Grace H.', role: 'Principal', since: Date.now(), worked: 0,
+                    lang: { Python: 2600, Rust: 60, JavaScript: 5 } });
+  });
+  await expect(page.locator('.card[data-id=p1]')).toContainText('Python Lv 6 · Rust Lv 2');
+  await page.click('.card[data-id=p1] .card-name');
+  const row = name => page.locator('#personModalBody .skill-row', { hasText: name });
+  // Level 6 is 1,800 XP and level 7 is 3,400: 2,600 is halfway.
+  await expect(row('Python').locator('.skill-level')).toHaveText('Lv 6');
+  await expect(row('Python').locator('.skill-level')).toHaveClass(/best/);
+  await expect(row('Python').locator('.skill-xp')).toHaveText('2600/3400 xp');
+  await expect(row('Python').locator('.skill-bar')).toHaveAttribute('aria-valuenow', '50');
+  await expect(row('Rust').locator('.skill-level')).toHaveText('Lv 2');
+  await expect(row('Rust').locator('.skill-xp')).toHaveText('60/150 xp');
+  await expect(row('JavaScript').locator('.skill-level')).toHaveText('Lv 0');
+  await expect(row('JavaScript').locator('.skill-bar')).toHaveAttribute('aria-valuenow', '50');
+});
+
 test('the business grows from a start-up; managers staff idle devs and the desk pays less', async ({ page }) => {
   await found(page);
   await expect(page.locator('.stage-name')).toHaveText('Start-up');
@@ -347,9 +389,11 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
 
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
-  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
+  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');
   await expect(hotfixes).toHaveCount(4);
   await expect(hotfixes.locator('.chip.lang')).toHaveText(['Python', 'C/C++', 'JavaScript', 'Rust']);
+  // …plus an expert hotfix, last.
+  await expect(page.locator('.board-group[data-tier=hotfix] .offer').last()).toHaveClass(/expert-offer/);
   await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Patches', 'Minor releases', 'Major releases']);
   const saved = await ltd(page);
   expect(JSON.stringify(saved)).not.toContain('"dom"');
@@ -405,8 +449,8 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Rust: 10 } });
     s.board.find(o => o.tier === 0 && o.lang === 'Rust').id = 'rust1';
   });
-  // Only the Rust hotfix can be taken; the other three fold away.
-  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
+  // Only the Rust hotfix can be taken; the other three fold away (the expert hotfix aside).
+  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');
   await expect(hotfixes).toHaveCount(1);
   await expect(hotfixes.locator('.chip.lang')).toHaveText('Rust');
   await page.click('.board-group[data-tier=hotfix] [data-action=toggle-unknown]');
@@ -418,10 +462,44 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
   await page.click('[data-pick=g1]');
   await page.click('[data-action=pick-start]');
   await expect(page.locator('.job')).toContainText('Rust');
-  const board = (await ltd(page)).board.filter(o => o.tier === 0);
+  const board = (await ltd(page)).board.filter(o => o.tier === 0 && !o.expert);
   expect(board.map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
   expect(board.find(o => o.id === 'rust1')).toBeUndefined();
-  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×4 · 1 running');
+  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×5 · 1 running');
+});
+
+test('expert contracts need someone at a skill level, and pay more', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.roster.push({ id: 'j1', name: 'Bo K.', role: 'Junior', since: Date.now(), lang: { Python: 1000 } });
+    const e = s.board.find(o => o.tier === 0 && o.expert);
+    Object.assign(e, { id: 'x1', lang: 'Python', expert: 5, risk: 'standard', sloc: 5 });
+  });
+  const offer = page.locator('.offer.expert-offer');
+  await expect(offer.locator('.expert')).toHaveText('Expert · needs Lv 5 Python · pays ×1.6');
+  await page.click('[data-action=staff][data-offer=x1]');
+  // Only someone at Lv 5 can take it on their own.
+  await expect(page.locator('[data-pick=g1]')).toHaveCount(0);
+  await page.click('[data-pick=j1]');
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job .expert-tag')).toHaveText('Lv 5');
+  const job = (await ltd(page)).jobs.find(j => j.id === 'x1');
+  expect(job).toMatchObject({ expert: 5, payout: 8 });  // 5 SLOC × 1.6
+  // The board keeps an expert hotfix.
+  expect((await ltd(page)).board.filter(o => o.tier === 0 && o.expert)).toHaveLength(1);
+});
+
+test('each skill level past 5 adds a little speed', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.roster.push({ id: 'p1', name: 'Grace H.', role: 'Principal', since: Date.now(), lang: { Python: 5800 } });
+    const o = s.board.find(o => o.tier === 0 && o.lang === 'Python' && !o.expert);
+    o.id = 'py1';
+  });
+  await page.click('[data-action=staff][data-offer=py1]');
+  // A principal writes 70 SLOC/min: ×2 at Lv 5, and +5% more for each of Lv 6, 7 and 8.
+  await expect(page.locator('label.pick', { hasText: 'Grace H.' })).toContainText('Lv 8 · 150.5 SLOC/min');
 });
 
 test('board groups fold, and stay folded', async ({ page }) => {
@@ -456,22 +534,28 @@ test('a company saved with domains is converted to languages only', async ({ pag
   const saved = await ltd(page);
   expect(JSON.stringify(saved)).not.toContain('"dom"');
   expect(saved.boardVersion).toBe(2);
-  expect(saved.board.filter(o => o.tier === 0).map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
+  expect(saved.board.filter(o => o.tier === 0 && !o.expert).map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
   expect(saved.jobs).toHaveLength(1);
   await expect(page.locator('.job')).toContainText('Python');
 });
 
-test('promotion needs contract time and language bars only', async ({ page }) => {
+test('promotion needs contract time and a language level only', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, worked: 11 * 3600000 });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 150 }, worked: 11 * 3600000 });
   });
-  // 12 hours on contracts for Junior.
+  // 12 hours on contracts for Junior…
   await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveCount(0);
-  await editCompany(page, s => { s.roster.find(p => p.id === 'g1').worked = 12 * 3600000 + 60000; });
+  // …and Lv 3 in a language: 12 hours at Lv 2 isn't enough.
+  await editCompany(page, s => { Object.assign(s.roster.find(p => p.id === 'g1'), { worked: 12 * 3600000 + 60000, lang: { Python: 149 } }); });
+  await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveCount(0);
+  await page.click('.card[data-id=g1] .card-name');
+  await expect(page.locator('#personModalBody')).toContainText('○ A language at level 3');
+  await page.keyboard.press('Escape');
+  await editCompany(page, s => { s.roster.find(p => p.id === 'g1').lang.Python = 150; });
   await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveText('Promote to Junior');
   await page.click('.card[data-id=g1] .card-name');
-  await expect(page.locator('#personModalBody')).toContainText('A language at 1 bar');
+  await expect(page.locator('#personModalBody')).toContainText('✓ A language at level 3');
   await expect(page.locator('#personModalBody')).not.toContainText('omain');
 });
 
