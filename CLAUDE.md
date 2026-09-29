@@ -1602,6 +1602,10 @@ Big systems that depend on the earlier phases.
   to be decided in the balance pass.
 - **Licences (decided).** Each AI licence runs **at most one contract at a time**. More
   contracts at once need more licences.
+- **Models are per licence, bought and sold freely (decided).** Each licence runs one model,
+  bought for that licence. Any model that has arrived can be bought, older ones included, and a
+  licence's model can be sold at any time (not mid-contract). So a studio can run a mix, such as
+  a cheap old model on hotfixes and the newest on a major release.
 - **Models unlock over time and must be bought (decided).** New models arrive **very slowly**
   (days to weeks apart), each better than the last:
   - **speed:** the first models are **very slow**, and each one writes more SLOC/min;
@@ -1633,10 +1637,10 @@ Big systems that depend on the earlier phases.
 - **Still open:**
   - The actual numbers: how many models, how many days apart, and each one's speed, success,
     size, price and running cost. That's for the balance pass.
-  - Is the upgrade per licence, or one model for the whole studio?
+  - What a sold model fetches: its full price, or less (and does that fall as newer models
+    arrive?).
   - How the picker shows it, e.g. "AI model 3 (acts as 4) · supervised by Grace (principal) ·
     −8% success".
-  - Can a model be sold back or downgraded?
 
 #### 18. Multiple sites, rooms and buildings
 - Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and premises in more than
