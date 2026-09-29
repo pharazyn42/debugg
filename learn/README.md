@@ -32,6 +32,22 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
 - Everything is saved under `debugg-learn` (backed up with the rest, reset with the demo at v0.1,
   and kept by the daily page's "reset puzzles").
 
+## Playing
+
+- Keys: 1–9 pick an option (in the order shown) or the line with that number, and Enter continues.
+  Options show their number, except on touch screens.
+- The duck reacts to each answer, and the summary pops the stars in and celebrates a new Learn level
+  and the streak going up that day. Animations stop under "reduce motion".
+
+- Every step with code links to the sandbox (`learn/sandbox.html?lang=python&code=…`, in a new tab):
+  teaching steps under the code, questions in the feedback once answered (a blank filled in).
+
+## The sandbox
+
+`learn/sandbox.html` is part of Learn: write and run Python (Pyodide) or JavaScript in the browser.
+`?lang=python&code=…` opens a lesson's example; `?lang=python&day=3` replays a finished daily puzzle
+(the game's "Run it yourself" link). `sandbox.html` at the site root redirects here.
+
 ## Adding a unit
 
 1. Write `learn/<lang>/NN-name.js`, pushing one unit onto `window.DEBUGG_LEARN.units` (copy an existing one).

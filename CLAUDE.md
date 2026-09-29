@@ -36,7 +36,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `tools/check-puzzles.js` | Runs every puzzle and every Learn snippet with its real toolchain and checks it prints what it says (`npm run check-puzzles`; also a CI job). |
 | `learn/` | Debugg Learn, its own section of the site (`/learn/`): the page (`learn/index.html`), the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. `learn.html` redirects to `learn/` (its old address). |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
-| `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
+| `learn/sandbox.html` | The sandbox, part of Debuggit Learn (moved there September 2026, the player-owner's call): write and run Python (Pyodide) or JavaScript in Web Workers, replay finished daily puzzles (`?lang=python&day=3`), or open a lesson's example (`?lang=python&code=…`). `sandbox.html` redirects there (its old address). |
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
 | `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
 | `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
@@ -63,7 +63,9 @@ to code" footer link, the Director's languages on the Ltd card (`a.learn-lang`, 
 exist), and, after a missed or revealed puzzle (not a first-guess solve), `#learnMore`: the unit
 named by the puzzle's `learn` field (`learn/#python/strings`, which picks the unit out), or the
 course from the start. `index.html` loads `learn/courses.js` to know which courses exist. The
-checker fails a `learn` tag that isn't a written unit.
+checker fails a `learn` tag that isn't a written unit. The **sandbox** belongs to Learn too
+(`learn/sandbox.html`, showing Learn's version); the game links to it from its footer and from a
+finished puzzle's "Run it yourself", and lessons link to it from every step with code.
 
 **Tabs and switching on.** The game's pages have **Daily | Ltd** tabs. The
 Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
@@ -139,8 +141,9 @@ Debuggit Ltd), and **Debuggit Learn**. Each has:
 or the game, never both. The exception is a change that really affects both: then both
 changelogs get notes in that PR, and both products are released together.
 - The **scope** CI job (`tools/check-scope.js`) enforces this on every PR. Learn files are
-  `learn/`, `learn.html` and `tests/learn.spec.js`. Game files are `index.html`, `ltd/`,
-  `puzzles/`, `sandbox.html`, `studio/`, `CHANGELOG.md` and the game's specs. A PR touching both
+  `learn/` (the sandbox included), `learn.html`, `sandbox.html` and `tests/learn.spec.js` and
+  `tests/sandbox.spec.js`. Game files are `index.html`, `ltd/`, `puzzles/`, `studio/`,
+  `CHANGELOG.md` and the game's specs. A PR touching both
   fails unless it changes both changelogs.
 - Everything else is shared (`shared.js`, `base.css`, `backup.js`, tools, docs, CI) and counts for
   neither side. A shared change players will notice still needs a line in the changelog of each
@@ -936,11 +939,19 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   time moves it on (1, 3, then 7 days; `REVIEW_DAYS`); right three times running, it leaves the queue;
   missed again, it starts over. 2 XP per question right first time, and a round counts for the Learn
   streak. The checker fails two questions with the same text and code in one lesson or checkpoint.
+- **Lesson feel** (the third experience item): keys 1–9 pick an option or a line and Enter continues
+  (hints on the options, hidden on touch screens); the duck hops or wobbles in each answer's
+  feedback; the progress and XP bars slide from where they were (`grow()`); the summary pops its
+  stars in, shows "Level up!" on a new Learn level and "+1 today" when the streak went up, and
+  focuses its main button. Steps with code have a **"Run it yourself ↗"** link (teaching steps
+  under the code, questions in the feedback once answered; `runLink()`), opening
+  `sandbox.html?lang=python&code=…` in a new tab, with a blank filled in. Only for languages the
+  sandbox runs.
 - **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
   never locked behind daily puzzles or anything else.
 - **Still to do:** the rest of the Python course (Conditions, Loops,
-  Functions, Dictionaries, the classic traps), the other experience items (lesson feel, a visual
-  course path and daily goal, a phone and accessibility pass), other languages' courses, the Rosetta-style "second language" lessons, and
+  Functions, Dictionaries, the classic traps), the other experience items (a
+  visual course path and daily goal, a phone and accessibility pass), other languages' courses, the Rosetta-style "second language" lessons, and
   badges.
 
 The original sketch:

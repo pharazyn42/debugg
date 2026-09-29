@@ -15,13 +15,13 @@ const { check: checkScope } = require('../tools/check-scope');
 test('every page shows its product’s version, linking to its What’s new', async ({ page }) => {
   await openAt(page, 'index.html');
   await fresh(page);
-  for(const p of ['index.html', 'sandbox.html', 'privacy.html', 'whatsnew.html']){
+  for(const p of ['index.html', 'privacy.html', 'whatsnew.html']){
     await page.goto(p);
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('v' + APP_VERSION + ' demo');
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', 'whatsnew.html');
   }
   // Debuggit Learn has its own version and What's new.
-  for(const [p, href] of [['learn/', '../whatsnew.html?learn'], ['whatsnew.html?learn', 'whatsnew.html?learn']]){
+  for(const [p, href] of [['learn/', '../whatsnew.html?learn'], ['learn/sandbox.html', '../whatsnew.html?learn'], ['whatsnew.html?learn', 'whatsnew.html?learn']]){
     await page.goto(p);
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('Learn v' + LEARN_VERSION + ' demo');
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', href);

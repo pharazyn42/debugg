@@ -13,9 +13,10 @@
 // every product it affects.
 const { execFileSync } = require('child_process');
 
-const LEARN = [/^learn\//, /^learn\.html$/, /^tests\/learn\.spec\.js$/];
-const GAME = [/^index\.html$/, /^ltd\//, /^puzzles\//, /^sandbox\.html$/, /^studio\//, /^CHANGELOG\.md$/,
-  /^tests\/(daily|ltd|sandbox)\.spec\.js$/];
+// The sandbox is part of Learn (learn/sandbox.html; sandbox.html is its old address, a redirect).
+const LEARN = [/^learn\//, /^learn\.html$/, /^sandbox\.html$/, /^tests\/(learn|sandbox)\.spec\.js$/];
+const GAME = [/^index\.html$/, /^ltd\//, /^puzzles\//, /^studio\//, /^CHANGELOG\.md$/,
+  /^tests\/(daily|ltd)\.spec\.js$/];
 const LEARN_LOG = 'learn/CHANGELOG.md', GAME_LOG = 'CHANGELOG.md';
 
 function side(file){

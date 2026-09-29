@@ -10,6 +10,8 @@ things to play and the last one for fixes and balance changes.
 ## Unreleased
 
 - Missing a puzzle about lists now points you to Debuggit Learn's new Lists unit.
+- The sandbox has moved to Debuggit Learn. "Run it yourself" after a puzzle, and the footer's
+  sandbox link, take you there, and your drafts come with it.
 
 ## 0.0.3 — 29 September 2026
 

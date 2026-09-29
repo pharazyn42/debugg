@@ -11,6 +11,11 @@ one for fixes.
   checkpoint, so you can pick up where you left off in one tap.
 - **Review**: questions you get wrong come back the next day in a short review round, then again
   after 3 and 7 days until they've stuck. It shows in the Continue card when one is due.
+- Lessons feel livelier: press **1–4** to pick an answer (or a line number to tap a line) and
+  **Enter** to continue; the duck hops or wobbles at each answer; the progress bar slides along;
+  and the end of a lesson celebrates your stars, a new Learn level and your streak going up.
+- The **sandbox** is now part of Debuggit Learn. Every lesson step with code has a **Run it
+  yourself** link that opens the example there, in a new tab, to change and run.
 - Python Unit 3, "Lists": making lists, changing them (append, pop, remove), slices and joining,
   why `b = a` gives one list two names, and sorting and summing. Four lessons and a checkpoint;
   it opens once you've passed Unit 2's checkpoint.

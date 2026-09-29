@@ -32,7 +32,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Sandbox
 
-`sandbox.html` is a scratchpad for writing and running your own Python or JavaScript, linked from the daily page's footer. After each game, a "Run it yourself" link opens that day's puzzle in it so you can experiment with the code. You can also load any puzzle from an earlier day, or today's once you've finished it, so the sandbox can't spoil today's answer.
+`learn/sandbox.html` is a scratchpad for writing and running your own Python or JavaScript. It's part of Debuggit Learn, where every lesson step with code has a "Run it yourself" link into it, and the daily page's footer links to it too (`sandbox.html` redirects there). After each game, a "Run it yourself" link opens that day's puzzle in it so you can experiment with the code. You can also load any puzzle from an earlier day, or today's once you've finished it, so the sandbox can't spoil today's answer.
 
 - **Python** runs on [Pyodide](https://pyodide.org/) (CPython compiled to WebAssembly), downloaded from jsDelivr on the first Python run (about 13 MB, then cached). Opening the page from disk still needs the internet for this.
 - **JavaScript** runs in a fresh Web Worker each time, with `console.log` output formatted much like Node's.
@@ -40,7 +40,7 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 - Drafts are saved per language in your browser.
 - The sandbox shows the languages in the puzzle rotation that can run in a browser. C and Rust can't yet: a Rust puzzle links to the Rust Playground instead, and a C puzzle has no run link.
 
-`shared.js` and `base.css` hold the code and styles the daily page and the sandbox share: languages, the day calendar, XP levels, the syntax highlighter and the base theme.
+`shared.js` and `base.css` hold the code and styles the daily page, Learn and the sandbox share: languages, the day calendar, XP levels, the syntax highlighter and the base theme.
 
 ## Your progress, feedback and privacy
 
