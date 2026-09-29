@@ -35,8 +35,11 @@ test('What’s new shows the changelog, and a returning player sees "new" until 
   await expect(page.locator('#notes h2').first()).toContainText(APP_VERSION);
   await expect(page.locator('#notes h2').first().locator('.current')).toHaveText('you’re here');
   await expect(page.locator('#notes')).not.toContainText('Unreleased');
-  await expect(page.locator('#notes h3').first()).toHaveText('The daily puzzle');
-  await expect(page.locator('#notes b').first()).toHaveText('Share your result');
+  // Markdown becomes headings, lists and bold text (the notes' sections come from CHANGELOG.md).
+  await expect(page.locator('#notes h3').first()).toHaveText(/\S/);
+  await expect(page.locator('#notes li').first()).toHaveText(/\S/);
+  await expect(page.locator('#notes b').first()).toHaveText(/\S/);
+  await expect(page.locator('#notes')).toContainText('Share your result');
   await page.goto('index.html');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
 });
