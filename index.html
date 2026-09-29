@@ -140,6 +140,19 @@
   @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
   @media (prefers-reduced-motion: reduce){ .duck-says.happy img{ animation: none; } }
   .dialog-duck{ display: block; margin: 0 auto 6px; }
+  /* Practice (an earlier day, from daily/archive.js) */
+  .practice-note{ background: var(--amber-dim); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; }
+  .practice-note a{ color: var(--amber); white-space: nowrap; }
+  body.practice .ltd-note{ display: none; }
+  #practiceRow:has(> [hidden]:only-child){ display: none; }
+  /* Past puzzles (daily/archive.js) */
+  dialog.archive{ width: min(480px, calc(100vw - 32px)); }
+  .archive-list{ list-style: none; margin: 0 0 12px; padding: 0; max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .archive-row{ display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .archive-row.solved{ border-color: var(--green-dim); }
+  .archive-name{ display: block; font-size: 13.5px; color: var(--text); }
+  .archive-meta{ display: block; font-size: 12px; color: var(--text-faint); }
+  .archive-row .btn-small{ padding: 6px 10px; font-size: 12.5px; font-weight: 600; border-radius: 8px; text-decoration: none; white-space: nowrap; }
   /* Stats (daily/stats.js) */
   dialog.stats{ width: min(400px, calc(100vw - 32px)); }
   .stat-boxes{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 16px; text-align: center; }
@@ -320,6 +333,7 @@
   <h2 class="desk-title">Your desk: what does this print? <span class="desk-tag">pays the company</span>
     <button class="desk-toggle" id="deskToggle" type="button" hidden>Show ▾</button></h2>
 
+  <p class="practice-note" id="practiceNote" hidden><span id="practiceText"></span> <a href="index.html">Back to today →</a></p>
   <div class="tiles" id="tiles"></div>
   <div class="hint-track" id="hintTrack">
     <span class="hint-dot" id="hintDot1"></span>
@@ -350,6 +364,7 @@
       <button class="btn-ghost" id="revealBtn">Reveal answer</button>
     </div>
     <div class="feedback" id="feedback"></div>
+    <div class="share-row" id="practiceRow"><button class="btn-ghost" id="playAgain" type="button" hidden>Play it again</button></div>
     <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
     <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button>
       <button class="btn-ghost" id="shareImageBtn" type="button">Share as a picture</button>
@@ -379,7 +394,7 @@
   <div id="ltdBoard" hidden></div>
 
   <footer>
-    <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
+    <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span> · <a href="#" id="archiveLink">past puzzles</a></div>
     <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="learn/sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="statsLink">stats</a> · <a href="#" id="backupLink">backup</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> ·
@@ -406,6 +421,7 @@
 <script src="backup.js"></script>
 <script src="daily/stats.js"></script>
 <script src="daily/sharecard.js"></script>
+<script src="daily/archive.js"></script>
 <script src="learn/courses.js"></script>
 <script>
 (function(){
@@ -435,13 +451,18 @@
   const XP_KEY = 'debugg-xp';
 
   // There's one puzzle a day, and the languages take turns (see the rotation in shared.js).
-  const DAY = window.Debugg.today();
+  // index.html?day=N plays an earlier day again as practice (see daily/archive.js): saved apart,
+  // with no XP, streak or company pay.
+  const TODAY = window.Debugg.today();
+  const wantedDay = parseInt(new URLSearchParams(location.search).get('day'), 10);
+  const PRACTICE = !isNaN(wantedDay) && window.Debugg.slotDay(wantedDay) < window.Debugg.slotDay(TODAY);
+  const DAY = PRACTICE ? wantedDay : TODAY;
   // The day this puzzle belongs to: on a Sunday, the weekend puzzle is Saturday's.
   const SLOT = window.Debugg.slotDay(DAY);
   const puzzle = window.Debugg.puzzleFor(DAY);
   const lang = puzzle.lang;
   const LANG = LANG_INFO[lang];
-  const STATE_KEY = window.Debugg.stateKey(DAY);
+  const STATE_KEY = PRACTICE ? 'debugg-practice-day' + SLOT : window.Debugg.stateKey(DAY);
 
   let state = { attempts: [], solved: false, revealed: false, hintLevel: 0 };
   let flagEl = null;
@@ -474,7 +495,7 @@
   // puzzle counts once, for Saturday and Sunday together.
   function currentStreak(){
     const s = readStreak();
-    return s.lastDay >= window.Debugg.previousSlot(DAY) ? s.count : 0;
+    return s.lastDay >= window.Debugg.previousSlot(TODAY) ? s.count : 0;
   }
 
   // --- XP -------------------------------------------------------------------
@@ -530,6 +551,7 @@
   // Awards this puzzle's XP once; state.xp records what was given so a reload can't award it twice.
   // Returns a note for the feedback line.
   function awardXp(){
+    if(PRACTICE) return ' Practice: no XP.';
     if(typeof state.xp === 'number') return '';
     const earned = puzzleXp(state.solved, state.attempts.length, state.hintLevel);
     const all = readXp();
@@ -595,7 +617,9 @@
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
     // Languages the sandbox can't run link to a playground site instead, where there is one.
     const tryLink = document.getElementById('tryLink');
-    if(LANG.runnable){
+    if(PRACTICE && !window.Debugg.isFinished(SLOT)){
+      tryLink.parentElement.hidden = true;  // the sandbox only opens puzzles finished on the day
+    }else if(LANG.runnable){
       tryLink.href = 'learn/sandbox.html?lang=' + lang + '&day=' + SLOT;
     }else if(LANG.playground){
       const pg = LANG.playground(puzzle.code);
@@ -667,9 +691,13 @@
     revealEl.classList.add('show');
     state.revealed = true;
     save();
-    startCountdown();
     duckSay();
-    document.getElementById('shareRow').hidden = false;
+    if(PRACTICE){
+      document.getElementById('playAgain').hidden = false;
+    }else{
+      startCountdown();
+      document.getElementById('shareRow').hidden = false;
+    }
     showLearnMore();
   }
 
@@ -763,6 +791,7 @@
   // Only a solve changes the streak, and only the first solve of the day adds to it.
   // A loss changes nothing today; the streak just won't carry on unless something is solved.
   function finishRun(won){
+    if(PRACTICE) return;
     const s = readStreak();
     if(won && !(s.lastDay === SLOT && s.count > 0)){
       writeStreak({ count: currentStreak() + 1, lastDay: SLOT });
@@ -772,6 +801,7 @@
 
   // Tells anything listening (Debuggit Ltd, when it's switched on) that today's puzzle just ended. Fired only when a game ends, never when a finished game is reloaded.
   function announceFinish(){
+    if(PRACTICE) return;
     document.dispatchEvent(new CustomEvent('debugg:puzzle-finished', { detail: {
       lang, day: SLOT, solved: state.solved, guesses: state.attempts.length,
       hintLevel: state.hintLevel || 0, xp: state.xp, streak: currentStreak()
@@ -868,9 +898,21 @@
   window.Debugg.renderWordmark(document.getElementById('wordmark'), lang);
   window.Debugg.renderVersion(document.getElementById('appVersion'));
   shareMark = document.getElementById('wordmark').dataset.wordmark;
-  kickerEl.textContent = window.Debugg.isPreview(DAY)
+  kickerEl.textContent = (PRACTICE ? 'Practice · ' : '') + (window.Debugg.isPreview(DAY)
     ? 'Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name;
+    : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name);
+  if(PRACTICE){
+    document.body.classList.add('practice');
+    const real = window.Debugg.readState(SLOT);
+    document.getElementById('practiceText').textContent = 'Practice: an earlier day’s puzzle, for no XP, streak or company pay. ' +
+      (real && real.solved ? 'You solved it on the day in ' + real.attempts.length + '.' : real && real.revealed ? 'You missed it on the day.' : 'You didn’t play it on the day.');
+    document.getElementById('practiceNote').hidden = false;
+    document.getElementById('playAgain').addEventListener('click', () => {
+      try{ localStorage.removeItem(STATE_KEY); }catch(e){}
+      location.reload();
+    });
+  }
+  document.getElementById('archiveLink').addEventListener('click', e => { e.preventDefault(); window.DebuggArchive.open(TODAY); });
   filenameEl.textContent = (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.' + LANG.ext;
   document.getElementById('langName').textContent = LANG.name;
   renderCode();

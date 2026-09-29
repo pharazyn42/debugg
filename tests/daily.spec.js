@@ -454,3 +454,58 @@ test('the result can be shared as a picture, with no spoilers', async ({ page })
   });
   expect(colours).toEqual([[0x4a, 0x22, 0x22], [0x1f, 0x4a, 0x35], [0x13, 0x14, 0x17]]);
 });
+
+test('past puzzles can be played again as practice, for no XP, streak or company pay', async ({ page }) => {
+  await openAt(page, 'index.html', 5);
+  await withStorage(page, {
+    'debugg-day2': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 0, xp: 60 },
+    'debugg-streak': { count: 1, lastDay: 2 },
+    'debugg-xp': { python: 60 }
+  });
+  await page.click('#archiveLink');
+  const rows = page.locator('#archiveList .archive-row');
+  // Newest first: Days 4 to 1.
+  await expect(rows).toHaveCount(4);
+  await expect(rows.nth(0)).toContainText('Day 4');
+  await expect(rows.nth(0)).toContainText('Thursday · tricky · Python · Not played');
+  await expect(rows.nth(2)).toContainText('Solved on the day in 2');
+  await expect(rows.nth(2)).toHaveClass(/solved/);
+  await rows.nth(2).locator('a').click();
+  await expect(page).toHaveURL(/index\.html\?day=2$/);
+  await expect(page.locator('#kicker')).toHaveText(/^Practice · Day 2 · Tuesday/);
+  await expect(page.locator('#practiceNote')).toContainText('You solved it on the day in 2.');
+  // A fresh game, whatever happened on the day.
+  await expect(page.locator('#tiles .tile.wrong, #tiles .tile.correct')).toHaveCount(0);
+  const p = await puzzleFor(page, 2);
+  await page.evaluate(() => document.addEventListener('debugg:puzzle-finished', () => { window.__finished = true; }));
+  await guess(page, p.display);
+  await expect(page.locator('#feedback')).toContainText('Practice: no XP.');
+  expect(await page.evaluate(() => !!window.__finished)).toBe(false);
+  await expect(page.locator('#shareRow')).toBeHidden();
+  await expect(page.locator('#playAgain')).toBeVisible();
+  expect(await readJson(page, 'debugg-xp')).toEqual({ python: 60 });
+  expect(await readJson(page, 'debugg-streak')).toEqual({ count: 1, lastDay: 2 });
+  expect((await readJson(page, 'debugg-day2')).attempts).toEqual(['wrong', 'correct']);
+  expect((await readJson(page, 'debugg-practice-day2')).solved).toBe(true);
+  // The archive shows the practice result, and it can be played again.
+  await page.click('#archiveLink');
+  await expect(rows.nth(2)).toContainText('practice: solved in 1');
+  await page.keyboard.press('Escape');
+  await page.click('#playAgain');
+  await expect(page.locator('#guess')).toBeEnabled();
+  // Today and later days can't be practised: ?day=5 is just today.
+  await page.goto('index.html?day=5');
+  await expect(page.locator('#kicker')).toHaveText(/^Day 5/);
+  await expect(page.locator('#practiceNote')).toBeHidden();
+});
+
+test('before Day 1, the archive lists the last two weeks of preview days', async ({ page }) => {
+  await openAt(page, 'index.html', -3);
+  await page.click('#archiveLink');
+  const rows = page.locator('#archiveList .archive-row');
+  expect(await rows.count()).toBeGreaterThanOrEqual(11);
+  await expect(rows.first()).toContainText('Preview · ');
+  await openAt(page, 'index.html', 1);
+  await page.click('#archiveLink');
+  await expect(page.locator('#archiveEmpty')).toHaveText('No past puzzles yet. Come back tomorrow.');
+});
