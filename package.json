@@ -4,7 +4,8 @@
   "description": "Debugg: daily code puzzles, a sandbox, and Debugg Ltd. No build step; this file is only for the tests.",
   "scripts": {
     "test": "playwright test",
-    "check-puzzles": "node tools/check-puzzles.js"
+    "check-puzzles": "node tools/check-puzzles.js",
+    "traces": "node tools/trace-puzzles.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"

@@ -140,6 +140,29 @@
   @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
   @media (prefers-reduced-motion: reduce){ .duck-says.happy img{ animation: none; } }
   .dialog-duck{ display: block; margin: 0 auto 6px; }
+  /* The code's lines, and Step through it (daily/trace.js) */
+  #code .cl{ display: block; margin: 0 -18px; padding: 0 18px; border-left: 3px solid transparent; }
+  #code .cl.now{ background: var(--amber-dim); border-left-color: var(--amber); }
+  .trace{ background: var(--panel); border: 1px solid var(--amber-dim); border-radius: 12px; padding: 14px 16px; margin: -8px 0 18px; }
+  .trace[hidden]{ display: none; }
+  .trace-head{ display: flex; align-items: center; gap: 10px; }
+  .trace-head .section-label{ margin: 0; }
+  .trace-num{ font-family: var(--mono); font-size: 12px; color: var(--text-faint); margin-left: auto; }
+  .trace .btn-small{ padding: 5px 10px; font-size: 12px; }
+  .trace-what{ font-size: 14.5px; color: var(--text); margin: 10px 0; }
+  .trace-what code, .tv-val{ background: var(--bg); border-radius: 4px; padding: 1px 5px; font-size: 13px; color: var(--amber); }
+  .trace-scope{ font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); margin: 8px 0 4px; }
+  .trace-vars{ display: flex; flex-wrap: wrap; gap: 6px; }
+  .tv{ display: flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; font-size: 13px; max-width: 100%; }
+  .tv-name{ font-family: var(--mono); color: var(--text-dim); }
+  .tv-val{ overflow-wrap: anywhere; }
+  .tv.changed{ border-color: var(--amber); }
+  .trace-none{ font-size: 13px; color: var(--text-faint); }
+  .trace-out{ background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--green); margin: 0; }
+  .trace-cut{ font-size: 12.5px; color: var(--text-faint); margin: 8px 0 0; }
+  .trace-controls{ display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .trace-controls input[type=range]{ flex: 1; accent-color: var(--amber); min-width: 0; }
+  @media (max-width: 480px){ .trace-controls button{ padding: 9px 12px; } }
   /* Practice (an earlier day, from daily/archive.js) */
   .practice-note{ background: var(--amber-dim); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; }
   .practice-note a{ color: var(--amber); white-space: nowrap; }
@@ -351,6 +374,7 @@
     </div>
     <pre><code id="code"></code></pre>
   </div>
+  <section class="trace" id="trace" hidden tabindex="-1" aria-label="Step through the code"></section>
 
   <div class="panel">
     <label for="guess">Your guess</label>
@@ -377,6 +401,7 @@
         <p class="section-label">Takeaway</p>
         <p id="takeawayOut"></p>
       </div>
+      <p class="try" id="traceRow" hidden><button class="btn-ghost" id="traceBtn" type="button">Step through it, line by line</button></p>
       <p class="try"><a id="tryLink" href="learn/sandbox.html">Run it yourself in the sandbox →</a></p>
       <p class="try" id="learnMore" hidden><a id="learnMoreLink" href="learn/"></a></p>
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
@@ -422,6 +447,8 @@
 <script src="daily/stats.js"></script>
 <script src="daily/sharecard.js"></script>
 <script src="daily/archive.js"></script>
+<script src="puzzles/traces-python.js"></script>
+<script src="daily/trace.js"></script>
 <script src="learn/courses.js"></script>
 <script>
 (function(){
@@ -593,8 +620,8 @@
             highlight(line.slice(at + f.text.length));
         }
       }
-      return '<span class="ln">' + (i + 1) + '</span>' + body;
-    }).join('\n');
+      return '<span class="cl" data-line="' + (i + 1) + '"><span class="ln">' + (i + 1) + '</span>' + body + '</span>';
+    }).join('');
     flagEl = document.getElementById('flag');
   }
 
@@ -631,6 +658,13 @@
       tryLink.parentElement.hidden = true;
     }
     document.getElementById('reportLink').href = reportUrl();
+    // Step through it (daily/trace.js), for puzzles with a recorded trace.
+    const steps = window.DebuggTrace.stepsFor(puzzle);
+    document.getElementById('traceRow').hidden = !steps;
+    if(steps) document.getElementById('traceBtn').onclick = () => {
+      window.DebuggTrace.open(steps, document.getElementById('trace'), codeEl);
+      codeEl.closest('.editor').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
     document.getElementById('sandboxLink').href = 'learn/sandbox.html' + (LANG.runnable ? '#' + lang : '');
   }
 

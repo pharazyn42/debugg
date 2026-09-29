@@ -15,32 +15,11 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const vm = require('vm');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 
-// Load shared.js and the puzzle files the way the page does, with just enough of a browser around them.
-function loadGame(){
-  const store = {};
-  const ctx = { console };
-  ctx.window = ctx;
-  ctx.localStorage = {
-    getItem: k => (k in store ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v); },
-    removeItem: k => { delete store[k]; }
-  };
-  vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'shared.js'), 'utf8'), ctx, { filename: 'shared.js' });
-  for(const f of ctx.Debugg.PUZZLE_FILES){
-    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-  }
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'learn/courses.js'), 'utf8'), ctx, { filename: 'learn/courses.js' });
-  for(const course of Object.values(ctx.DEBUGG_LEARN.courses)){
-    for(const f of course.files) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
-  }
-  return ctx;
-}
+const { loadGame } = require('./load-game');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'debugg-check-'));
 function run(cmd, args, opts = {}){
@@ -245,6 +224,12 @@ function checkLearn(ctx, only){
   return { failed, steps, summary };
 }
 
+// The trace's last step matches what the puzzle says happens.
+function traceEndsRight(p, end){
+  if(!end || !end.end) return false;
+  return end.out === p.display + '\n';
+}
+
 function main(){
   const ctx = loadGame();
   const D = global.D = ctx.Debugg;
@@ -261,6 +246,12 @@ function main(){
     counts[p.lang][p.difficulty] = (counts[p.lang][p.difficulty] || 0) + 1;
 
     const problems = checkFields(p, D, ctx.DEBUGG_LEARN);
+    // Python puzzles have a step-through trace (npm run traces), which must end the way the puzzle does.
+    if(p.lang === 'python'){
+      const t = (ctx.DEBUGG_TRACES || {})[D.codeId(p.code)];
+      if(!t) problems.push('no step-through trace for this code: run npm run traces');
+      else if(!traceEndsRight(p, t[t.length - 1])) problems.push('its step-through trace is out of date: run npm run traces');
+    }
     const runner = RUNNERS[p.lang];
     if(!runner) problems.push('no runner for language "' + p.lang + '"');
     else if(!problems.length){

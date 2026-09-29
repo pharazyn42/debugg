@@ -509,3 +509,29 @@ test('before Day 1, the archive lists the last two weeks of preview days', async
   await page.click('#archiveLink');
   await expect(page.locator('#archiveEmpty')).toHaveText('No past puzzles yet. Come back tomorrow.');
 });
+
+test('after the game, Step through it plays the code back line by line, as real Python ran it', async ({ page }) => {
+  await openAt(page, 'index.html', 3);
+  await fresh(page);
+  await expect(page.locator('#traceRow')).toBeHidden();
+  const p = await puzzleFor(page, 3);
+  await page.click('#revealBtn');
+  await page.click('#traceBtn');
+  const steps = await page.evaluate(() => DebuggTrace.stepsFor(Debugg.puzzleFor(3)));
+  expect(steps.length).toBeGreaterThan(2);
+  await expect(page.locator('#traceNum')).toHaveText('Step 1 of ' + steps.length);
+  await expect(page.locator('#code .cl.now')).toHaveAttribute('data-line', String(steps[0].line));
+  await expect(page.locator('#tracePrev')).toBeDisabled();
+  await page.click('#traceNext');
+  await expect(page.locator('#code .cl.now')).toHaveAttribute('data-line', String(steps[1].line));
+  // Arrow keys step too; the last step is the end, with everything printed.
+  for(let i = 1; i < steps.length - 1; i++) await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#traceWhat')).toHaveText('Finished.');
+  await expect(page.locator('#traceOut')).toHaveText(p.display);
+  await expect(page.locator('#code .cl.now')).toHaveCount(0);
+  await expect(page.locator('#traceNext')).toBeDisabled();
+  await page.click('#traceClose');
+  await expect(page.locator('#trace')).toBeHidden();
+  // Every Python puzzle has a trace.
+  expect(await page.evaluate(() => Debugg.puzzlesFor('python').every(p => DebuggTrace.stepsFor(p)))).toBe(true);
+});

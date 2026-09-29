@@ -222,6 +222,14 @@ window.Debugg = (function(){
     return list[(((slot - 1) % list.length) + list.length) % list.length];
   }
 
+  // A short id for a puzzle's code (FNV-1a, as hex), so data made from the code, like the step-through
+  // traces in puzzles/traces-python.js, stays matched to it whatever order the puzzles are in.
+  function codeId(code){
+    let h = 0x811c9dc5;
+    for(let i = 0; i < code.length; i++){ h ^= code.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8, '0');
+  }
+
   // One save per day, whatever the language. Keyed by slot, so a weekend puzzle has one save for
   // Saturday and Sunday.
   function stateKey(day){ return 'debugg-day' + slotDay(day); }
@@ -376,6 +384,6 @@ window.Debugg = (function(){
 
   return { NAME, APP_VERSION, LEARN_VERSION, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
-           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished, normaliseAnswer,
+           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, codeId, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };
 })();
