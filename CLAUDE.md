@@ -193,7 +193,8 @@ TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
 ```js
 state = {
   money, reputation, lastTick,
-  roster: [ { id, name, role, since, worked, lang: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
+  roster: [ { id, name, role, since, worked, lang: {name: xp}, away? } ],  // Director is roster[0]; worked = ms on contracts at current level;
+                                                                        // away = { kind: 'training'|'holiday'|'sick'…, until } (no odd jobs meanwhile)
   board:  [ { id, tier, lang, sloc, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
@@ -340,7 +341,10 @@ state = {
   salary plus `BENCH_MARGIN` (5%), netted against payroll every second (and offline, by who was
   busy at the start), so a benched team grows the company slowly: a grad ¤2.10 vs ¤2/min, a
   senior ¤12.60 vs ¤12. No XP or promotion time, so contracts stay far better. Managers earn
-  none. Cards read "On the bench · odd jobs · +¤0.1/min".
+  none. Cards read "On the bench · odd jobs · +¤0.1/min". **Only the bench earns it**
+  (`onBench()`): anyone doing something else earns none, whether on a contract (including a failed
+  one waiting for Retry or Drop) or away. Anything that takes someone away (training, holiday, off
+  sick, events) must set `p.away = { kind, until }`, which `onBench()` already respects.
 - **Business stages** (`STAGES`, `stageIndex()`, shown in a stage bar above the stats, with a
   step track and what the next stage needs): **Start-up** (no managers), **Small business** (1
   manager), **Mid-size company** (3 managers, 25 staff), **Large company** (6, 60),
@@ -1103,6 +1107,8 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
 - Add a way to spend money (and/or time off contracts) to train a person's
   language or domain skills directly, alongside the XP earned from
   delivered contracts.
+- Someone training is away (`p.away = { kind: 'training', until }`), so they earn no odd jobs
+  (see "Odd jobs").
 - Open questions:
   - Is training a one-off purchase per bar, a timed course during which
     the person is unavailable for contracts, or both?
@@ -1236,6 +1242,8 @@ player-owner's meaning), not a division of the company.
 #### 15c. Absences: sick days and holidays
 - Employees are sometimes unavailable. Chances, frequency and durations
   are to be decided later.
+- Someone off sick or on holiday is away (`p.away = { kind, until }`), so they earn no odd jobs
+  (see "Odd jobs").
 - **Off sick**: unplanned and random. The person drops out for a while,
   even mid-contract.
   - The team carries on without their SLOC/min, so the contract slows.

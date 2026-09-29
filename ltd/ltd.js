@@ -792,15 +792,20 @@ window.DebuggLtd = (function(){
     function payrollPerMinute(){
       return state.roster.reduce((s, p) => s + ROLES[p.role].salary, 0);
     }
-    // Developers on the bench (on no contract) do odd jobs: support tickets, tidying code, internal
-    // tools. It covers their salary with BENCH_MARGIN (5%) to spare, so a benched team grows the
+    // Developers on the bench do odd jobs: support tickets, tidying code, internal tools. It covers their salary with BENCH_MARGIN (5%) to spare, so a benched team grows the
     // company slowly, with no XP or promotion time: contracts are still far better. (The
     // player-owner's call.) Managers write no code, so no odd jobs.
     const BENCH_MARGIN = 0.05;
     function benchPerMinute(p){ return isDev(p) ? ROLES[p.role].salary * (1 + BENCH_MARGIN) : 0; }
+    // On the bench = a developer doing nothing else: not on a contract (including a failed one
+    // waiting for Retry or Drop), and not away. Anything that takes someone away, such as
+    // training, a holiday or being off sick (items 14 and 15c), sets p.away = { kind, until },
+    // and they earn no odd jobs until it ends.
+    function isAway(p, now){ return !!(p.away && !(p.away.until <= now)); }
+    function onBench(p, busy, now){ return isDev(p) && !busy.has(p.id) && !isAway(p, now); }
     function benchIncomePerMinute(){
-      const busy = busyIds();
-      return state.roster.filter(p => !busy.has(p.id)).reduce((s, p) => s + benchPerMinute(p), 0);
+      const busy = busyIds(), now = Date.now();
+      return state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + benchPerMinute(p), 0);
     }
     function paySalaries(seconds){
       if(seconds > 0) state.money -= (payrollPerMinute() - benchIncomePerMinute()) * seconds / 60;
@@ -1010,8 +1015,8 @@ window.DebuggLtd = (function(){
         html += '<div class="guide" data-step="' + step.key + '"><button class="toast-close" data-action="skip-guide" aria-label="Hide the guide">✕</button>' +
           '<span class="guide-label">Next step</span>' + step.text + '</div>';
       }
-      const busy = busyIds();
-      const idle = state.roster.filter(p => isDev(p) && !busy.has(p.id));
+      const busy = busyIds(), now = Date.now();
+      const idle = state.roster.filter(p => onBench(p, busy, now));
       if(idle.length && !(step && step.key === 'staff')){
         const spare = idle.reduce((n, p) => n + benchPerMinute(p) - ROLES[p.role].salary, 0);
         html += '<div class="alert" data-alert="idle">' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +

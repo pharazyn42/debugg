@@ -299,6 +299,19 @@ test('developers on the bench do odd jobs, which cover their salary with 5% to s
   expect(saved.roster.find(p => p.id === 'g1')).toMatchObject({ lang: { Python: 10 } });
   expect(saved.roster.find(p => p.id === 'g1').worked || 0).toBe(0);
   await expect(page.locator('.card[data-id=s1]')).toContainText('On the bench · odd jobs · +¤0.6/min');
+
+  // Only the bench earns it: not someone on a contract (even a failed one waiting for Retry or
+  // Drop), and not someone away (training, holiday, off sick).
+  await editCompany(page, s => {
+    s.money = 1000;
+    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: ['g1'], startedAt: Date.now() - 120000,
+                  endsAt: Date.now() - 60000, chance: 1, payout: 5, repeat: false, status: 'failed', attempt: 2 });
+    s.roster.find(p => p.id === 's1').away = { kind: 'holiday', until: Date.now() + 2 * 3600000 };
+  });
+  await page.clock.setFixedTime(at(14));
+  await page.reload();
+  // Both just cost their salary for the hour: 60 × (¤2 + ¤12).
+  await expect(page.locator('#statMoney')).toHaveText('¤160');
 });
 
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
