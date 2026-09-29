@@ -1604,7 +1604,8 @@ Big systems that depend on the earlier phases.
   contracts at once need more licences.
 - **Models are per licence, bought and sold freely (decided).** Each licence runs one model,
   bought for that licence. Any model that has arrived can be bought, older ones included, and a
-  licence's model can be sold at any time (not mid-contract). So a studio can run a mix, such as
+  licence's model can be dropped at any time (not mid-contract). Dropping returns no cash: it
+  only stops the model's running fee. So a studio can run a mix, such as
   a cheap old model on hotfixes and the newest on a major release.
 - **Models unlock over time and must be bought (decided).** New models arrive **very slowly**
   (days to weeks apart), each better than the last:
@@ -1637,8 +1638,6 @@ Big systems that depend on the earlier phases.
 - **Still open:**
   - The actual numbers: how many models, how many days apart, and each one's speed, success,
     size, price and running cost. That's for the balance pass.
-  - What a sold model fetches: its full price, or less (and does that fall as newer models
-    arrive?).
   - How the picker shows it, e.g. "AI model 3 (acts as 4) · supervised by Grace (principal) ·
     −8% success".
 
