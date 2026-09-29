@@ -271,7 +271,7 @@ window.DebuggLtd = (function(){
 
     // The demo is the start-up slice: hotfixes and patches only (patches need more than
     // PATCH_HEADCOUNT staff, so managers and co-working desks). Managers were locked in the demo
-    // until October 2026, when they came in with desks as the demo's money sink. The rest is
+    // until September 2026, when they came in with desks as the demo's money sink. The rest is
     // shown as coming in v0.1. Old saves keep what they have; they just get no more of it.
     const DEMO = !!D.DEMO;
     const DEMO_TIERS = ['hotfix', 'patch'];

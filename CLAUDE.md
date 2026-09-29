@@ -105,7 +105,7 @@ above the languages, with the same level curve. Level-ups fire
 visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
-since managers came to the demo in October 2026, with desks, as its money sink). The locked
+since managers came to the demo in September 2026, with desks, as its money sink). The locked
 types, and premises beyond co-working desks, show as "coming in v0.1". Patches need more than
 10 staff (see the contract board), so a manager and co-working desks. Old saves keep any staff
 and running jobs they have, but their bigger offers go and their repeats stop.
@@ -398,7 +398,7 @@ state = {
   never the offer open in the picker), and **desk pay shrinks** by stage (`desk`: 100%, 50%,
   25%, 10%, 5%; reputation from puzzles doesn't). A change of stage is logged, announced and
   tracked (`ltd/stage/<key>`); `state.stage` remembers the last one. Managers are in the demo
-  (they were locked until October 2026), so a demo company can become a small business. This is the
+  (they were locked until September 2026), so a demo company can become a small business. This is the
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
@@ -428,7 +428,7 @@ state = {
   for one level raises that one by 6–15%. Each move is logged, and hire buttons show the
   rise since founding ("¤270 ↑50%"). Moves happen while the page is closed (not while
   paused), and are kept in `state.market`.
-- **The office** (phase 1 of item 15e, October 2026; `SPARE_ROOM_DESKS`, `COWORK_*`,
+- **The office** (phase 1 of item 15e, September 2026; `SPARE_ROOM_DESKS`, `COWORK_*`,
   `state.office`): everyone on staff needs a desk, except the Director, who works from home at
   the daily puzzle. The spare room has 4 desks, free, matching the Director's span of 4 devs, so
   the first manager needs the first **co-working desk**: ¤1/min each (`COWORK_RATE`), up to 8
@@ -1075,7 +1075,7 @@ Replace the current flat reliability-by-level model:
   skill no longer raises pay, and the hiring market. After: a grad nets about ¤160/hour,
   the first junior is affordable after about 3 hours, and a demo-sized team (a junior and
   3 grads) nets about ¤1,150/hour.
-- **Still to do:** the demo's money sink is now managers and co-working desks (October 2026);
+- **Still to do:** the demo's money sink is now managers and co-working desks (September 2026);
   check with play data whether it's enough, or whether training (item 14) is needed too.
   Reputation builds fast (0.5 a hotfix) for when it gates anything (item 12).
 
@@ -1147,7 +1147,7 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
 #### 13. Business tiers
 - **Started** (September 2026): the stages, the stage bar, managers staffing idle developers
   and desk pay shrinking by stage are built (see "Business stages" above). Still to do: stages
-  unlocking things (below). Managers are in the demo since October 2026.
+  unlocking things (below). Managers are in the demo since September 2026.
 - Show a business-tier label that grows with headcount: Start-up →
   Small business → … → something massive (e.g. Multinational).
 - Thresholds and names are TBD. The current Director-as-manager phase is
@@ -1268,7 +1268,7 @@ player-owner's meaning), not a division of the company.
 - **Rental units:** sublet spare desks while renting (Mid-size); let units or floors you own to
   tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
   tenant events via 15b.
-- **Phase 1 is built** (October 2026): desks, co-working and managers in the demo (see "The
+- **Phase 1 is built** (September 2026): desks, co-working and managers in the demo (see "The
   office" above). Decided then: the Director takes no desk; a full office blocks hiring. WFH
   applicants weren't in it and are still to come.
 - **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
