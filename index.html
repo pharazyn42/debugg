@@ -352,6 +352,7 @@
     <div class="feedback" id="feedback"></div>
     <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
     <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button>
+      <button class="btn-ghost" id="shareImageBtn" type="button">Share as a picture</button>
       <button class="btn-ghost" id="statsBtn" type="button">Your stats</button><span class="share-note" id="shareNote" role="status"></span></div>
     <div class="reveal" id="reveal">
       <p><b>Answer:</b> <code id="answerOut"></code></p>
@@ -404,6 +405,7 @@
 <script src="analytics.js"></script>
 <script src="backup.js"></script>
 <script src="daily/stats.js"></script>
+<script src="daily/sharecard.js"></script>
 <script src="learn/courses.js"></script>
 <script>
 (function(){
@@ -686,16 +688,29 @@
   // The spoiler-free result, Wordle-style: the wordmark, the day and language, a square per
   // guess (green right, red wrong, black unused), hints, and a link.
   let shareMark = 'debugg.it()';  // today's language's wordmark (the Ltd tab shows its own)
+  const shareSite = () => location.href.split(/[?#]/)[0].replace(/index\.html$/, '');
+  function shareResult(){
+    const n = state.attempts.length, h = state.hintLevel || 0;
+    return state.solved ? (n === 1 && !h ? 'Debugged it first try' : 'Debugged it in ' + n) : 'Not this time';
+  }
   function shareText(){
     const squares = Array.from({ length: MAX_GUESSES }, (_, i) =>
       state.attempts[i] === 'correct' ? '🟩' : state.attempts[i] === 'wrong' ? '🟥' : '⬛').join('');
     const h = state.hintLevel || 0;
-    const n = state.attempts.length;
-    const site = location.href.split(/[?#]/)[0].replace(/index\.html$/, '');
     return shareMark + ' ' + window.Debugg.dayLabel(DAY) + ' · ' + LANG.name + '\n' +
       squares + (h ? ' · ' + h + ' hint' + (h === 1 ? '' : 's') : '') + '\n' +
-      (state.solved ? (n === 1 && !h ? 'Debugged it first try 🦆' : 'Debugged it in ' + n) : 'Not this time 🦆') + '\n' + site;
+      shareResult() + (state.solved && (state.attempts.length > 1 || h) ? '' : ' 🦆') + '\n' + shareSite();
   }
+  // The same result as a picture (daily/sharecard.js).
+  function shareCard(){
+    return { wordmark: shareMark, title: window.Debugg.dayLabel(DAY) + ' · ' + LANG.name, attempts: state.attempts.slice(),
+             max: MAX_GUESSES, hints: state.hintLevel || 0, solved: state.solved, result: shareResult(), site: shareSite(), duck: 'img/duck.svg' };
+  }
+  document.getElementById('shareImageBtn').addEventListener('click', async () => {
+    const how = await window.DebuggShareCard.share(shareCard(), 'debuggit-' + (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.png');
+    if(how === 'downloaded') document.getElementById('shareNote').textContent = 'Saved the picture. Post it anywhere.';
+    if(how !== 'cancelled') window.DebuggAnalytics.event('share/image-' + how);
+  });
   document.getElementById('shareBtn').addEventListener('click', async () => {
     const text = shareText();
     const note = document.getElementById('shareNote');

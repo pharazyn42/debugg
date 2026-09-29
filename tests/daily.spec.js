@@ -431,3 +431,26 @@ test('the stats panel counts games played, the win rate, streaks and guesses, Wo
   await expect(d.locator('.dist-bar.today')).toHaveText('2');
   await expect(d.locator('#statPlayed')).toHaveText('5');
 });
+
+test('the result can be shared as a picture, with no spoilers', async ({ page }) => {
+  await openAt(page, 'index.html', 3);
+  await fresh(page);
+  const p = await puzzleFor(page, 3);
+  await guess(page, 'definitely not it');
+  await guess(page, p.display);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#shareImageBtn')]);
+  expect(download.suggestedFilename()).toBe('debuggit-day3.png');
+  const fs = require('fs');
+  const png = fs.readFileSync(await download.path());
+  expect(png.subarray(1, 4).toString()).toBe('PNG');
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+  await expect(page.locator('#shareNote')).toHaveText('Saved the picture. Post it anywhere.');
+  // The squares: red then green, the rest empty.
+  const colours = await page.evaluate(async () => {
+    const c = await DebuggShareCard.draw({ wordmark: 'debugg(it)', title: 'Day 3 · Python', attempts: ['wrong', 'correct'], max: 4,
+      hints: 0, solved: true, result: 'Debugged it in 2', site: 'x', duck: 'img/duck.svg' });
+    const g = c.getContext('2d');
+    return [0, 1, 2].map(i => Array.from(g.getImageData(92 + i * 140 + 10, 260, 1, 1).data.slice(0, 3)));
+  });
+  expect(colours).toEqual([[0x4a, 0x22, 0x22], [0x1f, 0x4a, 0x35], [0x13, 0x14, 0x17]]);
+});
