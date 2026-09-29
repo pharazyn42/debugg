@@ -53,7 +53,7 @@ test('the course map opens with the first lesson, and every unit file is loaded'
   // The checkpoint can be taken straight away, to test out of the unit.
   await expect(rows.nth(3)).toBeEnabled();
   await expect(rows.nth(3)).toContainText('Test out');
-  await expect(page.locator('.unit.planned').first()).toContainText('Strings');
+  await expect(page.locator('.unit.planned').first()).toContainText('Lists');
   await expect(page.locator('#learnStreak')).toHaveText('0');
   // learn.html loads every unit file its course lists.
   expect(await page.evaluate(() => Object.values(DEBUGG_LEARN.courses).reduce((n, c) => n + c.files.length, 0)))
@@ -79,6 +79,35 @@ test('C is a coming-soon tab with its planned units', async ({ page }) => {
   await expect(page.locator('.unit.planned')).toHaveCount(17);
   await tabs.nth(0).click();
   await expect(page.locator('h1')).toHaveText('Learn Python');
+});
+
+test('Unit 2, Strings, opens once Unit 1’s checkpoint is passed', async ({ page }) => {
+  const strings = page.locator('.unit[data-unit=strings]');
+  await expect(strings.locator('h2')).toHaveText('Strings');
+  await expect(strings).toHaveClass(/locked/);
+  await expect(strings).toContainText('Pass Unit 1’s checkpoint to unlock.');
+  // Test out of Unit 1.
+  await page.click('[data-action=checkpoint][data-unit=values]');
+  await finishAll(page);
+  await page.click('#summary [data-action=quit]');
+  await expect(strings).not.toHaveClass(/locked/);
+  const rows = strings.locator('.lesson-row');
+  await expect(rows).toHaveCount(5);
+  await expect(rows.nth(0)).toContainText('Characters and length');
+  // Its first lesson, perfectly, then its checkpoint.
+  await page.click('[data-action=lesson][data-lesson=indexing]');
+  await finishAll(page);
+  await expect(page.locator('#summary .big-stars')).toHaveText('★★★');
+  await page.click('#summary [data-action=quit]');
+  await expect(rows.nth(1)).toBeEnabled();
+  await page.click('[data-action=checkpoint][data-unit=strings]');
+  await finishAll(page);
+  await expect(page.locator('#summary h2')).toHaveText('Checkpoint passed!');
+  expect(await learnSave(page)).toMatchObject({
+    lessons: { 'python/strings/indexing': { stars: 3 } },
+    checkpoints: { 'python/values': { passed: true }, 'python/strings': { passed: true, best: 8 } },
+    xp: { python: 30 + 25 + 30 }
+  });
 });
 
 test('a perfect lesson earns 3 stars and Learn XP, and opens the next lesson', async ({ page }) => {
@@ -149,7 +178,7 @@ test('passing the checkpoint tests out of the unit; failing it can be retried', 
   await page.click('#summary [data-action=quit]');
   await expect(page.locator('.unit[data-unit=values]')).toHaveClass(/passed/);
   for(let i = 0; i < 3; i++) await expect(page.locator('.lesson-row').nth(i)).toBeEnabled();
-  await expect(page.locator('.lesson-row.checkpoint')).toContainText('7/8');
+  await expect(page.locator('.unit[data-unit=values] .lesson-row.checkpoint')).toContainText('7/8');
 });
 
 test('the Learn streak counts days with a lesson finished', async ({ page }) => {

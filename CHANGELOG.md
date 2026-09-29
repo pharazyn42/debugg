@@ -6,7 +6,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+### Learn
+- Python Unit 2, "Strings": picking out characters, slices, string methods, f-strings and
+  turning text into numbers. Four lessons and a checkpoint; it opens once you've passed Unit 1's
+  checkpoint.
 
 ## 0.0.1 — 28 September 2026
 

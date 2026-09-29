@@ -50,10 +50,13 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
   const [a, b, c] = APP_VERSION.split('.').map(Number);
   const next = a + '.' + b + '.' + (c + 1);
   expect(fails('bump', APP_VERSION)).toContain('isn\'t newer');
+  // Whatever's waiting in the real changelog, the copy starts with nothing unreleased.
+  const log = path.join(dir, 'CHANGELOG.md');
+  const setUnreleased = text => fs.writeFileSync(log, fs.readFileSync(log, 'utf8').replace(/## Unreleased\n[\s\S]*?(?=\n## )/, '## Unreleased\n\n' + text + '\n'));
+  setUnreleased('Nothing yet.');
   expect(fails('bump', next)).toContain('nothing under "## Unreleased"');
 
-  const log = path.join(dir, 'CHANGELOG.md');
-  fs.writeFileSync(log, fs.readFileSync(log, 'utf8').replace('## Unreleased\n\nNothing yet.', '## Unreleased\n\n- Spot the bug puzzles.'));
+  setUnreleased('- Spot the bug puzzles.');
   run('bump', next, '2026-10-12');
   const md = fs.readFileSync(log, 'utf8');
   expect(md).toContain('## Unreleased\n\nNothing yet.\n\n## ' + next + ' — 12 October 2026\n\n- Spot the bug puzzles.\n');

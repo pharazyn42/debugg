@@ -785,7 +785,9 @@ for its contracts; they no longer name puzzles.
 
 **Built so far** (September 2026): `learn.html`, reached from a **Daily | Learn** switch at the
 top of the puzzle page, with the Python course's Unit 1, *Values and printing* (3 lessons and
-a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the sketch below:
+a checkpoint, 35 steps), and Unit 2, *Strings* (`learn/python/02-strings.js`: indexing and
+`len`, slices, methods and immutability, f-strings and `str`/`int`; 4 lessons and a checkpoint,
+37 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
@@ -804,7 +806,7 @@ a checkpoint, 35 steps). Decided with the player-owner, replacing parts of the s
   or boost the Director. Saved as `debugg-learn`; "reset puzzles" keeps it.
 - **Checked like the puzzles:** `tools/check-puzzles.js` runs every lesson snippet, and
   checks right and wrong options and "tap the line" errors against the real output.
-- **Still to do:** the rest of the Python course (Strings, Lists, Conditions, Loops,
+- **Still to do:** the rest of the Python course (Lists, Conditions, Loops,
   Functions, Dictionaries, the classic traps), a review queue of missed questions (spaced
   repetition), other languages' courses, the Rosetta-style "second language" lessons, and
   badges.
