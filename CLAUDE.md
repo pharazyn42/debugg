@@ -921,6 +921,8 @@ a checkpoint, 35 steps), and Unit 2, *Strings* (`learn/python/02-strings.js`: in
   or boost the Director. Saved as `debugg-learn`; "reset puzzles" keeps it.
 - **Checked like the puzzles:** `tools/check-puzzles.js` runs every lesson snippet, and
   checks right and wrong options and "tap the line" errors against the real output.
+- **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
+  never locked behind daily puzzles or anything else.
 - **Still to do:** the rest of the Python course (Lists, Conditions, Loops,
   Functions, Dictionaries, the classic traps), a review queue of missed questions (spaced
   repetition), other languages' courses, the Rosetta-style "second language" lessons, and
@@ -986,8 +988,6 @@ at your own pace. It expands the "Learn track" sketched in 3b.
     puzzle stays the one thing to do each day.
   - Which languages after Python: JavaScript first (already built), or go
     straight for something new like Rust?
-  - Is the channel free and open to everyone from day one, or unlocked
-    after a few daily puzzles?
   - Order against the other Phase 1 work: the lesson formats overlap with
     3b's multiple choice and fill-the-blank, so building those formats
     first serves both.
@@ -1015,9 +1015,13 @@ later, Debuggit Ltd's Embedded/Controls contracts.
   Embedded/Controls domain (with item 16); (5) maybe C in the browser (picoc/TinyCC in
   WebAssembly, or an emulator like avr8js).
 - **Decided:** C99 as the baseline; in Learn, Embedded C is a section of the C course (its
-  10 units after the plain C ones), not a separate course or tab.
-- **Open questions:** hobbyist or professional audience; generic registers or a named chip
-  family (AVR, Cortex-M); whether to cover Arduino's C++; separate Embedded XP.
+  10 units after the plain C ones), not a separate course or tab. Also decided with the
+  player-owner (September 2026):
+  - the audience is **hobbyists** (Arduino and Pico makers: LEDs, buttons, sensors);
+  - registers are **generic**, made up and vendor-neutral, not a named chip family;
+  - the course stays pure C, and **Embedded C++** (for Arduino code) can be a separate extension
+    later.
+- **Open question:** separate Embedded XP, or count it as C XP.
 
 ### Phase 2 — Make the core loop feel right
 

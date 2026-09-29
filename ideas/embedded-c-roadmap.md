@@ -126,11 +126,14 @@ Each unit: 3–4 lessons and a checkpoint, as in the Python course.
 - **C standard: C99.** Puzzles and lessons compile with `-std=c99`; C11 extras (`_Static_assert`,
   `<stdatomic.h>`) stay out, and critical sections are taught the C99 way (disabling interrupts).
 
+- **Audience: hobbyists** (decided with the player-owner, September 2026): Arduino and Pico
+  makers, so examples use LEDs, buttons, buzzers and sensors rather than UARTs and DMA, and units
+  7–9 stay practical rather than going deep.
+- **Generic registers** (decided): made-up, vendor-neutral registers, not a named chip family.
+  Lessons stay portable and self-contained.
+- **C++ is a later extension** (decided): the course stays pure C. An "Embedded C++" extension
+  (for Arduino code) can come later, as its own addition.
+
 ## Open questions
 
-- **Audience**: hobbyists (Arduino, Pico) or professional firmware engineers? It decides the
-  examples (LEDs and buttons vs UARTs and DMA) and how deep units 7–9 go.
-- **Chip flavour**: generic made-up registers (portable, vendor-neutral), or a named family
-  (e.g. AVR or ARM Cortex-M) so lessons map to real datasheets?
-- **C++**: Arduino code is C++; include a later "Embedded C++" unit, or stay pure C?
 - **Separate XP**: count embedded puzzles as C XP, or give Embedded its own XP and level?
