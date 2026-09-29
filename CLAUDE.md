@@ -1579,6 +1579,46 @@ Big systems that depend on the earlier phases.
 - Open questions: how many languages at most (2? 3?), and which pairings
   make sense (reuse or extend `PAIRINGS`)?
 
+#### 17f. AI agents (the player-owner's idea, September 2026; not started)
+- **AI agents do the coding, and a developer looks after them.** The studio can put AI agents
+  on a contract. They write code like a team does (SLOC/min towards the target), but they
+  can't work on their own: **at least one dev must be assigned to look after them**. That dev is
+  on the contract like any teammate: tied up, earning XP and contract time, and never on the
+  bench.
+- **They scale up to a whole team.** One dev with agents can cover a contract that would
+  otherwise need a full team. So a patch, and later a minor or major release, could run as
+  "1 senior + agents" instead of 3–10 people.
+  - To decide: how that fits the team rules (does a patch still need a senior on it, and a major
+    release a manager?).
+  - To decide: whether the dev's level and skill limit how much agent work they can oversee,
+    e.g. a grad looks after 1 agent, a principal a full team's worth, with more agents meaning
+    more review for them.
+- **Models improve over time.** The player progresses through a series of models, each better
+  than the last:
+  - more SLOC/min per agent;
+  - higher **quality**, meaning a higher success chance (early models fail more than people do,
+    later ones less);
+  - maybe more agents per supervising dev.
+
+  To decide: whether new models are unlocked by spending (research or a licence), by business
+  stage or reputation, or released on a schedule like the hiring market's moves ("a new model is
+  out"). Use made-up model names, never real ones.
+- **Costs and money sink.** Agents cost a subscription per agent per minute, drawn like payroll
+  and rent, plus maybe a one-off upgrade cost per model. Newer models cost more, but should work
+  out cheaper than the people they replace, which makes them a mid-to-late-game money sink.
+- **Interactions with other systems:**
+  - Agents need no desks (item 15e), which lets a studio grow its output past its office.
+  - They earn no XP and are never promoted. The supervising dev still learns.
+  - They could raise Tech Debt (17b) or Merge Conflicts (17c) on early models, and Disruptive
+    events (17d) could take them offline ("the AI service is down").
+  - Offline, they're simulated like repeats.
+- **Where it sits:** Phase 4, once the office phases and bigger contracts are open. An early,
+  weak model could appear sooner as a taste.
+- **Open questions:**
+  - Can a contract be agents-only plus one dev, or must people do some share of the work?
+  - Does "Suggest a team" and do managers ever use agents, or is it the player's call?
+  - How is agent quality shown in the picker, e.g. "Agent model 3 · 6 agents · −8% success"?
+
 #### 18. Multiple sites, rooms and buildings
 - Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and premises in more than
   one place.
