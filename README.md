@@ -4,7 +4,7 @@ A Wordle-style daily game where you guess what a short, buggy code snippet actua
 
 **The name and the wordmark.** It's called **Debuggit** ("debug it"), and its logo is that phrase written as a line of code in the day's puzzle language: `debugg(it)` on a Python day, `debugg.it()` in JavaScript, `debugg!(it)` in Rust, `debugg(&it);` in C. Each page has its own: `debugg.learn()`, `debugg.run()` (the sandbox) and `debugg.ltd()` (the studio). Beside it sits the **Debuggit duck** (`img/duck.svg`), a rubber duck for rubber-duck debugging: it's the logo and favicon, it reacts after every puzzle ("Quack! First try, no hints."), and it cheers Learn lessons on. `img/share.png` is the link-preview card and `img/duck-180.png` the home-screen icon. `renderWordmark()` in `shared.js` draws it with the puzzles' syntax colours. The repository, the `debugg-*` save keys and names like `window.Debugg` keep the old spelling: players never see them, and renaming them would break saves.
 
-**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debuggit Ltd is cut down to hotfixes, with no managers (see "Debuggit Ltd" below).
+**This is the demo.** Demo Day 1 is Monday 5 October 2026, and there's no release date for v0.1 yet. A notice on the first visit (and the **demo** badge in the header) warns players that all progress will be reset when v0.1 comes out; `shared.js` carries the save version and the reset, and Debuggit Ltd is cut down to hotfixes and patches, in a spare room and co-working desks (see "Debuggit Ltd" below).
 
 **One puzzle a day, and the languages take turns.** `ROTATION` in `shared.js` lists the languages in play and the day each one joins; for now it's Python only. With more than one, they share the week's six puzzles (Monday to Friday and the weekend), shifting one day along each week so every language gets every difficulty in turn. A newly added language only gets Monday and Tuesday, the easy days, for its first two weeks. C, Rust and JavaScript puzzles are written and checked; to introduce one, add it to `ROTATION` with the day it joins.
 
@@ -67,7 +67,11 @@ The company grows through **stages**, shown above its stats: a **Start-up** (jus
 
 A **Next step** card walks a new company through its first hire, its first contract and the desk puzzle; after that, the studio warns about anyone left on the bench (they're still paid) and about debt. The board shows the contracts your staff can take, with the rest folded away.
 
-**In the demo** the company is the start-up slice: no managers, so you can have up to 4 devs, which means hotfixes only (patches need more than 10 staff). Minor and major releases show on the board as "coming in v0.1".
+**In the demo** the company is the early slice: hotfixes, and patches once it has more than 10 staff. Minor and major releases show on the board as "coming in v0.1", and so do bigger premises.
+
+**The office:** everyone on staff needs a desk (you, the Director, work from home at the daily puzzle). Your spare room has 4 desks, free; after that you rent **co-working desks**, ¤1 a minute each, up to 8, and can give one up whenever it's free. Rent is paid every second like salaries, including while you're away. With the Director able to look after 4 devs, the fifth person, your first manager, needs the first co-working desk. A full office is **cramped**: everyone works 5% slower, and you can squeeze up to 2 more in without desks, at 15% and 30% slower.
+
+**Notice:** now and then someone hands in their notice (far more often in a cramped office). They stay a day; free up a desk, or agree the pay rise on their card, and they'll stay. Business units and bigger premises come next (see `ideas/company-growth-roadmap.md`).
 
 The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 

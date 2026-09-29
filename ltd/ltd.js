@@ -40,7 +40,7 @@ window.DebuggLtd = (function(){
       '<div class="stat-bar">' +
         '<div class="stat"><div class="label">Cash</div><div class="value money" id="statMoney">¤0</div></div>' +
         '<div class="stat"><div class="label">Reputation</div><div class="value rep" id="statRep">0</div></div>' +
-        '<div class="stat"><div class="label">Payroll</div><div class="value rate" id="statPayroll">¤0/min</div></div>' +
+        '<div class="stat"><div class="label" id="statPayrollLabel">Payroll</div><div class="value rate" id="statPayroll">¤0/min</div></div>' +
         '<div class="stat"><div class="label">Headcount</div><div class="value" id="statHeads">1</div></div>' +
       '</div>' +
       '<div class="toast" id="welcomeToast"></div>';
@@ -50,6 +50,7 @@ window.DebuggLtd = (function(){
         '<div id="guide"></div>' +
         '<div class="structure" id="structure"></div>' +
         '<p class="structure-note" id="structureNote"></p>' +
+        '<div class="office" id="office"></div>' +
         '<div class="roster" id="roster"></div>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
         '<h3>Applicants</h3>' +
@@ -78,9 +79,9 @@ window.DebuggLtd = (function(){
     document.body.appendChild(modals);
 
     const $ = id => document.getElementById(id);
-    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads');
+    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
-    const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar');
+    const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
     const welcomeToast = $('welcomeToast');
@@ -268,13 +269,13 @@ window.DebuggLtd = (function(){
     // keeps turning over even if nobody on staff can take what's on it. A
     // replacement hotfix keeps its language.
 
-    // The demo is the start-up slice: hotfixes and patches only, and no managers (and with
-    // patches needing more than PATCH_HEADCOUNT staff, that means hotfixes in practice),
-    // so the Director looks after up to DIRECTOR_SPAN devs. The rest is shown as
-    // coming in v0.1. Old saves keep what they have; they just get no more of it.
+    // The demo is the start-up slice: hotfixes and patches only (patches need more than
+    // PATCH_HEADCOUNT staff, so managers and co-working desks). Managers were locked in the demo
+    // until September 2026, when they came in with desks as the demo's money sink. The rest is
+    // shown as coming in v0.1. Old saves keep what they have; they just get no more of it.
     const DEMO = !!D.DEMO;
     const DEMO_TIERS = ['hotfix', 'patch'];
-    const DEMO_LOCKED_ROLES = ['Manager'];
+    const DEMO_LOCKED_ROLES = [];
     const COMING = 'coming in v0.1';
     // Patches (and every bigger type) only come to the board once the company has more than
     // PATCH_HEADCOUNT people, the Director included. Hotfixes are always open.
@@ -382,7 +383,8 @@ window.DebuggLtd = (function(){
         boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
-        paid: {}              // desk puzzles already paid for, e.g. { 'python-5': true }
+        paid: {},             // desk puzzles already paid for, e.g. { 'python-5': true }
+        office: { cowork: 0 } // co-working desks rented beyond the spare room
       };
     }
 
@@ -598,9 +600,111 @@ window.DebuggLtd = (function(){
       return structureProblem(c);
     }
 
+    // ---------------------------------------------------------------------
+    // The office: desks (phase 1 of ideas/company-growth-roadmap.md)
+    // ---------------------------------------------------------------------
+    // Everyone on staff needs a desk; the Director works from home, at the daily puzzle. The
+    // spare room has SPARE_ROOM_DESKS, free. Past that, co-working desks: rented one at a time
+    // (up to COWORK_MAX), COWORK_RATE per desk per minute, charged like payroll (offline too,
+    // not while paused), and given up any time a desk is free. Business units come next.
+    const SPARE_ROOM_DESKS = 4;
+    const COWORK_RATE = 1;
+    const COWORK_MAX = 8;
+    function coworkDesks(){ return (state.office && state.office.cowork) || 0; }
+    function deskCount(){ return SPARE_ROOM_DESKS + coworkDesks(); }
+    function desksUsed(){ return state.roster.filter(p => p.role !== 'Director').length; }
+    function rentPerMinute(){ return coworkDesks() * COWORK_RATE; }
+    // A full office is cramped, and up to CRAM_MAX more people can be squeezed in without desks,
+    // each making it worse. Everyone writes CRAMPED[level] less code on contracts started while
+    // it's cramped (level 1 = every desk taken, 2 = one squeezed in, 3 = two), and people are
+    // likelier to hand in their notice (see "Notice" below). The player-owner's call.
+    const CRAM_MAX = 2;
+    const CRAMPED = [0, 0.05, 0.15, 0.30];
+    function cramLevel(extra){
+      const over = desksUsed() + (extra || 0) - deskCount();
+      return over < 0 ? 0 : Math.min(CRAMPED.length - 1, over + 1);
+    }
+    function crampedPenalty(){ return CRAMPED[cramLevel()]; }
+    function deskProblem(){
+      if(desksUsed() < deskCount() + CRAM_MAX) return null;
+      return 'no room to squeeze anyone else in' + (coworkDesks() < COWORK_MAX ? ' — rent a co-working desk' : ' — bigger premises are coming in v0.1');
+    }
+    // What hiring one more would do to the office, for the hire buttons: '' when there's a free desk.
+    function deskNote(){
+      if(desksUsed() < deskCount()) return '';
+      return 'no desk: squeezed in, everyone −' + Math.round(CRAMPED[cramLevel(1)] * 100) + '% speed';
+    }
+
+    // ---------------------------------------------------------------------
+    // Notice: people sometimes hand in their notice
+    // ---------------------------------------------------------------------
+    // Checked every hour (state.nextNoticeAt): each person but the Director hands in their notice
+    // with NOTICE_PER_DAY / 24 chance, times NOTICE_CRAMPED[cramLevel()]. A notice
+    // (p.notice = { reason, until, ask }) runs NOTICE_H hours, then they leave, once they're off
+    // any running contract (a repeat stops for them). It can be turned around: a cramped one is
+    // withdrawn once there's a free desk again, and any can be settled by agreeing a pay rise of
+    // `ask` ¤/min, a random 15–35% of their level's salary (p.raise). The player-owner's idea.
+    // While the page is closed, only the last OFFLINE_CAP hours roll, like repeats.
+    const NOTICE_PER_DAY = 0.015;
+    const NOTICE_CRAMPED = [1, 3, 5, 7];
+    const NOTICE_H = 24;
+    const RAISE = [0.15, 0.35];
+    function giveNotice(p, at, reason){
+      const ask = Math.max(0.5, Math.round(ROLES[p.role].salary * between(RAISE) * 2) / 2);
+      p.notice = { reason, until: at + NOTICE_H * 3600000, ask };
+      addLog('bad', '✉ ' + p.name + ' has handed in their notice' +
+        (reason === 'cramped' ? ': the office is too cramped.' : ': they’ve had a better offer.') +
+        ' They’ll stay for a ' + fmtRate(ask) + '/min pay rise' + (reason === 'cramped' ? ', or if a desk frees up.' : '.'));
+    }
+    function moveNotices(now){
+      if(!state.nextNoticeAt) state.nextNoticeAt = now + 3600000;
+      const from = now - OFFLINE_CAP_SECONDS * 1000;
+      for(let i = 0; state.nextNoticeAt <= now && i < 400; i++){
+        const at = state.nextNoticeAt;
+        if(at >= from){
+          const perHour = NOTICE_PER_DAY * NOTICE_CRAMPED[cramLevel()] / 24;
+          state.roster.forEach(p => {
+            if(p.role !== 'Director' && !p.notice && Math.random() < perHour) giveNotice(p, at, cramLevel() ? 'cramped' : 'offer');
+          });
+        }
+        state.nextNoticeAt += 3600000;
+      }
+      if(state.nextNoticeAt <= now) state.nextNoticeAt = now + 3600000;
+      // Things got better: a free desk ends a cramped notice.
+      if(!cramLevel()) state.roster.forEach(p => {
+        if(p.notice && p.notice.reason === 'cramped'){
+          delete p.notice;
+          addLog('ok', '✓ ' + p.name + ' is staying, now there’s room in the office.');
+        }
+      });
+      // Notice worked out: they leave once they're off any running contract. A failed contract
+      // waiting for Retry or Drop carries on without them (and goes, if nobody's left on it).
+      state.roster.filter(p => p.notice && p.notice.until <= now).forEach(p => {
+        const job = jobFor(p.id);
+        if(job && isRunning(job)) return;
+        if(job){
+          job.team = job.team.filter(id => id !== p.id);
+          if(!job.team.some(id => isDev(person(id) || {}))) state.jobs = state.jobs.filter(j => j !== job);
+        }
+        state.roster = state.roster.filter(x => x !== p);
+        addLog('bad', p.name + ' (' + p.role.toLowerCase() + ') has left the studio.');
+        track('left/' + p.role.toLowerCase());
+      });
+    }
+    // "Handed in notice · leaves in 18h · the office is too cramped" and a button to keep them.
+    function noticeHTML(p, now){
+      if(!p.notice) return '';
+      const n = p.notice;
+      const left = n.until - now;
+      return '<div class="card-foot notice">' +
+        '<span class="promo blocked">✉ Handed in notice · ' + (left > 0 ? 'leaves in ' + fmtDuration(left) : 'leaves after this contract') +
+          ' · ' + (n.reason === 'cramped' ? 'the office is too cramped' : 'has a better offer') + '</span>' +
+        '<button class="btn-small btn-promote" data-action="keep" data-id="' + p.id + '">Keep: +' + fmtRate(n.ask) + '/min</button></div>';
+    }
+
     function hireProblem(role){
       if(DEMO && DEMO_LOCKED_ROLES.includes(role)) return COMING;
-      return problemWith({ [role]: 1 });
+      return problemWith({ [role]: 1 }) || deskProblem();
     }
     function releaseProblem(p){
       if(jobFor(p.id)) return 'on a contract';
@@ -658,7 +762,7 @@ window.DebuggLtd = (function(){
       return 1 + SKILL_SPEED * Math.min(level, SKILL_FULL) / SKILL_FULL + SKILL_SPEED_BEYOND * Math.max(0, level - SKILL_FULL);
     }
     function devSlocOn(d, offer){
-      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang]));
+      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang])) * (1 - crampedPenalty());
     }
 
     // A dev "knows the stack" for a contract if they have at least level 1 in
@@ -719,7 +823,7 @@ window.DebuggLtd = (function(){
       // hour), not better paid per contract.
       const expert = expertOf(offer);
       const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay * (expert ? expert.pay : 1));
-      const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
+      const salaryCost = members.reduce((s, p) => s + salaryOf(p), 0) * ms / 60000;
       const xp = tier.xpPerMin * ms / 60000;
 
       return { checks, valid, baseSloc, matchedSloc, learners, sloc, ms, chance, boost, payout, salaryCost, xp };
@@ -805,6 +909,11 @@ window.DebuggLtd = (function(){
     function restartJob(job){
       const members = job.team.map(person);
       const tier = TIERS[job.tier];
+      const leaving = members.find(p => p && p.notice && p.notice.until <= job.endsAt);
+      if(leaving){
+        addLog('info', tier.name + ' repeat stopped — ' + leaving.name + ' has worked out their notice.');
+        return;
+      }
       // Look for a fresh contract of the same type that the whole team is
       // qualified for.
       let offer = null, ev = null;
@@ -856,14 +965,16 @@ window.DebuggLtd = (function(){
       if(job) job.repeat = on;
     }
 
+    // A person's salary: their level's, plus any pay rise agreed to keep them (p.raise).
+    function salaryOf(p){ return ROLES[p.role].salary + (p.raise || 0); }
     function payrollPerMinute(){
-      return state.roster.reduce((s, p) => s + ROLES[p.role].salary, 0);
+      return state.roster.reduce((s, p) => s + salaryOf(p), 0);
     }
     // Developers on the bench do odd jobs: support tickets, tidying code, internal tools. It covers their salary with BENCH_MARGIN (5%) to spare, so a benched team grows the
     // company slowly, with no XP or promotion time: contracts are still far better. (The
     // player-owner's call.) Managers write no code, so no odd jobs.
     const BENCH_MARGIN = 0.05;
-    function benchPerMinute(p){ return isDev(p) ? ROLES[p.role].salary * (1 + BENCH_MARGIN) : 0; }
+    function benchPerMinute(p){ return isDev(p) ? salaryOf(p) * (1 + BENCH_MARGIN) : 0; }
     // On the bench = a developer doing nothing else: not on a contract (including a failed one
     // waiting for Retry or Drop), and not away. Anything that takes someone away, such as
     // training, a holiday or being off sick (items 14 and 15c), sets p.away = { kind, until },
@@ -875,7 +986,7 @@ window.DebuggLtd = (function(){
       return state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + benchPerMinute(p), 0);
     }
     function paySalaries(seconds){
-      if(seconds > 0) state.money -= (payrollPerMinute() - benchIncomePerMinute()) * seconds / 60;
+      if(seconds > 0) state.money -= (payrollPerMinute() + rentPerMinute() - benchIncomePerMinute()) * seconds / 60;
     }
     // "¤1.5", "¤2": per-minute amounts to one decimal place.
     function fmtRate(n){ return '¤' + (Math.round(n * 10) / 10).toLocaleString('en-GB'); }
@@ -907,6 +1018,8 @@ window.DebuggLtd = (function(){
       state.board.forEach(o => { o.expiresAt += ms; });
       if(state.market) state.market.nextAt += ms;
       if(state.nextApplicantAt) state.nextApplicantAt += ms;
+      if(state.nextNoticeAt) state.nextNoticeAt += ms;
+      state.roster.forEach(p => { if(p.notice) p.notice.until += ms; });
       (state.applicants || []).forEach(a => { a.expiresAt += ms; });
       state.roster.forEach(p => { p.since += ms; });
     }
@@ -940,7 +1053,7 @@ window.DebuggLtd = (function(){
       opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Debuggit Ltd is in beta, so its numbers may change.' +
-        (DEMO ? ' In the demo it runs hotfixes with up to ' + DIRECTOR_SPAN + ' devs, and it will be reset when v0.1 comes out.' : '');
+        (DEMO ? ' In the demo it runs hotfixes, and patches once you have more than ' + PATCH_HEADCOUNT + ' staff; it will be reset when v0.1 comes out.' : '');
     }
     if(!state.paid) state.paid = {};
     save();
@@ -1085,10 +1198,16 @@ window.DebuggLtd = (function(){
       const busy = busyIds(), now = Date.now();
       const idle = state.roster.filter(p => onBench(p, busy, now));
       if(idle.length && !(step && step.key === 'staff')){
-        const spare = idle.reduce((n, p) => n + benchPerMinute(p) - ROLES[p.role].salary, 0);
+        const spare = idle.reduce((n, p) => n + benchPerMinute(p) - salaryOf(p), 0);
         html += '<div class="alert" data-alert="idle">' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
           ' on the bench doing odd jobs, which only just cover their salary (+' + fmtRate(spare) + '/min). A contract earns far more. ' +
           (stageIndex() >= 1 ? 'Your managers will put them to work once there’s a contract they can take.' : 'Staff them on a contract below.') + '</div>';
+      }
+      const leaving = state.roster.filter(p => p.notice);
+      if(leaving.length){
+        html += '<div class="alert bad" data-alert="notice">✉ ' + (leaving.length === 1 ? esc(leaving[0].name) + ' has' : leaving.length + ' people have') +
+          ' handed in their notice. Agree a pay rise on their card to keep them' +
+          (leaving.some(p => p.notice.reason === 'cramped') ? ', or free up a desk' : '') + '.</div>';
       }
       if(state.money < 0){
         html += '<div class="alert bad" data-alert="debt">⚠ The company is ' + fmt(-state.money) + ' in debt, and salaries keep going out. ' +
@@ -1112,7 +1231,10 @@ window.DebuggLtd = (function(){
       statMoney.textContent = fmt(state.money);
       statMoney.classList.toggle('neg', state.money < 0);
       statRep.textContent = Math.floor(state.reputation).toLocaleString('en-GB');
-      statPayroll.textContent = '−¤' + payrollPerMinute() + '/min';
+      const rent = rentPerMinute();
+      statPayroll.textContent = '−' + fmtRate(payrollPerMinute() + rent) + '/min';
+      statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min rent' : 'Salaries';
+      statPayrollLabel.textContent = rent ? 'Payroll + rent' : 'Payroll';
       statHeads.textContent = state.roster.length;
     }
 
@@ -1172,7 +1294,8 @@ window.DebuggLtd = (function(){
       setHTML(personModalBody,
         '<div class="modal-top"><div><div class="modal-name">' + esc(p.name) + '</div>' +
         '<div class="modal-level">' + p.role + '</div></div></div>' +
-        '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−¤' + role.salary + '/min upkeep · ' +
+        '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salaryOf(p)) + '/min upkeep' +
+        (p.raise ? ' (incl. a ' + fmtRate(p.raise) + ' rise)' : '') + ' · ' +
         fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts<br>' +
         (job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
          : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ') — ' + fmtClock(job.endsAt - now) + ' left'
@@ -1206,7 +1329,20 @@ window.DebuggLtd = (function(){
         slot('Seniors', c.Senior, cap.Senior) +
         slot('Juniors', c.Junior, cap.Junior) +
         slot('Grads', c.Graduate, cap.Graduate) +
-        slot('Devs', c.devs, cap.devs));
+        slot('Devs', c.devs, cap.devs) +
+        slot('Desks', desksUsed(), deskCount()));
+      const cowork = coworkDesks();
+      setHTML(officeEl,
+        '<div class="office-text"><b>Office</b> · your spare room, ' + SPARE_ROOM_DESKS + ' desks' +
+          (cowork ? ' + ' + cowork + ' co-working desk' + (cowork === 1 ? '' : 's') + ' (' + fmtRate(rentPerMinute()) + '/min)' : '') +
+          ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span>' +
+          (cramLevel() ? '<div class="cramped">' + (desksUsed() > deskCount() ? (desksUsed() - deskCount()) + ' squeezed in without a desk' : 'Every desk is taken') +
+            ': cramped, so everyone is ' + Math.round(crampedPenalty() * 100) + '% slower on new contracts, and likelier to hand in their notice.</div>' : '') +
+          '</div>' +
+        '<div class="office-actions">' +
+          '<button class="btn-small btn-ghost" data-action="cowork-add"' + (cowork >= COWORK_MAX ? ' disabled title="Bigger premises are coming in v0.1"' : '') + '>+ Co-working desk · ' + fmtRate(COWORK_RATE) + '/min</button>' +
+          (cowork ? '<button class="btn-small btn-ghost" data-action="cowork-drop"' + (desksUsed() > deskCount() - 1 + CRAM_MAX ? ' disabled title="Nobody else can be squeezed in"' : '') + '>− Give one up</button>' : '') +
+        '</div>');
       // Why a level is full while there's still room for devs overall: every level needs
       // someone at the level above (or you) to look after it.
       const LEVEL_NOTES = [
@@ -1247,7 +1383,7 @@ window.DebuggLtd = (function(){
         const members = state.roster.filter(p => p.role === level);
         if(!members.length) return;
         const sloc = members.length * ROLES[level].sloc;
-        const salary = members.length * ROLES[level].salary;
+        const salary = members.reduce((n, p) => n + salaryOf(p), 0);
         const busy = members.filter(p => jobFor(p.id)).length;
         const collapsed = state.collapsedLevels.indexOf(level) >= 0;
         html += '<div class="level-group' + (collapsed ? ' collapsed' : '') + '">' +
@@ -1255,7 +1391,7 @@ window.DebuggLtd = (function(){
             '<div class="level-header-left"><span class="chevron">▾</span>' +
             '<span class="level-name">' + level + (members.length > 1 ? 's' : '') + '</span>' +
             '<span class="level-count">×' + members.length + ' · ' + busy + ' busy</span></div>' +
-            '<div class="level-sum">' + (sloc ? sloc + ' SLOC/min · ' : '') + '−¤' + salary + '/min</div>' +
+            '<div class="level-sum">' + (sloc ? sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salary) + '/min</div>' +
           '</div><div class="level-body">' +
           members.map(p => cardHTML(p, now)).join('') +
           '</div></div>';
@@ -1275,7 +1411,7 @@ window.DebuggLtd = (function(){
                 '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost"' +
                   (rise > 0 ? ' title="Up ' + rise + '% since the company started, from inflation and competition"' : '') + '>' + fmt(cost) +
                   (rise > 0 ? ' <span class="rise">↑' + rise + '%</span>' : '') + '</span>' +
-                '<span class="why">' + (why ? esc(why) : broke ? 'not enough cash' : ROLES[role].salary + '/min salary') + '</span>' +
+                '<span class="why">' + (why ? esc(why) : broke ? 'not enough cash' : deskNote() || ROLES[role].salary + '/min salary') + '</span>' +
                 '</button>';
       });
       setHTML(hireGrid, hire);
@@ -1294,7 +1430,8 @@ window.DebuggLtd = (function(){
           '<div class="card-foot"><span class="promo">Offer open ' + fmtDuration(a.expiresAt - now) + '</span>' +
           '<button class="btn-small btn-promote" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>' +
             'Hire for ' + fmt(a.cost) + '</button></div>' +
-          (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>' : '') +
+          (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
+            : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
           '</div>';
       }).join('');
       if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Experienced developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
@@ -1315,8 +1452,8 @@ window.DebuggLtd = (function(){
         : job
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
-        : isDev(p) ? '<span class="status-idle warn" title="Odd jobs earn ' + fmtRate(benchPerMinute(p)) + '/min against a ¤' + role.salary + '/min salary">' +
-            'On the bench · odd jobs · +' + fmtRate(benchPerMinute(p) - role.salary) + '/min</span>'
+        : isDev(p) ? '<span class="status-idle warn" title="Odd jobs earn ' + fmtRate(benchPerMinute(p)) + '/min against a ' + fmtRate(salaryOf(p)) + '/min salary">' +
+            'On the bench · odd jobs · +' + fmtRate(benchPerMinute(p) - salaryOf(p)) + '/min</span>'
         : '<span class="status-idle">Idle</span>';
 
       let promo = '';
@@ -1338,8 +1475,9 @@ window.DebuggLtd = (function(){
         '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span>' +
         '<span class="card-level ' + p.role + '">' + p.role + '</span></div>' +
         '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
-        '<span>−¤' + role.salary + '/min</span></div>' +
+        '<span>−' + fmtRate(salaryOf(p)) + '/min</span></div>' +
         '<div class="card-foot">' + status + '<span class="foot-actions">' + release + '</span></div>' +
+        noticeHTML(p, now) +
         (promo ? '<div class="card-foot" style="margin-top:6px;">' + promo + '</div>' : '') +
         '</div>';
     }
@@ -1700,6 +1838,22 @@ window.DebuggLtd = (function(){
         state.roster.push(hire);
         addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
         track('hired/' + role.toLowerCase());
+      }else if(action === 'keep'){
+        const p = person(btn.dataset.id);
+        if(!p || !p.notice) return;
+        p.raise = (p.raise || 0) + p.notice.ask;
+        addLog('ok', '✓ ' + p.name + ' is staying, for a ' + fmtRate(p.notice.ask) + '/min pay rise.');
+        delete p.notice;
+        track('kept/' + p.role.toLowerCase());
+      }else if(action === 'cowork-add'){
+        if(coworkDesks() >= COWORK_MAX) return;
+        state.office.cowork = coworkDesks() + 1;
+        addLog('info', 'Rented a co-working desk (' + fmtRate(COWORK_RATE) + '/min).');
+        track('office/cowork');
+      }else if(action === 'cowork-drop'){
+        if(!coworkDesks() || desksUsed() > deskCount() - 1 + CRAM_MAX) return;
+        state.office.cowork = coworkDesks() - 1;
+        addLog('info', 'Gave up a co-working desk.');
       }else if(action === 'toggle-unknown'){
         state.showUnknownOffers = !state.showUnknownOffers;
       }else if(action === 'skip-guide'){
@@ -1767,6 +1921,8 @@ window.DebuggLtd = (function(){
 
     if(!state.collapsedLevels) state.collapsedLevels = [];
     if(!state.collapsedTiers) state.collapsedTiers = [];
+    // Saves from before desks: enough co-working desks for everyone already on staff.
+    if(!state.office) state.office = { cowork: Math.max(0, state.roster.filter(p => p.role !== 'Director').length - SPARE_ROOM_DESKS) };
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.
@@ -1817,6 +1973,7 @@ window.DebuggLtd = (function(){
       }
     }
     state.lastTick = now;
+    moveNotices(now);
     save();
 
     managersStaff();
@@ -1832,6 +1989,7 @@ window.DebuggLtd = (function(){
       refreshBoard(t);
       moveMarket(t);
       moveApplicants(t);
+      moveNotices(t);
       checkStage();
       managersStaff();
       renderAll();

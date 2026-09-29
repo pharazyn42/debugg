@@ -104,11 +104,11 @@ above the languages, with the same level curve. Level-ups fire
 **The demo.** `DEMO` in `shared.js` is on. It shows a notice on the first
 visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
-Ltd down to hotfixes and patches with no managers (`DEMO_TIERS`,
-`DEMO_LOCKED_ROLES` in `ltd.js`). The locked types show on the board as
-"coming in v0.1". Since patches need more than 10 staff (see the contract board) and the
-Director alone can only run 4 devs, the demo is hotfixes in practice. Old saves keep any staff and running jobs they have, but
-their bigger offers go and their repeats stop.
+Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
+since managers came to the demo in September 2026, with desks, as its money sink). The locked
+types, and premises beyond co-working desks, show as "coming in v0.1". Patches need more than
+10 staff (see the contract board), so a manager and co-working desks. Old saves keep any staff
+and running jobs they have, but their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with
 `debugg-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
@@ -209,7 +209,7 @@ TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
 ```js
 state = {
   money, reputation, lastTick,
-  roster: [ { id, name, role, since, worked, lang: {name: xp}, away? } ],  // Director is roster[0]; worked = ms on contracts at current level;
+  roster: [ { id, name, role, since, worked, lang: {name: xp}, away?, notice?, raise? } ],  // Director is roster[0]; worked = ms on contracts at current level;
                                                                         // away = { kind: 'training'|'holiday'|'sick'…, until } (no odd jobs meanwhile)
   board:  [ { id, tier, lang, sloc, risk, expert, expiresAt } ],  // a hotfix per language + an expert hotfix + 2 of each other type; sloc = work target;
                                                           // risk = 'standard'|'risky'|'high'; expert = skill level needed (0 = none)
@@ -224,7 +224,9 @@ state = {
   applicants: [ { id, role, person, cost, expiresAt } ], nextApplicantAt,
   guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
   stage,                                          // the business stage last announced ('startup', 'small', …)
-  market: { prices: { Graduate: 1.08, … }, nextAt } // hire-cost multipliers, and when the market next moves
+  market: { prices: { Graduate: 1.08, … }, nextAt }, // hire-cost multipliers, and when the market next moves
+  office: { cowork },                             // co-working desks rented beyond the spare room's 4
+  nextNoticeAt                                    // when the next hourly notice roll is due
 }
 ```
 
@@ -396,8 +398,8 @@ state = {
   team contracts a free team can take, by "Suggest a team", then hotfixes; all on repeat, and
   never the offer open in the picker), and **desk pay shrinks** by stage (`desk`: 100%, 50%,
   25%, 10%, 5%; reputation from puzzles doesn't). A change of stage is logged, announced and
-  tracked (`ltd/stage/<key>`); `state.stage` remembers the last one. In the demo managers are
-  locked, so every company stays a start-up (the bar says managers come in v0.1). This is the
+  tracked (`ltd/stage/<key>`); `state.stage` remembers the last one. Managers are in the demo
+  (they were locked until September 2026), so a demo company can become a small business. This is the
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
@@ -427,6 +429,35 @@ state = {
   for one level raises that one by 6–15%. Each move is logged, and hire buttons show the
   rise since founding ("¤270 ↑50%"). Moves happen while the page is closed (not while
   paused), and are kept in `state.market`.
+- **The office** (phase 1 of item 15e, September 2026; `SPARE_ROOM_DESKS`, `COWORK_*`,
+  `state.office`): everyone on staff needs a desk, except the Director, who works from home at
+  the daily puzzle. The spare room has 4 desks, free, matching the Director's span of 4 devs, so
+  the first manager needs the first **co-working desk**: ¤1/min each (`COWORK_RATE`), up to 8
+  (`COWORK_MAX`, so 12 staff and the Director, enough for patches), rented and given up from the
+  **Office** line in the Studio panel (a desk can only be given up while one is free). Rent is
+  drawn with payroll every second (`paySalaries()`), offline too, not while paused; the stats bar
+  then reads "Payroll + rent". The structure line shows "Desks 5/6". Saves from before desks get
+  co-working desks for everyone they have. Business units, WFH applicants and bigger premises are
+  the next phases.
+- **A cramped office** (the player-owner's call, September 2026; `CRAM_MAX`, `CRAMPED`,
+  `cramLevel()`): a full office is cramped, and up to 2 more people can be squeezed in without
+  desks. Everyone writes 5% less code with every desk taken, 15% with one squeezed in and 30% with
+  two (applied in `devSlocOn()`, so to contracts started while it's cramped), and notices are
+  likelier. Past that, `deskProblem()` blocks hiring ("no room to squeeze anyone else in"); hire
+  buttons and applicants warn first ("no desk: squeezed in, everyone −15% speed"), and the Office
+  line says how cramped it is. A co-working desk can be given up as long as nobody more than
+  `CRAM_MAX` ends up without one.
+- **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
+  until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their
+  notice with `NOTICE_PER_DAY` (1.5%) / 24 chance, × `NOTICE_CRAMPED` (1, 3, 5, 7 by cramp
+  level); a cramped office gives the reason "the office is too cramped", otherwise "has a better
+  offer". They stay `NOTICE_H` (24) hours, then leave once off any running contract (a repeat
+  stops for them; a failed contract loses them). Turned around by a free desk (cramped notices
+  are withdrawn) or by the **Keep** button on their card, a pay rise of `ask` ¤/min (15–35% of
+  their level's salary, `RAISE`), kept in `p.raise`; `salaryOf(p)` is their pay everywhere. A
+  "handed in their notice" alert shows in the Studio panel. Only the last 4 hours roll while the
+  page is closed; paused time doesn't count. Leaving can break the supervision structure, which
+  then blocks hiring until it's fixed.
 
 ## Known gaps — not wired in yet
 
@@ -1063,9 +1094,9 @@ Replace the current flat reliability-by-level model:
   skill no longer raises pay, and the hiring market. After: a grad nets about ¤160/hour,
   the first junior is affordable after about 3 hours, and a demo-sized team (a junior and
   3 grads) nets about ¤1,150/hour.
-- **Still to do:** the demo has nothing to spend on once its 4 devs are hired, so cash just
-  piles up; it needs a money sink (training, item 14; office space, item 15) or a bigger
-  demo. Reputation builds fast (0.5 a hotfix) for when it gates anything (item 12).
+- **Still to do:** the demo's money sink is now managers and co-working desks (September 2026);
+  check with play data whether it's enough, or whether training (item 14) is needed too.
+  Reputation builds fast (0.5 a hotfix) for when it gates anything (item 12).
 
 #### 10b. Look and feel
 A design pass over the whole site: the daily puzzles, Debugg Ltd, the
@@ -1135,7 +1166,7 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
 #### 13. Business tiers
 - **Started** (September 2026): the stages, the stage bar, managers staffing idle developers
   and desk pay shrinking by stage are built (see "Business stages" above). Still to do: stages
-  unlocking things (below), and managers only when the demo allows them.
+  unlocking things (below). Managers are in the demo since September 2026.
 - Show a business-tier label that grows with headcount: Start-up →
   Small business → … → something massive (e.g. Multinational).
 - Thresholds and names are TBD. The current Director-as-manager phase is
@@ -1256,6 +1287,10 @@ player-owner's meaning), not a division of the company.
 - **Rental units:** sublet spare desks while renting (Mid-size); let units or floors you own to
   tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
   tenant events via 15b.
+- **Phase 1 is built** (September 2026): desks, co-working and managers in the demo (see "The
+  office" above). Decided then: the Director takes no desk; a full office is cramped (slower,
+  and people hand in their notice) and takes up to 2 more squeezed in, rather than blocking
+  hiring. WFH applicants weren't in it and are still to come.
 - **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
   (2) business units on leases; (3) office floors and subletting; (4) buying property;
   (5) rental units; (6) sites (item 18).
