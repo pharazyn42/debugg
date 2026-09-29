@@ -20,7 +20,7 @@ window.Debugg = (function(){
   // The version players see (footer, What's new, releases), set by tools/release.js. Semantic
   // versioning: 0.0.x during the demo, 0.1.0 for the launch (which resets demo saves). It's
   // separate from SAVE_VERSION, which only changes when saves have to be reset.
-  const APP_VERSION = '0.0.1';
+  const APP_VERSION = '0.0.2';
   const SEEN_KEY = 'debugg-seen-version';
   const VERSION_KEY = 'debugg-version';
   const WIPED_VERSIONS = window.DEBUGG_WIPED_VERSIONS || [];
