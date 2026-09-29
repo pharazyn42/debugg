@@ -1105,6 +1105,9 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
     experience (e.g. training only up to bar 3)?
 
 #### 15. Office space: desks, contractors, and buildings
+- **Now planned together with business units and rentals** in `ideas/company-growth-roadmap.md`
+  (item 15e); that doc's property ladder, leases and phases supersede the sketch below where
+  they differ.
 - Another progression limiter. On-site staff need a desk.
 - **The first office caps headcount.** You start in one free room with 3
   or 4 desks. Hiring is blocked once it's full ("no free desk — get a
@@ -1176,6 +1179,28 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
   - Save migration: companies that already have more staff than the first
     office holds need a sensible starting office (e.g. the smallest one
     that fits, free for a grace period).
+
+#### 15e. Business units, property and rentals (planned)
+Sketched September 2026 in `ideas/company-growth-roadmap.md`: one progression for where the
+company sits, how it's organised and what it does with spare space, tied to the business stages
+(item 13).
+- **Property:** desks cap on-site headcount (alongside supervision); a ladder from the free spare
+  room (4 desks) through co-working desks by the minute, leased offices and floors (longer lease,
+  cheaper rent, early-exit fee, deposit, moving takes 10 minutes) to buying buildings (upkeep, a
+  property market, sell at value) and campuses. Rent is a running cost like payroll; an Office
+  line in the Studio panel.
+- **Business units** (from Mid-size): teams with a name, a focus (a language first, domains
+  later), a head (a manager), members and a staffing policy (biggest first / keep hotfixes
+  covered / hold for releases); +10% speed in their focus; a Units panel with profit per hour;
+  close or spin out (prestige-lite).
+- **Rental units:** sublet spare desks (Mid-size), let floors of owned buildings to tenants on
+  leases (Large); rent depends on quality and reputation; upgrades as a money sink; tenant events
+  via 15b.
+- **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
+  (2) leases; (3) business units; (4) buying property; (5) rentals; (6) sites and spin-outs.
+- **Open questions** are listed in the doc (desks for the Director and managers, how harsh a
+  full office is, units by language or contract size, optional units, named tenants, buying
+  purely to let).
 
 #### 15b. Shared event system
 - One system for everything that randomly (or conditionally) happens to
@@ -1458,6 +1483,8 @@ Big systems that depend on the earlier phases.
   make sense (reuse or extend `PAIRINGS`)?
 
 #### 18. Multiple sites, rooms and buildings
+- Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and business units spread
+  across sites.
 - At larger business tiers (item 13), add an option to expand to
   multiple sites (offices).
   - Each site would plausibly have its own headcount capacity and
