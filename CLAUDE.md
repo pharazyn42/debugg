@@ -900,9 +900,11 @@ for its contracts; they no longer name puzzles.
 
 **Built so far** (September 2026): Debuggit Learn at `learn/`, its own section of the site
 (see "Two areas" near the top; it started as a Learn tab beside Daily), with the Python course's Unit 1, *Values and printing* (3 lessons and
-a checkpoint, 35 steps), and Unit 2, *Strings* (`learn/python/02-strings.js`: indexing and
+a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexing and
 `len`, slices, methods and immutability, f-strings and `str`/`int`; 4 lessons and a checkpoint,
-37 steps). Decided with the player-owner, replacing parts of the sketch below:
+37 steps), and Unit 3, *Lists* (`learn/python/03-lists.js`: indexing and `len`, changing lists,
+`append`/`pop`/`remove`/`in`, slices, `+` and `*`, aliasing and copies, `sort()` vs `sorted()`,
+`sum`/`min`/`max`; 4 lessons and a checkpoint, 36 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
@@ -923,7 +925,7 @@ a checkpoint, 35 steps), and Unit 2, *Strings* (`learn/python/02-strings.js`: in
   checks right and wrong options and "tap the line" errors against the real output.
 - **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
   never locked behind daily puzzles or anything else.
-- **Still to do:** the rest of the Python course (Lists, Conditions, Loops,
+- **Still to do:** the rest of the Python course (Conditions, Loops,
   Functions, Dictionaries, the classic traps), a review queue of missed questions (spaced
   repetition), other languages' courses, the Rosetta-style "second language" lessons, and
   badges.
