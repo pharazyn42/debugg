@@ -9,7 +9,7 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- Missing a puzzle about lists now points you to Debuggit Learn's new Lists unit.
 
 ## 0.0.3 — 29 September 2026
 
