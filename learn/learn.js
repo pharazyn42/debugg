@@ -1,4 +1,4 @@
-// Debuggit Learn: the course map, lessons and checkpoints on learn.html.
+// Debuggit Learn: the course map, lessons and checkpoints on learn/index.html.
 //
 // A course is a list of units; a unit has lessons and a checkpoint; a lesson is a list of steps (see
 // learn/README.md). Lessons unlock in order. A question answered wrongly comes back at the end of the
@@ -43,9 +43,18 @@ window.DebuggLearn = (function(){
 
   // --- The course -----------------------------------------------------------------------------
   const langs = Object.keys(L.courses);
+  // The address picks the course, and optionally a unit to show: learn/#python or learn/#python/strings
+  // (the daily puzzle and Debuggit Ltd link in this way).
   function pickLang(){
-    const h = location.hash.slice(1);
+    const h = location.hash.slice(1).split('/')[0];
     return L.courses[h] ? h : langs[0];
+  }
+  function focusUnit(){
+    const id = location.hash.slice(1).split('/')[1];
+    const el = id && document.querySelector('.unit[data-unit="' + CSS.escape(id) + '"]');
+    if(!el) return;
+    el.classList.add('focus');
+    el.scrollIntoView({ block: 'start' });
   }
   let lang = pickLang();
   const unitsOf = l => L.units.filter(u => u.lang === l);
@@ -311,7 +320,7 @@ window.DebuggLearn = (function(){
       track('lesson/' + key + '/' + stars + '-stars');
       const i = u.lessons.indexOf(session.lesson);
       const nextLesson = u.lessons[i + 1];
-      html = '<div class="summary" id="summary"><img class="summary-duck" src="img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-stars" aria-label="' + stars + ' of 3 stars">' + starText(stars) + '</p>' +
+      html = '<div class="summary" id="summary"><img class="summary-duck" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-stars" aria-label="' + stars + ' of 3 stars">' + starText(stars) + '</p>' +
         '<h2>Lesson complete</h2><p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right.' : 'No mistakes.') +
         ' <b>+' + xp + ' XP</b>' + (before && !xp ? ' (you’d already earned these stars)' : '') + '</p>' +
         '<p>Learn streak: <b>' + streak() + '</b></p><div class="step-actions">' +
@@ -334,7 +343,7 @@ window.DebuggLearn = (function(){
       track('checkpoint/' + key + '/' + (passed ? 'passed' : 'not-passed'));
       const units = unitsOf(lang);
       const nextUnit = units[units.indexOf(u) + 1];
-      html = '<div class="summary" id="summary"><img class="summary-duck' + (passed ? '' : ' dizzy') + '" src="img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-score">' + session.correct + '/' + total + '</p>' +
+      html = '<div class="summary" id="summary"><img class="summary-duck' + (passed ? '' : ' dizzy') + '" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-score">' + session.correct + '/' + total + '</p>' +
         '<h2>' + (passed ? 'Checkpoint passed!' : 'Not this time') + '</h2>' +
         '<p>' + (passed ? (xp ? '<b>+' + xp + ' XP.</b> ' : '') + (nextUnit ? 'Unit ' + (units.indexOf(nextUnit) + 1) + ' is unlocked.' : 'That’s every unit written so far. More are coming.')
           : 'You need ' + u.checkpoint.pass + ' to pass. Go over the lessons, then try again: there’s no limit.') + '</p>' +
@@ -366,7 +375,7 @@ window.DebuggLearn = (function(){
   });
   window.addEventListener('hashchange', () => {
     const l = pickLang();
-    if(l !== lang){ lang = l; renderLangs(); renderMap(); }
+    if(l !== lang || !session){ lang = l; renderLangs(); renderMap(); focusUnit(); }
   });
   $('resetLearn').addEventListener('click', e => {
     e.preventDefault();
@@ -378,6 +387,7 @@ window.DebuggLearn = (function(){
 
   renderLangs();
   renderMap();
+  focusUnit();
 
   // For tests: the step on screen, and the whole save.
   return { current: () => session && session.steps[session.current], progress: () => save };

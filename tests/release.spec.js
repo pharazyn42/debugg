@@ -12,9 +12,10 @@ const APP_VERSION = /const APP_VERSION = '([^']+)';/.exec(fs.readFileSync(path.j
 test('every page shows the version, linking to What’s new', async ({ page }) => {
   await openAt(page, 'index.html');
   await fresh(page);
-  for(const p of ['index.html', 'learn.html', 'sandbox.html', 'privacy.html', 'whatsnew.html']){
+  for(const p of ['index.html', 'learn/', 'sandbox.html', 'privacy.html', 'whatsnew.html']){
     await page.goto(p);
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('v' + APP_VERSION + ' demo');
+    await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', p === 'learn/' ? '../whatsnew.html' : 'whatsnew.html');
   }
 });
 

@@ -89,7 +89,9 @@ test("a C day has no run link, since C doesn't run in the browser yet", async ({
   await fresh(page);
   await page.click('#revealBtn');
   await expect(page.locator('#takeawayOut')).not.toBeEmpty();
-  await expect(page.locator('.try')).toBeHidden();
+  await expect(page.locator('p.try:has(#tryLink)')).toBeHidden();
+  // C's Learn course is still to come, so no lesson is suggested either.
+  await expect(page.locator('#learnMore')).toBeHidden();
   await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'sandbox.html');
 });
 
@@ -103,7 +105,7 @@ test('the wordmark is "debug it" in the day\'s language, and each page has its o
     await expect(mark).toHaveAttribute('aria-label', 'Debuggit');
   }
   await expect(page).toHaveTitle('Debuggit');
-  await page.goto('learn.html');
+  await page.goto('learn/');
   await expect(page.locator('#wordmark')).toHaveText('debugg.learn()');
   await page.goto('sandbox.html');
   await expect(page.locator('#wordmark')).toHaveText('debugg.run()');
@@ -365,4 +367,37 @@ test('sharing copies a spoiler-free result', async ({ page, context }) => {
   await page.click('#shareBtn');
   await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^debugg\(it\) Day 4 · Python\n🟥🟥🟥🟥\nNot this time 🦆\n/);
+});
+
+test('a missed puzzle links to Debuggit Learn: the unit it names, or the course', async ({ page }) => {
+  await openAt(page, 'index.html', 3);
+  await fresh(page);
+  // A first-guess solve doesn't suggest a lesson.
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await expect(page.locator('#reveal')).toHaveClass(/show/);
+  await expect(page.locator('#learnMore')).toBeHidden();
+
+  // A day whose puzzle names a Learn unit, and one that doesn't; both revealed.
+  const days = await page.evaluate(() => {
+    const out = {};
+    for(let d = -200; d <= 0 && !(out.tagged && out.plain); d++){
+      const p = window.Debugg.puzzleFor(d);
+      if(p.lang !== 'python') continue;
+      if(p.learn && !out.tagged) out.tagged = { day: d, unit: p.learn };
+      if(!p.learn && !out.plain) out.plain = { day: d };
+    }
+    return out;
+  });
+  await openAt(page, 'index.html', days.tagged.day);
+  await page.click('#revealBtn');
+  await expect(page.locator('#learnMoreLink')).toHaveText('Brush up on this in Debuggit Learn →');
+  await expect(page.locator('#learnMoreLink')).toHaveAttribute('href', 'learn/#python/' + days.tagged.unit);
+  await page.click('#learnMoreLink');
+  await expect(page.locator('.unit[data-unit=' + days.tagged.unit + ']')).toHaveClass(/focus/);
+
+  await openAt(page, 'index.html', days.plain.day);
+  await guess(page, 'not the answer');
+  await page.click('#revealBtn');
+  await expect(page.locator('#learnMoreLink')).toHaveText('Learn Python from the start in Debuggit Learn →');
+  await expect(page.locator('#learnMoreLink')).toHaveAttribute('href', 'learn/#python');
 });

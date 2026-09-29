@@ -209,6 +209,8 @@
 .ltd .card:hover{ border-color: var(--blue); }
 .ltd .card.director{ border-color: var(--amber-dim); cursor: default; }
 .ltd .card.director:hover{ border-color: var(--amber-dim); }
+.ltd .learn-lang{ color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }
+.ltd .learn-lang:hover{ color: var(--amber); }
 .ltd .card-top{
   display: flex;
   justify-content: space-between;

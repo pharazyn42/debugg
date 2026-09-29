@@ -34,7 +34,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `index.html` | The daily puzzle page. It also holds the slots the studio renders into, and the loader that switches the studio on. |
 | `puzzles/` | The puzzle bank, one file per language (`python.js`, `javascript.js`, `c.js`, `rust.js`), and a README on the fields and scheduling. |
 | `tools/check-puzzles.js` | Runs every puzzle and every Learn snippet with its real toolchain and checks it prints what it says (`npm run check-puzzles`; also a CI job). |
-| `learn.html`, `learn/` | Debugg Learn: the page, the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. |
+| `learn/` | Debugg Learn, its own section of the site (`/learn/`): the page (`learn/index.html`), the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. `learn.html` redirects to `learn/` (its old address). |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `sandbox.html` | Write and run Python (Pyodide) or JavaScript in Web Workers. |
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
@@ -55,7 +55,17 @@ it (see "The desk" below). The studio reads puzzle XP through
 `Debugg.readXp()` for the Director's skills. The puzzle page never depends on
 the studio.
 
-**Tabs and switching on.** The puzzle and Learn pages have **Daily | Learn | Ltd** tabs. The
+**Two areas: the game and Learn** (split September 2026, the player-owner's call). The game is the
+daily puzzle and Debuggit Ltd, with **Daily | Ltd** tabs on `index.html`. **Debuggit Learn** is its
+own section at `learn/`, with its own header and a "← Debuggit" link back; it's the same site, so
+saves, XP levels and the backup code are shared. The game links into Learn without a tab: a "learn
+to code" footer link, the Director's languages on the Ltd card (`a.learn-lang`, for courses that
+exist), and, after a missed or revealed puzzle (not a first-guess solve), `#learnMore`: the unit
+named by the puzzle's `learn` field (`learn/#python/strings`, which picks the unit out), or the
+course from the start. `index.html` loads `learn/courses.js` to know which courses exist. The
+checker fails a `learn` tag that isn't a written unit.
+
+**Tabs and switching on.** The game's pages have **Daily | Ltd** tabs. The
 Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
 there): the studio beside the puzzle, which is its desk, or, with no running company, a card
 (`#ltdIntro`) to start or resume one. Opening the tab never founds a company by itself. The
@@ -639,12 +649,13 @@ people to try Debuggit, and test new features on a dev site before they reach pl
   Actions workflow; both share one address, so dev needs its own save keys (7 files touch
   `localStorage`).
 
-#### 2e. Three pages: Daily, Learn and Ltd (to do, with 2d)
-The player-owner wants the three ideas split out when the hosting move happens: **Daily** (the
-puzzle), **Learn** and **Ltd** (the company) each on its own page, all linking to each other
-(today's Daily | Learn | Ltd tabs). Learn already is its own page (`learn.html`); Ltd lives
-inside `index.html` (the `?ltd` tab and the studio slots), so the work is mostly giving Ltd
-its own page. Things to settle then:
+#### 2e. Separate pages: Learn done; Ltd's own page (to do, with 2d)
+The player-owner wants the ideas split out, all linking to each other. **Learn is done**
+(September 2026): it's its own section at `learn/`, out of the game's tabs, linked from the
+footer, the Director's languages and missed puzzles (see "Two areas" above). The game keeps
+**Daily | Ltd** tabs for now. Still to do, with the hosting move: Ltd lives inside `index.html`
+(the `?ltd` tab and the studio slots), so the work is mostly giving Ltd its own page. Things to
+settle then:
 - **The desk:** today the puzzle sits in the studio and pays it through the
   `debugg:puzzle-finished` event on the same page. On a separate Ltd page, the desk could
   show today's result with a link to Daily, and pay when the Ltd page next loads (reading the
@@ -801,8 +812,8 @@ for its contracts; they no longer name puzzles.
 
 #### 3d. Learn channel: learn languages in a fun way
 
-**Built so far** (September 2026): `learn.html`, reached from a **Daily | Learn** switch at the
-top of the puzzle page, with the Python course's Unit 1, *Values and printing* (3 lessons and
+**Built so far** (September 2026): Debuggit Learn at `learn/`, its own section of the site
+(see "Two areas" near the top; it started as a Learn tab beside Daily), with the Python course's Unit 1, *Values and printing* (3 lessons and
 a checkpoint, 35 steps), and Unit 2, *Strings* (`learn/python/02-strings.js`: indexing and
 `len`, slices, methods and immutability, f-strings and `str`/`int`; 4 lessons and a checkpoint,
 37 steps). Decided with the player-owner, replacing parts of the sketch below:

@@ -345,8 +345,9 @@ window.Debugg = (function(){
   }
 
   // The footer's version link to What's new. A returning player sees "new" until they've looked at
-  // What's new for this version; a first visit just remembers the version, quietly.
-  function renderVersion(el){
+  // What's new for this version; a first visit just remembers the version, quietly. `root` is the way
+  // back to the site's top folder from a page in a subfolder (learn/ passes '../').
+  function renderVersion(el, root = ''){
     if(!el) return;
     let seen = null;
     try{
@@ -355,7 +356,7 @@ window.Debugg = (function(){
       if(!seen && !returning){ seen = APP_VERSION; localStorage.setItem(SEEN_KEY, APP_VERSION); }
     }catch(e){}
     const fresh = seen !== null && seen !== APP_VERSION;
-    el.innerHTML = '<a class="version-link' + (fresh ? ' new' : '') + '" href="whatsnew.html" title="What’s new in Debuggit">v' + APP_VERSION +
+    el.innerHTML = '<a class="version-link' + (fresh ? ' new' : '') + '" href="' + root + 'whatsnew.html" title="What’s new in Debuggit">v' + APP_VERSION +
       (DEMO ? ' demo' : '') + (fresh ? ' · new' : '') + '</a>';
   }
   function markVersionSeen(){ try{ localStorage.setItem(SEEN_KEY, APP_VERSION); }catch(e){} }

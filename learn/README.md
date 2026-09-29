@@ -1,6 +1,6 @@
 # Debugg Learn
 
-Courses that teach a language from the very start. `learn.html` is the page, `learn/learn.js` the
+Courses that teach a language from the very start. `learn/index.html` is the page (at `/learn/`, its own section of the site; `learn.html` redirects there), `learn/learn.js` the
 engine, `learn/courses.js` the list of courses, and each unit is its own file, e.g.
 `learn/python/01-values.js`.
 
@@ -33,7 +33,7 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
    the planned units. Drop `soon` when its first unit goes in. A course's `sections`
    (`{ id, title, summary, planned }`) list later parts under their own heading, like C's
    Embedded C; for now they hold planned units only.
-3. Add a `<script>` tag for it in `learn.html`. (A test checks the page loads every listed file.)
+3. Add a `<script>` tag for it in `learn/index.html`. (A test checks the page loads every listed file.)
 4. Run `npm run check-puzzles`: it runs every snippet in every lesson.
 
 A new language's course goes in `courses` in `learn/courses.js`; its language needs a runner in
@@ -70,3 +70,10 @@ They're shuffled on screen. `explain` is shown after every answer, right or wron
 - Ask about it straight away, then mix earlier ideas into later questions.
 - Every wrong option should be a mistake people really make, and its `why` should say exactly why.
 - Keep code to a few lines; beginners read slowly.
+
+## Links into Learn
+
+`learn/#python` opens a course, and `learn/#python/strings` also picks out a unit. The puzzle page
+links to a unit after a missed puzzle whose `learn` field names it (see `puzzles/README.md`; the
+checker makes sure the unit exists), so **don't rename a unit's `id`** once puzzles point at it.
+When a new unit covers what some puzzles are about, tag them.

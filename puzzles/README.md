@@ -31,6 +31,7 @@ back to another difficulty. Reordering or removing puzzles changes which puzzle 
 | `explain` | Why it prints what it does (HTML). |
 | `fix` | How to write it properly (HTML). |
 | `takeaway` | The general rule to remember, in a sentence or two (HTML). |
+| `learn` | Optional: the id of the Debuggit Learn unit that teaches this (e.g. `'strings'`). After a missed or revealed puzzle, the page links to it. The checker makes sure the unit exists. |
 
 ## Checking
 
