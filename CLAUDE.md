@@ -1585,27 +1585,30 @@ Big systems that depend on the earlier phases.
   can't work on their own: **at least one dev must be assigned to look after them**. That dev is
   on the contract like any teammate: tied up, earning XP and contract time, and never on the
   bench.
-- **They scale up to a whole team.** One dev with agents can cover a contract that would
-  otherwise need a full team. So a patch, and later a minor or major release, could run as
-  "1 senior + agents" instead of 3–10 people.
-  - To decide: how that fits the team rules (does a patch still need a senior on it, and a major
-    release a manager?).
-  - To decide: whether the dev's level and skill limit how much agent work they can oversee,
-    e.g. a grad looks after 1 agent, a principal a full team's worth, with more agents meaning
-    more review for them.
-- **Models improve over time.** The player progresses through a series of models, each better
-  than the last:
-  - more SLOC/min per agent;
+- **The supervising dev must be senior enough (decided).** They must be at the level of the
+  most senior dev the contract requires: a senior for a patch, a principal for a minor or major
+  release. Any level can supervise on a hotfix.
+- **They scale up to a whole team.** One person plus agents can take on any contract, up to a
+  full team's worth of work, so a patch could run as "1 senior + agents".
+- **More people still help on big contracts (decided).** Success chance rises with the number
+  of people on the team. One supervisor plus agents is enough to take a big contract on, but a
+  bigger team makes it likelier to succeed. The size of the boost per extra person, by tier, is
+  to be decided in the balance pass.
+- **Licences (decided).** Each AI licence runs **at most one contract at a time**. More
+  contracts at once need more licences.
+- **Models unlock over time and must be bought (decided).** New models become available as
+  time passes, each better than the last:
+  - more SLOC/min;
   - higher **quality**, meaning a higher success chance (early models fail more than people do,
-    later ones less);
-  - maybe more agents per supervising dev.
+    later ones less).
 
-  To decide: whether new models are unlocked by spending (research or a licence), by business
-  stage or reputation, or released on a schedule like the hiring market's moves ("a new model is
-  out"). Use made-up model names, never real ones.
-- **Costs and money sink.** Agents cost a subscription per agent per minute, drawn like payroll
-  and rent, plus maybe a one-off upgrade cost per model. Newer models cost more, but should work
-  out cheaper than the people they replace, which makes them a mid-to-late-game money sink.
+  Upgrading means buying the new model, as a one-off cost. Use made-up model names, never real
+  ones.
+- **Managers can assign AI (decided).** From a small business on, managers staff contracts with
+  licences as well as people.
+- **Running costs.** A licence costs a subscription per minute, drawn like payroll and rent;
+  newer models cost more to run. It should work out cheaper than the people it replaces, which
+  makes AI a mid-to-late-game money sink.
 - **Interactions with other systems:**
   - Agents need no desks (item 15e), which lets a studio grow its output past its office.
   - They earn no XP and are never promoted. The supervising dev still learns.
@@ -1614,10 +1617,11 @@ Big systems that depend on the earlier phases.
   - Offline, they're simulated like repeats.
 - **Where it sits:** Phase 4, once the office phases and bigger contracts are open. An early,
   weak model could appear sooner as a taste.
-- **Open questions:**
-  - Can a contract be agents-only plus one dev, or must people do some share of the work?
-  - Does "Suggest a team" and do managers ever use agents, or is it the player's call?
-  - How is agent quality shown in the picker, e.g. "Agent model 3 · 6 agents · −8% success"?
+- **Still open:**
+  - How much work one licence does: a fixed team's worth, or more as the model improves?
+  - How often new models arrive, and what they cost.
+  - How the picker shows it, e.g. "AI model 3 · supervised by Grace (principal) · −8% success".
+  - Can a model be sold back or downgraded?
 
 #### 18. Multiple sites, rooms and buildings
 - Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and premises in more than
