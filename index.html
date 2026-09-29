@@ -348,7 +348,7 @@
         <p class="section-label">Takeaway</p>
         <p id="takeawayOut"></p>
       </div>
-      <p class="try"><a id="tryLink" href="sandbox.html">Run it yourself in the sandbox →</a></p>
+      <p class="try"><a id="tryLink" href="learn/sandbox.html">Run it yourself in the sandbox →</a></p>
       <p class="try" id="learnMore" hidden><a id="learnMoreLink" href="learn/"></a></p>
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
       <div class="found" id="foundCard">
@@ -366,7 +366,7 @@
 
   <footer>
     <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span></div>
-    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
+    <div class="footer-links"><a href="learn/" id="learnFooter">learn to code</a> · <a href="learn/sandbox.html" id="sandboxLink">sandbox</a> · <a href="#" id="backupLink">backup</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> ·
       <a href="#" id="resetLink">reset puzzles</a></div>
@@ -580,7 +580,7 @@
     // Languages the sandbox can't run link to a playground site instead, where there is one.
     const tryLink = document.getElementById('tryLink');
     if(LANG.runnable){
-      tryLink.href = 'sandbox.html?lang=' + lang + '&day=' + SLOT;
+      tryLink.href = 'learn/sandbox.html?lang=' + lang + '&day=' + SLOT;
     }else if(LANG.playground){
       const pg = LANG.playground(puzzle.code);
       tryLink.href = pg.url;
@@ -591,7 +591,7 @@
       tryLink.parentElement.hidden = true;
     }
     document.getElementById('reportLink').href = reportUrl();
-    document.getElementById('sandboxLink').href = 'sandbox.html' + (LANG.runnable ? '#' + lang : '');
+    document.getElementById('sandboxLink').href = 'learn/sandbox.html' + (LANG.runnable ? '#' + lang : '');
   }
 
   // --- Game -----------------------------------------------------------------

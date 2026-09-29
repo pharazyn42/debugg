@@ -1,4 +1,4 @@
-// Shared by the daily puzzle (index.html) and the sandbox (sandbox.html):
+// Shared by the daily puzzle (index.html), Debuggit Learn (learn/) and its sandbox (learn/sandbox.html):
 // languages, the day calendar, saved puzzle progress and the syntax highlighter.
 // Load after puzzles.js with a plain <script> tag, so pages still work when opened straight from disk.
 window.Debugg = (function(){

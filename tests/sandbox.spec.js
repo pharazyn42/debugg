@@ -18,7 +18,7 @@ async function run(page, timeout = 60000){
 // The sandbox runs the languages in the puzzle rotation, so switch JavaScript into it.
 const BOTH = [{ lang: 'python' }, { lang: 'javascript' }];
 async function openSandbox(page, lang){
-  await openAt(page, 'sandbox.html', 3, { rotation: BOTH });
+  await openAt(page, 'learn/sandbox.html', 3, { rotation: BOTH });
   await fresh(page);
   await page.click('.lang-tab:has-text("' + (lang === 'python' ? 'Python' : 'JavaScript') + '")');
 }
@@ -130,9 +130,9 @@ test('the editor indents, undoes and runs with Ctrl+Enter', async ({ page }) => 
 });
 
 test("today's puzzle only unlocks once it's finished", async ({ page }) => {
-  await openAt(page, 'sandbox.html?lang=python&day=3');
+  await openAt(page, 'learn/sandbox.html?lang=python&day=3');
   await fresh(page);
-  await page.goto('sandbox.html?lang=python&day=3');
+  await page.goto('learn/sandbox.html?lang=python&day=3');
   await expect(page.locator('#note')).toContainText("isn't unlocked");
   // Earlier days are there to replay, but not today's.
   await expect(page.locator('#puzzlePick option', { hasText: 'Day 2' })).toHaveCount(1);
@@ -141,8 +141,26 @@ test("today's puzzle only unlocks once it's finished", async ({ page }) => {
   await page.goto('index.html#python');
   await guess(page, '[1, 2]');
   await page.click('#tryLink');
-  await expect(page).toHaveURL(/sandbox/);
+  await expect(page).toHaveURL(/learn\/sandbox\.html/);
   await expect(page.locator('#src')).toHaveValue(/add_item/);
   await expect(page.locator('#note')).toContainText('[1, 2]');
   await expect(page.locator('#puzzlePick option', { hasText: 'Day 3 (today)' })).toHaveCount(1);
+});
+
+test('the sandbox lives in Debuggit Learn; its old address redirects, keeping the puzzle or language', async ({ page }) => {
+  await openAt(page, 'sandbox.html?lang=python&day=2');
+  await expect(page).toHaveURL(/learn\/sandbox\.html#python$/);
+  await expect(page.locator('#note')).toContainText('Loaded Day 2');
+  await expect(page.locator('#backLink')).toHaveText('← Debuggit Learn');
+  await expect(page.locator('#appVersion .version-link')).toContainText('Learn v');
+});
+
+test('a Learn lesson\'s "Run it yourself" link opens its code in the sandbox', async ({ page }) => {
+  await openAt(page, 'learn/sandbox.html?lang=python&code=' + encodeURIComponent('print("Ready")'));
+  await expect(page.locator('#src')).toHaveValue('print("Ready")\n');
+  await expect(page.locator('#note')).toContainText('the example from your lesson');
+  // The code leaves the address, and is kept as the draft.
+  await expect(page).toHaveURL(/learn\/sandbox\.html#python$/);
+  await page.reload();
+  await expect(page.locator('#src')).toHaveValue('print("Ready")\n');
 });

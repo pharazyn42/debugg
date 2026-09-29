@@ -92,7 +92,7 @@ test("a C day has no run link, since C doesn't run in the browser yet", async ({
   await expect(page.locator('p.try:has(#tryLink)')).toBeHidden();
   // C's Learn course is still to come, so no lesson is suggested either.
   await expect(page.locator('#learnMore')).toBeHidden();
-  await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'sandbox.html');
+  await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'learn/sandbox.html');
 });
 
 test('the wordmark is "debug it" in the day\'s language, and each page has its own', async ({ page }) => {
@@ -107,7 +107,7 @@ test('the wordmark is "debug it" in the day\'s language, and each page has its o
   await expect(page).toHaveTitle('Debuggit');
   await page.goto('learn/');
   await expect(page.locator('#wordmark')).toHaveText('debugg.learn()');
-  await page.goto('sandbox.html');
+  await page.goto('learn/sandbox.html');
   await expect(page.locator('#wordmark')).toHaveText('debugg.run()');
   await page.goto('privacy.html');
   await expect(page.locator('.wordmark')).toHaveText('debugg.it()');
@@ -328,7 +328,7 @@ test('players get Python only for now, in the puzzles and the sandbox', async ({
     return [...seen];
   });
   expect(langs).toEqual(['python']);
-  await page.goto('sandbox.html#javascript');
+  await page.goto('learn/sandbox.html#javascript');
   await expect(page.locator('#filename')).toHaveText('main.py');
   await expect(page.locator('#langs')).toBeHidden();
 });

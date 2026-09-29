@@ -278,6 +278,15 @@ window.DebuggLearn = (function(){
     }).join(opts.lines ? '' : '\n') + '</code></pre>';
   }
 
+  // "Run it yourself": a step's code in the sandbox (learn/sandbox.html), in a new tab so the lesson
+  // stays open. Only for languages the sandbox runs. A fill-the-blank opens with the blank filled in.
+  function runLink(s){
+    const info = D.LANGS[lang];
+    if(!s.code || !info || !info.runnable) return '';
+    const code = s.type === 'blank' ? s.code.replace('___', s.options.find(o => o.correct).text) : s.code;
+    return '<a class="run-link" href="sandbox.html?lang=' + lang + '&code=' + encodeURIComponent(code) + '" target="_blank" rel="noopener">Run it yourself ↗</a>';
+  }
+
   function shuffle(a){
     for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
@@ -300,7 +309,7 @@ window.DebuggLearn = (function(){
       body = (s.title ? '<h3>' + esc(s.title) + '</h3>' : '') + '<p class="teach">' + s.text + '</p>' +
         (s.code ? codeHtml(s.code) : '') +
         (s.output !== undefined ? '<div class="output"><span class="output-label">Output</span><pre>' + esc(s.output) + '</pre></div>' : '') +
-        '<div class="step-actions"><button class="btn-primary" data-action="continue" id="continueBtn">Continue</button></div>';
+        runLink(s) + '<div class="step-actions"><button class="btn-primary" data-action="continue" id="continueBtn">Continue</button></div>';
     }else{
       body = '<p class="question">' + s.question + '</p>';
       if(s.type === 'choice'){
@@ -352,7 +361,7 @@ window.DebuggLearn = (function(){
       session.done++;
       if(session.kind === 'checkpoint') session.correct++;
       fb.className = 'feedback show correct';
-      fb.innerHTML = duck + '<div><b>Quack! Correct.</b> ' + s.explain + '</div>';
+      fb.innerHTML = duck + '<div><b>Quack! Correct.</b> ' + s.explain + runLink(s) + '</div>';
     }else{
       session.mistakes++;
       if(session.kind === 'checkpoint') session.done++;
@@ -364,7 +373,7 @@ window.DebuggLearn = (function(){
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
         '<span class="again">' + (session.kind === 'lesson' ? 'This one comes back before the end of the lesson, and in a review tomorrow.'
           : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
-          : 'This one comes back in a review tomorrow.') + '</span></div>';
+          : 'This one comes back in a review tomorrow.') + '</span>' + runLink(s) + '</div>';
     }
     $('continueBtn').hidden = false;
     $('continueBtn').focus();

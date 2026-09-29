@@ -208,6 +208,25 @@ test('lessons play from the keyboard, and the summary celebrates stars, level-up
   await expect(page.locator('#summary .streak-line')).toHaveText('Learn streak: 1');
 });
 
+test('steps with code link to the sandbox to run it yourself, in a new tab', async ({ page }) => {
+  await page.locator('#continue button').click();
+  let s = await current(page);
+  while(!s.code) s = (await answer(page, true), await current(page));
+  const link = s.type === 'teach' ? page.locator('#step .run-link') : null;
+  if(link){
+    await expect(link).toHaveText('Run it yourself ↗');
+    await expect(link).toHaveAttribute('target', '_blank');
+    expect(decodeURIComponent((await link.getAttribute('href')).split('code=')[1])).toBe(s.code);
+  }
+  // Questions show it once answered, in the feedback.
+  while((s = await current(page)).type === 'teach' || !s.code) await answer(page, true);
+  await expect(page.locator('#step .run-link')).toHaveCount(0);
+  if(s.type === 'predict'){ await page.fill('#answer', s.display); await page.click('#checkBtn'); }
+  else if(s.type === 'line') await page.click('#step .code-line[data-line="' + s.line + '"]');
+  else await pickOption(page, s.options.find(o => o.correct).text);
+  await expect(page.locator('#stepFeedback .run-link')).toHaveAttribute('href', /^sandbox\.html\?lang=python&code=/);
+});
+
 test('C is a coming-soon tab with its planned units', async ({ page }) => {
   const tabs = page.locator('#langs .lang-tab');
   await expect(tabs).toHaveCount(2);

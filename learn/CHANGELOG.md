@@ -14,6 +14,8 @@ one for fixes.
 - Lessons feel livelier: press **1–4** to pick an answer (or a line number to tap a line) and
   **Enter** to continue; the duck hops or wobbles at each answer; the progress bar slides along;
   and the end of a lesson celebrates your stars, a new Learn level and your streak going up.
+- The **sandbox** is now part of Debuggit Learn. Every lesson step with code has a **Run it
+  yourself** link that opens the example there, in a new tab, to change and run.
 - Python Unit 3, "Lists": making lists, changing them (append, pop, remove), slices and joining,
   why `b = a` gives one list two names, and sorting and summing. Four lessons and a checkpoint;
   it opens once you've passed Unit 2's checkpoint.

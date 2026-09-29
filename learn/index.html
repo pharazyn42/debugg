@@ -195,6 +195,8 @@
   .feedback.wrong{ background: var(--red-dim); color: #f7dada; }
   .feedback .right-answer{ display: block; margin: 6px 0 2px; font-weight: 600; }
   .feedback .again{ display: block; margin-top: 8px; font-size: 12.5px; opacity: 0.8; }
+  .run-link{ display: inline-block; font-family: var(--mono); font-size: 12.5px; color: var(--amber); margin: 0 0 14px; }
+  .feedback .run-link{ display: block; margin: 8px 0 0; color: inherit; text-decoration: underline; }
   .step-actions{ display: flex; gap: 8px; flex-wrap: wrap; }
   .step-actions [hidden]{ display: none; }
   .guess-row{ margin-bottom: 12px; }
@@ -248,7 +250,7 @@
 
   <footer>
     <div>Learn has its own XP and streak, separate from the daily puzzles. Demo progress resets when v0.1 comes out.</div>
-    <div class="footer-links"><a href="../index.html">daily puzzle</a> · <a href="../index.html?ltd">Debuggit Ltd</a> · <a href="../sandbox.html">sandbox</a> ·
+    <div class="footer-links"><a href="../index.html">daily puzzle</a> · <a href="../index.html?ltd">Debuggit Ltd</a> · <a href="sandbox.html">sandbox</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="../privacy.html">privacy</a> · <a href="#" id="resetLearn">reset Learn progress</a></div>
     <div class="app-version" id="appVersion"></div>
