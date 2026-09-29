@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What’s new in Debuggit</title>
-<meta name="description" content="Every Debuggit release: what changed in the daily puzzles, Learn and Debuggit Ltd.">
+<meta name="description" content="Every Debuggit release: what changed in the daily puzzles and Debuggit Ltd, and in Debuggit Learn.">
 <link rel="icon" href="img/duck.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="img/duck-180.png">
 <link rel="stylesheet" href="base.css">
@@ -29,26 +29,38 @@
 <div class="wrap">
   <header>
     <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" href="index.html" aria-label="Debuggit" title="Debuggit"><span aria-hidden="true">debugg.<span class="fn">it</span>()</span></a></div>
-    <h1>What’s new</h1>
+    <h1 id="title">What’s new</h1>
     <p class="sub" id="sub">Every Debuggit release, newest first.</p>
   </header>
 
   <main id="notes"><p>Loading…</p></main>
 
-  <footer><a href="index.html">back to Debuggit</a> · <a href="privacy.html">privacy</a><div class="app-version" id="appVersion"></div></footer>
+  <footer><a href="index.html" id="backLink">back to Debuggit</a> · <a href="privacy.html">privacy</a><div class="app-version" id="appVersion"></div></footer>
 </div>
 <script src="shared.js"></script>
 <script>
-// Shows CHANGELOG.md, the one list of changes (see "Releases" in CLAUDE.md), with a small
-// Markdown reader: headings, lists, paragraphs, **bold**, `code` and [links](…).
+// Shows a list of changes (see "Releases" in CLAUDE.md) with a small Markdown reader: headings,
+// lists, paragraphs, **bold**, `code` and [links](…). The game's is CHANGELOG.md; with ?learn,
+// it's Debuggit Learn's, learn/CHANGELOG.md, which has its own versions.
 (function(){
   const D = window.Debugg;
+  const learn = new URLSearchParams(location.search).has('learn');
+  const product = learn ? 'learn' : 'game';
+  const VERSION = learn ? D.LEARN_VERSION : D.APP_VERSION;
+  if(learn){
+    document.title = 'What’s new in Debuggit Learn';
+    document.getElementById('title').textContent = 'What’s new in Learn';
+    document.getElementById('sub').textContent = 'Every Debuggit Learn release, newest first.';
+    const back = document.getElementById('backLink');
+    back.href = 'learn/';
+    back.textContent = 'back to Debuggit Learn';
+  }
   const esc = D.escapeHtml;
   function inline(text){
     return esc(text)
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
-      .replace(/\[([^\]]+)\]\((https?:[^)\s]+|[\w./#-]+)\)/g, '<a href="$2">$1</a>');
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+|[\w./#?=&-]+)\)/g, '<a href="$2">$1</a>');
   }
   function render(md){
     const out = [];
@@ -68,7 +80,7 @@
         if(h[1].length === 1) return;  // the file's own title; the page has one
         const level = h[1].length;
         const text = h[2];
-        const current = level === 2 && text.startsWith(D.APP_VERSION + ' ');
+        const current = level === 2 && text.startsWith(VERSION + ' ');
         out.push('<h' + level + '>' + inline(text) + (current ? '<span class="current">you’re here</span>' : '') + '</h' + level + '>');
       }else if(li){
         if(para.length) flush();
@@ -85,12 +97,12 @@
     flush();
     return out.join('\n');
   }
-  fetch('CHANGELOG.md', { cache: 'no-cache' })
+  fetch(learn ? 'learn/CHANGELOG.md' : 'CHANGELOG.md', { cache: 'no-cache' })
     .then(r => { if(!r.ok) throw new Error(r.status); return r.text(); })
     .then(md => { document.getElementById('notes').innerHTML = render(md); })
     .catch(() => { document.getElementById('notes').innerHTML = '<p>The list of changes couldn’t load. Try again in a moment.</p>'; });
-  D.markVersionSeen();
-  D.renderVersion(document.getElementById('appVersion'));
+  D.markVersionSeen(product);
+  D.renderVersion(document.getElementById('appVersion'), '', product);
 })();
 </script>
 </body>

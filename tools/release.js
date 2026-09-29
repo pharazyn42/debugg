@@ -1,16 +1,27 @@
 #!/usr/bin/env node
-// Releases (see "Releases" in CLAUDE.md).
+// Releases (see "Releases" in CLAUDE.md). Debuggit (the daily puzzle and Debuggit Ltd) and
+// Debuggit Learn are released separately, each with its own version, changelog and tags:
 //
-//   node tools/release.js bump 0.0.2 [2026-10-12]  Dates CHANGELOG.md's "Unreleased" notes as 0.0.2 and
-//                                                  sets APP_VERSION in shared.js. Commit, merge, then tag.
-//   node tools/release.js notes 0.0.2              Prints that version's notes (the GitHub Release's text).
-//   node tools/release.js check 0.0.2              Fails unless shared.js and CHANGELOG.md are at 0.0.2.
+//   game   APP_VERSION in shared.js,   CHANGELOG.md,        tags v0.0.3
+//   learn  LEARN_VERSION in shared.js, learn/CHANGELOG.md,  tags learn-v0.0.3
+//
+//   node tools/release.js [learn] bump 0.0.3 [2026-10-12]  Dates the changelog's "Unreleased" notes as
+//                                                          0.0.3 and sets the version. Commit, merge, then
+//                                                          run the Release workflow.
+//   node tools/release.js [learn] notes 0.0.3              Prints that version's notes (the GitHub Release's text).
+//   node tools/release.js [learn] check 0.0.3              Fails unless shared.js and the changelog are at 0.0.3.
+//   node tools/release.js [learn] tag 0.0.3                Prints the tag name (v0.0.3, or learn-v0.0.3).
+//   node tools/release.js [learn] name 0.0.3               Prints the release's title.
+// With no product, it's the game.
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const SHARED = path.join(ROOT, 'shared.js');
-const CHANGELOG = path.join(ROOT, 'CHANGELOG.md');
+const PRODUCTS = {
+  game:  { constant: 'APP_VERSION',   changelog: 'CHANGELOG.md',       tag: 'v',       name: 'Debuggit' },
+  learn: { constant: 'LEARN_VERSION', changelog: 'learn/CHANGELOG.md', tag: 'learn-v', name: 'Debuggit Learn' }
+};
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const EMPTY = 'Nothing yet.';
 
@@ -21,11 +32,6 @@ function parse(v){
   return m.slice(1).map(Number);
 }
 function newer(a, b){ for(let i = 0; i < 3; i++) if(a[i] !== b[i]) return a[i] > b[i]; return false; }
-function appVersion(src){
-  const m = /const APP_VERSION = '([^']+)';/.exec(src);
-  if(!m) fail('no APP_VERSION in shared.js');
-  return m[1];
-}
 // { head, sections: [{ title, body }] }, split on "## " headings.
 function sections(md){
   const parts = md.split(/^## /m);
@@ -37,16 +43,26 @@ function sections(md){
 function join(doc){ return doc.head + doc.sections.map(s => '## ' + s.title + '\n\n' + s.body + '\n').join('\n'); }
 function findVersion(doc, v){ return doc.sections.find(s => s.title === v || s.title.startsWith(v + ' ')); }
 
-const [cmd, version, dateArg] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const productKey = PRODUCTS[args[0]] ? args.shift() : 'game';
+const P = PRODUCTS[productKey];
+const [cmd, version, dateArg] = args;
+const CHANGELOG = path.join(ROOT, P.changelog);
+const pattern = new RegExp("const " + P.constant + " = '([^']+)';");
 const shared = fs.readFileSync(SHARED, 'utf8');
+function current(){
+  const m = pattern.exec(shared);
+  if(!m) fail('no ' + P.constant + ' in shared.js');
+  return m[1];
+}
 const doc = sections(fs.readFileSync(CHANGELOG, 'utf8'));
 
 if(cmd === 'bump'){
-  const current = appVersion(shared);
-  if(!newer(parse(version), parse(current))) fail(version + ' isn\'t newer than ' + current);
-  if(findVersion(doc, version)) fail('CHANGELOG.md already has ' + version);
+  const was = current();
+  if(!newer(parse(version), parse(was))) fail(version + ' isn\'t newer than ' + was);
+  if(findVersion(doc, version)) fail(P.changelog + ' already has ' + version);
   const unreleased = doc.sections.find(s => /^unreleased$/i.test(s.title));
-  if(!unreleased) fail('CHANGELOG.md has no "## Unreleased" section');
+  if(!unreleased) fail(P.changelog + ' has no "## Unreleased" section');
   if(!unreleased.body || unreleased.body === EMPTY) fail('nothing under "## Unreleased" to release');
   const d = dateArg ? new Date(dateArg + 'T12:00:00Z') : new Date();
   if(isNaN(d)) fail('"' + dateArg + '" isn\'t a date like 2026-10-12');
@@ -54,18 +70,25 @@ if(cmd === 'bump'){
   doc.sections.splice(doc.sections.indexOf(unreleased) + 1, 0, { title, body: unreleased.body });
   unreleased.body = EMPTY;
   fs.writeFileSync(CHANGELOG, join(doc));
-  fs.writeFileSync(SHARED, shared.replace(/const APP_VERSION = '[^']+';/, "const APP_VERSION = '" + version + "';"));
-  console.log('Released ' + current + ' → ' + title + '.\nNext: commit, merge to main, then tag the merge: git tag v' + version + ' && git push origin v' + version);
+  fs.writeFileSync(SHARED, shared.replace(pattern, "const " + P.constant + " = '" + version + "';"));
+  console.log('Released ' + P.name + ' ' + was + ' → ' + title + '.\nNext: commit, merge to main, then run the Release workflow ' +
+    '(product ' + productKey + ', version ' + version + '), which tags ' + P.tag + version + '.');
 }else if(cmd === 'notes'){
   parse(version);
   const s = findVersion(doc, version);
-  if(!s) fail('CHANGELOG.md has no ' + version);
+  if(!s) fail(P.changelog + ' has no ' + version);
   console.log(s.body);
 }else if(cmd === 'check'){
   parse(version);
-  if(appVersion(shared) !== version) fail('shared.js is at ' + appVersion(shared) + ', not ' + version);
-  if(!findVersion(doc, version)) fail('CHANGELOG.md has no ' + version);
-  console.log('shared.js and CHANGELOG.md are at ' + version + '.');
+  if(current() !== version) fail('shared.js has ' + P.constant + ' at ' + current() + ', not ' + version);
+  if(!findVersion(doc, version)) fail(P.changelog + ' has no ' + version);
+  console.log('shared.js and ' + P.changelog + ' are at ' + version + '.');
+}else if(cmd === 'tag'){
+  parse(version);
+  console.log(P.tag + version);
+}else if(cmd === 'name'){
+  parse(version);
+  console.log(P.name + ' v' + version);
 }else{
-  fail('usage: node tools/release.js bump|notes|check <version> [date]');
+  fail('usage: node tools/release.js [learn] bump|notes|check|tag|name <version> [date]');
 }

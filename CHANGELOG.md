@@ -1,25 +1,18 @@
 # What's new in Debuggit
 
+The daily puzzle and Debuggit Ltd. Debuggit Learn has [its own list of changes](whatsnew.html?learn),
+and its own version numbers.
+
 Versions go 0.0.1, 0.0.2… through the demo. 0.1.0 is the launch, which clears demo progress
 (you've been warned since your first visit). After that, the middle number goes up for new
 things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- What's new now lists the daily puzzle and Debuggit Ltd. Debuggit Learn has its own version
+  number and its own What's new, linked from its pages.
 
 ## 0.0.2 — 29 September 2026
-
-### Learn
-- Debuggit Learn has its own home at `/learn/`, apart from the game: the daily puzzle and Debuggit
-  Ltd keep the Daily and Ltd tabs, and Learn has a link back to them. Old links still work, and
-  your progress comes with you.
-- After a missed or revealed puzzle, a link takes you to the Learn unit that teaches it (or to the
-  start of the course). The footer has a "learn to code" link, and in Debuggit Ltd the Director's
-  languages link to their courses.
-- Python Unit 2, "Strings": picking out characters, slices, string methods, f-strings and
-  turning text into numbers. Four lessons and a checkpoint; it opens once you've passed Unit 1's
-  checkpoint.
 
 ### Debuggit Ltd
 - **Managers are in the demo.** Hire one once you're running four developers, and they'll put
@@ -60,11 +53,6 @@ The first numbered release: the demo as it stands. Day 1 is Monday 5 October.
 - XP and levels for each language and overall, and a streak.
 - **Share your result**: a spoiler-free line of squares to paste anywhere.
 - The Debuggit duck reacts to how you did.
-
-### Learn
-- The Python course's first unit, "Values and printing": three lessons and a checkpoint. Wrong
-  answers are explained and come back until you get them right.
-- Learn has its own XP and streak. C is coming soon, with an Embedded C section.
 
 ### Debuggit Ltd
 - Start your own software company on the **Ltd** tab. Your daily puzzle is your desk and pays it.
