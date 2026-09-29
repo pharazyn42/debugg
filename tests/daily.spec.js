@@ -361,9 +361,9 @@ test('sharing copies a spoiler-free result', async ({ page, context }) => {
   expect(text).toBe('debugg(it) Day 3 · Python\n🟥🟩⬛⬛ · 1 hint\nDebugged it in 2\n' + site);
   expect(text).not.toContain(p.display);
 
-  // A revealed puzzle shares too, and still with the puzzle's own wordmark on the Ltd tab.
+  // A revealed puzzle shares too.
   await page.clock.setFixedTime(dayDate(4));
-  await page.goto('index.html?ltd');
+  await page.goto('index.html');
   await page.click('#revealBtn');
   await page.click('#shareBtn');
   await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');

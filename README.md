@@ -54,9 +54,9 @@ Open `index.html` directly, or visit the GitHub Pages site once enabled (see bel
 
 ## Debuggit Ltd
 
-The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game, around the daily puzzles. The puzzles become the Director's desk; nothing about them changes.
+The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily; "Start your own company" there, or after each finished puzzle) switches on **Debuggit Ltd** (labelled beta while it's balanced), an idle studio-management game. It's separate from the daily puzzle, which pays it nothing; your puzzle levels still make your Director better at contracts.
 
-- **Your desk:** each daily puzzle you finish pays the company ¤2 per XP it earned (¤200 for a first-guess, no-hint solve) and 1 reputation per 20 XP. Solves get +10% per day of streak beyond the first, up to +50%. Only today's puzzles pay, and only ones finished while the company is running.
+- **Your desk:** desk jobs turn up about every hour (at most 3 waiting, each open for 4 hours, and they arrive while you're away too): 1 to 3 questions from past daily puzzles and Debuggit Learn. Each right answer pays ¤40–¤100 by difficulty and 1 reputation, and getting every question in a job right boosts it (×1.25 for 2, ×1.5 for 3).
 - **Founder's bonus:** a new company starts with ¤150 plus ¤1 per puzzle XP you've already earned, up to ¤1,000.
 - **You, the Director:** your puzzle level in each language is the Director's skill in it. Every level above 1 adds 1% success chance to contracts in that language, up to +10%.
 - **The studio:** hire up to 4 devs yourself, then managers; each person supervises up to 3 at the level below. Promotions take a while (12 hours on contracts for Junior, 3 days for Senior, 14 days for Principal) plus a skill level in one language (Lv 3, 5 and 8), so hiring at a level is the quick route. But only graduates (and managers) can be hired at will: juniors, seniors and principals apply now and then, each asking their own price with an offer open for 12 hours, and seniors and principals only apply once the studio has earned some reputation. Hiring costs only go up: now and then inflation raises every price a little, or a rival studio competing for one level raises that one more.
@@ -65,17 +65,17 @@ The **Ltd** tab at the top (headed **Debuggit Ltd**, next to Daily; "Start your 
 
 Patches and bigger contracts only come to the board once the company has more than 10 staff, the Director included.
 
-The company grows through **stages**, shown above its stats: a **Start-up** (just you and up to 4 devs) is run by hand, staffing every contract yourself, and your daily puzzle pays in full. With managers it becomes a **Small business**, then a mid-size company, a large company and a multinational: managers put idle developers on contracts for you, and the daily puzzle pays less and less (half, a quarter, a tenth, a twentieth).
+The company grows through **stages**, shown above its stats: a **Start-up** (just you and up to 4 devs) is run by hand, staffing every contract yourself, and desk jobs pay in full. With managers it becomes a **Small business**, then a mid-size company, a large company and a multinational: managers put idle developers on contracts for you, and desk jobs pay less and less (half, a quarter, a tenth, a twentieth).
 
-A **Next step** card walks a new company through its first hire, its first contract and the desk puzzle; after that, the studio warns about anyone left on the bench (they're still paid) and about debt. The board shows the contracts your staff can take, with the rest folded away.
+A **Next step** card walks a new company through its first hire, its first contract and its first desk job; after that, the studio warns about anyone left on the bench (they're still paid) and about debt. The board shows the contracts your staff can take, with the rest folded away.
 
 **In the demo** the company is the early slice: hotfixes, and patches once it has more than 10 staff. Minor and major releases show on the board as "coming in v0.1", and so do bigger premises.
 
-**The office:** everyone on staff needs a desk (you, the Director, work from home at the daily puzzle). Your spare room has 4 desks, free; after that you rent **co-working desks**, ¤1 a minute each, up to 8, and can give one up whenever it's free. Rent is paid every second like salaries, including while you're away. With the Director able to look after 4 devs, the fifth person, your first manager, needs the first co-working desk. A full office is **cramped**: everyone works 5% slower, and you can squeeze up to 2 more in without desks, at 15% and 30% slower.
+**The office:** everyone on staff needs a desk (you, the Director, work from home at your desk jobs). Your spare room has 4 desks, free; after that you rent **co-working desks**, ¤1 a minute each, up to 8, and can give one up whenever it's free. Rent is paid every second like salaries, including while you're away. With the Director able to look after 4 devs, the fifth person, your first manager, needs the first co-working desk. A full office is **cramped**: everyone works 5% slower, and you can squeeze up to 2 more in without desks, at 15% and 30% slower.
 
 **Notice:** now and then someone hands in their notice (far more often in a cramped office). They stay a day; free up a desk, or agree the pay rise on their card, and they'll stay. Business units and bigger premises come next (see `ideas/company-growth-roadmap.md`).
 
-The studio's code (`ltd/ltd.js`, `ltd/ltd.css`) only loads when it's switched on. The puzzle page fires a `debugg:puzzle-finished` event when a game ends, and the studio listens for it; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
+The studio's code (`ltd/ltd.js`, `ltd/desk.js`, `ltd/ltd.css`) only loads on the Ltd tab. It reads your puzzle XP for the Director's languages; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 
 `ideas/debugg-ltd-merge-plan.md` is the plan this was built from, and `CLAUDE.md` has the studio's full design and roadmap.
 

@@ -556,3 +556,46 @@
   color: var(--text-faint);
 }
 .ltd .toast{ margin: -8px 0 18px; }
+
+/* The desk: desk jobs, and the player that asks their questions (ltd/desk.js). */
+.ltd .desk-intro{ font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0 0 12px; }
+.ltd .desk-jobs{ display: flex; flex-direction: column; gap: 8px; }
+.ltd .desk-job{ display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
+.ltd .desk-job.playing{ border-color: var(--amber); }
+.ltd .desk-job .btn-small{ padding: 7px 12px; font-size: 12.5px; }
+.ltd .desk-meta{ font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+.ltd .desk-boost{ font-family: var(--mono); font-size: 11px; color: var(--amber); white-space: nowrap; }
+.ltd .desk-empty{ font-size: 12.5px; color: var(--text-faint); margin: 2px 0 0; }
+.ltd .desk-play{ margin: 0 0 14px; }
+.ltd .desk-play[hidden]{ display: none; }
+.ltd .desk-q, .ltd .desk-done{ background: var(--bg); border: 1px solid var(--amber-dim); border-radius: 10px; padding: 12px 14px; }
+.ltd .desk-q-head{ display: flex; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 8px; }
+.ltd .desk-q-num{ color: var(--amber); }
+.ltd .desk-prompt{ font-size: 14.5px; font-weight: 600; line-height: 1.5; margin: 0 0 10px; }
+.ltd .desk-prompt code, .ltd .desk-feedback code{ background: var(--panel-2); border-radius: 4px; padding: 1px 5px; font-size: 0.9em; }
+.ltd .desk-code{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; font-size: 13px; }
+.ltd .desk-row{ display: block; }
+.ltd .desk-line{ display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 6px;
+  padding: 0 6px; font: inherit; color: inherit; white-space: pre; cursor: pointer; }
+.ltd .desk-line:hover:not(:disabled){ border-color: var(--amber); }
+.ltd .desk-line.right, .ltd .desk-option.right{ border-color: var(--green); background: var(--green-dim); opacity: 1; }
+.ltd .desk-line.wrong, .ltd .desk-option.wrong{ border-color: var(--red); background: var(--red-dim); opacity: 1; }
+.ltd .desk-gap{ color: var(--amber); border-bottom: 2px solid var(--amber); }
+.ltd .desk-options{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+@media (max-width: 420px){ .ltd .desk-options{ grid-template-columns: 1fr; } }
+.ltd .desk-option{ text-align: left; background: var(--panel-2); color: var(--text); border: 1.5px solid var(--line); font-weight: 500; overflow-wrap: anywhere; }
+.ltd .desk-option:hover:not(:disabled){ border-color: var(--amber); }
+.ltd .desk-typed{ display: flex; gap: 8px; }
+.ltd .desk-typed input{ flex: 1; min-width: 0; }
+.ltd .desk-feedback{ display: none; border-radius: 8px; padding: 10px 12px; font-size: 13.5px; line-height: 1.5; margin-top: 10px; }
+.ltd .desk-feedback.show{ display: block; }
+.ltd .desk-feedback.right{ background: var(--green-dim); color: #d8f5e5; }
+.ltd .desk-feedback.wrong{ background: var(--red-dim); color: #f7dada; }
+.ltd .desk-next{ margin-top: 10px; }
+.ltd .desk-done{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ltd .desk-done p{ flex: 1; min-width: 180px; margin: 0; font-size: 13.5px; line-height: 1.5; }
+.ltd .desk-done img.hop{ animation: desk-hop 0.55s ease 2; }
+@keyframes desk-hop{ 50%{ transform: translateY(-6px) rotate(-6deg); } }
+@media (prefers-reduced-motion: reduce){ .ltd .desk-done img.hop{ animation: none; } }

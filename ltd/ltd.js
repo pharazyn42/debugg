@@ -1,40 +1,52 @@
-// Debuggit Ltd: the studio, team and contract board, around the daily puzzles.
+// Debuggit Ltd: the studio, team, contract board and the Director's desk.
 //
-// Loaded by index.html only when the studio is switched on (see the loader there).
-// The puzzle page never depends on this file. When a daily puzzle ends, the page fires
-// a 'debugg:puzzle-finished' event; this file listens and pays the company for it.
-// The puzzles are the Director's desk.
+// Loaded by index.html on the Ltd tab, when the studio is switched on (see the loader there).
+// The daily puzzle is its own game and pays nothing here. The Director's desk is desk jobs:
+// questions from past dailies and Debuggit Learn that turn up over time (see "The desk" below,
+// and ltd/desk.js for the questions).
 //
-// DebuggLtd.start({ stats, studio, board }) builds the studio into those three slots
+// DebuggLtd.start({ stats, studio, board, desk }) builds the studio into those slots
 // and starts the game. It either resumes the saved company, imports a save from before
 // the merge (when the studio lived at /studio/), or founds a new one.
 window.DebuggLtd = (function(){
   const D = window.Debugg;
 
-  // Desk pay: each daily puzzle pays for the XP it earned (100 XP for a first-guess,
-  // no-hint solve, so ¤200 and 5 reputation), plus a streak bonus on solves:
-  // +10% per day of streak beyond the first, up to +50%.
-  const CASH_PER_XP = 2;
-  const XP_PER_REP = 20;
-  const STREAK_BONUS_PER_DAY = 0.10;
-  const STREAK_BONUS_CAP = 0.50;
+  // The desk: desk jobs turn up every DESK_EVERY_MIN minutes (at random), at most DESK_MAX waiting,
+  // each open for DESK_LIFE_H hours. A job is 1 to 3 questions (DESK_SIZES: size and weight). Each
+  // right answer pays DESK_PAY by the question's difficulty (Learn questions count as 1) and
+  // DESK_REP reputation; a job with every answer right is boosted by DESK_BOOST for its size.
+  // Pay (not reputation) shrinks as the business grows (STAGES' `desk`).
+  const DESK_EVERY_MIN = [45, 90];
+  const DESK_MAX = 3;
+  const DESK_LIFE_H = 4;
+  const DESK_SIZES = [[1, 0.5], [2, 0.33], [3, 0.17]];
+  const DESK_PAY = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 };
+  const DESK_BOOST = { 1: 1, 2: 1.25, 3: 1.5 };
+  const DESK_REP = 1;
+  const DESK_SEEN = 40;  // questions recently asked, kept out of new jobs
   // A new company starts with ¤150, plus ¤1 per puzzle XP already earned (up to ¤1,000).
   const START_CASH = 150;
   const FOUNDER_BONUS_CAP = 1000;
   // Puzzle levels boost contract success in that language: +1% per level above 1, up to +10%.
   const DIRECTOR_BOOST_PER_LEVEL = 0.01;
   const DIRECTOR_BOOST_CAP = 0.10;
-  // Desk payments are remembered for this many days, so nothing is paid twice.
-  const PAID_MEMORY_DAYS = 14;
 
   function start(slots){
-    const statsSlot = slots.stats, studioSlot = slots.studio, boardSlot = slots.board;
+    const statsSlot = slots.stats, studioSlot = slots.studio, boardSlot = slots.board, deskSlot = slots.desk;
 
     // ---------------------------------------------------------------------
     // Markup
     // ---------------------------------------------------------------------
 
-    [statsSlot, studioSlot, boardSlot].forEach(el => { el.classList.add('ltd'); el.hidden = false; });
+    [statsSlot, studioSlot, boardSlot, deskSlot].forEach(el => { el.classList.add('ltd'); el.hidden = false; });
+    deskSlot.innerHTML =
+      '<div class="panel desk-panel">' +
+        '<h2>Your desk <span class="tag" id="deskCount"></span></h2>' +
+        '<p class="desk-intro">Desk jobs for you, the Director: questions from past daily puzzles and Debuggit Learn. ' +
+          'Every right answer pays the company, and a job with every answer right pays a bonus.</p>' +
+        '<div class="desk-play" id="deskPlay" hidden></div>' +
+        '<div class="desk-jobs" id="deskJobs"></div>' +
+      '</div>';
     statsSlot.innerHTML =
       '<div class="stage-bar" id="stageBar"></div>' +
       '<div class="stat-bar">' +
@@ -145,20 +157,20 @@ window.DebuggLtd = (function(){
     const COMPETITION_CHANCE = 0.4;
 
     // The business's stage, by managers and headcount (the Director included). A start-up has
-    // no managers: you staff every contract yourself, and the daily puzzle pays in full. From a
-    // small business on, managers put idle developers on contracts, and the puzzle pays less
+    // no managers: you staff every contract yourself, and desk jobs pay in full. From a small
+    // business on, managers put idle developers on contracts, and desk jobs pay less
     // (`desk`), since the company earns its keep without you.
     const STAGES = [
       { key: 'startup', name: 'Start-up',        managers: 0,  heads: 0,   desk: 1,
-        text: 'You run the team yourself: staff every contract, and your daily puzzle pays in full.' },
+        text: 'You run the team yourself: staff every contract, and desk jobs pay in full.' },
       { key: 'small',   name: 'Small business',  managers: 1,  heads: 0,   desk: 0.5,
-        text: 'Your managers put idle developers on contracts. The daily puzzle pays half.' },
+        text: 'Your managers put idle developers on contracts. Desk jobs pay half.' },
       { key: 'midsize', name: 'Mid-size company', managers: 3, heads: 25,  desk: 0.25,
-        text: 'Your managers keep everyone busy. The daily puzzle pays a quarter.' },
+        text: 'Your managers keep everyone busy. Desk jobs pay a quarter.' },
       { key: 'large',   name: 'Large company',   managers: 6,  heads: 60,  desk: 0.1,
-        text: 'The company runs itself. The daily puzzle pays a tenth: it’s for you now.' },
+        text: 'The company runs itself. Desk jobs pay a tenth: they’re for you now.' },
       { key: 'multinational', name: 'Multinational', managers: 12, heads: 150, desk: 0.05,
-        text: 'A household name. The daily puzzle is pocket money.' }
+        text: 'A household name. Desk jobs are pocket money.' }
     ];
 
     // Applicants: every APPLICANT_EVERY_H hours or so (at random) an experienced developer
@@ -383,10 +395,14 @@ window.DebuggLtd = (function(){
         boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
-        paid: {},             // desk puzzles already paid for, e.g. { 'python-5': true }
-        office: { cowork: 0 } // co-working desks rented beyond the spare room
+        office: { cowork: 0 },// co-working desks rented beyond the spare room
+        desk: freshDesk(now)  // desk jobs (see "The desk")
       };
     }
+
+    // jobs: [{ id, size, questions: [ids], answered: [true|false…], expiresAt }]; the first job turns
+    // up straight away. seen: recently asked question ids. done: jobs finished.
+    function freshDesk(now){ return { jobs: [], nextAt: now, seen: [], done: 0 }; }
 
     function isHotfix(tierIndex){ return TIERS[tierIndex].key === 'hotfix'; }
 
@@ -603,7 +619,7 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // The office: desks (phase 1 of ideas/company-growth-roadmap.md)
     // ---------------------------------------------------------------------
-    // Everyone on staff needs a desk; the Director works from home, at the daily puzzle. The
+    // Everyone on staff needs a desk; the Director works from home, at their own desk. The
     // spare room has SPARE_ROOM_DESKS, free. Past that, co-working desks: rented one at a time
     // (up to COWORK_MAX), COWORK_RATE per desk per minute, charged like payroll (offline too,
     // not while paused), and given up any time a desk is free. Business units come next.
@@ -1022,6 +1038,10 @@ window.DebuggLtd = (function(){
       state.roster.forEach(p => { if(p.notice) p.notice.until += ms; });
       (state.applicants || []).forEach(a => { a.expiresAt += ms; });
       state.roster.forEach(p => { p.since += ms; });
+      if(state.desk){
+        state.desk.nextAt += ms;
+        state.desk.jobs.forEach(j => { j.expiresAt += ms; });
+      }
     }
 
     let opening = null;
@@ -1045,7 +1065,7 @@ window.DebuggLtd = (function(){
       state.enabled = true;
       state.pausedAt = null;
       track('imported');
-      opening = 'Your company has moved in with the daily puzzles. The desk is now today’s puzzle, and it pays the company.';
+      opening = 'Your company has moved in. Your desk has jobs for you: questions that pay the company.';
     }else{
       const bonus = founderBonus();
       state = freshState(START_CASH + bonus);
@@ -1055,48 +1075,137 @@ window.DebuggLtd = (function(){
         '. Debuggit Ltd is in beta, so its numbers may change.' +
         (DEMO ? ' In the demo it runs hotfixes, and patches once you have more than ' + PATCH_HEADCOUNT + ' staff; it will be reset when v0.1 comes out.' : '');
     }
-    if(!state.paid) state.paid = {};
+    // The daily puzzle stopped paying the company in September 2026; desk jobs took over.
+    delete state.paid;
+    if(!state.desk) state.desk = freshDesk(Date.now());
     save();
     // Only remove the old save once the new one is safely written.
     if(old && readSave(STORAGE_KEY)){ try{ localStorage.removeItem(OLD_STORAGE_KEY); }catch(e){} }
 
     // ---------------------------------------------------------------------
-    // The desk: daily puzzles pay the company
+    // The desk: desk jobs (questions from ltd/desk.js) that pay the company
     // ---------------------------------------------------------------------
 
-    function pruneLedger(){
-      const cutoff = D.today() - PAID_MEMORY_DAYS;
-      Object.keys(state.paid).forEach(k => {
-        const day = parseInt((/-(-?\d+)$/.exec(k) || [])[1], 10);
-        if(!(day >= cutoff)) delete state.paid[k];
-      });
-    }
+    let deskPool = null;  // Map of question id → question, once Learn's units have loaded
+    const deskReady = window.DebuggDesk ? window.DebuggDesk.load().then(() => { deskPool = window.DebuggDesk.all(D.today()); }) : Promise.resolve();
+    let deskActive = null;  // the id of the job being played
 
-    // Pays for a finished daily puzzle, once. Only today's puzzles pay, and only ones
-    // finished while the company is running: the event fires when a game ends, never on reload.
-    document.addEventListener('debugg:puzzle-finished', (e) => {
-      const d = e.detail || {};
-      const key = d.lang + '-' + d.day;
-      // d.day is the puzzle's day; on a Sunday, the weekend puzzle belongs to Saturday.
-      if(d.day !== D.slotDay(D.today()) || state.paid[key] || !(d.xp > 0)) return;
-      const bonus = d.solved ? Math.min(STREAK_BONUS_CAP, STREAK_BONUS_PER_DAY * Math.max(0, (d.streak || 0) - 1)) : 0;
+    function pickSize(){
+      let r = Math.random();
+      for(const [size, w] of DESK_SIZES){ if((r -= w) < 0) return size; }
+      return 1;
+    }
+    // A new job at time t: questions not asked lately and not in another waiting job.
+    function makeDeskJob(t){
+      const taken = new Set(state.desk.seen.concat(state.desk.jobs.flatMap(j => j.questions)));
+      let ids = [...deskPool.keys()].filter(id => !taken.has(id));
+      if(ids.length < 3) ids = [...deskPool.keys()];
+      const size = Math.min(pickSize(), ids.length);
+      const questions = [];
+      while(questions.length < size && ids.length) questions.push(ids.splice(Math.floor(Math.random() * ids.length), 1)[0]);
+      return { id: uid('d'), size: questions.length, questions, answered: [], expiresAt: t + DESK_LIFE_H * 3600000 };
+    }
+    // Jobs turn up (while the page is closed too, but not while paused) and expire unplayed. One
+    // being played never expires under the player.
+    function moveDesk(now){
+      if(!deskPool || !deskPool.size) return false;
+      const desk = state.desk;
+      let changed = false;
+      // Past a day away, only the last day's arrivals matter.
+      if(now - desk.nextAt > 86400000) desk.nextAt = now - 86400000;
+      while(desk.nextAt <= now){
+        const t = desk.nextAt;
+        if(desk.jobs.filter(j => j.expiresAt > t).length < DESK_MAX){
+          desk.jobs = desk.jobs.filter(j => j.expiresAt > t || j.id === deskActive);
+          desk.jobs.push(makeDeskJob(t));
+          changed = true;
+        }
+        desk.nextAt = t + (DESK_EVERY_MIN[0] + Math.random() * (DESK_EVERY_MIN[1] - DESK_EVERY_MIN[0])) * 60000;
+      }
+      const before = desk.jobs.length;
+      desk.jobs = desk.jobs.filter(j => j.expiresAt > now || j.id === deskActive || j.answered.length);
+      return changed || desk.jobs.length !== before;
+    }
+    function deskQuestions(job){ return job.questions.map(id => deskPool && deskPool.get(id)).filter(Boolean); }
+    // What a job pays, with every answer right (the most it can pay).
+    function deskMax(job){
+      const qs = deskQuestions(job);
+      return Math.round(qs.reduce((n, q) => n + DESK_PAY[q.difficulty], 0) * DESK_BOOST[qs.length] * stage().desk);
+    }
+    function startDeskJob(id){
+      const job = state.desk.jobs.find(j => j.id === id);
+      if(!job || !deskPool) return;
+      const qs = deskQuestions(job);
+      if(!qs.length){ state.desk.jobs = state.desk.jobs.filter(j => j !== job); save(); renderDesk(); return; }
+      deskActive = id;
+      const box = document.getElementById('deskPlay');
+      box.hidden = false;
+      renderDesk();
+      window.DebuggDesk.play(box, qs, {
+        answered: job.answered,
+        onAnswer: right => { job.answered.push(right); save(); },
+        onDone: results => finishDeskJob(job, qs, results)
+      });
+      box.scrollIntoView({ block: 'nearest' });
+    }
+    function finishDeskJob(job, qs, results){
+      const right = qs.filter((q, i) => results[i]);
+      const all = right.length === qs.length;
+      const boost = all ? DESK_BOOST[qs.length] : 1;
       const cut = stage().desk;
-      const cash = Math.round(d.xp * CASH_PER_XP * (1 + bonus) * cut);
-      const rep = d.xp / XP_PER_REP;
+      const cash = Math.round(right.reduce((n, q) => n + DESK_PAY[q.difficulty], 0) * boost * cut);
+      const rep = right.length * DESK_REP;
       state.money += cash;
       state.reputation += rep;
-      state.paid[key] = true;
-      pruneLedger();
-      const name = (D.LANG_INFO[d.lang] || { name: d.lang }).name;
-      const text = 'Today’s ' + name + ' puzzle ' + (d.solved ? 'paid ' : 'still paid ') + fmt(cash) +
-        (bonus ? ' (incl. +' + Math.round(bonus * 100) + '% streak bonus)' : '') +
-        (cut < 1 ? ' (a ' + stage().name.toLowerCase() + ' gets ' + Math.round(cut * 100) + '% of desk pay)' : '') +
-        ' and +' + (Math.round(rep * 10) / 10) + ' reputation.';
-      addLog(d.solved ? 'ok' : 'info', '✓ Desk: ' + text);
-      showToast(text);
+      state.desk.jobs = state.desk.jobs.filter(j => j !== job);
+      state.desk.seen = state.desk.seen.concat(job.questions).slice(-DESK_SEEN);
+      state.desk.done = (state.desk.done || 0) + 1;
+      deskActive = null;
+      const text = 'Desk job: ' + right.length + ' of ' + qs.length + ' right, ' + fmt(cash) +
+        (all && boost > 1 ? ' (with the ×' + boost + ' bonus for getting them all)' : '') +
+        (cut < 1 && cash ? ' (a ' + stage().name.toLowerCase() + ' gets ' + Math.round(cut * 100) + '% of desk pay)' : '') +
+        (rep ? ' and +' + rep + ' reputation.' : '.');
+      addLog(right.length ? 'ok' : 'info', '✓ ' + text);
+      track('desk/done/' + qs.length + '/' + right.length);
+      const box = document.getElementById('deskPlay');
+      box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/duck.svg" alt="" width="36" height="36" class="' + (all ? 'hop' : '') + '"><p>' + esc(text) + '</p>' +
+        '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
       save();
       renderAll();
+    }
+    function renderDesk(){
+      const now = Date.now();
+      const jobs = state.desk.jobs;
+      document.getElementById('deskCount').textContent = jobs.length ? jobs.length + ' waiting' : 'none waiting';
+      const box = document.getElementById('deskJobs');
+      if(!deskPool){ box.innerHTML = '<p class="desk-empty">Loading desk jobs…</p>'; return; }
+      box.innerHTML = jobs.map(j => {
+        const n = deskQuestions(j).length;
+        const playing = j.id === deskActive;
+        return '<div class="desk-job' + (playing ? ' playing' : '') + '" data-job="' + j.id + '">' +
+          '<div><b>' + n + ' question' + (n > 1 ? 's' : '') + '</b> · up to ' + fmt(deskMax(j)) +
+          (n > 1 ? ' <span class="desk-boost">×' + DESK_BOOST[n] + ' if all right</span>' : '') +
+          '<div class="desk-meta">' + (j.answered.length ? j.answered.length + ' answered · ' : '') +
+            (playing ? 'in progress' : fmtDuration(Math.max(0, j.expiresAt - now)) + ' left') + '</div></div>' +
+          (playing ? '' : '<button type="button" class="btn-primary btn-small" data-action="desk-start" data-job="' + j.id + '"' +
+            (deskActive ? ' disabled' : '') + (guide && guide.key === 'desk' && j === jobs[0] ? ' data-guide="1"' : '') + '>' +
+            (j.answered.length ? 'Carry on' : 'Start') + '</button>') + '</div>';
+      }).join('') + (jobs.length < DESK_MAX ? '<p class="desk-empty">' + (jobs.length ? 'Another' : 'A desk job') + ' turns up in about ' +
+        fmtDuration(Math.max(60000, state.desk.nextAt - now)) + '.</p>' : '');
+      box.querySelectorAll('[data-guide]').forEach(b => b.classList.add('guide-target'));
+    }
+    deskSlot.addEventListener('click', e => {
+      const b = e.target.closest('[data-action]');
+      if(!b || b.disabled) return;
+      if(b.dataset.action === 'desk-start') startDeskJob(b.dataset.job);
+      else if(b.dataset.action === 'desk-close'){
+        const box = document.getElementById('deskPlay');
+        box.hidden = true;
+        box.innerHTML = '';
+      }
     });
+    deskReady.then(() => { if(moveDesk(Date.now())) save(); renderAll(); });
+
     // ---------------------------------------------------------------------
     // Rendering: stats, studio, board
     // ---------------------------------------------------------------------
@@ -1161,8 +1270,8 @@ window.DebuggLtd = (function(){
     }
 
     // The first steps, shown as one "next step" card until the player has a dev on a contract and
-    // has solved a desk puzzle (or dismisses it): hire a grad, put them on a hotfix they can
-    // take (with repeat on), solve today's puzzle. Returns { key, text, offerId? } or null.
+    // has done a desk job (or dismisses it): hire a grad, put them on a hotfix they can take (with
+    // repeat on), take a desk job. Returns { key, text, offerId? } or null.
     function guideStep(){
       if(state.guideDone) return null;
       const devs = state.roster.filter(isDev);
@@ -1178,10 +1287,9 @@ window.DebuggLtd = (function(){
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
             'while you’re away. On the bench they only do odd jobs, which barely cover their salary.' };
       }
-      const today = D.slotDay(D.today());
-      if(!D.isFinished(today)){
-        return { key: 'desk', text: '<b>Solve today’s puzzle at your desk.</b> It pays the company up to ' +
-          fmt(D.baseXp(today) * CASH_PER_XP * stage().desk) + ', and a new one comes out every day.' };
+      if(!(state.desk && state.desk.done)){
+        return { key: 'desk', text: '<b>Take a desk job.</b> At your desk, answer a question or two from past daily puzzles ' +
+          'and Debuggit Learn. Every right answer pays the company, and new jobs turn up about every hour.' };
       }
       state.guideDone = true;
       save();
@@ -1211,7 +1319,7 @@ window.DebuggLtd = (function(){
       }
       if(state.money < 0){
         html += '<div class="alert bad" data-alert="debt">⚠ The company is ' + fmt(-state.money) + ' in debt, and salaries keep going out. ' +
-          'Put everyone on contracts, solve today’s puzzle, or let someone go.</div>';
+          'Put everyone on contracts, take a desk job, or let someone go.</div>';
       }
       setHTML(guideEl, html);
       return step;
@@ -1375,8 +1483,8 @@ window.DebuggLtd = (function(){
                  '<span class="card-level">Director</span></div>' +
                  '<div class="card-stats"><span>' + skills + '</span></div>' +
                  '<div class="card-foot"><span>' + (c0.Manager
-                   ? 'Solving the daily puzzles at your desk. Your managers look after the team.'
-                   : 'Solving the daily puzzles at your desk, and managing the start-up yourself (up to ' + DIRECTOR_SPAN + ' devs).') +
+                   ? 'Taking desk jobs. Your managers look after the team.'
+                   : 'Taking desk jobs, and managing the start-up yourself (up to ' + DIRECTOR_SPAN + ' devs).') +
                  '</span></div></div>';
 
       ROSTER_GROUPS.forEach(level => {
@@ -1439,7 +1547,7 @@ window.DebuggLtd = (function(){
       if(locked.length){
         html += '<p class="applicants-note">' + locked.map(r => (r === 'Senior' ? 'Seniors' : 'Principals') +
           ' apply once the studio has ' + APPLICANT_REP[r].toLocaleString('en-GB') + ' reputation').join('; ') +
-          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts and daily puzzles earn it.</p>';
+          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts and desk jobs earn it.</p>';
       }
       setHTML(applicantsEl, html);
     }
@@ -1631,6 +1739,7 @@ window.DebuggLtd = (function(){
       renderStudio(now);
       renderBoard();
       renderJobs(now);
+      renderDesk();
     }
 
     // ---------------------------------------------------------------------
@@ -1990,6 +2099,7 @@ window.DebuggLtd = (function(){
       moveMarket(t);
       moveApplicants(t);
       moveNotices(t);
+      moveDesk(t);
       checkStage();
       managersStaff();
       renderAll();

@@ -9,6 +9,13 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **The daily puzzle and Debuggit Ltd are now separate.** The daily is its own game again and no
+  longer pays the company, and the Ltd tab no longer shows it. Your puzzle levels still make your
+  Director better at contracts.
+- **Desk jobs** replace it at your company's desk: 1 to 3 questions from past daily puzzles and
+  Debuggit Learn, turning up about every hour (while you're away too, up to 3 at once). Every
+  right answer pays the company, and getting a whole job right pays a bonus. Do as many as turn up.
+
 - Missing a puzzle about lists now points you to Debuggit Learn's new Lists unit.
 - The sandbox has moved to Debuggit Learn. "Run it yourself" after a puzzle, and the footer's
   sandbox link, take you there, and your drafts come with it.
