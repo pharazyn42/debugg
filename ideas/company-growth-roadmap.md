@@ -41,8 +41,9 @@ their card says **WFH**, and they take no desk. They replace item 15's separate 
   (they need mentoring), but a grad could ask to go WFH later, after their first promotion.
 - **What you get:** no desk and no share of rent. They keep working when the office is closed
   (a burst pipe, moving day, a power cut: item 17d), so they're steady through disruption.
-- **What it costs** (to settle in the balance pass; a trade-off keeps it a choice, not a free
-  win): they learn a little slower (−25% XP, less mentoring from the team, item 22), and they
+- **What it costs** (decided with the player-owner: the trade-off keeps WFH a choice, not a free
+  win, so desks and premises still matter; the exact numbers are for the balance pass): they
+  learn a little slower (−25% XP, less mentoring from the team, item 22), and they
   can't be a **learner** on a contract, since learning a new language needs someone beside you.
   They ask the same pay as anyone else.
 - **Supervision still applies**: they count towards the structure (Devs, and their level's
@@ -162,8 +163,6 @@ free for a grace period (item 15's migration note).
 
 ## Open questions
 
-- **WFH's trade-off**: slower learning and no learning new languages (as sketched), or simply
-  cheaper (no desk) with nothing against it?
 - **Desks for managers and the Director?** Simplest: everyone on site takes a desk, the Director
   included (the spare room's 4 desks then means 3 hires). Or the Director works from home.
 - **How harsh is a full office?** Hiring blocked (as sketched), or allowed with a "cramped"
