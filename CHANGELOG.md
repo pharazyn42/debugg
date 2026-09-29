@@ -6,6 +6,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.2 — 29 September 2026
+
 ### Learn
 - Debuggit Learn has its own home at `/learn/`, apart from the game: the daily puzzle and Debuggit
   Ltd keep the Daily and Ltd tabs, and Learn has a link back to them. Old links still work, and
