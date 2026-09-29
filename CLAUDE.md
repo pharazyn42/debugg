@@ -928,12 +928,19 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   unit not yet passed and, in it, the first lesson not done, or its checkpoint once every lesson
   is. A unit passed by testing out counts as done. "Start here" on a first visit, "Continue" after;
   "All caught up" (with the next planned unit) once every written unit is passed. No card on a
-  coming-soon course. The review round (item 2 of that list) will join this card.
+  coming-soon course.
+- **Review queue** (September 2026, the second experience item): every question missed, in a lesson
+  or checkpoint, goes into `save.review` (`{ lang, unit, lesson, q, box, due }`, `lesson` null for a
+  checkpoint, `q` the question's text and code) and comes back in a **Review** round in the Continue
+  card from the next day: up to 8, oldest first, wrong answers repeated before the end. Right first
+  time moves it on (1, 3, then 7 days; `REVIEW_DAYS`); right three times running, it leaves the queue;
+  missed again, it starts over. 2 XP per question right first time, and a round counts for the Learn
+  streak. The checker fails two questions with the same text and code in one lesson or checkpoint.
 - **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
   never locked behind daily puzzles or anything else.
 - **Still to do:** the rest of the Python course (Conditions, Loops,
-  Functions, Dictionaries, the classic traps), a review queue of missed questions (spaced
-  repetition), other languages' courses, the Rosetta-style "second language" lessons, and
+  Functions, Dictionaries, the classic traps), the other experience items (lesson feel, a visual
+  course path and daily goal, a phone and accessibility pass), other languages' courses, the Rosetta-style "second language" lessons, and
   badges.
 
 The original sketch:

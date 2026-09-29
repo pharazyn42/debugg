@@ -9,6 +9,8 @@ one for fixes.
 
 - A **Continue** card at the top of the course takes you straight to your next lesson or
   checkpoint, so you can pick up where you left off in one tap.
+- **Review**: questions you get wrong come back the next day in a short review round, then again
+  after 3 and 7 days until they've stuck. It shows in the Continue card when one is due.
 - Python Unit 3, "Lists": making lists, changing them (append, pop, remove), slices and joining,
   why `b = a` gives one list two names, and sorting and summing. Four lessons and a checkpoint;
   it opens once you've passed Unit 2's checkpoint.
