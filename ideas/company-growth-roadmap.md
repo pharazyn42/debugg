@@ -27,10 +27,28 @@ Every on-site person needs a **desk**, and the space you hold sets how many.
 - **Desks cap on-site headcount**, alongside the supervision limits. Both show, and the lower
   one stops hiring: "Devs 5/16 · Desks 5/8". Hire buttons say which is full ("no free desk —
   find bigger premises").
-- **Remote workers** (item 15's contractors) need no desk but cost 50% more in salary: the way
-  past a full office before you can afford bigger premises.
+- **Some people work from home** and need no desk (see "Working from home" below): the way past a
+  full office before you can afford bigger premises.
 - **An Office line** at the top of the Studio panel shows where you are, desks used out of the
   total, rent per minute and lease days left, with a **Find premises** button.
+
+### Working from home
+
+Some **applicants** (item 13's juniors, seniors and principals who apply) **work from home**:
+their card says **WFH**, and they take no desk. They replace item 15's separate "contractors".
+
+- **How many:** about 1 in 4 applicants. Graduates hired with the button are always on site
+  (they need mentoring), but a grad could ask to go WFH later, after their first promotion.
+- **What you get:** no desk and no share of rent. They keep working when the office is closed
+  (a burst pipe, moving day, a power cut: item 17d), so they're steady through disruption.
+- **What it costs** (to settle in the balance pass; a trade-off keeps it a choice, not a free
+  win): they learn a little slower (−25% XP, less mentoring from the team, item 22), and they
+  can't be a **learner** on a contract, since learning a new language needs someone beside you.
+  They ask the same pay as anyone else.
+- **Supervision still applies**: they count towards the structure (Devs, and their level's
+  slots), just not towards desks. The stats bar shows "Desks 5/8 · +2 WFH".
+- **Later:** an office-only policy (everyone comes in, some leave) or a hybrid policy, and
+  WFH requests from people already on site.
 
 ## 2. Renting: co-working and business units
 
@@ -144,6 +162,8 @@ free for a grace period (item 15's migration note).
 
 ## Open questions
 
+- **WFH's trade-off**: slower learning and no learning new languages (as sketched), or simply
+  cheaper (no desk) with nothing against it?
 - **Desks for managers and the Director?** Simplest: everyone on site takes a desk, the Director
   included (the spare room's 4 desks then means 3 hires). Or the Director works from home.
 - **How harsh is a full office?** Hiring blocked (as sketched), or allowed with a "cramped"

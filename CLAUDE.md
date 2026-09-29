@@ -1185,8 +1185,12 @@ Sketched September 2026 in `ideas/company-growth-roadmap.md`: where the company 
 grows, and what it does with space, tied to the business stages (item 13). A **business unit**
 here means commercial premises, a small office unit like one on a business park (the
 player-owner's meaning), not a division of the company.
-- **Desks** cap on-site headcount alongside supervision ("Devs 5/16 · Desks 5/8"); remote
-  workers cost 50% more but need no desk; an Office line in the Studio panel.
+- **Desks** cap on-site headcount alongside supervision ("Devs 5/16 · Desks 5/8"); an Office
+  line in the Studio panel.
+- **Working from home** (the player-owner's idea): about 1 in 4 applicants are **WFH** and need
+  no desk ("Desks 5/8 · +2 WFH"); they keep working when the office is closed, but (to settle)
+  learn a little slower and can't be learners. They still count towards supervision. They
+  replace item 15's separate contractors.
 - **Renting:** the free spare room (4 desks), co-working desks by the minute, then **business
   units** (small 8 desks, large 16) on leases (longer is cheaper; deposit; early-exit fee; moving
   takes 10 minutes; up to 3 units side by side), then office floors. Rent is a running cost like
@@ -1201,7 +1205,8 @@ player-owner's meaning), not a division of the company.
   (2) business units on leases; (3) office floors and subletting; (4) buying property;
   (5) rental units; (6) sites (item 18).
 - **Open questions** are in the doc: desks for the Director and managers, how harsh a full
-  office is, random listings or any size on demand, named tenants, buying purely to let.
+  office is, random listings or any size on demand, named tenants, buying purely to let, and
+  WFH's trade-off.
 
 #### 15b. Shared event system
 - One system for everything that randomly (or conditionally) happens to
