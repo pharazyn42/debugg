@@ -195,7 +195,7 @@ state = {
   money, reputation, lastTick,
   roster: [ { id, name, role, since, worked, lang: {name: xp}, away? } ],  // Director is roster[0]; worked = ms on contracts at current level;
                                                                         // away = { kind: 'training'|'holiday'|'sick'…, until } (no odd jobs meanwhile)
-  board:  [ { id, tier, lang, sloc, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target
+  board:  [ { id, tier, lang, sloc, risk, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target; risk = 'standard'|'risky'|'high'
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
@@ -318,6 +318,14 @@ state = {
     0.4 / 0.45 / 0.5 by tier), independent of team speed, so skill bars
     build at roughly the pace of the contract-time promotion timers. This is the placeholder skill-gain
     mechanic; it doesn't yet model supervision.
+  - **Risk** (the player-owner's idea, September 2026; `RISKS`, `offer.risk`, copied to the
+    job): each offer rolls **Standard** (70%), **Risky** (22%: pay ×1.4, −15% success, failing
+    costs 2× the usual reputation) or **High stakes** (8%: pay ×2, −30% success, 4× reputation).
+    Success never drops below `MIN_CHANCE` (5%). A repeat keeps its contract's risk; managers
+    staff any risk. Per attempt, risk is roughly break-even or better for a grad (71% × 1 vs
+    41% × 2) and clearly better for strong teams, with the reputation cost as the catch. Offers,
+    the picker and jobs show it ("High stakes · pays ×2 · −30% success"); older offers count as
+    Standard.
   - **Retry on failure**: a failed contract can be retried once, in half
     the time, for 75% of the payout. If the retry fails, the contract is
     lost. Non-repeating jobs wait in a "failed" state, with the team held,

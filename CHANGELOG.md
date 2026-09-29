@@ -15,6 +15,8 @@ things to play and the last one for fixes and balance changes.
 - Developers on the bench do odd jobs, which cover their salary with 5% to spare, so a quiet
   spell grows the company slowly instead of costing it. Contracts still pay far better, and odd
   jobs don't count towards skills or promotion.
+- Some contracts are **Risky** (pay ×1.4, 15% less likely to succeed) or **High stakes** (pay ×2,
+  30% less likely), and failing them costs more reputation. Strong teams make the most of them.
 
 ## 0.0.1 — 28 September 2026
 

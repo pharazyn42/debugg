@@ -314,6 +314,37 @@ test('developers on the bench do odd jobs, which cover their salary with 5% to s
   await expect(page.locator('#statMoney')).toHaveText('¤160');
 });
 
+test('risky contracts pay more, succeed less often, and cost more reputation when they fail', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  // Some offers are rolled risky; the board has every level over time.
+  const risks = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-ltd')).board.map(o => o.risk));
+  expect(risks.every(r => ['standard', 'risky', 'high'].includes(r))).toBe(true);
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.reputation = 10;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, risk: 'high', expiresAt: Date.now() + 3600000 };
+  });
+  const offer = page.locator('.offer:has([data-offer=o1])');
+  await expect(offer.locator('.risk.high')).toHaveText('High stakes · pays ×2 · −30% success');
+  await page.click('[data-action=staff][data-offer=o1]');
+  await page.click('[data-pick=g1]');
+  // A grad's 70% reliability, +1% for 1 bar of Python, −30% for the risk; double the ¤5.
+  await expect(page.locator('.forecast')).toContainText('Success chance 41% (incl. −30% for the risk) · Payout ¤10 (×2)');
+  await expect(page.locator('.forecast')).toContainText('each failure costs 4× the usual reputation');
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job')).toContainText('High stakes');
+  expect((await ltd(page)).jobs[0]).toMatchObject({ risk: 'high', payout: 10, chance: 0.41 });
+
+  // A failed retry loses the contract and 4× the usual reputation (a hotfix's 0.5 ÷ 2 × 4 = 1).
+  await editCompany(page, s => {
+    Object.assign(s.jobs[0], { chance: 0, attempt: 2, endsAt: Date.now() - 1000 });
+  });
+  await expect(page.locator('#log')).toContainText('✕ high stakes Hotfix (Python) retry failed again — contract lost.');
+  expect((await ltd(page)).reputation).toBe(9);
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
