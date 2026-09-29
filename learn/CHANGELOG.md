@@ -7,7 +7,9 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- Python Unit 3, "Lists": making lists, changing them (append, pop, remove), slices and joining,
+  why `b = a` gives one list two names, and sorting and summing. Four lessons and a checkpoint;
+  it opens once you've passed Unit 2's checkpoint.
 
 ## 0.0.3 — 29 September 2026
 
