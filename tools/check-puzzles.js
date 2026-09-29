@@ -221,6 +221,17 @@ function checkLearn(ctx, only){
         if(!(u.checkpoint.pass >= 1 && u.checkpoint.pass <= qs)) fail(lang + '/' + u.id + '/checkpoint', ['pass mark must be 1 to ' + qs]);
         all.push({ where: lang + '/' + u.id + '/checkpoint', steps: u.checkpoint.steps });
       }
+      all.forEach(({ where, steps: list }) => {
+        // The review queue finds a missed question by its text and code, so no two in a lesson or
+        // checkpoint may share both (learn.js, questionId).
+        const ids = new Set();
+        list.forEach((s, i) => {
+          if(s.type === 'teach') return;
+          const id = s.question + '\n' + (s.code || '');
+          if(ids.has(id)) fail(where + ' step ' + (i + 1), ['same question and code as an earlier step (the review queue can\'t tell them apart)']);
+          ids.add(id);
+        });
+      });
       all.forEach(({ where, steps: list }) => list.forEach((s, i) => {
         steps++;
         const problems = checkStep(lang, s);

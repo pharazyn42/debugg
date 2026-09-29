@@ -106,6 +106,67 @@ test('the Continue card starts the next lesson or checkpoint in one tap', async 
   await expect(card).toHaveCount(0);
 });
 
+test('missed questions come back in review rounds: tomorrow, then after 3 and 7 days', async ({ page }) => {
+  // Miss one question in the first lesson (it comes back in the lesson, and joins the review queue).
+  await page.locator('#continue button').click();
+  let missed = null;
+  while(!(await page.locator('#summary').count())){
+    const s = await current(page);
+    if(!missed && s.type !== 'teach'){
+      missed = await answer(page, false);
+    }else await answer(page, true);
+  }
+  let save = await learnSave(page);
+  expect(save.review).toEqual([{ lang: 'python', unit: 'values', lesson: 'print', q: missed.question + '\n' + (missed.code || ''), box: 0, due: 4 }]);
+  await page.click('#summary [data-action=quit]');
+  await expect(page.locator('#reviewDue')).toHaveCount(0);  // not due until tomorrow
+
+  // Tomorrow it's in the Continue card.
+  const reviewDay = async (day, right) => {
+    await openAt(page, 'learn/', day);
+    await expect(page.locator('#reviewDue')).toContainText('1 question you missed before');
+    await page.click('#reviewBtn');
+    await expect(page.locator('h1')).toHaveText('Review');
+    expect((await current(page)).question).toBe(missed.question);
+    if(!right){ await answer(page, false); await expect(page.locator('h1')).toHaveText('Review'); }
+    await answer(page, true);
+    await expect(page.locator('#summary')).toBeVisible();
+    return (await learnSave(page)).review;
+  };
+  const xpBefore = save.xp.python;
+  expect(await reviewDay(4, true)).toMatchObject([{ box: 1, due: 7 }]);
+  await expect(page.locator('#summary')).toContainText('1 right first time +2 XP');
+  expect((await learnSave(page)).xp.python).toBe(xpBefore + 2);
+  expect((await learnSave(page)).streak).toEqual({ count: 2, lastDay: 4 });
+  await openAt(page, 'learn/', 6);
+  await expect(page.locator('#reviewDue')).toHaveCount(0);
+  // Missed again, it starts over from tomorrow.
+  expect(await reviewDay(7, false)).toMatchObject([{ box: 0, due: 8 }]);
+  await expect(page.locator('#summary')).toContainText('0 right first time. 1 will come back tomorrow.');
+  expect(await reviewDay(8, true)).toMatchObject([{ box: 1, due: 11 }]);
+  expect(await reviewDay(11, true)).toMatchObject([{ box: 2, due: 18 }]);
+  // Right three times running, it's learnt.
+  expect(await reviewDay(18, true)).toEqual([]);
+  await expect(page.locator('#summary')).toContainText('1 learnt for good.');
+
+  // Checkpoint misses join too, and a round takes at most 8, oldest first.
+  await page.click('#summary [data-action=quit]');
+  await page.locator('.unit[data-unit=values] [data-action=checkpoint]').click();
+  while(!(await page.locator('#summary').count())) await answer(page, false);
+  save = await learnSave(page);
+  expect(save.review.length).toBe(8);
+  expect(save.review.every(r => r.lesson === null && r.due === 19)).toBe(true);
+  // A question that's since been reworded or removed is dropped from the round.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn'));
+    s.review.push({ lang: 'python', unit: 'values', lesson: 'print', q: 'a question that no longer exists', box: 0, due: 10 });
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await openAt(page, 'learn/', 19);
+  await expect(page.locator('#reviewDue')).toContainText('8 questions you missed before');
+  await expect(page.locator('#reviewBtn')).toHaveText('Review 8 →');
+});
+
 test('C is a coming-soon tab with its planned units', async ({ page }) => {
   const tabs = page.locator('#langs .lang-tab');
   await expect(tabs).toHaveCount(2);

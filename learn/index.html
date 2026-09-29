@@ -56,6 +56,23 @@
   .continue h2{ font-size: 18px; margin: 4px 0 2px; }
   .continue p{ color: var(--text-dim); font-size: 13.5px; margin: 0; }
   .continue .btn-primary{ white-space: nowrap; }
+  .review-due{
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    margin-top: 2px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+  .continue.done .review-due{ margin-top: 12px; }
+  .review-due span{ flex: 1 1 220px; }
+  .review-due b{ color: var(--amber); }
+  .review-due .btn-small{ white-space: nowrap; }
   .unit{
     background: var(--panel);
     border: 1px solid var(--line);

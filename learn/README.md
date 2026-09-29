@@ -19,9 +19,16 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
   The lesson ends once every question has been answered right.
 - Stars by mistakes: none → 3, 1–2 → 2, more → 1. Replaying can raise them.
 - Checkpoints ask each question once; pass with `pass` correct. Retry any time.
+- **Review:** every question missed, in a lesson or a checkpoint, joins the review queue and comes
+  back a day later in a **Review** round (up to 8 questions, oldest first), shown in the Continue card
+  when due. Right first time, it comes back after 3 days, then 7; right three times running, it's
+  learnt and leaves the queue. Missed again, it starts over from the next day. 2 XP per question right
+  first time. Entries find their question by its `question` and `code`, so rewording a question drops
+  it from people's queues, and no two questions in one lesson or checkpoint may share both (the
+  checker fails it).
 - **Learn XP** (per language) and the **Learn streak** are separate from the daily puzzles':
   10 XP for finishing a lesson the first time, 5 per star (new stars only), 30 for first passing a
-  checkpoint. The streak counts days with a lesson finished or a checkpoint passed.
+  checkpoint. The streak counts days with a lesson finished, a checkpoint passed or a review round done.
 - Everything is saved under `debugg-learn` (backed up with the rest, reset with the demo at v0.1,
   and kept by the daily page's "reset puzzles").
 

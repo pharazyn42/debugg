@@ -4,6 +4,8 @@
 // learn/README.md). Lessons unlock in order. A question answered wrongly comes back at the end of the
 // lesson, so a lesson is finished once every question has been answered correctly; mistakes cost stars.
 // A unit's checkpoint can be taken at any time ("test out"), and passing it unlocks the next unit.
+// Every question missed, in a lesson or a checkpoint, also joins the review queue: it comes back in a
+// short Review round a day later, then after 3 days and 7 days, until it's been right three times running.
 //
 // Learn keeps its own XP and streak, separate from the daily puzzles, in one save: debugg-learn.
 window.DebuggLearn = (function(){
@@ -13,6 +15,9 @@ window.DebuggLearn = (function(){
   const LESSON_XP = 10;       // for finishing a lesson the first time
   const STAR_XP = 5;          // per star, paid again only for stars beyond your best
   const CHECKPOINT_XP = 30;   // for passing a checkpoint the first time
+  const REVIEW_XP = 2;        // per review question right first time
+  const REVIEW_DAYS = [1, 3, 7];  // days until a missed question comes back, by how often it's been right since
+  const REVIEW_ROUND = 8;     // questions in a review round at most
   // Stars for a lesson, by mistakes made: 0 → 3 stars, 1–2 → 2 stars, more → 1 star.
   function starsFor(mistakes){ return mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1; }
 
@@ -22,18 +27,20 @@ window.DebuggLearn = (function(){
 
   // --- The save -------------------------------------------------------------------------------
   // { lessons: { 'python/values/print': { stars } }, checkpoints: { 'python/values': { passed, best } },
-  //   xp: { python: 40 }, streak: { count, lastDay } }
+  //   xp: { python: 40 }, streak: { count, lastDay },
+  //   review: [ { lang, unit, lesson, q, box, due } ] }   // lesson null = the checkpoint; q = questionId()
+  const blank = () => ({ lessons: {}, checkpoints: {}, xp: {}, streak: { count: 0, lastDay: null }, review: [] });
   function read(){
     try{
       const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-      if(s && typeof s === 'object') return Object.assign({ lessons: {}, checkpoints: {}, xp: {}, streak: { count: 0, lastDay: null } }, s);
+      if(s && typeof s === 'object') return Object.assign(blank(), s);
     }catch(e){}
-    return { lessons: {}, checkpoints: {}, xp: {}, streak: { count: 0, lastDay: null } };
+    return blank();
   }
   function write(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
   let save = read();
 
-  // The Learn streak counts days with a lesson finished or a checkpoint passed.
+  // The Learn streak counts days with a lesson finished, a checkpoint passed or a review round done.
   function streak(){ return save.streak.lastDay != null && save.streak.lastDay >= today - 1 ? save.streak.count : 0; }
   function markStreak(){
     if(save.streak.lastDay === today) return;
@@ -74,6 +81,29 @@ window.DebuggLearn = (function(){
   }
   const isQuestion = s => s.type !== 'teach';
 
+  // --- The review queue ---------------------------------------------------------------------------
+  // Entries find their question by its text and code (questionId), so editing a unit's other steps
+  // doesn't move them; one whose question has gone (or been reworded) is dropped. The checker makes
+  // sure no two questions in a lesson or checkpoint share an id.
+  const questionId = s => s.question + '\n' + (s.code || '');
+  function reviewStep(r){
+    const u = unitsOf(r.lang).find(x => x.id === r.unit);
+    if(!u) return null;
+    const steps = r.lesson == null ? u.checkpoint.steps : ((u.lessons.find(l => l.id === r.lesson) || {}).steps || []);
+    const step = steps.find(s => isQuestion(s) && questionId(s) === r.q);
+    return step ? { unit: u, step } : null;
+  }
+  // A missed question goes (back) to the start of the queue, due tomorrow.
+  function addReview(u, lesson, step){
+    const r = { lang: u.lang, unit: u.id, lesson: lesson ? lesson.id : null, q: questionId(step) };
+    save.review = save.review.filter(x => !(x.lang === r.lang && x.unit === r.unit && x.lesson === r.lesson && x.q === r.q));
+    save.review.push(Object.assign(r, { box: 0, due: today + REVIEW_DAYS[0] }));
+    write();
+  }
+  function dueReviews(l){
+    return save.review.filter(r => r.lang === l && r.due <= today && reviewStep(r)).sort((a, b) => a.due - b.due);
+  }
+
   // --- The header, stats and course map ------------------------------------------------------------
   function renderStats(){
     const xp = save.xp[lang] || 0;
@@ -112,13 +142,17 @@ window.DebuggLearn = (function(){
   // The card at the top of the course map: pick up where you left off in one tap.
   function continueHTML(){
     if(L.courses[lang].soon || !unitsOf(lang).length) return '';
+    const due = dueReviews(lang).length;
+    const review = due ? '<div class="review-due" id="reviewDue"><span><b>Review</b> · ' + due + ' question' + (due > 1 ? 's' : '') +
+      ' you missed before, back to check ' + (due > 1 ? 'they’ve' : 'it’s') + ' stuck</span>' +
+      '<button class="btn-ghost btn-small" data-action="review" id="reviewBtn">Review ' + Math.min(due, REVIEW_ROUND) + ' →</button></div>' : '';
     const next = nextStep(lang);
     const started = Object.keys(save.lessons).concat(Object.keys(save.checkpoints)).some(k => k.startsWith(lang + '/'));
     if(next.kind === 'done'){
       const planned = (L.courses[lang].planned || [])[0];
       return '<section class="continue done" id="continue"><span class="continue-label">All caught up</span>' +
         '<h2>You’ve finished every unit written so far</h2>' +
-        '<p>' + (planned ? 'Next up: <b>' + esc(planned) + '</b>, coming soon. ' : '') + 'Replay any lesson to earn more stars.</p></section>';
+        '<p>' + (planned ? 'Next up: <b>' + esc(planned) + '</b>, coming soon. ' : '') + 'Replay any lesson to earn more stars.</p>' + review + '</section>';
     }
     const u = next.unit;
     const where = 'Unit ' + (next.unitIndex + 1) + ': ' + esc(u.title);
@@ -131,7 +165,7 @@ window.DebuggLearn = (function(){
       : '<button class="btn-primary" data-action="checkpoint" data-unit="' + u.id + '">Take the checkpoint →</button>';
     return '<section class="continue" id="continue"><div class="continue-text">' +
       '<span class="continue-label">' + (started ? 'Continue' : 'Start here') + '</span>' +
-      '<h2>' + title + '</h2><p>' + where + ' · ' + detail + '</p></div>' + button + '</section>';
+      '<h2>' + title + '</h2><p>' + where + ' · ' + detail + '</p></div>' + button + review + '</section>';
   }
 
   function renderMap(){
@@ -205,10 +239,22 @@ window.DebuggLearn = (function(){
     next();
   }
 
+  // A review round: up to REVIEW_ROUND due questions, from any unit, oldest first. Like a lesson, a
+  // wrong answer comes back before the end.
+  function startReview(){
+    const items = dueReviews(lang).slice(0, REVIEW_ROUND).map(r => Object.assign({ entry: r }, reviewStep(r)));
+    if(!items.length) return renderMap();
+    session = { kind: 'review', items, unit: items[0].unit, steps: items.map(i => i.step), queue: items.map((_, i) => i),
+                total: items.length, done: 0, mistakes: 0, missed: new Set() };
+    track('review/started');
+    next();
+  }
+
   function next(){
     if(!session.queue.length) return finish();
     session.current = session.queue.shift();
     session.answered = false;
+    if(session.kind === 'review') session.unit = session.items[session.current].unit;
     renderStep();
   }
 
@@ -232,8 +278,9 @@ window.DebuggLearn = (function(){
     const unitName = 'Unit ' + (unitsOf(lang).indexOf(session.unit) + 1) + ': ' + session.unit.title;
     const where = session.kind === 'lesson'
       ? unitName + ' · lesson ' + (session.unit.lessons.indexOf(session.lesson) + 1) + ' of ' + session.unit.lessons.length
+      : session.kind === 'review' ? unitName + ' · a question you missed before'
       : unitName + ' · pass with ' + session.unit.checkpoint.pass;
-    $('title').textContent = session.kind === 'lesson' ? session.lesson.title : 'Checkpoint';
+    $('title').textContent = session.kind === 'lesson' ? session.lesson.title : session.kind === 'review' ? 'Review' : 'Checkpoint';
     $('sub').textContent = where;
     let body = '';
     if(s.type === 'teach'){
@@ -293,12 +340,16 @@ window.DebuggLearn = (function(){
       fb.innerHTML = '<b>Quack! Correct.</b> ' + s.explain;
     }else{
       session.mistakes++;
-      if(session.kind === 'lesson') session.queue.push(session.current);  // it comes back later
-      else session.done++;
+      if(session.kind === 'checkpoint') session.done++;
+      else session.queue.push(session.current);  // it comes back before the end
+      if(session.kind === 'review') session.missed.add(session.current);
+      else addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
       fb.className = 'feedback show wrong';
       fb.innerHTML = '<b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
-        (session.kind === 'lesson' ? '<span class="again">This one comes back before the end of the lesson.</span>' : '');
+        '<span class="again">' + (session.kind === 'lesson' ? 'This one comes back before the end of the lesson, and in a review tomorrow.'
+          : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
+          : 'This one comes back in a review tomorrow.') + '</span>';
     }
     $('continueBtn').hidden = false;
     $('continueBtn').focus();
@@ -347,7 +398,33 @@ window.DebuggLearn = (function(){
   function finish(){
     const u = session.unit;
     let html = '';
-    if(session.kind === 'lesson'){
+    if(session.kind === 'review'){
+      // Right first time moves a question to its next gap (1, 3, then 7 days); right three times
+      // running, it's learnt and leaves the queue. Missed again, it starts over from tomorrow.
+      let learnt = 0, again = 0;
+      session.items.forEach((it, i) => {
+        const r = it.entry;
+        if(session.missed.has(i)){ r.box = 0; r.due = today + REVIEW_DAYS[0]; again++; return; }
+        r.box++;
+        if(r.box >= REVIEW_DAYS.length){ save.review = save.review.filter(x => x !== r); learnt++; }
+        else r.due = today + REVIEW_DAYS[r.box];
+      });
+      const right = session.items.length - session.missed.size;
+      const xp = REVIEW_XP * right;
+      save.xp[lang] = (save.xp[lang] || 0) + xp;
+      markStreak();
+      write();
+      track('review/done');
+      const left = dueReviews(lang).length;
+      html = '<div class="summary" id="summary"><img class="summary-duck" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64">' +
+        '<p class="big-score">' + right + '/' + session.items.length + '</p><h2>Review done</h2>' +
+        '<p>' + right + ' right first time' + (xp ? ' <b>+' + xp + ' XP</b>' : '') + '.' +
+        (learnt ? ' ' + learnt + ' learnt for good.' : '') +
+        (again ? ' ' + again + ' will come back tomorrow.' : '') + '</p>' +
+        '<p>Learn streak: <b>' + streak() + '</b></p><div class="step-actions">' +
+        (left ? '<button class="btn-primary" data-action="review">Review ' + Math.min(left, REVIEW_ROUND) + ' more</button>' : '') +
+        '<button class="' + (left ? 'btn-ghost' : 'btn-primary') + '" data-action="quit">Back to the course</button></div></div>';
+    }else if(session.kind === 'lesson'){
       const key = lessonKey(u, session.lesson);
       const stars = starsFor(session.mistakes);
       const before = save.lessons[key];
@@ -405,6 +482,7 @@ window.DebuggLearn = (function(){
       const u = unitById(btn.dataset.unit);
       startLesson(u, u.lessons.find(l => l.id === btn.dataset.lesson));
     }else if(a === 'checkpoint') startCheckpoint(unitById(btn.dataset.unit));
+    else if(a === 'review') startReview();
     else if(a === 'quit') renderMap();
     else if(a === 'continue') onContinue();
     else if(a === 'choose') onChoose(btn.dataset.text, btn);
