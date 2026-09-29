@@ -202,6 +202,20 @@ window.DebuggLtd = (function(){
     // RETRY_PAYOUT of the payout.
     const RETRY_TIME = 0.5;
     const RETRY_PAYOUT = 0.75;
+    // Some offers are riskier: they pay more (`pay`) but succeed less often (`chance`, added to
+    // the team's success chance, never below MIN_CHANCE), and failing them costs more reputation
+    // (`repLoss`, times the usual). Rolled per offer by `weight`. A repeat keeps its contract's risk.
+    const RISKS = {
+      standard: { name: 'Standard',    weight: 70, pay: 1,   chance: 0,     repLoss: 1 },
+      risky:    { name: 'Risky',       weight: 22, pay: 1.4, chance: -0.15, repLoss: 2 },
+      high:     { name: 'High stakes', weight: 8,  pay: 2,   chance: -0.30, repLoss: 4 }
+    };
+    const MIN_CHANCE = 0.05;
+    function riskOf(o){ return RISKS[o && o.risk] || RISKS.standard; }
+    function rollRisk(){
+      let roll = Math.random() * Object.values(RISKS).reduce((n, r) => n + r.weight, 0);
+      return Object.keys(RISKS).find(k => (roll -= RISKS[k].weight) < 0) || 'standard';
+    }
 
     // Contract types are named after release types, smallest first:
     // hotfix → patch → minor release → major release.
@@ -348,6 +362,7 @@ window.DebuggLtd = (function(){
       const spread = 1 - SLOC_SPREAD + Math.random() * 2 * SLOC_SPREAD;
       return { id: uid('c'), tier: tierIndex, lang: lang || pick(LANGS),
                sloc: Math.max(1, Math.round(tier.refSloc * tier.minutes * spread)),
+               risk: rollRisk(),
                expiresAt: Date.now() + tier.offerLife * 60000 };
     }
     // The offer that takes a taken or expired one's place: hotfixes keep their language.
@@ -652,11 +667,12 @@ window.DebuggLtd = (function(){
       const reliability = devs.length ? devs.reduce((s, d) => s + ROLES[d.role].reliability, 0) / devs.length : 0;
       const boost = devs.length ? directorBoost(offer.lang) : 0;
       // Skill match adds up to +5%, scaled by the team's average bars in the language.
-      const chance = devs.length ? Math.min(0.98, reliability + SKILL_CHANCE * skill + boost) : 0;
+      const risk = riskOf(offer);
+      const chance = devs.length ? Math.max(MIN_CHANCE, Math.min(0.98, reliability + SKILL_CHANCE * skill + boost + risk.chance)) : 0;
       const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
       // A contract pays the same whoever does it: skill makes a team faster (more contracts an
       // hour), not better paid per contract.
-      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult);
+      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay);
       const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
       const xp = tier.xpPerMin * ms / 60000;
 
@@ -685,7 +701,7 @@ window.DebuggLtd = (function(){
     // attempt: 1 for the original run, 2 for the retry.
     function newJob(offer, team, startedAt, ev, repeat){
       return {
-        id: offer.id, tier: offer.tier, lang: offer.lang,
+        id: offer.id, tier: offer.tier, lang: offer.lang, risk: offer.risk || 'standard',
         sloc: offer.sloc, teamSloc: ev.sloc,
         team, startedAt, endsAt: startedAt + ev.ms,
         chance: ev.chance, payout: ev.payout, repeat, status: 'running', attempt: 1
@@ -693,7 +709,7 @@ window.DebuggLtd = (function(){
     }
 
     function isRunning(job){ return (job.status || 'running') === 'running'; }
-    function jobTag(job){ return TIERS[job.tier].name + ' (' + job.lang + ')'; }
+    function jobTag(job){ return (job.risk && job.risk !== 'standard' ? riskOf(job).name.toLowerCase() + ' ' : '') + TIERS[job.tier].name + ' (' + job.lang + ')'; }
     function retryPayout(job){ return Math.round(job.payout * RETRY_PAYOUT); }
     function retryMs(job){ return (job.endsAt - job.startedAt) * RETRY_TIME; }
 
@@ -719,7 +735,7 @@ window.DebuggLtd = (function(){
         addLog('ok', '✓ ' + jobTag(job) + retry + ' delivered — ' + fmt(job.payout) + ', +' + fmtXp(xp) + ' XP to the team.');
         return true;
       }
-      state.reputation = Math.max(0, state.reputation - tier.rep / 2);
+      state.reputation = Math.max(0, state.reputation - tier.rep / 2 * riskOf(job).repLoss);
       addLog('bad', '✕ ' + jobTag(job) + retry + ' failed' +
         (job.attempt === 1 ? '.' : ' again — contract lost.'));
       return false;
@@ -745,6 +761,7 @@ window.DebuggLtd = (function(){
       let offer = null, ev = null;
       for(let i = 0; i < 40 && members.every(Boolean) && tierOpen(job.tier); i++){
         const candidate = makeOffer(job.tier);
+        candidate.risk = job.risk || 'standard';
         const e = evaluateTeam(tier, candidate, members);
         if(e.valid){ offer = candidate; ev = e; break; }
       }
@@ -792,9 +809,26 @@ window.DebuggLtd = (function(){
     function payrollPerMinute(){
       return state.roster.reduce((s, p) => s + ROLES[p.role].salary, 0);
     }
-    function paySalaries(seconds){
-      if(seconds > 0) state.money -= payrollPerMinute() * seconds / 60;
+    // Developers on the bench do odd jobs: support tickets, tidying code, internal tools. It covers their salary with BENCH_MARGIN (5%) to spare, so a benched team grows the
+    // company slowly, with no XP or promotion time: contracts are still far better. (The
+    // player-owner's call.) Managers write no code, so no odd jobs.
+    const BENCH_MARGIN = 0.05;
+    function benchPerMinute(p){ return isDev(p) ? ROLES[p.role].salary * (1 + BENCH_MARGIN) : 0; }
+    // On the bench = a developer doing nothing else: not on a contract (including a failed one
+    // waiting for Retry or Drop), and not away. Anything that takes someone away, such as
+    // training, a holiday or being off sick (items 14 and 15c), sets p.away = { kind, until },
+    // and they earn no odd jobs until it ends.
+    function isAway(p, now){ return !!(p.away && !(p.away.until <= now)); }
+    function onBench(p, busy, now){ return isDev(p) && !busy.has(p.id) && !isAway(p, now); }
+    function benchIncomePerMinute(){
+      const busy = busyIds(), now = Date.now();
+      return state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + benchPerMinute(p), 0);
     }
+    function paySalaries(seconds){
+      if(seconds > 0) state.money -= (payrollPerMinute() - benchIncomePerMinute()) * seconds / 60;
+    }
+    // "¤1.5", "¤2": per-minute amounts to one decimal place.
+    function fmtRate(n){ return '¤' + (Math.round(n * 10) / 10).toLocaleString('en-GB'); }
 
     // ---------------------------------------------------------------------
     // Founding, importing, resuming
@@ -979,7 +1013,7 @@ window.DebuggLtd = (function(){
         return { key: 'staff', offerId: offer && offer.id,
           text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
-            'while you’re away. Staff on the bench still get paid.' };
+            'while you’re away. On the bench they only do odd jobs, which barely cover their salary.' };
       }
       const today = D.slotDay(D.today());
       if(!D.isFinished(today)){
@@ -998,12 +1032,12 @@ window.DebuggLtd = (function(){
         html += '<div class="guide" data-step="' + step.key + '"><button class="toast-close" data-action="skip-guide" aria-label="Hide the guide">✕</button>' +
           '<span class="guide-label">Next step</span>' + step.text + '</div>';
       }
-      const busy = busyIds();
-      const idle = state.roster.filter(p => isDev(p) && !busy.has(p.id));
+      const busy = busyIds(), now = Date.now();
+      const idle = state.roster.filter(p => onBench(p, busy, now));
       if(idle.length && !(step && step.key === 'staff')){
-        const cost = idle.reduce((n, p) => n + ROLES[p.role].salary, 0);
-        html += '<div class="alert" data-alert="idle">⚠ ' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
-          ' on the bench, costing ¤' + cost + '/min. ' +
+        const spare = idle.reduce((n, p) => n + benchPerMinute(p) - ROLES[p.role].salary, 0);
+        html += '<div class="alert" data-alert="idle">' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
+          ' on the bench doing odd jobs, which only just cover their salary (+' + fmtRate(spare) + '/min). A contract earns far more. ' +
           (stageIndex() >= 1 ? 'Your managers will put them to work once there’s a contract they can take.' : 'Staff them on a contract below.') + '</div>';
       }
       if(state.money < 0){
@@ -1227,7 +1261,8 @@ window.DebuggLtd = (function(){
         : job
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
-        : isDev(p) ? '<span class="status-idle warn">On the bench · −¤' + role.salary + '/min</span>'
+        : isDev(p) ? '<span class="status-idle warn" title="Odd jobs earn ' + fmtRate(benchPerMinute(p)) + '/min against a ¤' + role.salary + '/min salary">' +
+            'On the bench · odd jobs · +' + fmtRate(benchPerMinute(p) - role.salary) + '/min</span>'
         : '<span class="status-idle">Idle</span>';
 
       let promo = '';
@@ -1308,10 +1343,20 @@ window.DebuggLtd = (function(){
       return html;
     }
 
+    // "Risky · pays ×1.4 · −15% success" on offers, the picker and jobs; nothing for standard ones.
+    function riskChip(o){
+      if(!o.risk || o.risk === 'standard') return '';
+      const r = riskOf(o);
+      return '<div class="risk ' + o.risk + '">' + r.name + ' · pays ×' + r.pay + ' · −' + Math.round(-r.chance * 100) + '% success</div>';
+    }
+
+    function riskTag(j){ return j.risk && j.risk !== 'standard' ? ' <span class="risk-tag ' + j.risk + '">' + riskOf(j).name + '</span>' : ''; }
+
     function offerHTML(o){
       const t = TIERS[o.tier];
       return '<div class="offer">' +
         '<div class="offer-top"><span class="chip lang">' + esc(o.lang) + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
+        riskChip(o) +
         (state.roster.some(p => isDev(p) && qualifiedFor(p, o)) ? ''
           : '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>') +
         '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
@@ -1335,7 +1380,7 @@ window.DebuggLtd = (function(){
           if(!isRunning(j)){
             return '<div class="job failed">' +
               '<div class="job-top"><span class="left">' + t.name +
-              ' <span class="chip lang">' + esc(j.lang) + '</span></span>' +
+              ' <span class="chip lang">' + esc(j.lang) + '</span>' + riskTag(j) + '</span>' +
               '<span class="time" style="color:var(--red)">Failed</span></div>' +
               '<div class="detail">' + team + ' · the team is waiting on your call.</div>' +
               '<div class="actions" style="margin:8px 0 0;">' +
@@ -1346,7 +1391,7 @@ window.DebuggLtd = (function(){
           }
           return '<div class="job">' +
             '<div class="job-top"><span class="left">' + t.name +
-            ' <span class="chip lang">' + esc(j.lang) + '</span></span>' +
+            ' <span class="chip lang">' + esc(j.lang) + '</span>' + riskTag(j) + '</span>' +
             '<span class="time" data-time="' + j.id + '"></span></div>' +
             '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
             '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
@@ -1486,6 +1531,7 @@ window.DebuggLtd = (function(){
       teamModalBody.innerHTML =
         '<h2>' + tier.name + ' <span class="chip lang">' + esc(offer.lang) + '</span>' +
         ' <span class="tag">' + offer.sloc.toLocaleString('en-GB') + ' SLOC</span></h2>' +
+        riskChip(offer) +
         '<div class="offer"><div class="detail" style="border:none;padding:0;">Needs ' + tier.req +
         '. Bars shown are each person’s ' + esc(offer.lang) + ' skill.</div></div>' +
         '<div class="pick-list">' + (rows || '<div class="empty">Nobody free who can take this on.</div>') + '</div>' +
@@ -1493,7 +1539,9 @@ window.DebuggLtd = (function(){
         '<div class="checks">' + ev.checks.map(c => '<span class="check ' + (c.ok ? 'ok' : 'no') + '">' + (c.ok ? '✓ ' : '✕ ') + esc(c.label) + '</span>').join('') + '</div>' +
         '<div class="forecast">' +
           'Success chance <b>' + Math.round(ev.chance * 100) + '%</b>' +
-            (ev.boost ? ' (incl. +' + Math.round(ev.boost * 100) + '% from your ' + esc(offer.lang) + ' level)' : '') + ' · Payout <b>' + fmt(ev.payout) + '</b> · ' +
+            (ev.boost ? ' (incl. +' + Math.round(ev.boost * 100) + '% from your ' + esc(offer.lang) + ' level)' : '') +
+            (offer.risk && offer.risk !== 'standard' ? ' (incl. −' + Math.round(-riskOf(offer).chance * 100) + '% for the risk)' : '') +
+            ' · Payout <b>' + fmt(ev.payout) + '</b>' + (offer.risk && offer.risk !== 'standard' ? ' (×' + riskOf(offer).pay + ')' : '') + ' · ' +
           'Salaries over the job <b>' + fmt(ev.salaryCost) + '</b><br>' +
           'Team output <b>' + ev.sloc + ' SLOC/min</b>' +
             (ev.matchedSloc > ev.baseSloc || ev.learners
@@ -1502,7 +1550,8 @@ window.DebuggLtd = (function(){
                 (ev.learners ? ', −' + Math.round(LEARNER_DRAG * ev.learners * 100) + '% for ' + ev.learners + ' learner' + (ev.learners > 1 ? 's' : '') : '') + ')'
               : '') +
             ' → takes <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b><br>' +
-          'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout.' +
+          'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout' +
+          (offer.risk && offer.risk !== 'standard' ? ', and each failure costs ' + riskOf(offer).repLoss + '× the usual reputation.' : '.') +
         '</div>' +
         '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
           'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' +

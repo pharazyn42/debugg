@@ -246,6 +246,12 @@
 .ltd .status-busy{ color: var(--amber); }
 .ltd .status-idle{ color: var(--text-dim); }
 .ltd .status-idle.warn{ color: var(--amber); }
+.ltd .risk{ font-family: var(--mono); font-size: 11px; font-weight: 600; border-radius: 6px; padding: 3px 7px; margin: 6px 0 2px; }
+.ltd .risk.risky{ color: var(--amber); background: rgba(255, 190, 80, 0.1); border: 1px solid var(--amber-dim); }
+.ltd .risk.high{ color: #ffc9c9; background: var(--red-dim); border: 1px solid var(--red); }
+.ltd .risk-tag{ font-family: var(--mono); font-size: 10px; border-radius: 5px; padding: 1px 5px; margin-left: 4px; }
+.ltd .risk-tag.risky{ color: var(--amber); border: 1px solid var(--amber-dim); }
+.ltd .risk-tag.high{ color: #ffc9c9; border: 1px solid var(--red); }
 .ltd .board-more{
   background: transparent;
   border: 1px dashed var(--line);

@@ -235,9 +235,9 @@ test('staff on the bench and debt are flagged; the welcome can be dismissed', as
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
   });
   await expect(page.locator('.guide')).toHaveCount(0);
-  await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench, costing ¤2/min');
+  await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench doing odd jobs, which only just cover their salary (+¤0.1/min)');
   await expect(page.locator('[data-alert=debt]')).toContainText('The company is ¤50 in debt');
-  await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · −¤2/min');
+  await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · odd jobs · +¤0.1/min');
 });
 
 test('on a phone, the Ltd tab folds a finished puzzle to its tiles', async ({ page }) => {
@@ -278,6 +278,71 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   await guess(page, (await puzzleFor(page, 3)).display);
   await expect(page.locator('#welcomeToast')).toContainText('paid ¤100');
   await expect(page.locator('#welcomeToast')).toContainText('a small business gets 50% of desk pay');
+});
+
+test('developers on the bench do odd jobs, which cover their salary with 5% to spare', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.money = 1000;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.roster.push({ id: 's1', name: 'Sam Q.', role: 'Senior', since: Date.now(), lang: { Rust: 150 } });
+  });
+  // An hour away: a grad earns ¤2.10/min on odd jobs against ¤2/min salary, a senior ¤12.60 against ¤12,
+  // so the company grows by ¤0.70/min: ¤42 over the hour.
+  await page.clock.setFixedTime(at(13));
+  await page.reload();
+  await expect(page.locator('#statMoney')).toHaveText('¤1,042');
+  // No XP and no promotion time for the bench.
+  const saved = await ltd(page);
+  expect(saved.roster.find(p => p.id === 'g1')).toMatchObject({ lang: { Python: 10 } });
+  expect(saved.roster.find(p => p.id === 'g1').worked || 0).toBe(0);
+  await expect(page.locator('.card[data-id=s1]')).toContainText('On the bench · odd jobs · +¤0.6/min');
+
+  // Only the bench earns it: not someone on a contract (even a failed one waiting for Retry or
+  // Drop), and not someone away (training, holiday, off sick).
+  await editCompany(page, s => {
+    s.money = 1000;
+    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: ['g1'], startedAt: Date.now() - 120000,
+                  endsAt: Date.now() - 60000, chance: 1, payout: 5, repeat: false, status: 'failed', attempt: 2 });
+    s.roster.find(p => p.id === 's1').away = { kind: 'holiday', until: Date.now() + 2 * 3600000 };
+  });
+  await page.clock.setFixedTime(at(14));
+  await page.reload();
+  // Both just cost their salary for the hour: 60 × (¤2 + ¤12).
+  await expect(page.locator('#statMoney')).toHaveText('¤160');
+});
+
+test('risky contracts pay more, succeed less often, and cost more reputation when they fail', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  // Some offers are rolled risky; the board has every level over time.
+  const risks = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-ltd')).board.map(o => o.risk));
+  expect(risks.every(r => ['standard', 'risky', 'high'].includes(r))).toBe(true);
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.reputation = 10;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, risk: 'high', expiresAt: Date.now() + 3600000 };
+  });
+  const offer = page.locator('.offer:has([data-offer=o1])');
+  await expect(offer.locator('.risk.high')).toHaveText('High stakes · pays ×2 · −30% success');
+  await page.click('[data-action=staff][data-offer=o1]');
+  await page.click('[data-pick=g1]');
+  // A grad's 70% reliability, +1% for 1 bar of Python, −30% for the risk; double the ¤5.
+  await expect(page.locator('.forecast')).toContainText('Success chance 41% (incl. −30% for the risk) · Payout ¤10 (×2)');
+  await expect(page.locator('.forecast')).toContainText('each failure costs 4× the usual reputation');
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job')).toContainText('High stakes');
+  expect((await ltd(page)).jobs[0]).toMatchObject({ risk: 'high', payout: 10, chance: 0.41 });
+
+  // A failed retry loses the contract and 4× the usual reputation (a hotfix's 0.5 ÷ 2 × 4 = 1).
+  await editCompany(page, s => {
+    Object.assign(s.jobs[0], { chance: 0, attempt: 2, endsAt: Date.now() - 1000 });
+  });
+  await expect(page.locator('#log')).toContainText('✕ high stakes Hotfix (Python) retry failed again — contract lost.');
+  expect((await ltd(page)).reputation).toBe(9);
 });
 
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {

@@ -177,6 +177,7 @@ MARKET_EVERY_H = [12, 36], INFLATION = [2%, 4%] (every role), COMPETITION = [6%,
 COMPETITION_CHANCE = 0.4                 // hiring prices only go up
 SKILL_SPEED = 1.0, SKILL_CHANCE = 0.05   // full bars in the contract's language: 2× SLOC/min, +5% success
 RETRY_TIME = 0.5, RETRY_PAYOUT = 0.75
+BENCH_MARGIN = 0.05                      // odd jobs on the bench pay salary + 5%
 TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
           minor release ~2,700 SLOC / 5-10 + principal,
           major release ~22,500 SLOC / 10+ incl. manager, 2 principals, 3 seniors ]
@@ -192,8 +193,9 @@ TIERS = [ hotfix ~5 SLOC / 1 dev, patch ~400 SLOC / 3-5 + senior,
 ```js
 state = {
   money, reputation, lastTick,
-  roster: [ { id, name, role, since, worked, lang: {name: xp} } ],  // Director is roster[0]; worked = ms on contracts at current level
-  board:  [ { id, tier, lang, sloc, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target
+  roster: [ { id, name, role, since, worked, lang: {name: xp}, away? } ],  // Director is roster[0]; worked = ms on contracts at current level;
+                                                                        // away = { kind: 'training'|'holiday'|'sick'…, until } (no odd jobs meanwhile)
+  board:  [ { id, tier, lang, sloc, risk, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target; risk = 'standard'|'risky'|'high'
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
@@ -316,6 +318,14 @@ state = {
     0.4 / 0.45 / 0.5 by tier), independent of team speed, so skill bars
     build at roughly the pace of the contract-time promotion timers. This is the placeholder skill-gain
     mechanic; it doesn't yet model supervision.
+  - **Risk** (the player-owner's idea, September 2026; `RISKS`, `offer.risk`, copied to the
+    job): each offer rolls **Standard** (70%), **Risky** (22%: pay ×1.4, −15% success, failing
+    costs 2× the usual reputation) or **High stakes** (8%: pay ×2, −30% success, 4× reputation).
+    Success never drops below `MIN_CHANCE` (5%). A repeat keeps its contract's risk; managers
+    staff any risk. Per attempt, risk is roughly break-even or better for a grad (71% × 1 vs
+    41% × 2) and clearly better for strong teams, with the reputation cost as the catch. Offers,
+    the picker and jobs show it ("High stakes · pays ×2 · −30% success"); older offers count as
+    Standard.
   - **Retry on failure**: a failed contract can be retried once, in half
     the time, for 75% of the payout. If the retry fails, the contract is
     lost. Non-repeating jobs wait in a "failed" state, with the team held,
@@ -335,6 +345,14 @@ state = {
   two best languages.
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
+- **Odd jobs** (the player-owner's call, September 2026): developers on no contract earn their
+  salary plus `BENCH_MARGIN` (5%), netted against payroll every second (and offline, by who was
+  busy at the start), so a benched team grows the company slowly: a grad ¤2.10 vs ¤2/min, a
+  senior ¤12.60 vs ¤12. No XP or promotion time, so contracts stay far better. Managers earn
+  none. Cards read "On the bench · odd jobs · +¤0.1/min". **Only the bench earns it**
+  (`onBench()`): anyone doing something else earns none, whether on a contract (including a failed
+  one waiting for Retry or Drop) or away. Anything that takes someone away (training, holiday, off
+  sick, events) must set `p.away = { kind, until }`, which `onBench()` already respects.
 - **Business stages** (`STAGES`, `stageIndex()`, shown in a stage bar above the stats, with a
   step track and what the next stage needs): **Start-up** (no managers), **Small business** (1
   manager), **Mid-size company** (3 managers, 25 staff), **Large company** (6, 60),
@@ -350,9 +368,9 @@ state = {
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
   they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
-  It ends (`state.guideDone`) once those are done, or when dismissed. After that, warnings stay:
-  devs on the bench and what they cost ("On the bench · −¤2/min" on their card too), and cash
-  below zero. The welcome message can be dismissed. Added after a playtest where an unstaffed
+  It ends (`state.guideDone`) once those are done, or when dismissed. After that, notes stay:
+  devs on the bench doing odd jobs (which barely cover their salary; a contract earns far more),
+  and cash below zero. The welcome message can be dismissed. Added after a playtest where an unstaffed
   grad left the company ¤315 in debt three hours in.
 - **Slot counts** explain themselves: when a level is full but there's room for more devs, a
   note under the counts says why (everyone needs someone a level up) and what makes room. Hire
@@ -1097,6 +1115,8 @@ The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles m
 - Add a way to spend money (and/or time off contracts) to train a person's
   language or domain skills directly, alongside the XP earned from
   delivered contracts.
+- Someone training is away (`p.away = { kind: 'training', until }`), so they earn no odd jobs
+  (see "Odd jobs").
 - Open questions:
   - Is training a one-off purchase per bar, a timed course during which
     the person is unavailable for contracts, or both?
@@ -1230,6 +1250,8 @@ player-owner's meaning), not a division of the company.
 #### 15c. Absences: sick days and holidays
 - Employees are sometimes unavailable. Chances, frequency and durations
   are to be decided later.
+- Someone off sick or on holiday is away (`p.away = { kind, until }`), so they earn no odd jobs
+  (see "Odd jobs").
 - **Off sick**: unplanned and random. The person drops out for a while,
   even mid-contract.
   - The team carries on without their SLOC/min, so the contract slows.
