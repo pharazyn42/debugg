@@ -369,6 +369,7 @@
       <a href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> ·
       <a href="#" id="resetLink">reset puzzles</a></div>
+    <div class="app-version" id="appVersion"></div>
   </footer>
 </div>
 
@@ -806,13 +807,14 @@
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen'].includes(k)).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen', 'debugg-seen-version'].includes(k)).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });
 
   // The wordmark is "debug it" in today's language (see renderWordmark in shared.js).
   window.Debugg.renderWordmark(document.getElementById('wordmark'), lang);
+  window.Debugg.renderVersion(document.getElementById('appVersion'));
   shareMark = document.getElementById('wordmark').dataset.wordmark;
   kickerEl.textContent = window.Debugg.isPreview(DAY)
     ? 'Preview · Day 1 is ' + window.Debugg.launchDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })

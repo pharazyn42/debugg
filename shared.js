@@ -17,6 +17,11 @@ window.Debugg = (function(){
   // SAVE_VERSION to '0.1' and WIPED_VERSIONS to ['demo', ''] ('' is a save from before the marker).
   // Sandbox drafts are kept. Backup codes from a wiped version are refused (backup.js).
   const SAVE_VERSION = 'demo';
+  // The version players see (footer, What's new, releases), set by tools/release.js. Semantic
+  // versioning: 0.0.x during the demo, 0.1.0 for the launch (which resets demo saves). It's
+  // separate from SAVE_VERSION, which only changes when saves have to be reset.
+  const APP_VERSION = '0.0.1';
+  const SEEN_KEY = 'debugg-seen-version';
   const VERSION_KEY = 'debugg-version';
   const WIPED_VERSIONS = window.DEBUGG_WIPED_VERSIONS || [];
   function isWipedVersion(v){ return WIPED_VERSIONS.includes(v || ''); }
@@ -339,7 +344,23 @@ window.Debugg = (function(){
     return out + escapeHtml(text.slice(last));
   }
 
-  return { NAME, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
+  // The footer's version link to What's new. A returning player sees "new" until they've looked at
+  // What's new for this version; a first visit just remembers the version, quietly.
+  function renderVersion(el){
+    if(!el) return;
+    let seen = null;
+    try{
+      seen = localStorage.getItem(SEEN_KEY);
+      const returning = Object.keys(localStorage).some(k => /^debugg-(day-?\d+|xp|ltd|learn|streak)$/.test(k));
+      if(!seen && !returning){ seen = APP_VERSION; localStorage.setItem(SEEN_KEY, APP_VERSION); }
+    }catch(e){}
+    const fresh = seen !== null && seen !== APP_VERSION;
+    el.innerHTML = '<a class="version-link' + (fresh ? ' new' : '') + '" href="whatsnew.html" title="What’s new in Debuggit">v' + APP_VERSION +
+      (DEMO ? ' demo' : '') + (fresh ? ' · new' : '') + '</a>';
+  }
+  function markVersionSeen(){ try{ localStorage.setItem(SEEN_KEY, APP_VERSION); }catch(e){} }
+
+  return { NAME, APP_VERSION, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
            dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };

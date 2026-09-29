@@ -40,6 +40,8 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
 | `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
 | `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
+| `CHANGELOG.md`, `whatsnew.html` | The list of changes, by release, written for players; the What's new page shows it (without "Unreleased"). |
+| `tools/release.js` | Cuts a release: `bump <version>`, `notes <version>`, `check <version>`. See "Releases" below. |
 | `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `img/` | The Debuggit duck: `duck.svg` (logo and favicon), `duck-180.png` (home-screen icon) and `share.png` (the 1200×630 link-preview card). The PNGs are rendered from the SVG; redo them if the duck changes. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
@@ -104,6 +106,23 @@ versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
 `'0.1'`, `WIPED_VERSIONS` to `['demo', '']` (`''` = saved before the
 marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
 `window.DEBUGG_WIPED_VERSIONS`.
+
+**Releases.** Debuggit has semantic versions: `APP_VERSION` in `shared.js` (separate from
+`SAVE_VERSION`, which only changes to reset saves). 0.0.x through the demo; **0.1.0 is the
+launch** (the save reset); after that, the middle number for new things to play and the last for
+fixes and balance. The version shows in every page's footer, linking to **What's new**
+(`whatsnew.html`, which renders `CHANGELOG.md`); a returning player sees "· new" until they've
+looked (`debugg-seen-version`; a first visit just records it). The routine:
+- **Every change players will notice adds a line under `## Unreleased` in `CHANGELOG.md`**, in
+  the same PR, written for players.
+- When the player-owner says **release** (optionally "release 0.1.0"; otherwise the next patch
+  number): `node tools/release.js bump <version>` (dates the Unreleased notes and sets
+  `APP_VERSION`), commit, PR, merge; then tag the merge commit `v<version>` and push the tag.
+- The tag runs `.github/workflows/release.yml`: every test (it calls `tests.yml`), a check that
+  `shared.js` and `CHANGELOG.md` agree with the tag, then a GitHub Release with that version's
+  notes. Tests failing means no release.
+- Until item 2d, `main` still deploys straight to GitHub Pages, so a release is a label and a
+  changelog entry; with 2d the public site will follow releases and `main` will go to a dev site.
 
 **The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `shared.js`). Days
 before it are preview days (0, -1, …), labelled "Preview", each with its
@@ -395,6 +414,11 @@ Do these first: every later feature touches the job engine, and changes currentl
   `ideas/bbq-idle-concept.md` — the same extraction serves both.
 
 #### 2. Semantic versioning and proper releases
+- **Done** (September 2026): versions, the footer version and What's new page, `CHANGELOG.md`,
+  `tools/release.js`, and tag-triggered GitHub Releases gated on the tests (see "Releases"
+  above). v0.0.1 is the demo as it stood. Still to do: separating "released" from "in
+  progress", which is item 2d (the public site following release tags, `main` on a dev site),
+  and migrating saves deliberately by version rather than by shape guards.
 - Adopt semantic versioning (MAJOR.MINOR.PATCH):
   - MAJOR: save-breaking or big design changes, i.e. whenever the storage
     key has to be bumped;

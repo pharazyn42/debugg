@@ -1,0 +1,27 @@
+name: Release
+
+# Pushing a version tag (v0.0.2) runs every test, checks shared.js and CHANGELOG.md are at that
+# version, then publishes a GitHub Release with that version's notes. See "Releases" in CLAUDE.md.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/release.js check "${GITHUB_REF_NAME#v}"
+      - run: node tools/release.js notes "${GITHUB_REF_NAME#v}" > notes.md
+      - run: gh release create "$GITHUB_REF_NAME" --title "Debuggit $GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}

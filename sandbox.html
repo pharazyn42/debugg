@@ -163,7 +163,7 @@
     <p class="note" id="note"></p>
   </div>
 
-  <footer><a href="index.html" style="color:inherit;text-decoration:underline;">daily puzzle</a></footer>
+  <footer><a href="index.html" style="color:inherit;text-decoration:underline;">daily puzzle</a><div class="app-version" id="appVersion"></div></footer>
 </div>
 
 <!-- Python worker: loads Pyodide on the first run and keeps it for later runs.
@@ -647,6 +647,6 @@ def _debugg_run(src):
   });
 })();
 </script>
-<script>window.Debugg.renderWordmark(document.getElementById('wordmark'), 'sandbox');</script>
+<script>window.Debugg.renderWordmark(document.getElementById('wordmark'), 'sandbox'); window.Debugg.renderVersion(document.getElementById('appVersion'));</script>
 </body>
 </html>

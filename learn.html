@@ -173,6 +173,7 @@
     <div class="footer-links"><a href="index.html">daily puzzle</a> · <a href="sandbox.html">sandbox</a> ·
       <a href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
       <a href="privacy.html">privacy</a> · <a href="#" id="resetLearn">reset Learn progress</a></div>
+    <div class="app-version" id="appVersion"></div>
   </footer>
 </div>
 
@@ -181,6 +182,6 @@
 <script src="learn/courses.js"></script>
 <script src="learn/python/01-values.js"></script>
 <script src="learn/learn.js"></script>
-<script>window.Debugg.renderWordmark(document.getElementById('wordmark'), 'learn');</script>
+<script>window.Debugg.renderWordmark(document.getElementById('wordmark'), 'learn'); window.Debugg.renderVersion(document.getElementById('appVersion'));</script>
 </body>
 </html>
