@@ -85,6 +85,7 @@ print(verify(True, False))`,
   {
     lang: 'python',
     difficulty: 4,
+    learn: 'lists',
     code: `grid = [[0] * 3] * 3
 grid[0][0] = 1
 print(grid)`,
@@ -303,6 +304,7 @@ print(quantity * 2)`,
   {
     lang: 'python',
     difficulty: 2,
+    learn: 'lists',
     code: `nums = [10, 20, 30, 40, 50]
 print(nums[1:-1])`,
     flag: { line: 2, text: 'nums[1:-1]' },
@@ -361,6 +363,7 @@ print(scores)`,
   {
     lang: 'python',
     difficulty: 5,
+    learn: 'lists',
     code: `a = [1, 2]
 b = a
 a += [3]
@@ -577,6 +580,7 @@ print(len(greeting))`,
   {
     lang: 'python',
     difficulty: 1,
+    learn: 'lists',
     code: `queue = ["Ada", "Grace", "Linus"]
 print(queue[-1])`,
     flag: { line: 2, text: 'queue[-1]' },
@@ -612,6 +616,7 @@ print(left, right)`,
   {
     lang: 'python',
     difficulty: 2,
+    learn: 'lists',
     code: `scores = [30, 10, 20]
 ranked = scores.sort()
 print(ranked)`,
@@ -664,6 +669,7 @@ print(int(price))`,
   {
     lang: 'python',
     difficulty: 2,
+    learn: 'lists',
     code: `basket = ["apple", "pear"]
 backup = basket
 backup.append("plum")
