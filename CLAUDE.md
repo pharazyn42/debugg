@@ -185,7 +185,9 @@ SKILL_FULL = 5                      // skill's effects stop growing at level 5
 
 ROLES = { Director, Manager, Graduate, Junior, Senior, Principal }  // sloc, salary/min, cost, reliability
 // costs: Manager 900, Graduate 180, Junior 750, Senior 3000, Principal 12000 (× the market's prices)
-PROMOTION = { Junior: {12h, lang:1}, Senior: {3 days, 3}, Principal: {14 days, 5} }  // contract time only
+PROMOTION = { Junior: {12h, lang:3}, Senior: {3 days, 5}, Principal: {14 days, 8} }  // contract time + a skill level
+SKILL_SPEED_BEYOND = 0.05                // +5% base SLOC/min per skill level past 5
+EXPERT = [Lv 3 ×1.3 (14), Lv 5 ×1.6 (7), Lv 8 ×2.2 (3)], none 76, EXPERT_HOTFIXES = 1   // expert contracts
 LINE_RATE = 1                            // ¤ per SLOC delivered, × tier multiplier (skill doesn't raise pay)
 MARKET_EVERY_H = [12, 36], INFLATION = [2%, 4%] (every role), COMPETITION = [6%, 15%] (one role),
 COMPETITION_CHANCE = 0.4                 // hiring prices only go up
@@ -209,7 +211,8 @@ state = {
   money, reputation, lastTick,
   roster: [ { id, name, role, since, worked, lang: {name: xp}, away? } ],  // Director is roster[0]; worked = ms on contracts at current level;
                                                                         // away = { kind: 'training'|'holiday'|'sick'…, until } (no odd jobs meanwhile)
-  board:  [ { id, tier, lang, sloc, risk, expiresAt } ],  // a hotfix per language + 2 of each other type; sloc = work target; risk = 'standard'|'risky'|'high'
+  board:  [ { id, tier, lang, sloc, risk, expert, expiresAt } ],  // a hotfix per language + an expert hotfix + 2 of each other type; sloc = work target;
+                                                          // risk = 'standard'|'risky'|'high'; expert = skill level needed (0 = none)
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
               status: 'running'|'failed', attempt: 1|2 } ],
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
@@ -259,10 +262,10 @@ state = {
   - Hiring, promoting and "Let go" are all blocked if they would break the
     structure, and the UI says why.
 - **Hires' starting skills** (languages only):
-  - Grads: one language at 1 bar.
-  - Juniors: a language at 1–2 bars, sometimes a second at 1.
-  - Seniors: a language at 3–4, and a second at 1–2.
-  - Principals: a language at 5, plus two more at lower bars.
+  - Grads: one language at level 1.
+  - Juniors: a language at level 1–2, sometimes a second at 1.
+  - Seniors: a language at 4–5, and a second at 1–3.
+  - Principals: a language at 7–8, plus two more lower down (3–5 and 1–3).
 - **Promotions** need three things, and the player confirms with a
   "Promote" button:
   - **Contract time at the current level**: 12 hours for Junior, 3 days for
@@ -271,8 +274,11 @@ state = {
     growing your own people the cheap one. Only time spent on contracts counts;
     time on the bench doesn't. It's credited when each contract finishes
     (`p.worked`) and resets on promotion.
-  - **A skill level** in their best language: 1 for Junior, 3 for Senior, 5
-    for Principal (`PROMOTION`).
+  - **A skill level** in their best language: 3 for Junior, 5 for Senior, 8
+    for Principal (`PROMOTION`; 1 / 3 / 5 until September 2026, when levels lost their top and
+    the player-owner asked for higher barriers). Set so someone who sticks to one language gets
+    there about when the contract time is up (Lv 3 after about 7 hours on hotfixes, Lv 5 about 3
+    days later, Lv 8 after about 14 days on patches); spreading across languages takes longer.
   - **A free slot** at the next level.
 - **Contract board**: shown as a tree like the roster, one foldable group
   per contract type (Hotfixes, Patches, Minor releases, Major releases),
@@ -280,7 +286,8 @@ state = {
   groups are remembered (`collapsedTiers`). There's **always a hotfix in
   every language**: a taken or expired hotfix is replaced in the same
   language, and the board fills in any language that's missing, so a lone
-  dev always has something they can take. The other types have 2 offers
+  dev always has something they can take (these everyday hotfixes are never expert work), plus
+  `EXPERT_HOTFIXES` (1) **expert hotfix** in any language, replaced by another expert one. The other types have 2 offers
   each, in random languages, but only once the company has **more than 10 staff**, the
   Director included (`PATCH_HEADCOUNT`, `tierLock()`); until then they show locked as
   "unlocks above 10 staff", and dropping back to 10 takes their offers off the board (running
@@ -308,8 +315,9 @@ state = {
     (managers add none), with a 5-second floor.
 
     Each dev's SLOC/min on a contract is boosted by skill match:
-    × (1 + `SKILL_SPEED` × bars / 5) in that contract's language. Full
-    bars doubles their output.
+    × (1 + `SKILL_SPEED` × level / 5) in that contract's language, up to level 5 (double
+    output), then +`SKILL_SPEED_BEYOND` (5%) per level after (a principal at Lv 8: 70 × 2.15
+    = 150.5 SLOC/min; `speedFor()`). Success chance stops growing at level 5.
 
     The reference team, with no matching skills, takes the nominal time:
     - a lone grad on a hotfix: ~1 min;
@@ -340,6 +348,15 @@ state = {
     41% × 2) and clearly better for strong teams, with the reputation cost as the catch. Offers,
     the picker and jobs show it ("High stakes · pays ×2 · −30% success"); older offers count as
     Standard.
+  - **Expert contracts** (the player-owner's idea, September 2026; `EXPERT`, `offer.expert`,
+    copied to the job): an offer can need someone on the team at a skill level in its
+    language, **Lv 3** (14%, pay ×1.3), **Lv 5** (7%, ×1.6) or **Lv 8** (3%, ×2.2), rolled per
+    offer on patches and up (76% need none) and always on the expert hotfix. It's a check in
+    `evaluateTeam()` ("someone at Python Lv 5+ (expert)"); a solo hotfix needs its one dev at
+    the level (`meetsExpert()`), and "Suggest a team" takes the best-matched qualifying dev
+    first. The pay stacks with risk. A repeat keeps its contract's level; managers staff them.
+    Cards show "Expert · needs Lv 5 Python · pays ×1.6", and warn when nobody on staff is at
+    the level yet; jobs show a "Lv 5" tag. Older offers have none.
   - **Retry on failure**: a failed contract can be retried once, in half
     the time, for 75% of the payout. If the retry fails, the contract is
     lost. Non-repeating jobs wait in a "failed" state, with the team held,

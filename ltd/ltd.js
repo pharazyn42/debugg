@@ -100,7 +100,8 @@ window.DebuggLtd = (function(){
     const LANGS = ['Python', 'C/C++', 'JavaScript', 'Rust'];
     // Language skill levels have no top. Levels 1–5 need 10, 50, 150, 400 and 1,000 XP in all;
     // after that each gap is 800 XP longer than the last (level 6 at 1,800, 7 at 3,400, 8 at
-    // 5,800…; skillXp()). Skill's effects (speed, success chance) stop growing at SKILL_FULL.
+    // 5,800…; skillXp()). Up to SKILL_FULL each level adds 20% speed and some success chance;
+    // after it, a little speed per level (SKILL_SPEED_BEYOND) and no more success chance.
     const SKILL_XP = [10, 50, 150, 400, 1000];
     const SKILL_FULL = 5;
 
@@ -123,11 +124,14 @@ window.DebuggLtd = (function(){
     // To be promoted INTO a level: minutes spent working on contracts at the
     // current level (bench time doesn't count), plus a skill level in their best language.
     // Deliberately slow: hiring at a level is the quick way to get one; growing your
-    // own people is the cheap way.
+    // own people is the cheap way. The skill levels are set so someone who sticks to one
+    // language gets there at about the same time as the contract time (a grad on hotfixes
+    // reaches Lv 3 in about 7 hours; Lv 5 about 3 days later; Lv 8 after about 14 days on
+    // patches); someone spread across languages takes longer.
     const PROMOTION = {
-      Junior:    { minutes: 12 * 60,  lang: 1 },  // 12 hours
-      Senior:    { minutes: 72 * 60,  lang: 3 },  // 3 days
-      Principal: { minutes: 336 * 60, lang: 5 }   // 14 days
+      Junior:    { minutes: 12 * 60,  lang: 3 },  // 12 hours
+      Senior:    { minutes: 72 * 60,  lang: 5 },  // 3 days
+      Principal: { minutes: 336 * 60, lang: 8 }   // 14 days
     };
 
     // The hiring market: hire costs start at ROLES[role].cost and only go up. Every
@@ -196,8 +200,10 @@ window.DebuggLtd = (function(){
     const SLOC_SPREAD = 0.15;
     // Skill match speeds a dev up on a contract: their SLOC/min is multiplied
     // by 1 + SKILL_SPEED × (their level in the contract's language, up to SKILL_FULL) / 5, so a
-    // dev at level 5 or more in it works at double speed.
+    // dev at level 5 in it works at double speed (and a little faster for each level after).
     const SKILL_SPEED = 1.0;
+    // Past level 5, each level adds a little more speed: +5% of base SLOC/min per level.
+    const SKILL_SPEED_BEYOND = 0.05;
     // …and adds up to this much success chance (a team at level 5 or more gets all of it).
     const SKILL_CHANCE = 0.05;
     const MIN_JOB_MS = 5000; // floor, so a principal on a hotfix isn't instant
@@ -214,6 +220,24 @@ window.DebuggLtd = (function(){
       high:     { name: 'High stakes', weight: 8,  pay: 2,   chance: -0.30, repLoss: 4 }
     };
     const MIN_CHANCE = 0.05;
+    // Expert contracts need someone on the team at a skill level in the contract's language
+    // (`offer.expert`), and pay more for it. Rolled per offer (0 = anyone who knows the
+    // language), except the hotfix every language always has, which anyone can take; the
+    // board also keeps EXPERT_HOTFIXES expert hotfixes. A repeat keeps its contract's level.
+    const EXPERT = [
+      { level: 3, weight: 14, pay: 1.3 },
+      { level: 5, weight: 7,  pay: 1.6 },
+      { level: 8, weight: 3,  pay: 2.2 }
+    ];
+    const EXPERT_NONE_WEIGHT = 76;
+    const EXPERT_HOTFIXES = 1;
+    function expertOf(o){ return EXPERT.find(e => e.level === (o && o.expert)) || null; }
+    function rollExpert(always){
+      const pool = always ? EXPERT : [{ level: 0, weight: EXPERT_NONE_WEIGHT }].concat(EXPERT);
+      let roll = Math.random() * pool.reduce((n, e) => n + e.weight, 0);
+      return (pool.find(e => (roll -= e.weight) < 0) || pool[0]).level;
+    }
+    function meetsExpert(p, offer){ return !offer.expert || skillLevel(p.lang[offer.lang]) >= offer.expert; }
     function riskOf(o){ return RISKS[o && o.risk] || RISKS.standard; }
     function rollRisk(){
       let roll = Math.random() * Object.values(RISKS).reduce((n, r) => n + r.weight, 0);
@@ -364,17 +388,22 @@ window.DebuggLtd = (function(){
 
     function isHotfix(tierIndex){ return TIERS[tierIndex].key === 'hotfix'; }
 
-    function makeOffer(tierIndex, lang){
+    // `expert`: true for an expert hotfix, false for the everyday hotfix a language always has;
+    // other contract types roll it.
+    function makeOffer(tierIndex, lang, expert){
       const tier = TIERS[tierIndex];
       const spread = 1 - SLOC_SPREAD + Math.random() * 2 * SLOC_SPREAD;
       return { id: uid('c'), tier: tierIndex, lang: lang || pick(LANGS),
                sloc: Math.max(1, Math.round(tier.refSloc * tier.minutes * spread)),
                risk: rollRisk(),
+               expert: expert === false ? 0 : rollExpert(expert === true),
                expiresAt: Date.now() + tier.offerLife * 60000 };
     }
-    // The offer that takes a taken or expired one's place: hotfixes keep their language.
+    // The offer that takes a taken or expired one's place: an everyday hotfix keeps its language,
+    // and an expert hotfix is replaced by another (in any language).
     function replacementFor(o){
-      return makeOffer(o.tier, isHotfix(o.tier) ? o.lang : null);
+      if(!isHotfix(o.tier)) return makeOffer(o.tier);
+      return o.expert ? makeOffer(o.tier, null, true) : makeOffer(o.tier, o.lang, false);
     }
     // Swap out expired offers — except one the player has open in the team
     // picker, so it doesn't vanish mid-choice — and make sure there's a hotfix
@@ -386,8 +415,9 @@ window.DebuggLtd = (function(){
       });
       const hotfix = TIERS.findIndex(t => t.key === 'hotfix');
       LANGS.forEach(lang => {
-        if(!state.board.some(o => o.tier === hotfix && o.lang === lang)) state.board.push(makeOffer(hotfix, lang));
+        if(!state.board.some(o => o.tier === hotfix && o.lang === lang && !o.expert)) state.board.push(makeOffer(hotfix, lang, false));
       });
+      for(let k = state.board.filter(o => o.tier === hotfix && o.expert).length; k < EXPERT_HOTFIXES; k++) state.board.push(makeOffer(hotfix, null, true));
       // A type that has just opened (e.g. patches, once the company is big enough) gets its offers.
       TIERS.forEach((_, i) => {
         if(isHotfix(i) || !tierOpen(i)) return;
@@ -399,7 +429,10 @@ window.DebuggLtd = (function(){
       const board = [];
       TIERS.forEach((_, i) => {
         if(!tierOpen(i)) return;
-        if(isHotfix(i)) LANGS.forEach(lang => board.push(makeOffer(i, lang)));
+        if(isHotfix(i)){
+          LANGS.forEach(lang => board.push(makeOffer(i, lang, false)));
+          for(let k = 0; k < EXPERT_HOTFIXES; k++) board.push(makeOffer(i, null, true));
+        }
         else for(let k = 0; k < OFFERS_PER_TIER; k++) board.push(makeOffer(i));
       });
       return board;
@@ -418,13 +451,13 @@ window.DebuggLtd = (function(){
         set(1 + rand(2), 0);
         if(Math.random() < 0.5) set(1, 1);
       }else if(role === 'Senior'){
-        set(3 + rand(2), 0);
-        set(1 + rand(2), 1);
+        set(4 + rand(2), 0);
+        set(1 + rand(3), 1);
       }else if(role === 'Principal'){
-        // At least one language at level 5.
-        set(5, 0);
-        set(2 + rand(3), 1);
-        set(1 + rand(2), 2);
+        // A deep specialist: one language at level 7 or 8, and two more lower down.
+        set(7 + rand(2), 0);
+        set(3 + rand(3), 1);
+        set(1 + rand(3), 2);
       }
       return p;
     }
@@ -621,8 +654,11 @@ window.DebuggLtd = (function(){
     function matchFit(d, offer){
       return Math.min(skillLevel(d.lang[offer.lang]), SKILL_FULL) / SKILL_FULL;
     }
+    function speedFor(level){
+      return 1 + SKILL_SPEED * Math.min(level, SKILL_FULL) / SKILL_FULL + SKILL_SPEED_BEYOND * Math.max(0, level - SKILL_FULL);
+    }
     function devSlocOn(d, offer){
-      return ROLES[d.role].sloc * (1 + SKILL_SPEED * matchFit(d, offer));
+      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang]));
     }
 
     // A dev "knows the stack" for a contract if they have at least level 1 in
@@ -664,6 +700,8 @@ window.DebuggLtd = (function(){
         if(learners) checks.push({ label: 'learners (' + learners + ') ≤ devs who know the stack (' + knowers.length + ')',
                                    ok: learners <= knowers.length });
       }
+      if(offer.expert) checks.push({ label: (tier.max === 1 ? '' : 'someone ') + 'at ' + offer.lang + ' Lv ' + offer.expert + '+ (expert)',
+                                     ok: devs.some(d => meetsExpert(d, offer)) });
 
       const valid = checks.every(c => c.ok);
       const drag = Math.max(0, 1 - LEARNER_DRAG * learners);
@@ -679,7 +717,8 @@ window.DebuggLtd = (function(){
       const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
       // A contract pays the same whoever does it: skill makes a team faster (more contracts an
       // hour), not better paid per contract.
-      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay);
+      const expert = expertOf(offer);
+      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay * (expert ? expert.pay : 1));
       const salaryCost = members.reduce((s, p) => s + ROLES[p.role].salary, 0) * ms / 60000;
       const xp = tier.xpPerMin * ms / 60000;
 
@@ -708,7 +747,7 @@ window.DebuggLtd = (function(){
     // attempt: 1 for the original run, 2 for the retry.
     function newJob(offer, team, startedAt, ev, repeat){
       return {
-        id: offer.id, tier: offer.tier, lang: offer.lang, risk: offer.risk || 'standard',
+        id: offer.id, tier: offer.tier, lang: offer.lang, risk: offer.risk || 'standard', expert: offer.expert || 0,
         sloc: offer.sloc, teamSloc: ev.sloc,
         team, startedAt, endsAt: startedAt + ev.ms,
         chance: ev.chance, payout: ev.payout, repeat, status: 'running', attempt: 1
@@ -716,7 +755,10 @@ window.DebuggLtd = (function(){
     }
 
     function isRunning(job){ return (job.status || 'running') === 'running'; }
-    function jobTag(job){ return (job.risk && job.risk !== 'standard' ? riskOf(job).name.toLowerCase() + ' ' : '') + TIERS[job.tier].name + ' (' + job.lang + ')'; }
+    function jobTag(job){
+      return (job.risk && job.risk !== 'standard' ? riskOf(job).name.toLowerCase() + ' ' : '') + (job.expert ? 'expert ' : '') +
+        TIERS[job.tier].name + ' (' + job.lang + (job.expert ? ' Lv ' + job.expert : '') + ')';
+    }
     function retryPayout(job){ return Math.round(job.payout * RETRY_PAYOUT); }
     function retryMs(job){ return (job.endsAt - job.startedAt) * RETRY_TIME; }
 
@@ -769,6 +811,7 @@ window.DebuggLtd = (function(){
       for(let i = 0; i < 40 && members.every(Boolean) && tierOpen(job.tier); i++){
         const candidate = makeOffer(job.tier);
         candidate.risk = job.risk || 'standard';
+        candidate.expert = job.expert || 0;
         const e = evaluateTeam(tier, candidate, members);
         if(e.valid){ offer = candidate; ev = e; break; }
       }
@@ -993,7 +1036,7 @@ window.DebuggLtd = (function(){
         });
       }
       free().filter(isDev).forEach(d => {
-        const o = state.board.filter(o => isHotfix(o.tier) && qualifiedFor(d, o) && !(picker && picker.offerId === o.id))
+        const o = state.board.filter(o => isHotfix(o.tier) && qualifiedFor(d, o) && meetsExpert(d, o) && !(picker && picker.offerId === o.id))
           .sort((a, b) => skillLevel(d.lang[b.lang]) - skillLevel(d.lang[a.lang]))[0];
         if(o && startJob(o.id, [d.id], true)) placed.push(d.id);
       });
@@ -1016,7 +1059,7 @@ window.DebuggLtd = (function(){
       }
       if(!state.jobs.length){
         const d = devs[0];
-        const offer = state.board.find(o => TIERS[o.tier].key === 'hotfix' && qualifiedFor(d, o));
+        const offer = state.board.find(o => TIERS[o.tier].key === 'hotfix' && qualifiedFor(d, o) && meetsExpert(d, o));
         return { key: 'staff', offerId: offer && offer.id,
           text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
@@ -1315,7 +1358,7 @@ window.DebuggLtd = (function(){
       let html = '';
       TIERS.forEach((t, ti) => {
         const offers = state.board.filter(o => o.tier === ti)
-          .sort((a, b) => LANGS.indexOf(a.lang) - LANGS.indexOf(b.lang));
+          .sort((a, b) => (a.expert || 0) - (b.expert || 0) || LANGS.indexOf(a.lang) - LANGS.indexOf(b.lang));
         if(!tierOpen(ti) && !offers.length){
           html += '<div class="level-group board-group collapsed locked" data-tier="' + t.key + '">' +
             '<div class="level-header"><div class="level-header-left">' +
@@ -1361,15 +1404,23 @@ window.DebuggLtd = (function(){
       return '<div class="risk ' + o.risk + '">' + r.name + ' · pays ×' + r.pay + ' · −' + Math.round(-r.chance * 100) + '% success</div>';
     }
 
+    // "Expert · needs Lv 5 Python · pays ×1.6"
+    function expertChip(o){
+      const e = expertOf(o);
+      return e ? '<div class="expert">Expert · needs ' + (TIERS[o.tier].max === 1 ? '' : 'someone at ') + 'Lv ' + e.level + ' ' + esc(o.lang) + ' · pays ×' + e.pay + '</div>' : '';
+    }
+    function expertTag(j){ return j.expert ? ' <span class="expert-tag">Lv ' + j.expert + '</span>' : ''; }
+
     function riskTag(j){ return j.risk && j.risk !== 'standard' ? ' <span class="risk-tag ' + j.risk + '">' + riskOf(j).name + '</span>' : ''; }
 
     function offerHTML(o){
       const t = TIERS[o.tier];
-      return '<div class="offer">' +
+      return '<div class="offer' + (o.expert ? ' expert-offer' : '') + '">' +
         '<div class="offer-top"><span class="chip lang">' + esc(o.lang) + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
-        riskChip(o) +
-        (state.roster.some(p => isDev(p) && qualifiedFor(p, o)) ? ''
-          : '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>') +
+        expertChip(o) + riskChip(o) +
+        (!state.roster.some(p => isDev(p) && qualifiedFor(p, o)) ? '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>'
+          : !state.roster.some(p => isDev(p) && meetsExpert(p, o)) ? '<div class="detail" style="color:var(--amber)">Nobody on staff is at ' + esc(o.lang) + ' Lv ' + o.expert + ' yet</div>'
+          : '') +
         '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
           t.xpPerMin + ' XP/min</div>' +
         '<div class="detail" style="color:var(--text-faint)">Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken</div>' +
@@ -1391,7 +1442,7 @@ window.DebuggLtd = (function(){
           if(!isRunning(j)){
             return '<div class="job failed">' +
               '<div class="job-top"><span class="left">' + t.name +
-              ' <span class="chip lang">' + esc(j.lang) + '</span>' + riskTag(j) + '</span>' +
+              ' <span class="chip lang">' + esc(j.lang) + '</span>' + expertTag(j) + riskTag(j) + '</span>' +
               '<span class="time" style="color:var(--red)">Failed</span></div>' +
               '<div class="detail">' + team + ' · the team is waiting on your call.</div>' +
               '<div class="actions" style="margin:8px 0 0;">' +
@@ -1402,7 +1453,7 @@ window.DebuggLtd = (function(){
           }
           return '<div class="job">' +
             '<div class="job-top"><span class="left">' + t.name +
-            ' <span class="chip lang">' + esc(j.lang) + '</span>' + riskTag(j) + '</span>' +
+            ' <span class="chip lang">' + esc(j.lang) + '</span>' + expertTag(j) + riskTag(j) + '</span>' +
             '<span class="time" data-time="' + j.id + '"></span></div>' +
             '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
             '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
@@ -1470,7 +1521,7 @@ window.DebuggLtd = (function(){
       const busy = busyIds();
       const free = state.roster.filter(p => eligibleFor(tier, p) && !busy.has(p.id));
       // Learners can join team contracts, but not a solo hotfix.
-      const pool = tier.max > 1 ? free : free.filter(p => qualifiedFor(p, offer));
+      const pool = tier.max > 1 ? free : free.filter(p => qualifiedFor(p, offer) && meetsExpert(p, offer));
       const unqualified = free.filter(p => pool.indexOf(p) < 0);
       // Drop any selection that's no longer available.
       picker.selected.forEach(id => { if(!pool.some(p => p.id === id)) picker.selected.delete(id); });
@@ -1487,6 +1538,8 @@ window.DebuggLtd = (function(){
           if(chosen.indexOf(p) < 0 && pred(p)){ chosen.push(p); n--; }
         }
       };
+      // An expert contract needs its expert: the best-matched dev who qualifies.
+      if(offer.expert) take(p => isDev(p) && meetsExpert(p, offer), 1);
       if(tier.needs.Manager) take(p => p.role === 'Manager', tier.needs.Manager);
       if(tier.needs.Principal) take(p => p.role === 'Principal', tier.needs.Principal);
       if(tier.needs.Senior){
@@ -1542,7 +1595,7 @@ window.DebuggLtd = (function(){
       teamModalBody.innerHTML =
         '<h2>' + tier.name + ' <span class="chip lang">' + esc(offer.lang) + '</span>' +
         ' <span class="tag">' + offer.sloc.toLocaleString('en-GB') + ' SLOC</span></h2>' +
-        riskChip(offer) +
+        expertChip(offer) + riskChip(offer) +
         '<div class="offer"><div class="detail" style="border:none;padding:0;">Needs ' + tier.req +
         '. Bars shown are each person’s ' + esc(offer.lang) + ' skill.</div></div>' +
         '<div class="pick-list">' + (rows || '<div class="empty">Nobody free who can take this on.</div>') + '</div>' +

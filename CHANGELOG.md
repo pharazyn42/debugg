@@ -22,6 +22,12 @@ things to play and the last one for fixes and balance changes.
   studio has room. **Show** opens it again, and it remembers how you left it.
 - Language skills are levels with no top (Python Lv 6), each with a bar showing the XP to the
   next level. Levels 1 to 5 need the same XP as the old five pips, so nobody's skills changed.
+  Each level past 5 makes a developer a little faster (5%) in that language.
+- **Expert** contracts need someone on the team at a skill level in their language (Lv 3, 5 or
+  8) and pay up to ×2.2 for it. The board always has one expert hotfix.
+- Promotions ask for more skill: a language at Lv 3 for Junior, Lv 5 for Senior and Lv 8 for
+  Principal. Sticking to one language gets there about when the contract time is up. Seniors
+  and principals who apply come with higher levels to match.
 - Developers on the bench do odd jobs, which cover their salary with 5% to spare, so a quiet
   spell grows the company slowly instead of costing it. Contracts still pay far better, and odd
   jobs don't count towards skills or promotion.
