@@ -31,6 +31,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await other.click('#restoreBtn');
   await expect(other.locator('#feedback')).toContainText('Solved');
   await expect(other.locator('#streak')).toHaveText('1');
+  await other.click('#ltdNote a');
   await expect(other.locator('#statMoney')).toHaveText('¤250');
   expect((await readJson(other, 'debugg-xp')).python).toBe(100);
 });

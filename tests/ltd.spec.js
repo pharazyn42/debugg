@@ -1,4 +1,4 @@
-// Debuggit Ltd: switching the studio on, paying for desk puzzles, the Director's languages,
+// Debuggit Ltd: switching the studio on, desk jobs, the Director's languages,
 // the studio engine, the contract board, pausing, closing, importing old saves and the
 // /studio/ redirect.
 const { test, expect } = require('@playwright/test');
@@ -15,9 +15,38 @@ async function found(page){
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
 }
+// Desk jobs: the questions a job would ask, and answering one (right or wrong) in the desk player.
+const deskQuestions = page => page.evaluate(() => [...DebuggDesk.all(Debugg.today()).values()]);
+async function answerDesk(page, q, right){
+  if(q.kind === 'choice'){
+    const o = q.options.find(x => !!x.correct === right);
+    await page.evaluate(t => [...document.querySelectorAll('.desk-option')].find(b => b.dataset.text === t).click(), o.text);
+  }else if(q.kind === 'line'){
+    await page.click('.desk-line[data-line="' + (right ? q.line : (q.line === 1 ? 2 : 1)) + '"]');
+  }else{
+    await page.fill('.desk-input', right ? q.answers[0] : 'definitely not it');
+    await page.click('.desk-check');
+  }
+  await expect(page.locator('.desk-feedback')).toHaveClass(right ? /right/ : /wrong/);
+  await page.click('.desk-go');
+}
+// Replaces the desk's jobs with one asking these questions (and no more arriving for a while).
+async function setDeskJob(page, questions){
+  await page.evaluate(ids => {
+    if(window.DebuggLtd) window.DebuggLtd.stop();
+    const s = JSON.parse(localStorage.getItem('debugg-ltd'));
+    s.desk.jobs = [{ id: 'dj1', size: ids.length, questions: ids, answered: [], expiresAt: Date.now() + 3600000 }];
+    s.desk.nextAt = Date.now() + 3600000;
+    localStorage.setItem('debugg-ltd', JSON.stringify(s));
+  }, questions.map(q => q.id));
+  await page.reload();
+  await expect(page.locator('[data-action=desk-start][data-job=dj1]')).toBeVisible();
+}
+
 // Edits the saved company, then reloads.
 async function editCompany(page, fn){
   await page.evaluate(src => {
+    if(window.DebuggLtd) window.DebuggLtd.stop();  // so the running page can't save over the edit
     const s = JSON.parse(localStorage.getItem('debugg-ltd'));
     new Function('s', src)(s);
     localStorage.setItem('debugg-ltd', JSON.stringify(s));
@@ -43,7 +72,6 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   // Starting it here moves to the Ltd tab.
   await expect(page).toHaveURL(/index\.html\?ltd#python$/);
   await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('#kicker')).toHaveText('Day 3 · Wednesday · medium · Python');
   // The wordmark becomes the studio's.
   await expect(page.locator('#wordmark')).toHaveAttribute('data-wordmark', 'debugg.ltd()');
   await expect(page.locator('#wordmark')).toHaveAttribute('aria-label', 'Debuggit Ltd');
@@ -61,41 +89,82 @@ test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async (
   await expect(page.locator('#statMoney')).toHaveText('¤1,150');
 });
 
-test('desk puzzles pay the company once, by XP earned', async ({ page }) => {
+test('the daily puzzle is its own game: it pays the company nothing, and the Ltd tab shows the desk instead', async ({ page }) => {
   await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤150');
+  await expect(page.locator('main.desk')).toBeHidden();
+  await expect(page.locator('#ltdDesk')).toBeVisible();
+  await expect(page.locator('#ltdDesk h2')).toContainText('Your desk');
+  // A new company's first desk job is waiting straight away.
+  await expect(page.locator('.desk-job')).toHaveCount(1);
+  // On the Daily tab the company isn't loaded, and a solve pays it nothing.
+  await page.click('#dailyTab');
+  expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
+  await expect(page.locator('#ltdNote')).toHaveText('Your company is running, with 1 desk job waiting. Open Ltd →');
   await guess(page, (await puzzleFor(page, 3)).display);
-  await expect(page.locator('#statMoney')).toHaveText('¤350');
-  await expect(page.locator('#statRep')).toHaveText('5');
-  await expect(page.locator('#welcomeToast')).toContainText('Today’s Python puzzle paid ¤200');
-  await page.reload();
-  await expect(page.locator('#statMoney')).toHaveText('¤350');
-
-  expect((await ltd(page)).paid).toEqual({ 'python-3': true });
-
-  // A revealed puzzle still earns 10 XP, so ¤20.
-  await page.clock.setFixedTime(new Date(2026, 9, 8, 12));  // Day 4
-  await page.reload();
-  await page.click('#revealBtn');
-  await expect(page.locator('#statMoney')).toHaveText('¤370');
-  expect((await ltd(page)).paid).toEqual({ 'python-3': true, 'python-4': true });
+  expect((await ltd(page)).money).toBe(150);
+  expect((await ltd(page)).paid).toBeUndefined();
 });
 
-test('a streak adds 10% per day beyond the first', async ({ page }) => {
-  // A 2-day streak ending yesterday; solving today makes it 3, so +20%.
-  await withStorage(page, { 'debugg-streak': { count: 2, lastDay: 6 } });
+test('desk jobs pay for each right answer, with a bonus for getting them all', async ({ page }) => {
   await found(page);
-  await guess(page, (await puzzleFor(page, 3)).display);
-  await expect(page.locator('#statMoney')).toHaveText('¤390');
-  await expect(page.locator('#welcomeToast')).toContainText('+20% streak bonus');
+  const qs = await deskQuestions(page);
+  const daily = qs.find(q => q.source === 'daily' && q.difficulty === 3);
+  const learn = qs.find(q => q.source === 'learn' && q.kind === 'choice');
+  expect(daily && learn).toBeTruthy();
+  // A day-3 difficulty puzzle pays ¤70 and a Learn question ¤40; both right, ×1.25.
+  await setDeskJob(page, [daily, learn]);
+  await expect(page.locator('.desk-job')).toContainText('2 questions · up to ¤138');
+  await page.click('[data-action=desk-start][data-job=dj1]');
+  await expect(page.locator('.desk-q-num')).toHaveText('Question 1 of 2');
+  await answerDesk(page, daily, true);
+  // Answers are saved as they're given: a reload carries on from the next question.
+  await page.reload();
+  await expect(page.locator('.desk-job')).toContainText('1 answered');
+  await page.click('[data-action=desk-start][data-job=dj1]');
+  await expect(page.locator('.desk-q-num')).toHaveText('Question 2 of 2');
+  await answerDesk(page, learn, true);
+  await expect(page.locator('#deskDone')).toContainText('Desk job: 2 of 2 right, ¤138 (with the ×1.25 bonus for getting them all) and +2 reputation.');
+  expect((await ltd(page)).money).toBe(150 + 138);
+  expect((await ltd(page)).desk).toMatchObject({ jobs: [], done: 1 });
+  expect((await ltd(page)).desk.seen).toEqual([daily.id, learn.id]);
+
+  // One wrong: only the right one pays, with no bonus.
+  await setDeskJob(page, [daily, learn]);
+  await page.click('[data-action=desk-start][data-job=dj1]');
+  await answerDesk(page, daily, false);
+  await answerDesk(page, learn, true);
+  await expect(page.locator('#deskDone')).toContainText('Desk job: 1 of 2 right, ¤40 and +1 reputation.');
+  // Every kind of question plays: typed, choice and tap the line.
+  for(const kind of ['typed', 'line']){
+    const q = qs.find(x => x.kind === kind);
+    await setDeskJob(page, [q]);
+    await page.click('[data-action=desk-start][data-job=dj1]');
+    await answerDesk(page, q, true);
+    await expect(page.locator('#deskDone')).toContainText('1 of 1 right');
+  }
 });
 
-test('puzzles finished before the company existed are not paid', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 3)).display);
+test('desk jobs turn up about every hour, while you’re away too, up to 3, and expire', async ({ page }) => {
   await found(page);
-  // ¤150 plus the ¤100 founder's bonus for that puzzle's XP, and no desk payment.
-  await expect(page.locator('#statMoney')).toHaveText('¤250');
-  expect((await ltd(page)).paid).toEqual({});
+  await expect(page.locator('.desk-job')).toHaveCount(1);
+  // Five hours away: jobs kept turning up, but only 3 wait at once, and an old one has expired.
+  await editCompany(page, s => {
+    const h = 3600000;
+    s.desk.jobs = [{ id: 'old', size: 1, questions: s.desk.jobs[0].questions, answered: [], expiresAt: Date.now() - 6 * h }];
+    s.desk.nextAt = Date.now() - 5 * h;
+  });
+  // Every 45–90 minutes, each lasting 4 hours, so 2 or 3 are waiting.
+  await expect(page.locator('.desk-job').nth(1)).toBeVisible();
+  const desk = (await ltd(page)).desk;
+  expect(desk.jobs.length).toBeGreaterThanOrEqual(2);
+  expect(desk.jobs.length).toBeLessThanOrEqual(3);
+  expect(desk.jobs.map(j => j.id)).not.toContain('old');
+  expect(desk.jobs.every(j => j.expiresAt > Date.now() && j.size >= 1 && j.size <= 3)).toBe(true);
+  expect(desk.nextAt).toBeGreaterThan(Date.now());
+  // No question is asked twice across waiting jobs.
+  const ids = desk.jobs.flatMap(j => j.questions);
+  expect(new Set(ids).size).toBe(ids.length);
+  await expect(page.locator('#deskCount')).toHaveText(desk.jobs.length + ' waiting');
 });
 
 test("the Director's puzzle levels boost contract success in that language", async ({ page }) => {
@@ -218,9 +287,12 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await target.click();
   await page.click('[data-pick="' + grad.id + '"]');
   await page.click('[data-action=pick-start]');
-  // 3. Solve today's puzzle.
+  // 3. Take a desk job.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'desk');
-  await guess(page, (await puzzleFor(page, 3)).display);
+  const job = (await ltd(page)).desk.jobs[0];
+  const qs = await page.evaluate(ids => { const all = DebuggDesk.all(Debugg.today()); return ids.map(id => all.get(id)); }, job.questions);
+  await page.click('[data-action=desk-start].guide-target');
+  for(const q of qs) await answerDesk(page, q, true);
   await expect(page.locator('.guide')).toHaveCount(0);
   expect((await ltd(page)).guideDone).toBe(true);
 });
@@ -238,41 +310,6 @@ test('staff on the bench and debt are flagged; the welcome can be dismissed', as
   await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench doing odd jobs, which only just cover their salary (+¤0.1/min)');
   await expect(page.locator('[data-alert=debt]')).toContainText('The company is ¤50 in debt');
   await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · odd jobs · +¤0.1/min');
-});
-
-test('on a phone, the Ltd tab folds a finished puzzle to its tiles', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await guess(page, (await puzzleFor(page, 3)).display);
-  await page.click('#foundBtn');
-  await expect(page.locator('#statMoney')).toBeVisible();
-  await expect(page.locator('body')).toHaveClass(/desk-folded/);
-  await expect(page.locator('#code')).toBeHidden();
-  await expect(page.locator('#tiles')).toBeVisible();
-  await page.click('#deskToggle');
-  await expect(page.locator('#code')).toBeVisible();
-  await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
-});
-
-test('on any screen, a finished puzzle can be folded, and stays as the player left it', async ({ page }) => {
-  await found(page);
-  await expect(page.locator('#deskToggle')).toBeHidden();
-  // Finished just now: it stays open to read, with a Fold button.
-  await guess(page, (await puzzleFor(page, 3)).display);
-  await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
-  await expect(page.locator('#reveal')).toBeVisible();
-  await page.click('#deskToggle');
-  await expect(page.locator('body')).toHaveClass(/desk-folded/);
-  await expect(page.locator('#reveal')).toBeHidden();
-  await expect(page.locator('#code')).toBeHidden();
-  await expect(page.locator('#tiles')).toBeVisible();
-  // Coming back later, it opens folded; opened again, it's remembered.
-  await page.reload();
-  await expect(page.locator('#deskToggle')).toHaveText('Show ▾');
-  await expect(page.locator('#code')).toBeHidden();
-  await page.click('#deskToggle');
-  await page.reload();
-  await expect(page.locator('#deskToggle')).toHaveText('Fold ▴');
-  await expect(page.locator('#code')).toBeVisible();
 });
 
 test('language skills are open-ended levels, each with a bar towards the next', async ({ page }) => {
@@ -298,7 +335,7 @@ test('language skills are open-ended levels, each with a bar towards the next', 
 test('the business grows from a start-up; managers staff idle devs and the desk pays less', async ({ page }) => {
   await found(page);
   await expect(page.locator('.stage-name')).toHaveText('Start-up');
-  await expect(page.locator('.stage-bar')).toContainText('your daily puzzle pays in full');
+  await expect(page.locator('.stage-bar')).toContainText('desk jobs pay in full');
   await expect(page.locator('.stage-bar')).toContainText('Next: Small business, with your first manager.');
   await expect(page.locator('.stage-step.now')).toHaveCount(1);
 
@@ -316,10 +353,13 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   expect(job).toMatchObject({ team: ['g1'], lang: 'Python', tier: 0, repeat: true });
   expect((await ltd(page)).stage).toBe('small');
 
-  // The desk pays half: a first-try Wednesday solve is ¤100, not ¤200.
-  await guess(page, (await puzzleFor(page, 3)).display);
-  await expect(page.locator('#welcomeToast')).toContainText('paid ¤100');
-  await expect(page.locator('#welcomeToast')).toContainText('a small business gets 50% of desk pay');
+  // The desk pays half: a Learn question's ¤40 is ¤20.
+  const q = (await deskQuestions(page)).find(x => x.source === 'learn' && x.kind === 'choice');
+  await setDeskJob(page, [q]);
+  const money = (await ltd(page)).money;
+  await page.click('[data-action=desk-start][data-job=dj1]');
+  await answerDesk(page, q, true);
+  await expect(page.locator('#deskDone')).toContainText('¤20 (a small business gets 50% of desk pay)');
 });
 
 test('developers on the bench do odd jobs, which cover their salary with 5% to spare', async ({ page }) => {
@@ -720,7 +760,10 @@ test('closing the company keeps puzzle progress; resetting puzzles keeps the com
   expect(await ltd(page)).not.toBeNull();
   expect(await readJson(page, 'debugg-xp')).toBeNull();
 
+  await page.click('#dailyTab');
+  await expect(page.locator('#ltdNote')).toBeVisible();
   await guess(page, (await puzzleFor(page, 3)).display);
+  await page.click('#ltdNote a');
   await page.click('#ltdClose');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await ltd(page)).toBeNull();
@@ -734,7 +777,7 @@ test('a company saved on the old /studio/ page is imported', async ({ page }) =>
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   await expect(page.locator('#statMoney')).toHaveText('¤90');
   await expect(page.locator('#statHeads')).toHaveText('2');
-  await expect(page.locator('#welcomeToast')).toContainText('moved in with the daily puzzles');
+  await expect(page.locator('#welcomeToast')).toContainText('Your company has moved in. Your desk has jobs for you');
   const saved = await ltd(page);
   expect(saved.activeContract).toBeUndefined();
   expect(saved.enabled).toBe(true);
@@ -753,7 +796,7 @@ test('/studio/ redirects to the main page with the studio on', async ({ page }) 
   await expect(page.locator('#statMoney')).toHaveText('¤150');
 });
 
-test('Daily and Ltd are tabs; on the Daily tab a running company is hidden but still paid', async ({ page }) => {
+test('Daily and Ltd are tabs; on the Daily tab a running company is a note linking to it', async ({ page }) => {
   await expect(page.locator('.modes .lang-tab')).toHaveText(['Daily', 'Ltd']);
   await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#ltdIntro')).toBeHidden();
@@ -773,10 +816,8 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is hidden but s
   await expect(page.locator('#ltdStats')).toBeHidden();
   await expect(page.locator('#ltdBoard')).toBeHidden();
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
-  await guess(page, (await puzzleFor(page, 3)).display);
-  await expect.poll(async () => (await ltd(page)).money).toBeGreaterThanOrEqual(350);
   await page.click('#ltdNote a');
-  await expect(page.locator('#statMoney')).toHaveText(/¤3[45]\d/);
+  await expect(page.locator('#statMoney')).toHaveText('¤150');
 
   // The game has two tabs, Daily and Ltd; Learn is its own section, linked from the footer and the
   // Director's languages, and it links back.
@@ -792,6 +833,7 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is hidden but s
 test('works at phone width with the studio on', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await found(page);
-  await page.click('#revealBtn');
+  await page.click('[data-action=desk-start]');
+  await expect(page.locator('.desk-q')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 });

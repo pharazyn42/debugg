@@ -248,8 +248,9 @@
   }
   .found .btn-ghost{ margin-top: 4px; }
 
-  /* Debuggit Ltd layout: the puzzle becomes the desk column, with the studio beside it. */
-  .desk-title{ display: none; }
+  /* Debuggit Ltd (the Ltd tab): the company, with the Director's desk beside the studio. The daily
+     puzzle is its own game, on the Daily tab. */
+  body.ltd-view main.desk, body.ltd-view #kicker{ display: none; }
   body.ltd-on .wrap{ max-width: 1080px; }
   body.ltd-on .columns{
     display: grid;
@@ -261,43 +262,12 @@
   @media (max-width: 800px){
     body.ltd-on .columns{ grid-template-columns: minmax(0, 1fr); }
   }
-  body.ltd-on .desk-title{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    margin: 0 0 14px;
-  }
-  .desk-tag{
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-radius: 5px;
-    padding: 2px 6px;
-  }
   body.ltd-running .found, body.ltd-view .found{ display: none; }
-  /* The Ltd tab: once today's puzzle is done, it folds to its tiles (Show / Fold) to make room for the studio. */
-  .desk-toggle{
-    margin-left: auto;
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--text-dim);
-    font-size: 12px;
-    padding: 5px 10px;
-  }
-  body.desk-folded .desk > :not(.desk-title):not(.tiles){ display: none; }
-  body.desk-folded .desk .tiles{ margin-bottom: 0; }
   @media (max-width: 700px){
     body.ltd-view .sub{ display: none; }
     body.ltd-view h1{ font-size: 26px; margin-bottom: 4px; }
-    body.ltd-view .desk-tag{ display: none; }
   }
-  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard{ display: none !important; }
+  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk{ display: none !important; }
   .ltd-intro{
     background: var(--panel);
     border: 1px solid var(--line);
@@ -378,10 +348,10 @@
   <!-- The Ltd tab without a running company: what it is, and a button to start (or resume) one. -->
   <section class="ltd-intro" id="ltdIntro" hidden>
     <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
-    <p id="ltdIntroText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and get paid for every daily puzzle.</p>
+    <p id="ltdIntroText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and take desk jobs that pay the company.</p>
     <button class="btn-primary" id="ltdLink">Start your own company</button>
   </section>
-  <p class="ltd-note" id="ltdNote" hidden>Your company is running: today’s puzzle pays Debuggit Ltd. <a href="index.html?ltd">Open Ltd →</a></p>
+  <p class="ltd-note" id="ltdNote" hidden><span id="ltdNoteText">Your company is running.</span> <a href="index.html?ltd">Open Ltd →</a></p>
 
   <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). On the
        Daily tab a running company is loaded but hidden, so the puzzle still pays it. -->
@@ -389,8 +359,6 @@
 
   <div class="columns">
   <main class="desk">
-  <h2 class="desk-title">Your desk: what does this print? <span class="desk-tag">pays the company</span>
-    <button class="desk-toggle" id="deskToggle" type="button" hidden>Show ▾</button></h2>
 
   <p class="practice-note" id="practiceNote" hidden><span id="practiceText"></span> <a href="index.html">Back to today →</a></p>
   <div class="tiles" id="tiles"></div>
@@ -448,12 +416,13 @@
       <p class="report">Something wrong with this puzzle? <a id="reportLink" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Report it</a></p>
       <div class="found" id="foundCard">
         <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
-        <p id="foundText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and get paid for every daily puzzle.</p>
+        <p id="foundText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and take desk jobs that pay the company.</p>
         <button class="btn-ghost" id="foundBtn">Start your own company</button>
       </div>
     </div>
   </div>
   </main>
+  <div id="ltdDesk" hidden></div>
   <div id="ltdStudio" hidden></div>
   </div>
 
@@ -1054,7 +1023,6 @@
     const q = F.question(puzzle);
     document.getElementById('title').textContent = q.title;
     document.getElementById('sub').textContent = q.sub;
-    document.querySelector('.desk-title').firstChild.textContent = 'Your desk: ' + q.title.charAt(0).toLowerCase() + q.title.slice(1) + ' ';
     const ask = document.getElementById('ask');
     ask.innerHTML = q.ask;
     ask.hidden = !q.ask;
@@ -1135,11 +1103,11 @@
 </script>
 
 <script>
-// Debuggit Ltd loader. The Ltd tab is index.html?ltd: the studio beside the puzzle (its desk), or,
-// with no running company, a card to start or resume one. On the Daily tab a running company is
-// loaded but kept out of sight, so the puzzle still pays it. The studio's code only loads when a
-// company is running, when a save from before the merge exists (the old /studio/ page, which
-// opens the Ltd tab), or when the player starts or resumes one.
+// Debuggit Ltd loader. The Ltd tab is index.html?ltd: the company, with the Director's desk jobs
+// beside the studio, or, with no running company, a card to start or resume one. The daily puzzle is
+// its own game and pays nothing to the company, so the studio's code only loads on the Ltd tab (for
+// a running company, or one being started or resumed), or when a save from before the merge exists
+// (the old /studio/ page, which opens the Ltd tab). On the Daily tab a running company gets a note.
 (function(){
   const KEY = 'debugg-ltd', OLD_KEY = 'contract-debugger-state-v3';
   function read(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
@@ -1161,30 +1129,12 @@
         history.replaceState(null, '', location.pathname + (location.search ? location.search + '&ltd' : '?ltd') + location.hash);
       window.Debugg.renderWordmark($('wordmark'), 'ltd');
       $('title').textContent = 'Debuggit Ltd';
-      $('sub').textContent = 'Your software studio. Hire developers and put them on contracts that keep running while you’re away. ' +
-        'Today’s puzzle is your desk: solving it pays the company.';
+      $('sub').textContent = 'Your software studio. Hire developers and put them on contracts that keep running while you’re away, ' +
+        'and take the desk jobs that turn up for you, the Director.';
       document.title = 'Debuggit Ltd';
     }
     $('ltdIntro').hidden = !ltdView || document.body.classList.contains('ltd-running');
   }
-
-  // Once today's puzzle is done, the Ltd tab can fold it to its tiles. It opens folded (or as the
-  // player last left it), on any screen; a puzzle finished just now stays open to read.
-  const DESK_KEY = 'debugg-desk-folded';
-  function setDeskFolded(on, remember){
-    document.body.classList.toggle('desk-folded', on);
-    $('deskToggle').textContent = on ? 'Show ▾' : 'Fold ▴';
-    if(remember) try{ localStorage.setItem(DESK_KEY, on ? '1' : '0'); }catch(e){}
-  }
-  function deskFoldedPref(){
-    try{ return localStorage.getItem(DESK_KEY) !== '0'; }catch(e){ return true; }
-  }
-  $('deskToggle').addEventListener('click', () => setDeskFolded(!document.body.classList.contains('desk-folded'), true));
-  document.addEventListener('debugg:puzzle-finished', () => {
-    if(!document.body.classList.contains('ltd-on')) return;
-    $('deskToggle').hidden = false;
-    setDeskFolded(false);
-  });
 
   if(saved && !saved.enabled){
     $('ltdIntroText').textContent = $('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
@@ -1201,26 +1151,28 @@
     css.rel = 'stylesheet';
     css.href = 'ltd/ltd.css';
     document.head.appendChild(css);
+    // The desk's questions (ltd/desk.js) first, then, once they're in, the studio.
+    const deskJs = document.createElement('script');
+    deskJs.src = 'ltd/desk.js';
     const js = document.createElement('script');
     js.src = 'ltd/ltd.js';
     js.onload = () => {
-      if(ltdView){
-        document.body.classList.add('ltd-on');
-        // A puzzle already finished today folds to its tiles (it can be opened again).
-        if(window.Debugg.isFinished(window.Debugg.slotDay(window.Debugg.today()))){
-          $('deskToggle').hidden = false;
-          setDeskFolded(deskFoldedPref());
-        }
-      }
-      else $('ltdNote').hidden = false;
-      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard') });
+      document.body.classList.add('ltd-on');
+      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk') });
     };
-    js.onerror = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
-    document.body.appendChild(js);
+    js.onerror = deskJs.onerror = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
+    deskJs.onload = () => document.body.appendChild(js);
+    document.body.appendChild(deskJs);
   }
 
   showView();
-  if(running || importing) switchOn();
+  // The company only runs on the Ltd tab. On the Daily tab, a running company gets a one-line note.
+  if((running && ltdView) || importing) switchOn();
+  else if(running){
+    const waiting = ((saved.desk && saved.desk.jobs) || []).filter(j => j.expiresAt > Date.now()).length;
+    $('ltdNoteText').textContent = 'Your company is running' + (waiting ? ', with ' + waiting + ' desk job' + (waiting > 1 ? 's' : '') + ' waiting.' : '.');
+    $('ltdNote').hidden = false;
+  }
   // Starting or resuming the company, from the Ltd tab's card or the one under a finished puzzle.
   [$('ltdLink'), $('foundBtn')].forEach(el => el.addEventListener('click', (e) => {
     e.preventDefault();

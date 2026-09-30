@@ -8,8 +8,9 @@ same game. Its logo is a wordmark, "debug it" as a line of code in the day's puz
 Context for continuing work on this repo. **Debugg** is the daily puzzle game:
 read a short Python or JavaScript snippet and guess what it prints. **Debugg
 Ltd** is the optional idle studio-management game around it, on the **Ltd** tab
-next to Daily and Learn. With it on, the daily puzzles are the Director's
-desk and pay the company. The README covers the player-facing rules; this file
+next to Daily. Since September 2026 the two are separate: the daily puzzle pays the company
+nothing, and the Director's desk is **desk jobs**, questions from past dailies and Learn that turn
+up over time (see "The desk" below). The README covers the player-facing rules; this file
 is the design and implementation notes, mostly for Debugg Ltd.
 
 **The site is a demo** (Day 1 is Monday 5 October 2026) with no release
@@ -50,12 +51,12 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
 
-**How the puzzle page and the studio connect.** One way only. When a daily
-puzzle ends, `index.html` fires `debugg:puzzle-finished` with
-`{ lang, day, solved, guesses, hintLevel, xp, streak }`, and `ltd.js` pays for
-it (see "The desk" below). The studio reads puzzle XP through
-`Debugg.readXp()` for the Director's skills. The puzzle page never depends on
-the studio.
+**How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
+player-owner's call: the daily is its own game). The studio reads puzzle XP through
+`Debugg.readXp()` for the Director's skills and the founder's bonus, and its desk jobs reuse past
+daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
+`index.html` still fires `debugg:puzzle-finished` (`{ lang, day, solved, guesses, hintLevel, xp,
+streak }`) when a game ends, but nothing listens to it now.
 
 **Two areas: the game and Learn** (split September 2026, the player-owner's call). The game is the
 daily puzzle and Debuggit Ltd, with **Daily | Ltd** tabs on `index.html`. **Debuggit Learn** is its
@@ -71,20 +72,18 @@ finished puzzle's "Run it yourself", and lessons link to it from every step with
 
 **Tabs and switching on.** The game's pages have **Daily | Ltd** tabs. The
 Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
-there): the studio beside the puzzle, which is its desk, or, with no running company, a card
-(`#ltdIntro`) to start or resume one. Opening the tab never founds a company by itself. The
-loader at the bottom of `index.html` loads `ltd/` when the saved company is running (on either
-tab), when an old pre-merge save exists (which opens the Ltd tab), or when the player starts
-or resumes one (the card on the Ltd tab, or the one under a finished puzzle, which moves to the
-Ltd tab). On the Daily tab a running company is loaded but hidden (`body.ltd-running` without
-`ltd-on`), with a one-line note linking to Ltd, so the puzzle still pays it.
-`DebuggLtd.start({ stats, studio, board })` renders into the three slots and either resumes the
-saved company, imports an old one, or founds a new one. `body.ltd-on` shows the studio in the
-two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title), with the
-puzzle as "Your desk: what does this print?". Once today's puzzle is finished, the desk can fold to
-its tiles on any screen (`body.desk-folded`, a Show/Fold button): it opens folded on later visits,
-or as the player last left it (`debugg-desk-folded`), and a puzzle finished just now stays open to
-read.
+there): the company, with its desk beside the studio and no daily puzzle (`main.desk` is hidden),
+or, with no running company, a card (`#ltdIntro`) to start or resume one. Opening the tab never
+founds a company by itself. The loader at the bottom of `index.html` loads `ltd/desk.js` and then
+`ltd/ltd.js` only on the Ltd tab (for a running company, or one being started or resumed, from the
+card on the Ltd tab or the one under a finished puzzle, which moves to the Ltd tab), or when an
+old pre-merge save exists (which opens the Ltd tab). On the Daily tab a running company isn't
+loaded; a one-line note says how many desk jobs are waiting (read from the save) and links to Ltd.
+`DebuggLtd.start({ stats, studio, board, desk })` renders into the four slots and either resumes
+the saved company, imports an old one, or founds a new one. `body.ltd-on` shows the desk and the
+studio in the two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title).
+The desk used to be the daily puzzle itself, which folded to its tiles once done; that went with
+the separation.
 
 **Languages and the rotation.** There's one puzzle a day, and the
 languages take turns. `LANG_INFO` in `shared.js` describes every language
@@ -207,9 +206,12 @@ SLOC targets); add a similar guard if the state shape changes again.
 ## Data model (as currently implemented)
 
 ```js
-// The desk
-CASH_PER_XP = 2, XP_PER_REP = 20          // desk pay per puzzle XP earned
-STREAK_BONUS_PER_DAY = 0.10, STREAK_BONUS_CAP = 0.50   // on solves, per streak day beyond the first
+// The desk: desk jobs (ltd/desk.js for the questions)
+DESK_EVERY_MIN = [45, 90], DESK_MAX = 3, DESK_LIFE_H = 4   // a job every 45–90 min, 3 waiting at most, open 4h
+DESK_SIZES = 1 (50%), 2 (33%), 3 (17%) questions
+DESK_PAY = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 }         // ¤ per right answer, by difficulty (Learn = 1)
+DESK_BOOST = { 1: ×1, 2: ×1.25, 3: ×1.5 }                 // when every answer in the job is right
+DESK_REP = 1, DESK_SEEN = 40                               // reputation per right answer; recent questions kept out
 START_CASH = 150, FOUNDER_BONUS_CAP = 1000             // + ¤1 per puzzle XP at founding
 DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance per puzzle level above 1
 
@@ -256,7 +258,7 @@ state = {
   collapsedTiers: [],                             // contract board groups folded in the UI ('hotfix', …)
   tiersVersion, boardVersion,                     // save-shape markers for the boot migrations
   enabled, pausedAt,                              // false / a time while the player has it paused
-  paid: { 'python-5': true, … },                  // desk puzzles already paid for (last 14 days)
+  desk: { jobs: [ { id, size, questions: [ids], answered: [bools], expiresAt } ], nextAt, seen, done },  // desk jobs
   applicants: [ { id, role, person, cost, expiresAt } ], nextApplicantAt,
   guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
   stage,                                          // the business stage last announced ('startup', 'small', …)
@@ -268,15 +270,23 @@ state = {
 
 ## What's implemented
 
-- **The desk is the daily puzzle**, one a day in the rotation's language (see 3b
-  for the planned formats and weekly rotation). Each one finished while the company is running pays
-  `CASH_PER_XP` per XP it earned (¤200 for a first-guess, no-hint solve,
-  ¤20 for a reveal) and 1 reputation per 20 XP. Solves get +10% per streak
-  day beyond the first, up to +50%. Only today's puzzles pay, each once
-  (the `paid` ledger), and puzzles finished before the company existed
-  don't pay. Replaced the old unlimited desk (1/3/5/8-puzzle contracts from
-  a bank of 6), so the staffed side now carries the early economy; a lone
-  grad on a hotfix already pays for itself.
+- **The desk is desk jobs** (the player-owner's call, September 2026, when the daily was separated
+  from the game; `moveDesk()`, `state.desk`, `ltd/desk.js`). A job turns up every 45–90 minutes
+  (the first straight away), while the page is closed too (not while paused), at most 3 waiting,
+  each open for 4 hours. It's 1, 2 or 3 questions (50/33/17%), drawn from:
+  - **past daily puzzles** (the last 40 slots, never today's), in their own format; "order the
+    lines" is asked as "what does this print?";
+  - **Debuggit Learn's questions** from any written unit (decided: Learn stays open to everyone),
+    whose unit files `desk.js` loads on demand.
+
+  Each question gets one answer. **Pay is per right answer** (`DESK_PAY` by difficulty, Learn
+  questions as 1: ¤40–¤100), and a job with every answer right is boosted (×1.25 for 2, ×1.5 for 3);
+  1 reputation per right answer. Answers are saved as they're given, so a reload carries on rather
+  than retrying. Questions asked lately (`seen`) and ones in other waiting jobs are kept out of new
+  jobs. Desk pay shrinks by business stage, as before. The Director card reads "Taking desk jobs".
+  Before this the desk was today's daily puzzle (¤2 per puzzle XP, a streak bonus, the `paid`
+  ledger, which old saves drop), and before that an unlimited set of desk contracts; a lone grad
+  on a hotfix still pays for itself.
 - **Founding**: a new company gets ¤150 plus a founder's bonus of ¤1 per
   puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
@@ -467,7 +477,7 @@ state = {
   paused), and are kept in `state.market`.
 - **The office** (phase 1 of item 15e, September 2026; `SPARE_ROOM_DESKS`, `COWORK_*`,
   `state.office`): everyone on staff needs a desk, except the Director, who works from home at
-  the daily puzzle. The spare room has 4 desks, free, matching the Director's span of 4 devs, so
+  their own desk jobs. The spare room has 4 desks, free, matching the Director's span of 4 devs, so
   the first manager needs the first **co-working desk**: ¤1/min each (`COWORK_RATE`), up to 8
   (`COWORK_MAX`, so 12 staff and the Director, enough for patches), rented and given up from the
   **Office** line in the Studio panel (a desk can only be given up while one is free). Rent is
@@ -747,11 +757,9 @@ footer, the Director's languages and missed puzzles (see "Two areas" above). The
 **Daily | Ltd** tabs for now. Still to do, with the hosting move: Ltd lives inside `index.html`
 (the `?ltd` tab and the studio slots), so the work is mostly giving Ltd its own page. Things to
 settle then:
-- **The desk:** today the puzzle sits in the studio and pays it through the
-  `debugg:puzzle-finished` event on the same page. On a separate Ltd page, the desk could
-  show today's result with a link to Daily, and pay when the Ltd page next loads (reading the
-  day's saved result, with the `paid` ledger stopping double pay). The Daily page could then
-  stop loading `ltd/` at all.
+- **The desk: settled** (September 2026). The daily no longer pays the company and the Ltd tab no
+  longer shows it (desk jobs took its place), so the Daily page already doesn't load `ltd/`. Giving
+  Ltd its own page is now mostly moving the Ltd tab's slots and loader to it.
 - **Addresses:** separate pages on one site (e.g. `/`, `/learn`, `/ltd`), or separate
   sites/subdomains. Separate addresses split the browser saves, so one site with three pages
   is much simpler (the pages share saves, XP and the backup code).
