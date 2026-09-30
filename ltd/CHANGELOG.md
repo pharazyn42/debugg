@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.7 — 30 September 2026
+
 - Every company now starts with an **intern**. They're free, and they take hotfixes with you
   alongside them, in Python or any language you've earned daily puzzle XP in (or one they've picked
   up). You can only help one at a time, and they're slow, but every hotfix is pure profit. After 7
