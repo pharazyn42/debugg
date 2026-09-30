@@ -7,7 +7,10 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- A lesson, checkpoint or review you're partway through now carries on where you left it when you
+  come back from the sandbox, or reload the page. It used to start you back on the course.
+- On phones, tapping into an answer box or the sandbox's editor no longer zooms the page in (and
+  leaves it zoomed after you answer).
 
 ## 0.0.5 — 30 September 2026
 

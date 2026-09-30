@@ -123,6 +123,9 @@
     color: var(--text-faint);
     line-height: 1.5;
   }
+  /* 16px on touch screens, so focusing the editor or the puzzle list doesn't zoom the page (see
+     base.css). The gutter, the highlighting and the textarea all inherit it, so they stay lined up. */
+  @media (hover: none) and (pointer: coarse){ .code-edit, select{ font-size: 16px; } }
 </style>
 </head>
 <body>

@@ -247,3 +247,9 @@ dialog textarea:focus{ outline: none; border-color: var(--amber); }
 .backup-note{ font-size: 12.5px; color: var(--green); }
 .backup-error{ color: var(--red) !important; margin: 6px 0 0 !important; min-height: 0; }
 .backup-error:empty{ display: none; }
+
+/* Phones zoom the page in when a text box under 16px gets the focus (iOS Safari), and often stay
+   zoomed after the answer is in. So on touch screens every text box is 16px. */
+@media (hover: none) and (pointer: coarse){
+  input[type=text], select, textarea, dialog textarea{ font-size: 16px; }
+}

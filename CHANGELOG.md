@@ -9,7 +9,8 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- On phones, tapping into an answer box no longer zooms the page in (and leaves it zoomed after
+  you answer).
 
 ## 0.0.4 — 30 September 2026
 
