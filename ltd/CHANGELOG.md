@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.9 — 30 September 2026
+
 - A new company starts with ¤250 instead of ¤150, so you can hire your first graduate (¤180) straight
   away.
 - Reputation grows more slowly: a hotfix now earns 0.05 reputation instead of 0.5, and principals
