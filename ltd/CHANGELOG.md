@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.6 — 30 September 2026
+
 - A contract set to repeat now always retries a failure by itself. Before, one that failed more
   than 4 hours before you came back waited for you to press Retry.
 
