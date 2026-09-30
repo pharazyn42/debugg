@@ -47,6 +47,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `img/` | The Debuggit duck: `duck.svg` (logo and favicon), `duck-180.png` (home-screen icon) and `share.png` (the 1200×630 link-preview card). The PNGs are rendered from the SVG; redo them if the duck changes. |
 | `daily/` | The daily page's parts: `formats.js` (each puzzle format's question and answer text), `stats.js` (the stats panel), `sharecard.js` (the share picture), `archive.js` (past puzzles, played as practice at `index.html?day=N`) and `trace.js` (Step through it). |
 | `tools/trace-puzzles.js`, `tools/trace.py`, `tools/probe.py` | `npm run traces` records every Python puzzle's step-by-step trace with real Python into `puzzles/traces-python.js`; `probe.py` counts line runs and tries line orders for the checker. |
+| `tools/sim-ltd.js` | `npm run sim`: the Debuggit Ltd pacing simulator. Plays the real `ltd/ltd.js` headless (fake clock, seeded randomness, a stand-in page) as a keen, casual or always-open player, and prints when the milestones in `ideas/ltd-pacing-targets.md` happen. `--ltd` plays a modified copy, to try a balance change. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |

@@ -5,7 +5,8 @@
   "scripts": {
     "test": "playwright test",
     "check-puzzles": "node tools/check-puzzles.js",
-    "traces": "node tools/trace-puzzles.js"
+    "traces": "node tools/trace-puzzles.js",
+    "sim": "node tools/sim-ltd.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"
