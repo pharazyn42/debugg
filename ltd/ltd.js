@@ -137,14 +137,17 @@ window.DebuggLtd = (function(){
     // on, leave, and apply to stay on as a graduate for INTERN_OFFER of a graduate's hire cost
     // (whatever the studio's reputation).
     //
-    // An intern's hotfix is a puzzle (the player-owner's idea, September 2026). The intern writes it
-    // on the clock (slowly: about 25 minutes), then it waits for the Director to review it: a
-    // puzzle in the hotfix's language from the desk's pool. A wrong answer fails the hotfix. A right
-    // one delivers it, unless the intern mucks it up (1 − the pair's success chance), in which case
-    // a second puzzle reviews their fix, and that one they can't muck up. A delivered hotfix pays
-    // like a desk question (DESK_PAY by the puzzle's difficulty, × the offer's risk and the stage's
-    // desk share) and DESK_REP reputation, and the intern gets the hotfix's XP. No repeats, since
-    // each one needs you; a written hotfix waits for you however long you're away.
+    // The intern gets stuck (the player-owner's idea, September 2026). They write a hotfix on the
+    // clock (slowly: about 25 minutes), and INTERN_STUCK of their hotfixes get stuck once, at a
+    // random point in the middle (INTERN_STUCK_AT), and stall, however long you're away, until the
+    // Director answers a puzzle in the hotfix's language from the desk's pool. Right: the hotfix
+    // jumps INTERN_NUDGE of its length ahead, and the answer pays like a desk question (DESK_PAY by
+    // difficulty, × the stage's desk share) and DESK_REP reputation. Wrong: it loses INTERN_NUDGE
+    // of its progress (never below none). Once written, it's always delivered, for a hotfix's pay.
+    // No repeats, since each one may need you.
+    const INTERN_STUCK = 0.5;
+    const INTERN_STUCK_AT = [0.2, 0.8];
+    const INTERN_NUDGE = 0.25;
     const INTERN_DAYS = 7;
     const INTERN_OFFER = 0.5;
     function isIntern(p){ return !!p && p.role === 'Intern'; }
@@ -739,7 +742,7 @@ window.DebuggLtd = (function(){
         track('left/' + p.role.toLowerCase());
       });
     }
-    // An internship that has run its course: once their hotfix is written and reviewed, the intern
+    // An internship that has run its course: once their hotfix is written (unstuck), the intern
     // leaves and applies to stay on as a graduate, keeping what they've learnt.
     function internEnds(p){ return p.since + INTERN_DAYS * 86400000; }
     function moveInterns(now){
@@ -915,7 +918,7 @@ window.DebuggLtd = (function(){
       const checks = [
         { label: 'an intern and you, the Director (' + members.length + ')', ok: !!intern && !!director && !others.length && tier.key === 'hotfix' },
         { label: 'you or ' + (intern ? intern.name : 'the intern') + ' know ' + offer.lang, ok: knows },
-        { label: 'there are ' + offer.lang + ' puzzles to review it with', ok: hasPuzzles(offer.lang) }
+        { label: 'there are ' + offer.lang + ' puzzles for when they’re stuck', ok: hasPuzzles(offer.lang) }
       ];
       if(offer.expert) checks.push({ label: 'at ' + offer.lang + ' Lv ' + offer.expert + '+ (expert)', ok: !!intern && meetsExpert(intern, offer) });
       const valid = checks.every(c => c.ok);
@@ -943,7 +946,9 @@ window.DebuggLtd = (function(){
       if(!ev.valid) return false;
 
       const now = Date.now();
-      state.jobs.push(newJob(offer, memberIds.slice(), now, ev, !!repeat && !members.some(isIntern)));
+      const job = newJob(offer, memberIds.slice(), now, ev, !!repeat && !members.some(isIntern));
+      if(members.some(isIntern) && Math.random() < INTERN_STUCK) job.stuckAt = now + ev.ms * between(INTERN_STUCK_AT);
+      state.jobs.push(job);
       state.board[offerIdx] = replacementFor(offer);
       save();
       return true;
@@ -961,8 +966,8 @@ window.DebuggLtd = (function(){
     }
 
     function isRunning(job){ return (job.status || 'running') === 'running'; }
-    // An intern's hotfix that's written and waiting for the Director's review (see INTERN_DAYS).
-    function inReview(job){ return job.status === 'review'; }
+    // An intern's hotfix that's stuck, stalled until the Director answers a puzzle (see INTERN_STUCK).
+    function isStuck(job){ return job.status === 'stuck'; }
     function isInternJob(job){ return job.team.some(id => isIntern(person(id))); }
     function jobTag(job){
       return (job.risk && job.risk !== 'standard' ? riskOf(job).name.toLowerCase() + ' ' : '') + (job.expert ? 'expert ' : '') +
@@ -982,7 +987,9 @@ window.DebuggLtd = (function(){
       });
       const retry = job.attempt === 2 ? ' retry' : '';
       const xp = tier.xpPerMin * (job.endsAt - job.startedAt) / 60000;
-      if(Math.random() < job.chance){
+      const intern = isInternJob(job);  // once written, an intern's hotfix is always delivered
+      if(intern) state.internDone = (state.internDone || 0) + 1;
+      if(intern || Math.random() < job.chance){
         state.money += job.payout;
         state.reputation += tier.rep;
         job.team.forEach(id => {
@@ -1050,18 +1057,18 @@ window.DebuggLtd = (function(){
         retryJob(j, now);
         addLog('info', '↻ Retrying ' + jobTag(j) + ' for ' + fmt(j.payout) + '.');
       });
+      // An intern who's got stuck stalls until you help (see INTERN_STUCK).
+      state.jobs.filter(j => isRunning(j) && j.stuckAt && j.stuckAt < j.endsAt && j.stuckAt <= now).forEach(j => {
+        j.status = 'stuck';
+        j.left = j.endsAt - j.stuckAt;
+        delete j.stuckAt;
+        addLog('info', '✋ ' + (person(j.team.find(id => isIntern(person(id)))) || {}).name + ' is stuck on the ' +
+          j.lang + ' hotfix. Answer a puzzle to help them.');
+      });
       for(;;){
         const due = state.jobs.filter(j => isRunning(j) && j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
         if(!due.length) break;
         const job = due[0];
-        if(isInternJob(job)){
-          // Written: it waits for the Director's review, however long that takes.
-          job.status = 'review';
-          job.repeat = false;
-          addLog('info', '✎ ' + (person(job.team.find(id => isIntern(person(id)))) || {}).name + ' has written the ' +
-            job.lang + ' hotfix. Review it to deliver it.');
-          continue;
-        }
         const delivered = settleJob(job);
         finished++;
         if(!delivered && job.attempt === 1){
@@ -1136,7 +1143,7 @@ window.DebuggLtd = (function(){
     function skipTime(ms){
       if(!(ms > 0)) return;
       state.lastTick = (state.lastTick || Date.now()) + ms;
-      state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; });
+      state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; if(j.stuckAt) j.stuckAt += ms; });
       state.board.forEach(o => { o.expiresAt += ms; });
       if(state.market) state.market.nextAt += ms;
       if(state.nextApplicantAt) state.nextApplicantAt += ms;
@@ -1240,7 +1247,7 @@ window.DebuggLtd = (function(){
     }
     function startDeskJob(id){
       const job = state.desk.jobs.find(j => j.id === id);
-      if(!job || !deskPool || reviewActive) return;
+      if(!job || !deskPool || helpActive) return;
       const qs = deskQuestions(job);
       if(!qs.length){ state.desk.jobs = state.desk.jobs.filter(j => j !== job); save(); renderDesk(); return; }
       deskActive = id;
@@ -1279,16 +1286,16 @@ window.DebuggLtd = (function(){
       save();
       renderAll();
     }
-    // Reviewing the intern's hotfixes (see INTERN_DAYS): one puzzle in the hotfix's language, from
-    // the desk's pool, not asked lately and not waiting in a desk job. Before the pool has loaded,
-    // only Python is assumed to have puzzles.
+    // Helping a stuck intern (see INTERN_STUCK): one puzzle in the hotfix's language, from the
+    // desk's pool, not asked lately and not waiting in a desk job. Before the pool has loaded, only
+    // Python is assumed to have puzzles.
     function hasPuzzles(langName){
       if(!deskPool) return langName === 'Python';
       const key = puzzleKey(langName);
       for(const q of deskPool.values()) if(q.lang === key) return true;
       return false;
     }
-    function reviewQuestion(job){
+    function stuckQuestion(job){
       const key = puzzleKey(job.lang);
       const taken = new Set(state.desk.seen.concat(state.desk.jobs.flatMap(j => j.questions)));
       const all = [...deskPool.values()].filter(q => q.lang === key);
@@ -1296,66 +1303,61 @@ window.DebuggLtd = (function(){
       const from = fresh.length ? fresh : all;
       return from.length ? from[Math.floor(Math.random() * from.length)].id : null;
     }
-    // What a review can pay: DESK_PAY's range, × the offer's risk and the stage's desk share.
-    function reviewPay(job, difficulty){ return Math.round(DESK_PAY[difficulty] * riskOf(job).pay * stage().desk); }
-    function reviewPayText(job){ return fmt(reviewPay(job, 1)) + '–' + fmt(reviewPay(job, 5)).replace('¤', '') + ' by the puzzle'; }
-    let reviewActive = null;  // the id of the intern's hotfix being reviewed
-    function startReview(id){
+    // What helping pays for a right answer: a desk question's pay, × the stage's desk share.
+    function helpPay(difficulty){ return Math.round(DESK_PAY[difficulty] * stage().desk); }
+    function helpPayText(){ return fmt(helpPay(1)) + '–' + fmt(helpPay(5)).replace('¤', ''); }
+    let helpActive = null;  // the id of the stuck hotfix being helped with
+    function startHelp(id){
       const job = state.jobs.find(j => j.id === id);
-      if(!job || !inReview(job) || !deskPool || deskActive || reviewActive) return;
-      if(!job.question || !deskPool.get(job.question)) job.question = reviewQuestion(job);
+      if(!job || !isStuck(job) || !deskPool || deskActive || helpActive) return;
+      if(!job.question || !deskPool.get(job.question)) job.question = stuckQuestion(job);
       const q = job.question && deskPool.get(job.question);
       if(!q) return;
       save();
-      reviewActive = job.id;
+      helpActive = job.id;
       let text = '';
       const box = document.getElementById('deskPlay');
       box.hidden = false;
       renderAll();
       window.DebuggDesk.play(box, [q], {
         answered: [],
-        onAnswer: right => { text = finishReview(job, q, right); },
+        onAnswer: right => { text = finishHelp(job, q, right); },
         onDone: () => {
-          reviewActive = null;
-          const again = state.jobs.includes(job) && inReview(job);
-          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/duck.svg" alt="" width="36" height="36"' +
-            (again ? '' : ' class="hop"') + '><p>' + esc(text) + '</p>' +
-            (again ? '<button type="button" class="btn-primary btn-small" data-action="intern-review" data-job="' + job.id + '">Review the fix</button> ' : '') +
+          helpActive = null;
+          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/duck.svg" alt="" width="36" height="36" class="hop"><p>' + esc(text) + '</p>' +
             '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
           renderAll();
         }
       });
       if(box.scrollIntoView) box.scrollIntoView({ block: 'nearest' });
     }
-    // Settles the hotfix on the answer (so a reload can't retry it), and returns what happened.
-    function finishReview(job, q, right){
-      const tier = TIERS[job.tier];
+    // Settles the answer at once (so a reload can't retry it): the hotfix jumps ahead or falls back
+    // INTERN_NUDGE of its length and carries on from now. Returns what happened.
+    function finishHelp(job, q, right){
       const intern = person(job.team.find(id => isIntern(person(id))));
       const name = intern ? intern.name : 'Your intern';
+      const length = job.endsAt - job.startedAt;
+      const left = right ? Math.max(0, job.left - length * INTERN_NUDGE) : Math.min(length, job.left + length * INTERN_NUDGE);
+      const now = Date.now();
       state.desk.seen = state.desk.seen.concat(q.id).slice(-DESK_SEEN);
-      job.question = null;
+      delete job.question;
+      delete job.left;
+      job.status = 'running';
+      job.startedAt = now - (length - left);
+      job.endsAt = now + left;
       let text;
-      if(!right){
-        state.reputation = Math.max(0, state.reputation - tier.rep / 2 * riskOf(job).repLoss);
-        state.jobs = state.jobs.filter(j => j !== job);
-        text = 'Your review missed it, so the ' + jobTag(job) + ' failed.';
-        addLog('bad', '✕ ' + text);
-      }else if(job.attempt !== 2 && Math.random() >= job.chance){
-        job.attempt = 2;
-        text = 'Right, but ' + name + ' mucked up the fix. Review it again to deliver the hotfix.';
-        addLog('info', '↻ ' + text);
-      }else{
-        const cash = reviewPay(job, q.difficulty);
-        const xp = tier.xpPerMin * (job.endsAt - job.startedAt) / 60000;
+      if(right){
+        const cash = helpPay(q.difficulty);
         state.money += cash;
         state.reputation += DESK_REP;
-        if(intern) intern.lang[job.lang] = (intern.lang[job.lang] || 0) + xp;
-        state.jobs = state.jobs.filter(j => j !== job);
-        state.internDone = (state.internDone || 0) + 1;
-        text = jobTag(job) + ' delivered — ' + fmt(cash) + ', +' + DESK_REP + ' reputation and +' + fmtXp(xp) + ' XP to ' + name + '.';
+        text = 'Right: ' + name + '’s ' + job.lang + ' hotfix jumps ahead, and your help earns ' + fmt(cash) + ' and +' + DESK_REP + ' reputation.';
         addLog('ok', '✓ ' + text);
+      }else{
+        text = 'Not quite: ' + name + ' went the wrong way, and the ' + job.lang + ' hotfix loses some progress.';
+        addLog('bad', '✕ ' + text);
       }
-      track('intern/review/' + (right ? (state.jobs.includes(job) ? 'mucked' : 'delivered') : 'failed'));
+      track('intern/help/' + (right ? 'right' : 'wrong'));
+      resolveDueJobs(now);
       save();
       renderAll();
       return text;
@@ -1375,7 +1377,7 @@ window.DebuggLtd = (function(){
           '<div class="desk-meta">' + (j.answered.length ? j.answered.length + ' answered · ' : '') +
             (playing ? 'in progress' : fmtDuration(Math.max(0, j.expiresAt - now)) + ' left') + '</div></div>' +
           (playing ? '' : '<button type="button" class="btn-primary btn-small" data-action="desk-start" data-job="' + j.id + '"' +
-            (deskActive || reviewActive ? ' disabled' : '') + (guide && guide.key === 'desk' && j === jobs[0] ? ' data-guide="1"' : '') + '>' +
+            (deskActive || helpActive ? ' disabled' : '') + (guide && guide.key === 'desk' && j === jobs[0] ? ' data-guide="1"' : '') + '>' +
             (j.answered.length ? 'Carry on' : 'Start') + '</button>') + '</div>';
       }).join('') + (jobs.length < DESK_MAX ? '<p class="desk-empty">' + (jobs.length ? 'Another' : 'A desk job') + ' turns up in about ' +
         fmtDuration(Math.max(60000, state.desk.nextAt - now)) + '.</p>' : '');
@@ -1385,7 +1387,7 @@ window.DebuggLtd = (function(){
       const b = e.target.closest('[data-action]');
       if(!b || b.disabled) return;
       if(b.dataset.action === 'desk-start') startDeskJob(b.dataset.job);
-      else if(b.dataset.action === 'intern-review') startReview(b.dataset.job);
+      else if(b.dataset.action === 'intern-help') startHelp(b.dataset.job);
       else if(b.dataset.action === 'desk-close'){
         const box = document.getElementById('deskPlay');
         box.hidden = true;
@@ -1466,20 +1468,17 @@ window.DebuggLtd = (function(){
       const devs = state.roster.filter(isDev);
       const intern = state.roster.find(isIntern);
       const internJob = intern && jobFor(intern.id);
+      if(internJob && isStuck(internJob)){
+        return { key: 'stuck', text: '<b>' + esc(intern.name) + ' is stuck.</b> Press <b>Help them</b> under Contracts and answer the puzzle. ' +
+          'Right, and the hotfix jumps ahead (and your help pays like a desk job); wrong, and it loses some progress.' };
+      }
       if(!devs.length && intern && !internJob && !state.internDone){
         const offer = state.board.find(o => isHotfix(o.tier) && !o.expert && o.lang === 'Python') ||
                       state.board.find(o => internCan(o));
         return { key: 'intern', offerId: offer && offer.id,
           text: '<b>Put your intern, ' + esc(intern.name) + ', to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and yourself, and start it. Interns are free, and you help them ' +
-            'in any language you know: Python, and any you’ve earned daily puzzle XP in. They write it; you review it with a puzzle.' };
-      }
-      if(!devs.length && internJob && !state.internDone){
-        return { key: 'review', text: inReview(internJob)
-          ? '<b>Review ' + esc(intern.name) + '’s hotfix.</b> Press <b>Review it</b> under Contracts and answer the puzzle. ' +
-            'Get it right to deliver it: it pays like a desk job, and earns reputation.'
-          : '<b>' + esc(intern.name) + ' is writing the hotfix.</b> It’s ready for your review in about ' +
-            fmtDuration(Math.max(60000, internJob.endsAt - Date.now())) + ', even if you close the page. Take a desk job meanwhile.' };
+            'in any language you know: Python, and any you’ve earned daily puzzle XP in. Now and then they get stuck, and need you to answer a puzzle.' };
       }
       if(!(state.desk && state.desk.done)){
         return { key: 'desk', text: '<b>Take a desk job.</b> At your desk, answer a question or two from past daily puzzles ' +
@@ -1490,7 +1489,7 @@ window.DebuggLtd = (function(){
         return { key: 'hire', text: grad
           ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied, under Applicants: they write the code; you run the company.'
           : '<b>Earn some reputation.</b> Graduates apply once the studio has ' + APPLICANT_REP.Graduate + ' reputation (you have ' +
-            Math.floor(state.reputation || 0) + '). Every right answer, on a desk job or your intern’s hotfixes, earns 1.' };
+            Math.floor(state.reputation || 0) + '). Every right answer, on a desk job or helping your stuck intern, earns 1.' };
       }
       if(!state.jobs.some(j => j.team.some(id => isDev(person(id) || {})))){
         const d = devs[0];
@@ -1605,7 +1604,7 @@ window.DebuggLtd = (function(){
       }else if(isIntern(p)){
         body += '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, p.lang, 'lang');
         body += '<div class="skill-section-title">Internship</div><div class="req-list"><div class="no">' +
-                'Free, and writes hotfixes with you alongside, in any language they or you know; you review each one with a puzzle. ' +
+                'Free, and writes hotfixes with you alongside, in any language they or you know; when they get stuck, you help with a puzzle. ' +
                 'Ends in ' + fmtDuration(Math.max(0, internEnds(p) - now)) + ', when they’ll ask to stay on as a graduate for half the usual cost.</div></div>';
       }else{
         body += '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
@@ -1619,7 +1618,7 @@ window.DebuggLtd = (function(){
         '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salaryOf(p)) + '/min upkeep' +
         (p.raise ? ' (incl. a ' + fmtRate(p.raise) + ' rise)' : '') + ' · ' +
         fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts<br>' +
-        (job && inReview(job) ? 'Waiting on you: review the ' + esc(job.lang) + ' hotfix'
+        (job && isStuck(job) ? 'Waiting on you: stuck on the ' + esc(job.lang) + ' hotfix'
          : job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
          : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ') — ' + fmtClock(job.endsAt - now) + ' left'
              : 'Idle') + '</div>' +
@@ -1770,7 +1769,7 @@ window.DebuggLtd = (function(){
         });
         const text = by.map(g => g.names.join(' and ') + ' apply once the studio has ' + g.rep.toLocaleString('en-GB') + ' reputation').join('; ');
         html += '<p class="applicants-note">' + text.charAt(0).toUpperCase() + text.slice(1) +
-          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts, desk jobs and your intern’s hotfixes earn it.</p>';
+          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts, desk jobs and helping your intern earn it.</p>';
       }
       setHTML(applicantsEl, html);
     }
@@ -1778,8 +1777,8 @@ window.DebuggLtd = (function(){
     function cardHTML(p, now){
       const role = ROLES[p.role];
       const job = jobFor(p.id);
-      const status = job && inReview(job)
-        ? '<span class="promo blocked">' + esc(job.lang) + ' hotfix written — review it below</span>'
+      const status = job && isStuck(job)
+        ? '<span class="promo blocked">Stuck on the ' + esc(job.lang) + ' hotfix — help them below</span>'
         : job && !isRunning(job)
         ? '<span class="promo blocked">' + TIERS[job.tier].name + ' failed — retry or drop it below</span>'
         : job
@@ -1918,16 +1917,18 @@ window.DebuggLtd = (function(){
         setHTML(jobsEl, jobs.map(j => {
           const t = TIERS[j.tier];
           const team = j.team.map(id => { const p = person(id); return p ? esc(p.name) : '?'; }).join(', ');
-          if(inReview(j)){
-            return '<div class="job review">' +
+          if(isStuck(j)){
+            const done = Math.round((1 - j.left / (j.endsAt - j.startedAt)) * 100);
+            return '<div class="job stuck">' +
               '<div class="job-top"><span class="left">' + t.name +
               ' <span class="chip lang">' + esc(j.lang) + '</span>' + riskTag(j) + '</span>' +
-              '<span class="time" style="color:var(--amber)">' + (j.attempt === 2 ? 'Fixed' : 'Written') + '</span></div>' +
-              '<div class="detail">' + team + ' · ' + (j.attempt === 2 ? 'the fix is' : 'it’s') + ' waiting for your review: a ' + esc(j.lang) +
-                ' puzzle' + (j.attempt === 2 ? '' : ' · ' + Math.round((1 - j.chance) * 100) + '% chance they muck it up') + ' · ' + reviewPayText(j) + '</div>' +
+              '<span class="time" style="color:var(--amber)">Stuck</span></div>' +
+              '<div class="progress"><div style="width:' + done + '%"></div></div>' +
+              '<div class="detail">' + team + ' · stuck at ' + done + '% until you help: a ' + esc(j.lang) + ' puzzle. Right, and it jumps ' +
+                Math.round(INTERN_NUDGE * 100) + '% ahead and pays ' + helpPayText() + '; wrong, and it loses ' + Math.round(INTERN_NUDGE * 100) + '%.</div>' +
               '<div class="actions" style="margin:8px 0 0;">' +
-                '<button class="btn-primary btn-small' + (guide && guide.key === 'review' ? ' guide-target' : '') + '" data-action="intern-review" data-job="' + j.id + '"' +
-                  (reviewActive || deskActive ? ' disabled' : '') + '>' + (j.attempt === 2 ? 'Review the fix' : 'Review it') + '</button>' +
+                '<button class="btn-primary btn-small' + (guide && guide.key === 'stuck' ? ' guide-target' : '') + '" data-action="intern-help" data-job="' + j.id + '"' +
+                  (helpActive || deskActive ? ' disabled' : '') + '>Help them</button>' +
               '</div></div>';
           }
           if(!isRunning(j)){
@@ -1948,7 +1949,7 @@ window.DebuggLtd = (function(){
             '<span class="time" data-time="' + j.id + '"></span></div>' +
             '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
             '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
-            (isInternJob(j) ? ' · then you review it · ' + reviewPayText(j) + '</div>'
+            (isInternJob(j) ? ' · ' + fmt(j.payout) + ' when it’s written' + '</div>'
               : ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
                 ' on delivery' + (j.attempt === 2 ? ' · retry' : '') + '</div>' +
                 '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
@@ -2063,16 +2064,15 @@ window.DebuggLtd = (function(){
       return chosen.map(p => p.id);
     }
 
-    // What the intern's hotfix will be: written on the clock, then reviewed with a puzzle.
+    // What the intern's hotfix will be: written on the clock, with a chance of getting stuck.
     function internForecast(offer, ev, intern){
       return '<div class="forecast">' + esc(intern.name) + ' writes it in <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b>' +
-          ' (' + ev.sloc + ' SLOC/min), then you <b>review it</b>: a ' + esc(offer.lang) + ' puzzle, from past daily puzzles and Debuggit Learn.<br>' +
-        'Right, and it’s delivered for <b>' + reviewPayText(offer) + '</b> and +' + DESK_REP + ' reputation, unless ' + esc(intern.name) +
-          ' mucks it up (<b>' + Math.round((1 - ev.chance) * 100) + '%</b>' +
-          (ev.boost ? ', less +' + Math.round(ev.boost * 100) + '% from your ' + esc(offer.lang) + ' level' : '') +
-          '): then a second puzzle reviews the fix, and that one they can’t muck up. Wrong, and it fails.<br>' +
-        esc(intern.name) + ' gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered. ' +
-          'A written hotfix waits for your review, however long you’re away.</div>';
+          ' (' + ev.sloc + ' SLOC/min), and it’s delivered for <b>' + fmt(ev.payout) + '</b> when it’s written.<br>' +
+        'Half the time they get <b>stuck</b> on the way, and the hotfix stalls, even while you’re away, until you help: a ' +
+          esc(offer.lang) + ' puzzle from past daily puzzles and Debuggit Learn. Right, and it jumps ' + Math.round(INTERN_NUDGE * 100) +
+          '% ahead, and your help pays <b>' + helpPayText() + '</b> and +' + DESK_REP + ' reputation; wrong, and it loses ' +
+          Math.round(INTERN_NUDGE * 100) + '% of its progress.<br>' +
+        esc(intern.name) + ' gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + '.</div>';
     }
     function renderPicker(){
       if(!picker) return;
@@ -2261,12 +2261,12 @@ window.DebuggLtd = (function(){
       }else if(action === 'staff'){
         openPicker(btn.dataset.offer);
         return;
-      }else if(action === 'intern-review'){
-        startReview(btn.dataset.job);
+      }else if(action === 'intern-help'){
+        startHelp(btn.dataset.job);
         return;
       }else if(action === 'retry-job' || action === 'drop-job'){
         const job = state.jobs.find(j => j.id === btn.dataset.job);
-        if(!job || isRunning(job) || inReview(job)) return;
+        if(!job || isRunning(job) || isStuck(job)) return;
         if(action === 'retry-job'){
           retryJob(job, Date.now());
           addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
@@ -2335,12 +2335,12 @@ window.DebuggLtd = (function(){
       state.internGiven = true;
       addLog('info', 'An intern has joined: free, and they write hotfixes with you in any language you know.');
     }
-    // Intern hotfixes from before they were reviewed with a puzzle: no repeats, and one left failed
-    // goes to review instead.
+    // Intern hotfixes from before they could get stuck: no repeats, and one left failed (they used
+    // to fail) is delivered, as they all are now.
     state.jobs.forEach(j => {
       if(!isInternJob(j)) return;
       j.repeat = false;
-      if(j.status === 'failed'){ j.status = 'review'; j.attempt = 1; }
+      if(j.status === 'failed'){ j.status = 'running'; j.attempt = 1; }
     });
 
     // Offers from before contracts had a SLOC target.

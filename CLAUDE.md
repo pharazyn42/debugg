@@ -260,7 +260,7 @@ state = {
   board:  [ { id, tier, lang, sloc, risk, expert, expiresAt } ],  // a hotfix per language + an expert hotfix + 2 of each other type; sloc = work target;
                                                           // risk = 'standard'|'risky'|'high'; expert = skill level needed (0 = none)
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
-              status: 'running'|'failed', attempt: 1|2 } ],
+              status: 'running'|'failed'|'stuck', attempt: 1|2, stuckAt?, left?, question? } ],  // stuck*: intern hotfixes
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
   collapsedTiers: [],                             // contract board groups folded in the UI ('hotfix', …)
@@ -308,19 +308,22 @@ state = {
   After 7 days (company time) they finish their hotfix (and its review), leave, and apply as a
   **graduate** for half a graduate's hire cost (`INTERN_OFFER`), keeping their XP, whatever the
   studio's reputation.
-- **The intern's hotfixes are puzzles** (item 4c, built; `inReview()`, `startReview()`,
-  `finishReview()`): the intern writes the hotfix on the clock, then the job waits in
-  `status: 'review'` (however long the player is away; no repeats, and old saves' intern jobs lose
-  theirs). **Review it** (on the job card) asks one puzzle in the hotfix's language from the desk's
-  pool (`reviewQuestion()`: not asked lately or waiting in a desk job; kept in `job.question` so a
-  reload asks the same one), played in the desk's player. Wrong: the hotfix fails (a failure's usual
-  reputation loss). Right: delivered, unless the intern mucks it up (1 − `job.chance`, the pair's
-  usual success chance), when `attempt` becomes 2 and a second puzzle reviews the fix, which they
-  can't muck up. Delivery pays `DESK_PAY` by the puzzle's difficulty × the offer's risk × the
-  stage's desk share, and `DESK_REP`; the intern gets the hotfix's XP for the time written. Settled on
-  the answer, so a reload can't retry it. The pair can only take hotfixes in languages the pool has
-  puzzles for (`hasPuzzles()`; Python for now). Decided with the player-owner: all of the above,
-  with the rate limited by the writing time rather than by a daily cap.
+- **The intern gets stuck** (item 4c, built; `INTERN_STUCK`, `isStuck()`, `startHelp()`,
+  `finishHelp()`): the intern writes each hotfix on the clock (about 25 minutes), and
+  `INTERN_STUCK` (50%) of them get stuck once, at a random point between 20% and 80% of the way
+  (`job.stuckAt`, set when it starts; `skipTime()` moves it on resume). A stuck job
+  (`status: 'stuck'`, `job.left` = the time it still needs) stalls, however long the player is
+  away, until **Help them** (on the job card) asks one puzzle in the hotfix's language from the
+  desk's pool (`stuckQuestion()`: not asked lately or waiting in a desk job; kept in
+  `job.question` so a reload asks the same one), played in the desk's player. Right: the hotfix
+  jumps `INTERN_NUDGE` (25%) of its length ahead, and the help pays `DESK_PAY` by the puzzle's
+  difficulty × the stage's desk share, and `DESK_REP`. Wrong: it loses 25% of its progress (never
+  more than it had). Settled on the answer, so a reload can't retry it. Once written, an intern's
+  hotfix is always delivered (no success roll), for a hotfix's usual pay and XP; `state.internDone`
+  counts them. No repeats (old saves' intern jobs lose theirs). The pair can only take hotfixes in
+  languages the pool has puzzles for (`hasPuzzles()`; Python for now). Decided with the
+  player-owner, after a first version where every hotfix waited for a review puzzle: getting stuck
+  keeps the writing time as the limit, so puzzles can't be farmed for money.
 - **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026) plus a
   founder's bonus of ¤1 per puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
@@ -485,7 +488,7 @@ state = {
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through putting the intern on the Python hotfix with
-  the Director, reviewing it (`state.internDone` counts delivered ones), a desk job, earning the 15
+  the Director, helping them when they're stuck, a desk job, earning the 15
   reputation graduates need and hiring one who applies, and putting them on a hotfix
   they can take (the button pulses, `.guide-target`) with repeat on.
   It ends (`state.guideDone`) once those are done, or when dismissed. After that, notes stay:
@@ -1216,7 +1219,7 @@ Replace the current flat reliability-by-level model:
 
   This ties in with the success-chance rework (4a).
 
-#### 4c. The intern's hotfixes are puzzles (the player-owner's idea, September 2026; built, see "The intern's hotfixes are puzzles" above)
+#### 4c. The intern's hotfixes are puzzles (the player-owner's idea, September 2026; built differently, see "The intern gets stuck" above)
 - **The intern's hotfixes stop running on time.** When the player puts the Director and the
   intern on a hotfix, the Director (the player) is given a random puzzle in that hotfix's
   language, and solving it is what delivers the hotfix. The puzzles could come from the same

@@ -266,14 +266,10 @@ function play(page, log, now, opts){
   const managers = s.roster.filter(p => p.role === 'Manager').length;
   if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers) hire('Manager', { action: 'hire', role: 'Manager' }, priceOf(s, 'Manager'));
 
-  // The intern: a free Python hotfix with the Director alongside whenever they're idle, reviewed
-  // (a puzzle, answered right at the desk's hit rate) once it's written.
+  // The intern: a free Python hotfix with the Director alongside whenever they're idle, helped with
+  // a puzzle (answered right at the desk's hit rate) when they're stuck.
   const intern = s.roster.find(p => p.role === 'Intern');
-  for(const j of s.jobs.filter(j => j.status === 'review')){
-    act(page.click, { action: 'intern-review', job: j.id });
-    const again = s.jobs.find(x => x.id === j.id);
-    if(again && again.status === 'review') act(page.click, { action: 'intern-review', job: j.id });
-  }
+  for(const j of s.jobs.filter(j => j.status === 'stuck')) act(page.click, { action: 'intern-help', job: j.id });
   if(intern && !s.jobs.some(j => j.team.includes(intern.id))){
     const offer = s.board.find(o => o.tier === 0 && o.lang === 'Python' && (o.risk || 'standard') === 'standard' && !o.expert);
     if(offer){

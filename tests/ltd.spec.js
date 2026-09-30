@@ -299,13 +299,12 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await page.click('[data-pick="' + intern.id + '"]');
   await page.click('[data-pick="director"]');
   await page.click('[data-action=pick-start]');
-  // 2. Review their hotfix once it's written.
-  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'review');
-  await expect(page.locator('.guide')).toContainText(intern.name + ' is writing the hotfix');
-  await editCompany(page, s => { Object.assign(s.jobs[0], { endsAt: Date.now() - 1000, chance: 1 }); });
-  await expect(page.locator('.guide')).toContainText('Review ' + intern.name + '’s hotfix');
-  await page.click('[data-action=intern-review].guide-target');
-  await answerDesk(page, await reviewQuestion(page), true);
+  // 2. When they get stuck, help them with a puzzle.
+  await editCompany(page, s => { s.jobs[0].stuckAt = Date.now() - 1000; });
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'stuck');
+  await expect(page.locator('.guide')).toContainText(intern.name + ' is stuck');
+  await page.click('[data-action=intern-help].guide-target');
+  await answerDesk(page, await stuckQuestion(page), true);
   // 3. Take a desk job.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'desk');
   const job = (await ltd(page)).desk.jobs[0];
@@ -348,15 +347,15 @@ test('a new company starts with a free intern, who writes hotfixes with you and 
   await page.click('[data-action=staff][data-offer="' + python.id + '"]');
   await page.click('[data-action=pick-suggest]');
   await expect(page.locator('#teamModal .check.no')).toHaveCount(0);
-  // They write it slowly, then you review it; no repeats.
-  await expect(page.locator('#teamModal .forecast')).toContainText('then you review it: a Python puzzle');
+  // They write it slowly, sometimes getting stuck; no repeats.
+  await expect(page.locator('#teamModal .forecast')).toContainText('Half the time they get stuck on the way');
   await expect(page.locator('#teamModal [data-picker-repeat]')).toHaveCount(0);
   await page.click('[data-action=pick-start]');
   const job = (await ltd(page)).jobs[0];
   expect(job.team.sort()).toEqual(['director', intern.id].sort());
   expect(job.repeat).toBe(false);
   expect(job.endsAt - job.startedAt).toBeGreaterThan(15 * 60000);
-  await expect(page.locator('.job')).toContainText('then you review it');
+  await expect(page.locator('.job')).toContainText('when it’s written');
   await expect(page.locator('.job [data-repeat]')).toHaveCount(0);
   // A language neither of you knows is no good (free the pair first).
   await editCompany(page, s => { s.jobs = []; });
@@ -381,69 +380,70 @@ test('a new company starts with a free intern, who writes hotfixes with you and 
   await expect(page.locator('.applicant[data-applicant="' + intern.id + '"]')).toContainText('Graduate');
 });
 
-// Puts the intern and you on a Python hotfix that's written and waiting for review.
-async function internHotfix(page, chance){
-  await editCompany(page, (s, chance) => {
+// Puts the intern and you on a 20-minute Python hotfix, halfway through and stuck since a second ago.
+async function stuckHotfix(page){
+  await editCompany(page, s => {
     const intern = s.roster.find(p => p.role === 'Intern');
-    s.jobs = [{ id: 'ij1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 0.2, team: [intern.id, 'director'],
-                startedAt: Date.now() - 25 * 60000, endsAt: Date.now() - 1000, chance, payout: 5, repeat: false, status: 'running', attempt: 1 }];
-  }, chance);
-}
-// The puzzle the open review is asking.
-function reviewQuestion(page){
-  return page.evaluate(() => {
-    const id = document.querySelector('.desk-q').dataset.qid;
-    return DebuggDesk.all(Debugg.today()).get(id);
+    s.jobs = [{ id: 'ij1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 0.25, team: [intern.id, 'director'],
+                startedAt: Date.now() - 10 * 60000, endsAt: Date.now() + 10 * 60000, stuckAt: Date.now() - 1000,
+                chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 }];
   });
 }
+// The puzzle the open help is asking.
+function stuckQuestion(page){
+  return page.evaluate(() => DebuggDesk.all(Debugg.today()).get(document.querySelector('.desk-q').dataset.qid));
+}
+const minutesLeft = async page => ((await ltd(page)).jobs[0].endsAt - await page.evaluate(() => Date.now())) / 60000;
 
-test('the intern’s hotfix is reviewed with a puzzle: right delivers it, like a desk question', async ({ page }) => {
+test('the intern sometimes gets stuck, and the hotfix stalls until you help with a puzzle', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
   await found(page);
-  await internHotfix(page, 1);
+  await stuckHotfix(page);
   const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
-  // Written while you were away: it waits for you.
-  await expect(page.locator('.job.review')).toContainText('waiting for your review: a Python puzzle');
-  await expect(page.locator('.card[data-id="' + intern.id + '"]')).toContainText('Python hotfix written — review it below');
-  await expect(page.locator('#log')).toContainText(intern.name + ' has written the Python hotfix');
-  await page.click('[data-action=intern-review]');
-  const q = await reviewQuestion(page);
+  await expect(page.locator('.job.stuck')).toContainText('stuck at 50% until you help: a Python puzzle');
+  await expect(page.locator('.card[data-id="' + intern.id + '"]')).toContainText('Stuck on the Python hotfix — help them below');
+  await expect(page.locator('#log')).toContainText(intern.name + ' is stuck on the Python hotfix');
+  // Two hours away: still stuck, nothing delivered.
+  await page.clock.setFixedTime(at(14));
+  await page.reload();
+  let s = await ltd(page);
+  expect(s.jobs[0].status).toBe('stuck');
+  expect(s.money).toBe(250);
+  // Right: 25% (5 minutes) ahead, and desk pay and reputation for the help.
+  await page.click('[data-action=intern-help]');
+  const q = await stuckQuestion(page);
   expect(q.lang).toBe('python');
-  // The question is kept, so a reload asks the same one.
   expect((await ltd(page)).jobs[0].question).toBe(q.id);
-  const before = await ltd(page);
   await answerDesk(page, q, true);
-  const after = await ltd(page);
+  s = await ltd(page);
   const pay = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 }[q.difficulty];
-  expect(after.money).toBe(before.money + pay);
-  expect(after.reputation).toBe(1);
-  expect(after.jobs).toHaveLength(0);
-  expect(after.roster.find(p => p.role === 'Intern').lang.Python).toBeCloseTo(0.33 * 25, 1);
-  expect(after.desk.seen).toContain(q.id);
-  await expect(page.locator('#deskDone')).toContainText('Hotfix (Python) delivered — ¤' + pay + ', +1 reputation');
+  expect(s.money).toBe(250 + pay);
+  expect(s.reputation).toBe(1);
+  expect(s.jobs[0].status).toBe('running');
+  expect(await minutesLeft(page)).toBeCloseTo(5, 1);
+  expect(s.desk.seen).toContain(q.id);
+  await expect(page.locator('#deskDone')).toContainText('hotfix jumps ahead');
+  // It doesn't get stuck twice, and once written it's always delivered.
+  await page.clock.setFixedTime(at(14, 6));
+  await page.reload();
+  s = await ltd(page);
+  expect(s.jobs).toHaveLength(0);
+  expect(s.money).toBe(250 + pay + 5);
+  expect(s.internDone).toBe(1);
+  await expect(page.locator('#log')).toContainText('Hotfix (Python) delivered');
 });
 
-test('the intern can muck up a right answer, and then a second puzzle reviews the fix; a wrong answer fails it', async ({ page }) => {
+test('a wrong answer loses the intern some progress', async ({ page }) => {
   await found(page);
-  // Mucked up (a 0% chance they get it right): a second review, which they can't muck up.
-  await internHotfix(page, 0);
-  await page.click('[data-action=intern-review]');
-  await answerDesk(page, await reviewQuestion(page), true);
-  let s = await ltd(page);
-  expect(s.jobs[0]).toMatchObject({ status: 'review', attempt: 2 });
+  await stuckHotfix(page);
+  await page.click('[data-action=intern-help]');
+  await answerDesk(page, await stuckQuestion(page), false);
+  const s = await ltd(page);
   expect(s.money).toBe(250);
-  await expect(page.locator('#deskDone')).toContainText('mucked up the fix');
-  await page.click('#deskDone [data-action=intern-review]');
-  await answerDesk(page, await reviewQuestion(page), true);
-  s = await ltd(page);
-  expect(s.jobs).toHaveLength(0);
-  expect(s.money).toBeGreaterThan(250);
-  // A wrong answer fails it.
-  await internHotfix(page, 1);
-  await page.click('[data-action=intern-review]');
-  await answerDesk(page, await reviewQuestion(page), false);
-  s = await ltd(page);
-  expect(s.jobs).toHaveLength(0);
-  await expect(page.locator('#log')).toContainText('Your review missed it, so the Hotfix (Python) failed.');
+  expect(s.reputation).toBe(0);
+  expect(s.jobs[0].status).toBe('running');
+  expect(await minutesLeft(page)).toBeCloseTo(15, 1);
+  await expect(page.locator('#log')).toContainText('loses some progress');
 });
 
 test('a company from before interns gets one, once', async ({ page }) => {

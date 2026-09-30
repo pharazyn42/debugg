@@ -10,12 +10,12 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-- Your intern's hotfixes are now puzzles. The intern writes each one slowly (about 25 minutes, and
-  they keep going while you're away), then it waits for you to **review it**: answer a puzzle in
-  its language, from past daily puzzles and Debuggit Learn. Get it right and it's delivered, paying
-  like a desk question (¤40–¤100 by difficulty) and 1 reputation, unless the intern mucks up the
-  fix: then a second puzzle reviews it, and that one they can't muck up. Get it wrong and the
-  hotfix fails. Intern hotfixes no longer repeat.
+- Your intern now needs you. They write each hotfix slowly (about 25 minutes, and they keep going
+  while you're away), and half the time they get **stuck** on the way: the hotfix stalls until you
+  help by answering a puzzle in its language, from past daily puzzles and Debuggit Learn. Get it
+  right and the hotfix jumps a quarter ahead, and your help pays like a desk question (¤40–¤100 by
+  difficulty) and 1 reputation; get it wrong and it loses a quarter of its progress. Once written,
+  an intern's hotfix is always delivered. Intern hotfixes no longer repeat.
 - Graduates now apply, like everyone else, instead of being hired with a button, and nobody applies
   until the studio has **15 reputation**: until then it's you, your intern and the puzzles. From 15,
   graduates and juniors apply (graduates most often), the first within the hour. Your intern's offer
