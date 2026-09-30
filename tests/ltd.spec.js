@@ -511,6 +511,29 @@ test('a repeating contract always retries a failure itself, even one from long a
   expect(job).toMatchObject({ status: 'running', attempt: 2 });
 });
 
+test('a repeating contract keeps working through the last 4 hours of a long time away', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  // A grad on a repeating Python hotfix that finished 8 hours ago, when the page was closed.
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.money = 1000;
+    s.lastTick = Date.now() - 8 * 3600000;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 9 * 3600000, lang: { Python: 10 } });
+    s.jobs = [{ id: 'j1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 6, team: ['g1'],
+                startedAt: Date.now() - 8 * 3600000 - 50000, endsAt: Date.now() - 8 * 3600000,
+                chance: 1, payout: 5, repeat: true, status: 'running', attempt: 1 }];
+  });
+  // Payroll is drawn for 4 hours (¤480), and the repeats ran through those 4 hours: a couple of
+  // hundred hotfixes, about ¤1,000 and 70 reputation, and one still going.
+  const s = await ltd(page);
+  const job = s.jobs.find(j => j.team.includes('g1'));
+  expect(job).toMatchObject({ status: 'running', repeat: true });
+  expect(job.endsAt).toBeGreaterThan(Date.now());
+  expect(s.reputation).toBeGreaterThan(40);
+  expect(s.money).toBeGreaterThan(1300);
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');

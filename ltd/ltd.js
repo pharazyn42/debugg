@@ -993,11 +993,12 @@ window.DebuggLtd = (function(){
 
     // A repeating job rolls straight into a fresh contract of the same type
     // (a new random language) with the same team, starting the moment
-    // the last one ended — so it keeps working while the page is closed.
-    function restartJob(job){
+    // the last one ended (or `startAt`, the start of the offline cap) — so it
+    // keeps working while the page is closed.
+    function restartJob(job, startAt = job.endsAt){
       const members = job.team.map(person);
       const tier = TIERS[job.tier];
-      const leaving = members.find(p => p && p.notice && p.notice.until <= job.endsAt);
+      const leaving = members.find(p => p && p.notice && p.notice.until <= startAt);
       if(leaving){
         addLog('info', tier.name + ' repeat stopped — ' + leaving.name + ' has worked out their notice.');
         return;
@@ -1018,11 +1019,13 @@ window.DebuggLtd = (function(){
             : tier.plural.toLowerCase() + (tierLock(job.tier) === COMING ? ' are ' + COMING : ' need more than ' + PATCH_HEADCOUNT + ' staff') + '.'));
         return;
       }
-      state.jobs.push(newJob(offer, job.team, job.endsAt, ev, true));
+      state.jobs.push(newJob(offer, job.team, startAt, ev, true));
     }
 
     function resolveDueJobs(now){
-      // Repeats don't chain further back than the offline cap.
+      // Repeats don't chain further back than the offline cap: time away beyond it is skipped, so a
+      // repeat that finished before the cap picks up again from the cap, like a failure's retry.
+      // (Until October 2026 it stopped instead, while payroll was still drawn for the cap's 4 hours.)
       const repeatCutoff = now - OFFLINE_CAP_SECONDS * 1000;
       let finished = 0;
       // A repeating job left failed (by a save from before repeats always retried) retries now.
@@ -1049,7 +1052,7 @@ window.DebuggLtd = (function(){
           continue;
         }
         state.jobs = state.jobs.filter(j => j !== job);
-        if(job.repeat && job.endsAt >= repeatCutoff) restartJob(job);
+        if(job.repeat) restartJob(job, Math.max(job.endsAt, repeatCutoff));
       }
       return finished;
     }

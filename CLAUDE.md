@@ -431,8 +431,10 @@ state = {
 - **Repeat**: a job can be set to roll straight into a new contract of the
   same type with the same team when it finishes. The new contract is chosen
   so the whole team qualifies under the skill rule. This is on by default for
-  hotfixes. Repeats keep chaining while the page is closed, up to the
-  4-hour offline cap, and stop if the team no longer meets the
+  hotfixes. Repeats keep chaining while the page is closed, through the last
+  4 hours (the offline cap: time away beyond it is skipped, and a repeat or retry due before it
+  picks up from it; until October 2026 a repeat finished before the cap stopped, so an overnight
+  company paid 4 hours' salary for no work), and stop if the team no longer meets the
   requirements.
 - **Roster UI**: the Director card, then a collapsible tree grouped by
   level. Each group header shows its headcount, how many are busy, SLOC/min
