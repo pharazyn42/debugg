@@ -1198,7 +1198,29 @@ Replace the current flat reliability-by-level model:
 
   This ties in with the success-chance rework (4a).
 
-#### 5. Per-hire speed multiplier
+#### 4c. The intern's hotfixes are puzzles (the player-owner's idea, September 2026; not started)
+- **The intern's hotfixes stop running on time.** When the player puts the Director and the
+  intern on a hotfix, the Director (the player) is given a random puzzle in that hotfix's
+  language, and solving it is what delivers the hotfix. The puzzles could come from the same
+  pool as desk jobs (`ltd/desk.js`: past dailies and Learn's questions).
+- **The intern can still muck it up.** A right answer isn't a sure delivery: the intern then has
+  a chance to botch it (their reliability, or a set chance), and the hotfix has to be retried.
+- **The retry is a new puzzle, and the intern can't muck it up.** Solve the retry and the hotfix
+  is delivered.
+- **Still open:** what a wrong answer does (the hotfix fails, or another try), whether the pay
+  and XP stay as a hotfix's, whether an unanswered puzzle expires like a desk job, and how it
+  sits beside desk jobs (a separate list, or among them).
+
+#### 4d. Graduates apply by reputation (the player-owner's idea, September 2026; not started)
+- **Graduates can't be hired.** They lose their hire button and **apply** instead, like juniors,
+  seniors and principals (see "Applicants" above), once the company's reputation reaches a
+  threshold (to be decided). Until then the player sticks it out with the intern and the
+  puzzles (4c).
+- The intern's graduate offer at the end of their 7 days (`INTERN_OFFER`) could stay as the
+  one early exception, or wait for the threshold too (to decide).
+- Pairs with 4c: the intern's puzzles are how an early company earns its first reputation.
+
+#### 5. Per-hire speed and success chance
 - Each new hire rolls a random, permanent speed multiplier that scales
   their SLOC/min (e.g. 0.7×–1.3×, range TBD). It's stored on the person
   and never changes, including on promotion; it stacks with the level's
@@ -1208,6 +1230,13 @@ Replace the current flat reliability-by-level model:
 - It needs to be visible on the roster card and employee panel. Maybe
   also on hire, e.g. "fast / average / slow". That could suggest hiring
   shows a candidate before you pay.
+- **Success chance rolls too** (the player-owner's idea, September 2026): each dev rolls both
+  their speed and their success chance within a range around their level's base values, so
+  someone can be fast and accurate, fast and sloppy, slow and careful, or slow and inaccurate.
+- **Salary may not reflect the rolls.** A hire's expected salary follows their rolls only
+  loosely (or not at all), so some hires are better value than others, and spotting a bargain
+  (or an overpriced dud) is part of hiring. Applicants (see "Applicants" above) would show
+  enough to judge, e.g. "fast · careful · asks ¤13/min".
 
 #### 6. Contract deadlines
 - **Some contracts have a deadline:** a time limit to complete it once
