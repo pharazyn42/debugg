@@ -1217,6 +1217,25 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
   company, the studio with a few staff, the team picker, the employee
   panel, the board), list what feels off, and agree a direction before
   changing anything.
+- **A kiwi instead of the duck, and "Find the bugs, feed the kiwi"** (the player-owner's idea,
+  September 2026; on the roadmap, not started). The mascot becomes a **kiwi**, which eats bugs
+  (insects), so every bug you find feeds it: a better fit than the rubber duck, and a distinctive
+  New Zealand one. The tagline would be **"Find the bugs, feed the kiwi."** Things to settle when
+  it's built:
+  - **Everything the duck is now:**
+    - the logo beside the wordmark, the favicon and home-screen icon (`img/duck.svg`,
+      `img/duck-180.png`);
+    - the link-preview card (`img/share.png`) and the share picture (`daily/sharecard.js`);
+    - its reactions after puzzles, Learn lessons and desk jobs (a hop, a wobble);
+    - its lines ("Quack! First try, no hints.", "Even the duck gets stuck", the share text's 🦆);
+    - the demo notice.
+  - **Feeding as a game idea,** not just a slogan: e.g. the kiwi visibly fed or growing with your
+    streak or bugs found, fitting the kiwi's own reactions (pecking, a happy trill).
+  - **Rubber-duck debugging** was the duck's reason to exist; the kiwi's is the bugs, so the copy
+    changes rather than just the picture.
+  - **Naming:** "Duckling, by Debuggit" (the Learn name idea, item 2c) would need rethinking
+    (e.g. a kiwi chick), and the "Quack" in reactions goes.
+  - Draw it as one SVG like the duck, recolour-able for a light theme, and redo the PNGs from it.
 - **Visual identity.** Started: the Debuggit duck (a rubber duck, for
   rubber-duck debugging) is the logo, favicon and home-screen icon, beside
   the language wordmark; it has a link-preview card (`img/share.png`,
