@@ -10,7 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- Contracts set to repeat now keep going while you're away for more than 4 hours. Time away counts
+  for up to 4 hours, and payroll was drawn for all 4, but a repeat that had finished before those
+  4 hours stopped instead of carrying on through them. A grad left overnight cost about ¤480 and
+  earned nothing; now they earn their usual 4 hours' worth.
 
 ## 0.0.6 — 30 September 2026
 
