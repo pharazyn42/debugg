@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.5 — 30 September 2026
+
 - Debuggit Ltd has its own version number and its own list of changes (this one), shown in the
   footer on the Ltd tab.
 
