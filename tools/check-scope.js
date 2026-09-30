@@ -1,45 +1,61 @@
 #!/usr/bin/env node
-// Keeps each pull request to one product (see "Releases" in CLAUDE.md): Debuggit (the daily puzzle
-// and Debuggit Ltd) or Debuggit Learn, which are versioned and released separately. The
-// player-owner's rule: a branch changes one or the other, never both, unless the change affects
-// both, and then both changelogs get notes in the same PR, so both versions move together.
+// Keeps each pull request to one product (see "Releases" in CLAUDE.md): Debuggit (the daily
+// puzzle), Debuggit Ltd or Debuggit Learn, which are versioned and released separately. The
+// player-owner's rule: a branch changes one of them, never more, unless the change affects more
+// than one, and then every one it touches gets notes in its changelog in the same PR, so their
+// versions move together.
 //
 //   node tools/check-scope.js                  Checks the current branch against origin/main
 //                                              (or $SCOPE_BASE, e.g. origin/main).
 //   node tools/check-scope.js a.js b/c.html    Checks that list of changed files.
 //
-// Files that belong to neither (shared.js, base.css, tools, docs, CI…) are shared: they don't count
-// towards either side. A shared change players will notice still needs a line in the changelog of
+// Files that belong to none (shared.js, base.css, tools, docs, CI…) are shared: they don't count
+// towards any product. A shared change players will notice still needs a line in the changelog of
 // every product it affects.
+//
+// index.html is the daily puzzle's page, but it also holds the Ltd tab (its slots and the loader
+// that switches the studio on). So on a branch that otherwise only changes Ltd, it counts as Ltd's.
 const { execFileSync } = require('child_process');
 
-// The sandbox is part of Learn (learn/sandbox.html; sandbox.html is its old address, a redirect).
-const LEARN = [/^learn\//, /^learn\.html$/, /^sandbox\.html$/, /^tests\/(learn|sandbox)\.spec\.js$/];
-const GAME = [/^index\.html$/, /^daily\//, /^ltd\//, /^puzzles\//, /^studio\//, /^CHANGELOG\.md$/,
-  /^tests\/(daily|ltd)\.spec\.js$/];
-const LEARN_LOG = 'learn/CHANGELOG.md', GAME_LOG = 'CHANGELOG.md';
+const PRODUCTS = {
+  // The sandbox is part of Learn (learn/sandbox.html; sandbox.html is its old address, a redirect).
+  learn: { name: 'Debuggit Learn', log: 'learn/CHANGELOG.md',
+           files: [/^learn\//, /^learn\.html$/, /^sandbox\.html$/, /^tests\/(learn|sandbox)\.spec\.js$/] },
+  ltd:   { name: 'Debuggit Ltd', log: 'ltd/CHANGELOG.md',
+           files: [/^ltd\//, /^studio\//, /^tests\/ltd\.spec\.js$/] },
+  daily: { name: 'Debuggit (the daily puzzle)', log: 'CHANGELOG.md',
+           files: [/^index\.html$/, /^daily\//, /^puzzles\//, /^CHANGELOG\.md$/, /^tests\/daily\.spec\.js$/] }
+};
+const SHARED_WITH_LTD = 'index.html';
 
 function side(file){
-  if(LEARN.some(r => r.test(file))) return 'learn';
-  if(GAME.some(r => r.test(file))) return 'game';
-  return 'shared';
+  return Object.keys(PRODUCTS).find(k => PRODUCTS[k].files.some(r => r.test(file))) || 'shared';
 }
 
 // Returns { ok, message }.
 function check(files){
-  const learn = files.filter(f => side(f) === 'learn');
-  const game = files.filter(f => side(f) === 'game');
-  if(!learn.length || !game.length){
-    return { ok: true, message: 'Scope: ' + (learn.length ? 'Debuggit Learn' : game.length ? 'Debuggit (daily puzzle and Ltd)' : 'shared files only') + '.' };
+  const by = {};
+  files.forEach(f => { const s = side(f); if(s !== 'shared') (by[s] = by[s] || []).push(f); });
+  // index.html alone, alongside Ltd's files, is an Ltd change (the Ltd tab lives in it).
+  if(by.ltd && by.daily && by.daily.every(f => f === SHARED_WITH_LTD)){
+    by.ltd.push(...by.daily);
+    delete by.daily;
   }
-  if(files.includes(LEARN_LOG) && files.includes(GAME_LOG)){
-    return { ok: true, message: 'Scope: both Debuggit and Debuggit Learn, with notes in both changelogs, so both versions move together.' };
+  const touched = Object.keys(PRODUCTS).filter(k => by[k]);
+  if(touched.length <= 1){
+    return { ok: true, message: 'Scope: ' + (touched.length ? PRODUCTS[touched[0]].name : 'shared files only') + '.' };
+  }
+  const missing = touched.filter(k => !files.includes(PRODUCTS[k].log));
+  const names = touched.map(k => PRODUCTS[k].name).join(', ');
+  if(!missing.length){
+    return { ok: true, message: 'Scope: ' + names + ', with notes in each changelog, so their versions move together.' };
   }
   return { ok: false, message:
-    'This branch changes both Debuggit Learn and the game (the daily puzzle and Debuggit Ltd).\n' +
-    'Keep a branch to one of them. If the change really affects both, add notes under "## Unreleased" in both\n' +
-    GAME_LOG + ' and ' + LEARN_LOG + ', so both versions are updated together.\n' +
-    '  Learn: ' + learn.join(', ') + '\n  Game:  ' + game.join(', ') };
+    'This branch changes more than one product: ' + names + '.\n' +
+    'Keep a branch to one of them. If the change really affects more than one, add notes under "## Unreleased" in\n' +
+    'each one\'s changelog (' + touched.map(k => PRODUCTS[k].log).join(', ') + '), so their versions are updated together.\n' +
+    'Missing: ' + missing.map(k => PRODUCTS[k].log).join(', ') + '\n' +
+    touched.map(k => '  ' + (k + ':').padEnd(7) + by[k].join(', ')).join('\n') };
 }
 
 if(require.main === module){
