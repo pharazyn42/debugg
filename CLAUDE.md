@@ -295,6 +295,17 @@ state = {
   Before this the desk was today's daily puzzle (¤2 per puzzle XP, a streak bonus, the `paid`
   ledger, which old saves drop), and before that an unlimited set of desk contracts; a lone grad
   on a hotfix still pays for itself.
+- **The intern** (the player-owner's idea, September 2026, after a playtest where a lone grad lost
+  money; `ROLES.Intern`, `INTERN_DAYS`, `evaluateInternTeam()`, `moveInterns()`): every company
+  starts with one (older saves get one once, `state.internGiven`). Free (no salary), 3 SLOC/min,
+  65% reliability, and only on hotfixes, which they take **with the Director as a second person**
+  (so one intern job at a time), in a language the intern knows or the Director is comfortable in
+  (`directorKnows()`: Python always, which was the player-owner's open question and is a
+  placeholder, plus any language with daily-puzzle XP). No desk, not in the headcount, the
+  supervision structure, notices or odd jobs, and never auto-staffed by managers. "Suggest a team"
+  picks the pair when nobody else can take a hotfix; the guide's first step is now staffing them.
+  After 7 days (company time) they finish their hotfix, leave, and apply as a **graduate** for half
+  a graduate's hire cost (`INTERN_OFFER`), keeping their XP.
 - **Founding**: a new company gets ¤150 plus a founder's bonus of ¤1 per
   puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
@@ -456,7 +467,8 @@ state = {
   (they were locked until September 2026), so a demo company can become a small business. This is the
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
-  top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
+  top of the Studio panel walks a new company through putting the intern on the Python hotfix with
+  the Director, hiring a grad, putting them on a hotfix
   they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
   It ends (`state.guideDone`) once those are done, or when dismissed. After that, notes stay:
   devs on the bench doing odd jobs (which barely cover their salary; a contract earns far more),
@@ -942,6 +954,23 @@ put these on the roadmap, in this order:
   service worker, possible without a backend), with a daily nudge; reliable push needs the
   backend above.
 
+#### 3g. The daily's launch plan (0.1.0)
+Decided with the player-owner, September 2026.
+- **When:** a week or two after Learn's 0.1.0 (item 3d), on a Monday so Day 1 is a warm-up.
+  Debuggit Ltd launches separately, later; it stays a demo meanwhile.
+- **Features: as it is.** Today's formats, stats, share picture, past puzzles and Step through it.
+  The item 3f features (weekend code challenges, hard mode, shared stats) come after, as 0.2+.
+- **Languages: Python only.** Others join the rotation later, each once it has its first Learn
+  units (item 3d).
+- **Puzzle stock: 12 weeks banked.** Python-only uses one each of difficulties 1–4 and two 5s a
+  week, so about 12 each at 1–4 and 24 at 5 (from 8 each and 12: roughly 28 more, mostly 5s).
+- **Shared with Learn's launch, done first:** a per-product demo flag and reset (so the daily's
+  launch clears only the daily's saves), the move to Cloudflare Pages (item 2d) and the custom
+  domain (after the checks in 2c).
+- **Check:** a phone and desktop play-through on the new site.
+- **Then:** the daily's demo off, its save version `'0.1'`, `LAUNCH` set to the launch Monday,
+  `node tools/release.js bump 0.1.0`, a PR, and the Release workflow.
+
 #### 3c. One game: puzzles first, studio optional — done
 - Built from `ideas/debugg-ltd-merge-plan.md`, ahead of 3b: the desk is
   the daily puzzles (today all "what does this output"), and the other
@@ -965,7 +994,12 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
 `append`/`pop`/`remove`/`in`, slices, `+` and `*`, aliasing and copies, `sort()` vs `sorted()`,
 `sum`/`min`/`max`; 4 lessons and a checkpoint, 36 steps), and Unit 4, *Conditions*
 (`learn/python/04-conditions.js`: comparisons, `if`/`else`, `elif` and the first match winning,
-`and`/`or`/`not`, truthiness and the `x == 1 or 2` slip; 4 lessons and a checkpoint, 34 steps). Decided with the player-owner, replacing parts of the sketch below:
+`and`/`or`/`not`, truthiness and the `x == 1 or 2` slip; 4 lessons and a checkpoint, 34 steps), and
+Unit 5, *Loops* (`learn/python/05-loops.js`: `for` over lists and strings, running totals, `range`
+and its stop, `while` and ending it, `break`/`continue`, building lists; 4 lessons and a
+checkpoint, 37 steps), and Unit 6, *Functions* (`learn/python/06-functions.js`: `def` and calling,
+parameters, `return` vs `print` and `None`, defaults and keyword arguments, local variables and
+lists passed in; 4 lessons and a checkpoint, 37 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
@@ -1012,8 +1046,8 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   each course is written fresh for its language, not translated from Python.
 - **The launch plan (0.1.0),** decided with the player-owner, September 2026. Learn launches first
   (see "Releases"), and needs:
-  - **Content:** all five planned Python units, one PR each, in order: Conditions (done), Loops,
-    Functions, Dictionaries, The classic traps (4 lessons and a checkpoint each), each released
+  - **Content:** all five planned Python units, one PR each, in order: Conditions (done), Loops
+    (done), Functions (done), Dictionaries, The classic traps (4 lessons and a checkpoint each), each released
     to demo players as it's done (the player-owner's call). After each, a
     separate Daily PR tags past puzzles with the new unit's `learn` field.
   - **Experience:** the visual course path. The daily goal and the phone and accessibility passes

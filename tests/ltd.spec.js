@@ -270,13 +270,22 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await found(page);
   await expect(page.locator('h1')).toHaveText('Debuggit Ltd');
   await expect(page).toHaveTitle('Debuggit Ltd');
-  // 1. Hire a graduate.
+  // 1. Put the intern to work on the Python hotfix, with you alongside.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'intern');
+  const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  await expect(page.locator('.guide')).toContainText('Put your intern, ' + intern.name + ', to work');
+  await expect(page.locator('.offer:has(.guide-target) .chip.lang')).toHaveText('Python');
+  await page.click('[data-action=staff].guide-target');
+  await page.click('[data-pick="' + intern.id + '"]');
+  await page.click('[data-pick="director"]');
+  await page.click('[data-action=pick-start]');
+  // 2. Hire a graduate.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'hire');
   await expect(page.locator('[data-action=hire][data-role=Graduate]')).toHaveClass(/guide-target/);
   await page.click('[data-action=hire][data-role=Graduate]');
-  // 2. Put them on a hotfix they can take, with repeat on.
+  // 3. Put them on a hotfix they can take, with repeat on.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'staff');
-  const grad = (await ltd(page)).roster[1];
+  const grad = (await ltd(page)).roster.find(p => p.role === 'Graduate');
   const lang = Object.keys(grad.lang)[0];
   await expect(page.locator('.guide')).toContainText('Put ' + grad.name + ' to work');
   const target = page.locator('[data-action=staff].guide-target');
@@ -287,7 +296,7 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await target.click();
   await page.click('[data-pick="' + grad.id + '"]');
   await page.click('[data-action=pick-start]');
-  // 3. Take a desk job.
+  // 4. Take a desk job.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'desk');
   const job = (await ltd(page)).desk.jobs[0];
   const qs = await page.evaluate(ids => { const all = DebuggDesk.all(Debugg.today()); return ids.map(id => all.get(id)); }, job.questions);
@@ -295,6 +304,51 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   for(const q of qs) await answerDesk(page, q, true);
   await expect(page.locator('.guide')).toHaveCount(0);
   expect((await ltd(page)).guideDone).toBe(true);
+});
+
+test('a new company starts with a free intern, who takes hotfixes with you and moves on after 7 days', async ({ page }) => {
+  await found(page);
+  const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  expect(intern).toBeTruthy();
+  // No desk, no headcount, no salary.
+  await expect(page.locator('#statHeads')).toHaveText('1');
+  await expect(page.locator('.card[data-id="' + intern.id + '"]')).toContainText('Internship ends in');
+  // You know Python, so the pair can take the Python hotfix: Suggest a team picks them both.
+  const python = (await ltd(page)).board.find(o => o.tier === 0 && !o.expert && o.lang === 'Python');
+  await page.click('[data-action=staff][data-offer="' + python.id + '"]');
+  await page.click('[data-action=pick-suggest]');
+  await expect(page.locator('#teamModal .check.no')).toHaveCount(0);
+  await page.click('[data-action=pick-start]');
+  const job = (await ltd(page)).jobs[0];
+  expect(job.team.sort()).toEqual(['director', intern.id].sort());
+  expect(job.repeat).toBe(true);
+  // A language neither of you knows is no good (free the pair first).
+  await editCompany(page, s => { s.jobs = []; });
+  const rust = (await ltd(page)).board.find(o => o.tier === 0 && !o.expert && o.lang === 'Rust');
+  await page.click('[data-action=staff][data-offer="' + rust.id + '"]');
+  await page.click('[data-pick="' + intern.id + '"]');
+  await page.click('[data-pick="director"]');
+  await expect(page.locator('#teamModal .check.no')).toHaveText('✕ you or ' + intern.name + ' know Rust');
+  await expect(page.locator('[data-action=pick-start]')).toBeDisabled();
+  await page.click('[data-action=pick-cancel]');
+  // After 7 days the internship ends: they leave and apply to stay on as a graduate for half price.
+  await editCompany(page, s => {
+    s.jobs = [];
+    s.roster.find(p => p.role === 'Intern').since = Date.now() - 8 * 86400000;
+  });
+  const after = await ltd(page);
+  expect(after.roster.some(p => p.role === 'Intern')).toBe(false);
+  const offer = after.applicants.find(a => a.id === intern.id);
+  expect(offer).toMatchObject({ role: 'Graduate', cost: 90 });
+  await expect(page.locator('.applicant[data-applicant="' + intern.id + '"]')).toContainText('Graduate');
+});
+
+test('a company from before interns gets one, once', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => { s.roster = s.roster.filter(p => p.role !== 'Intern'); delete s.internGiven; });
+  expect((await ltd(page)).roster.filter(p => p.role === 'Intern')).toHaveLength(1);
+  await editCompany(page, s => { s.roster = s.roster.filter(p => p.role !== 'Intern'); });
+  expect((await ltd(page)).roster.filter(p => p.role === 'Intern')).toHaveLength(0);
 });
 
 test('staff on the bench and debt are flagged; the welcome can be dismissed', async ({ page }) => {
@@ -427,6 +481,36 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
   expect((await ltd(page)).reputation).toBe(9);
 });
 
+test('a repeating contract always retries a failure itself, even one from long ago', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 8 * 3600000, lang: { Python: 10 } });
+    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, risk: 'standard', expiresAt: Date.now() + 3600000 };
+  });
+  await page.click('[data-action=staff][data-offer=o1]');
+  await page.click('[data-pick=g1]');
+  await page.click('[data-action=pick-start]');  // hotfixes repeat by default
+  await expect(page.locator('.job')).toHaveCount(1);
+
+  // It failed 6 hours ago, before the 4-hour offline cap: it retries from the cap, not waiting.
+  await editCompany(page, s => {
+    Object.assign(s.jobs[0], { chance: 0, startedAt: Date.now() - 6 * 3600000 - 60000, endsAt: Date.now() - 6 * 3600000 });
+  });
+  await expect(page.locator('#log')).toContainText('↻ Retrying Hotfix (Python)');
+  await expect(page.locator('.job.failed')).toHaveCount(0);
+
+  // A save with a repeating job left waiting on the player retries it straight away.
+  await editCompany(page, s => {
+    s.jobs = s.jobs.filter(j => j.team.includes('g1')).slice(0, 1);
+    Object.assign(s.jobs[0], { status: 'failed', attempt: 1, chance: 1, repeat: true, startedAt: Date.now() - 60000, endsAt: Date.now() - 1000 });
+  });
+  await expect(page.locator('.job.failed')).toHaveCount(0);
+  const job = (await ltd(page)).jobs.find(j => j.team.includes('g1'));
+  expect(job).toMatchObject({ status: 'running', attempt: 2 });
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');
@@ -440,9 +524,9 @@ test('the board has a hotfix in every language, and no domains', async ({ page }
   expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(0);
 });
 
-// Adds staff until the company has `n` people, the Director included.
+// Adds staff until the company has `n` people, the Director included (the intern doesn't count).
 const staffUpTo = n => new Function('s', `
-  while(s.roster.length < ${n}) s.roster.push({ id: 'g' + s.roster.length, name: 'Grad ' + s.roster.length, role: 'Graduate', since: Date.now(), lang: { Python: 10, 'C/C++': 10, JavaScript: 10, Rust: 10 } });`);
+  while(s.roster.filter(p => p.role !== 'Intern').length < ${n}) s.roster.push({ id: 'g' + s.roster.length, name: 'Grad ' + s.roster.length, role: 'Graduate', since: Date.now(), lang: { Python: 10, 'C/C++': 10, JavaScript: 10, Rust: 10 } });`);
 
 test('patches only come to the board above 10 staff', async ({ page }) => {
   await found(page);
@@ -486,6 +570,7 @@ test('the demo runs hotfixes and patches, with managers', async ({ page }) => {
 test('a hotfix that is taken is replaced in the same language', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
+    s.roster = s.roster.filter(p => p.role !== 'Intern');
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Rust: 10 } });
     s.board.find(o => o.tier === 0 && o.lang === 'Rust').id = 'rust1';
   });

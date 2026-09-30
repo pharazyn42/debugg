@@ -9,6 +9,18 @@ one for fixes.
 
 Nothing yet.
 
+## 0.0.9 — 30 September 2026
+
+- Python Unit 6, "Functions": making and calling functions, parameters, `return` (and why
+  `print` isn't the same), default and keyword arguments, and which variables a function can see.
+  Four lessons and a checkpoint; it opens once you've passed Unit 5's checkpoint.
+
+## 0.0.8 — 30 September 2026
+
+- Python Unit 5, "Loops": `for` over lists and strings, counting with `range`, `while` loops
+  (and making sure they end), `break` and `continue`, and building up totals and lists. Four
+  lessons and a checkpoint; it opens once you've passed Unit 4's checkpoint.
+
 ## 0.0.7 — 30 September 2026
 
 - Python Unit 4, "Conditions": comparing values, making choices with `if`, `elif` and `else`,

@@ -125,14 +125,25 @@ window.DebuggLtd = (function(){
       Graduate:  { sloc: 5,  salary: 2,  cost: 180,   reliability: 0.70 },
       Junior:    { sloc: 12, salary: 5,  cost: 750,   reliability: 0.80 },
       Senior:    { sloc: 30, salary: 12, cost: 3000,  reliability: 0.90 },
-      Principal: { sloc: 70, salary: 28, cost: 12000, reliability: 0.95 }
+      Principal: { sloc: 70, salary: 28, cost: 12000, reliability: 0.95 },
+      Intern:    { sloc: 3,  salary: 0,                reliability: 0.65 }
     };
+    // Every company starts with an intern (the player-owner's idea, September 2026): free, slow,
+    // and only on hotfixes, which they take with the Director alongside them. The Director joins
+    // the hotfix as a second person, so it's one intern job at a time. The pair can take a hotfix
+    // in any language the intern knows or the Director is comfortable in (directorKnows()). An
+    // intern takes no desk, isn't counted in the headcount or the supervision structure, and never
+    // hands in their notice. After INTERN_DAYS the internship ends: they finish the hotfix they're
+    // on, leave, and apply to stay on as a graduate for INTERN_OFFER of a graduate's hire cost.
+    const INTERN_DAYS = 7;
+    const INTERN_OFFER = 0.5;
+    function isIntern(p){ return !!p && p.role === 'Intern'; }
     const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
     // Experienced developers can't be hired at will: they apply now and then (see "Applicants"
     // below). Managers and graduates have hire buttons.
     const APPLICANT_ROLES = ['Junior', 'Senior', 'Principal'];
     const HIRE_BUTTONS = HIRE_ORDER.filter(r => !APPLICANT_ROLES.includes(r));
-    const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
+    const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate', 'Intern'];
 
     // To be promoted INTO a level: minutes spent working on contracts at the
     // current level (bench time doesn't count), plus a skill level in their best language.
@@ -293,7 +304,7 @@ window.DebuggLtd = (function(){
     // PATCH_HEADCOUNT people, the Director included. Hotfixes are always open.
     const PATCH_HEADCOUNT = 10;
     const STAFF_LOCK = 'unlocks above ' + PATCH_HEADCOUNT + ' staff';
-    function headcount(){ return state ? state.roster.length : 1; }
+    function headcount(){ return state ? state.roster.filter(p => !isIntern(p)).length : 1; }
     // Why a contract type isn't on the board yet, or null if it is.
     function tierLock(tierIndex){
       if(DEMO && !DEMO_TIERS.includes(TIERS[tierIndex].key)) return COMING;
@@ -384,7 +395,8 @@ window.DebuggLtd = (function(){
       return {
         money,
         reputation: 0,
-        roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {} }],
+        roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {} }, makeIntern(now)],
+        internGiven: true,    // the starting intern (see INTERN_DAYS); older saves get one on load
         board: makeBoard(),
         jobs: [],             // staffed contracts in progress
         log: [],
@@ -454,6 +466,11 @@ window.DebuggLtd = (function(){
         else for(let k = 0; k < OFFERS_PER_TIER; k++) board.push(makeOffer(i));
       });
       return board;
+    }
+
+    // The starting intern knows no language yet: the Director's languages carry them.
+    function makeIntern(now){
+      return { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.', role: 'Intern', since: now, lang: {} };
     }
 
     function makeHire(role){
@@ -628,7 +645,7 @@ window.DebuggLtd = (function(){
     const COWORK_MAX = 8;
     function coworkDesks(){ return (state.office && state.office.cowork) || 0; }
     function deskCount(){ return SPARE_ROOM_DESKS + coworkDesks(); }
-    function desksUsed(){ return state.roster.filter(p => p.role !== 'Director').length; }
+    function desksUsed(){ return state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length; }
     function rentPerMinute(){ return coworkDesks() * COWORK_RATE; }
     // A full office is cramped, and up to CRAM_MAX more people can be squeezed in without desks,
     // each making it worse. Everyone writes CRAMPED[level] less code on contracts started while
@@ -680,7 +697,7 @@ window.DebuggLtd = (function(){
         if(at >= from){
           const perHour = NOTICE_PER_DAY * NOTICE_CRAMPED[cramLevel()] / 24;
           state.roster.forEach(p => {
-            if(p.role !== 'Director' && !p.notice && Math.random() < perHour) giveNotice(p, at, cramLevel() ? 'cramped' : 'offer');
+            if(p.role !== 'Director' && !isIntern(p) && !p.notice && Math.random() < perHour) giveNotice(p, at, cramLevel() ? 'cramped' : 'offer');
           });
         }
         state.nextNoticeAt += 3600000;
@@ -707,6 +724,25 @@ window.DebuggLtd = (function(){
         track('left/' + p.role.toLowerCase());
       });
     }
+    // An internship that has run its course: once off any running hotfix (a repeat stops), the
+    // intern leaves and applies to stay on as a graduate, keeping what they've learnt.
+    function internEnds(p){ return p.since + INTERN_DAYS * 86400000; }
+    function moveInterns(now){
+      state.roster.filter(p => isIntern(p) && internEnds(p) <= now).forEach(p => {
+        const job = jobFor(p.id);
+        if(job && isRunning(job)){ job.repeat = false; return; }
+        if(job) state.jobs = state.jobs.filter(j => j !== job);
+        state.roster = state.roster.filter(x => x !== p);
+        const cost = Math.round(hireCost('Graduate') * INTERN_OFFER / 5) * 5;
+        const grad = { id: p.id, name: p.name, role: 'Graduate', since: now, lang: Object.assign({}, p.lang) };
+        if(!state.applicants) state.applicants = [];
+        state.applicants.push({ id: grad.id, role: 'Graduate', person: grad, cost, expiresAt: now + APPLICANT_OPEN_H * 3600000 });
+        addLog('info', p.name + '’s internship has ended. They’d like to stay on as a graduate for ' + fmt(cost) +
+          ', half the usual cost: the offer’s open for ' + APPLICANT_OPEN_H + ' hours.');
+        track('intern/ended');
+      });
+    }
+
     // "Handed in notice · leaves in 18h · the office is too cramped" and a button to keep them.
     function noticeHTML(p, now){
       if(!p.notice) return '';
@@ -724,6 +760,7 @@ window.DebuggLtd = (function(){
     }
     function releaseProblem(p){
       if(jobFor(p.id)) return 'on a contract';
+      if(isIntern(p)) return null;
       const why = problemWith({ [p.role]: -1 });
       return why ? 'would leave the team unsupervised' : null;
     }
@@ -753,6 +790,13 @@ window.DebuggLtd = (function(){
     function directorLevel(key){
       return D.levelFor(D.readXp()[key] || 0);
     }
+    // The languages the Director is comfortable enough in to help an intern: Python, the first
+    // puzzle language, always, and any other with daily-puzzle XP.
+    function directorKnows(langName){
+      if(langName === 'Python') return true;
+      const key = puzzleKey(langName);
+      return !!key && (D.readXp()[key] || 0) > 0;
+    }
     // Every puzzle level above 1 in a language adds 1% success chance to contracts
     // in it (up to +10%): the better you know a language, the better your company is at it.
     function directorBoost(langName){
@@ -765,7 +809,9 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
 
     function eligibleFor(tier, p){
-      if(p.role === 'Director') return false;
+      // The Director only takes hotfixes, alongside an intern.
+      if(p.role === 'Director') return tier.key === 'hotfix' && state.roster.some(isIntern);
+      if(isIntern(p)) return tier.key === 'hotfix';
       if(p.role === 'Manager') return !!tier.needs.Manager;
       return true;
     }
@@ -793,6 +839,7 @@ window.DebuggLtd = (function(){
     }
 
     function evaluateTeam(tier, offer, members){
+      if(members.some(p => isIntern(p) || p.role === 'Director')) return evaluateInternTeam(tier, offer, members);
       const devs = members.filter(isDev);
       const managers = members.filter(p => p.role === 'Manager').length;
       const atLeast = level => devs.filter(d => levelRank(d.role) >= levelRank(level)).length;
@@ -843,6 +890,31 @@ window.DebuggLtd = (function(){
       const xp = tier.xpPerMin * ms / 60000;
 
       return { checks, valid, baseSloc, matchedSloc, learners, sloc, ms, chance, boost, payout, salaryCost, xp };
+    }
+
+    // An intern's hotfix: the intern and the Director, in a language one of them knows. Only the
+    // intern writes code; the Director's puzzle level adds its usual success boost.
+    function evaluateInternTeam(tier, offer, members){
+      const intern = members.find(isIntern);
+      const director = members.find(p => p.role === 'Director');
+      const others = members.filter(p => p !== intern && p !== director);
+      const knows = !!intern && (skillLevel(intern.lang[offer.lang]) > 0 || directorKnows(offer.lang));
+      const checks = [
+        { label: 'an intern and you, the Director (' + members.length + ')', ok: !!intern && !!director && !others.length && tier.key === 'hotfix' },
+        { label: 'you or ' + (intern ? intern.name : 'the intern') + ' know ' + offer.lang, ok: knows }
+      ];
+      if(offer.expert) checks.push({ label: 'at ' + offer.lang + ' Lv ' + offer.expert + '+ (expert)', ok: !!intern && meetsExpert(intern, offer) });
+      const valid = checks.every(c => c.ok);
+      const baseSloc = intern ? ROLES.Intern.sloc : 0;
+      const matchedSloc = intern ? ROLES.Intern.sloc * speedFor(skillLevel(intern.lang[offer.lang])) : 0;
+      const sloc = Math.round(matchedSloc * 10) / 10;
+      const boost = intern ? directorBoost(offer.lang) : 0;
+      const risk = riskOf(offer);
+      const chance = intern ? Math.max(MIN_CHANCE, Math.min(0.98, ROLES.Intern.reliability + SKILL_CHANCE * matchFit(intern, offer) + boost + risk.chance)) : 0;
+      const ms = sloc > 0 ? Math.max(MIN_JOB_MS, offer.sloc / sloc * 60000) : Infinity;
+      const expert = expertOf(offer);
+      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay * (expert ? expert.pay : 1));
+      return { checks, valid, baseSloc, matchedSloc, learners: 0, sloc, ms, chance, boost, payout, salaryCost: 0, xp: tier.xpPerMin * ms / 60000 };
     }
 
     function startJob(offerId, memberIds, repeat){
@@ -898,7 +970,7 @@ window.DebuggLtd = (function(){
         state.reputation += tier.rep;
         job.team.forEach(id => {
           const p = person(id);
-          if(!p || !isDev(p)) return;
+          if(!p || !(isDev(p) || isIntern(p))) return;
           p.lang[job.lang] = (p.lang[job.lang] || 0) + xp;
         });
         addLog('ok', '✓ ' + jobTag(job) + retry + ' delivered — ' + fmt(job.payout) + ', +' + fmtXp(xp) + ' XP to the team.');
@@ -953,6 +1025,11 @@ window.DebuggLtd = (function(){
       // Repeats don't chain further back than the offline cap.
       const repeatCutoff = now - OFFLINE_CAP_SECONDS * 1000;
       let finished = 0;
+      // A repeating job left failed (by a save from before repeats always retried) retries now.
+      state.jobs.filter(j => !isRunning(j) && j.repeat).forEach(j => {
+        retryJob(j, now);
+        addLog('info', '↻ Retrying ' + jobTag(j) + ' for ' + fmt(j.payout) + '.');
+      });
       for(;;){
         const due = state.jobs.filter(j => isRunning(j) && j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
         if(!due.length) break;
@@ -960,10 +1037,11 @@ window.DebuggLtd = (function(){
         const delivered = settleJob(job);
         finished++;
         if(!delivered && job.attempt === 1){
-          // Repeating teams retry automatically (it's the better deal per
-          // minute); otherwise the team waits for the player to decide.
-          if(job.repeat && job.endsAt >= repeatCutoff){
-            retryJob(job, job.endsAt);
+          // Repeating teams always retry automatically (it's the better deal per
+          // minute); otherwise the team waits for the player to decide. A failure
+          // from before the offline cap retries from the cap, like everything else.
+          if(job.repeat){
+            retryJob(job, Math.max(job.endsAt, repeatCutoff));
             addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
           }else{
             job.status = 'failed';
@@ -1213,7 +1291,7 @@ window.DebuggLtd = (function(){
     function stageIndex(){
       const managers = state.roster.filter(p => p.role === 'Manager').length;
       let i = 0;
-      STAGES.forEach((st, k) => { if(managers >= st.managers && state.roster.length >= st.heads) i = k; });
+      STAGES.forEach((st, k) => { if(managers >= st.managers && headcount() >= st.heads) i = k; });
       return i;
     }
     function stage(){ return STAGES[stageIndex()]; }
@@ -1224,7 +1302,7 @@ window.DebuggLtd = (function(){
       const managers = state.roster.filter(p => p.role === 'Manager').length;
       const needs = [];
       if(managers < next.managers) needs.push(next.managers === 1 ? 'your first manager' : next.managers + ' managers (you have ' + managers + ')');
-      if(state.roster.length < next.heads) needs.push(next.heads + ' staff (you have ' + state.roster.length + ')');
+      if(headcount() < next.heads) needs.push(next.heads + ' staff (you have ' + headcount() + ')');
       return 'Next: ' + next.name + ', with ' + needs.join(' and ') +
         (DEMO && DEMO_LOCKED_ROLES.includes('Manager') && managers < next.managers ? ' (managers are coming in v0.1)' : '') + '.';
     }
@@ -1275,11 +1353,20 @@ window.DebuggLtd = (function(){
     function guideStep(){
       if(state.guideDone) return null;
       const devs = state.roster.filter(isDev);
+      const intern = state.roster.find(isIntern);
+      if(!devs.length && intern && !state.jobs.length){
+        const offer = state.board.find(o => isHotfix(o.tier) && !o.expert && o.lang === 'Python') ||
+                      state.board.find(o => isHotfix(o.tier) && !o.expert && directorKnows(o.lang));
+        return { key: 'intern', offerId: offer && offer.id,
+          text: '<b>Put your intern, ' + esc(intern.name) + ', to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
+            esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and yourself, and start it. Interns are free, and you help them ' +
+            'in any language you know: Python, and any you’ve earned daily puzzle XP in. Leave <b>Repeat</b> on and they’ll keep going while you’re away.' };
+      }
       if(!devs.length){
         return { key: 'hire', text: '<b>Hire a graduate.</b> They write the code; you run the company. It costs ' +
           fmt(hireCost('Graduate')) + ' and ¤' + ROLES.Graduate.salary + '/min in salary.' };
       }
-      if(!state.jobs.length){
+      if(!state.jobs.some(j => j.team.some(id => isDev(person(id) || {})))){
         const d = devs[0];
         const offer = state.board.find(o => TIERS[o.tier].key === 'hotfix' && qualifiedFor(d, o) && meetsExpert(d, o));
         return { key: 'staff', offerId: offer && offer.id,
@@ -1343,7 +1430,7 @@ window.DebuggLtd = (function(){
       statPayroll.textContent = '−' + fmtRate(payrollPerMinute() + rent) + '/min';
       statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min rent' : 'Salaries';
       statPayrollLabel.textContent = rent ? 'Payroll + rent' : 'Payroll';
-      statHeads.textContent = state.roster.length;
+      statHeads.textContent = headcount();
     }
 
     // ---------------------------------------------------------------------
@@ -1393,6 +1480,11 @@ window.DebuggLtd = (function(){
         }else{
           body += '<div class="skill-section-title">Promotion</div><div class="req-list"><div class="ok">Top of the ladder.</div></div>';
         }
+      }else if(isIntern(p)){
+        body += '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, p.lang, 'lang');
+        body += '<div class="skill-section-title">Internship</div><div class="req-list"><div class="no">' +
+                'Free, and takes hotfixes with you alongside, in any language they or you know. ' +
+                'Ends in ' + fmtDuration(Math.max(0, internEnds(p) - now)) + ', when they’ll ask to stay on as a graduate for half the usual cost.</div></div>';
       }else{
         body += '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
                 'Managers don’t write code. Each one looks after up to ' + MANAGER_SPAN + ' devs and ' +
@@ -1482,7 +1574,7 @@ window.DebuggLtd = (function(){
       let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +
                  '<span class="card-level">Director</span></div>' +
                  '<div class="card-stats"><span>' + skills + '</span></div>' +
-                 '<div class="card-foot"><span>' + (c0.Manager
+                 '<div class="card-foot"><span>' + (jobFor(director.id) ? 'Helping on a hotfix with your intern, and taking desk jobs. ' : '') + (c0.Manager
                    ? 'Taking desk jobs. Your managers look after the team.'
                    : 'Taking desk jobs, and managing the start-up yourself (up to ' + DIRECTOR_SPAN + ' devs).') +
                  '</span></div></div>';
@@ -1582,11 +1674,14 @@ window.DebuggLtd = (function(){
       return '<div class="card" data-action="inspect" data-id="' + p.id + '">' +
         '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span>' +
         '<span class="card-level ' + p.role + '">' + p.role + '</span></div>' +
-        '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
+        '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p)
+          : isIntern(p) ? role.sloc + ' SLOC/min · works with you · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
         '<span>−' + fmtRate(salaryOf(p)) + '/min</span></div>' +
         '<div class="card-foot">' + status + '<span class="foot-actions">' + release + '</span></div>' +
         noticeHTML(p, now) +
         (promo ? '<div class="card-foot" style="margin-top:6px;">' + promo + '</div>' : '') +
+        (isIntern(p) ? '<div class="card-foot" style="margin-top:6px;"><span class="promo">Internship ends in ' +
+          fmtDuration(Math.max(0, internEnds(p) - now)) + '</span></div>' : '') +
         '</div>';
     }
 
@@ -1628,10 +1723,15 @@ window.DebuggLtd = (function(){
 
     // Offers someone on staff can take come first. The rest (languages nobody knows) fold
     // behind one toggle, unless nobody's been hired yet.
+    // Whether the intern and the Director could take this offer (a hotfix in a language one knows).
+    function internCan(o){
+      const intern = state.roster.find(isIntern);
+      return !!intern && isHotfix(o.tier) && !o.expert && (skillLevel(intern.lang[o.lang]) > 0 || directorKnows(o.lang));
+    }
     function offersHTML(offers){
       const devs = state.roster.filter(isDev);
       if(!devs.length) return offers.map(offerHTML).join('');
-      const can = offers.filter(o => devs.some(d => qualifiedFor(d, o)));
+      const can = offers.filter(o => devs.some(d => qualifiedFor(d, o)) || internCan(o));
       const rest = offers.filter(o => !can.includes(o));
       let html = can.map(offerHTML).join('');
       if(rest.length){
@@ -1664,7 +1764,7 @@ window.DebuggLtd = (function(){
       return '<div class="offer' + (o.expert ? ' expert-offer' : '') + '">' +
         '<div class="offer-top"><span class="chip lang">' + esc(o.lang) + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
         expertChip(o) + riskChip(o) +
-        (!state.roster.some(p => isDev(p) && qualifiedFor(p, o)) ? '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>'
+        (!state.roster.some(p => isDev(p) && qualifiedFor(p, o)) && !internCan(o) ? '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>'
           : !state.roster.some(p => isDev(p) && meetsExpert(p, o)) ? '<div class="detail" style="color:var(--amber)">Nobody on staff is at ' + esc(o.lang) + ' Lv ' + o.expert + ' yet</div>'
           : '') +
         '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
@@ -1809,6 +1909,11 @@ window.DebuggLtd = (function(){
         if(!knows(p) && learners + 1 > devs.length - learners) continue;
         chosen.push(p);
       }
+      // Nobody else for a hotfix: the intern and the Director, if they're free and can take it.
+      if(!chosen.length && tier.key === 'hotfix'){
+        const pair = [pool.find(isIntern), pool.find(p => p.role === 'Director')];
+        if(pair.every(Boolean) && evaluateTeam(tier, offer, pair).valid) return pair.map(p => p.id);
+      }
       return chosen.map(p => p.id);
     }
 
@@ -1820,10 +1925,14 @@ window.DebuggLtd = (function(){
       const members = pool.filter(p => picker.selected.has(p.id));
       const ev = evaluateTeam(tier, offer, members);
 
-      const order = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate'];
+      const order = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate', 'Intern', 'Director'];
       const rows = pool.slice().sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role)).map(p => {
         const on = picker.selected.has(p.id);
-        const meta = isDev(p)
+        const meta = isIntern(p)
+          ? '<span class="bars">Lv ' + skillLevel(p.lang[offer.lang]) + '</span> · ' + Math.round(ROLES.Intern.sloc * speedFor(skillLevel(p.lang[offer.lang])) * 10) / 10 + ' SLOC/min · free'
+          : p.role === 'Director'
+          ? (directorKnows(offer.lang) ? 'helps your intern · knows ' + esc(offer.lang) : 'helps your intern · doesn’t know ' + esc(offer.lang))
+          : isDev(p)
           ? '<span class="bars">Lv ' + skillLevel(p.lang[offer.lang]) + '</span>' +
             (qualifiedFor(p, offer) ? ' · ' + (Math.round(devSlocOn(p, offer) * 10) / 10) + ' SLOC/min'
                                     : ' · <span style="color:var(--amber)">learner, −' + Math.round(LEARNER_DRAG * 100) + '% team</span>')
@@ -2031,7 +2140,7 @@ window.DebuggLtd = (function(){
     if(!state.collapsedLevels) state.collapsedLevels = [];
     if(!state.collapsedTiers) state.collapsedTiers = [];
     // Saves from before desks: enough co-working desks for everyone already on staff.
-    if(!state.office) state.office = { cowork: Math.max(0, state.roster.filter(p => p.role !== 'Director').length - SPARE_ROOM_DESKS) };
+    if(!state.office) state.office = { cowork: Math.max(0, state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length - SPARE_ROOM_DESKS) };
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.
@@ -2059,6 +2168,13 @@ window.DebuggLtd = (function(){
       state.boardVersion = BOARD_VERSION;
     }
 
+    // Companies from before interns get one, once.
+    if(!state.internGiven){
+      state.roster.push(makeIntern(Date.now()));
+      state.internGiven = true;
+      addLog('info', 'An intern has joined: free, and they take hotfixes with you in any language you know.');
+    }
+
     // Offers from before contracts had a SLOC target.
     if(state.board.some(o => !o.sloc)) state.board = makeBoard();
     state.board.forEach(o => { if(!o.expiresAt) o.expiresAt = Date.now() + TIERS[o.tier].offerLife * 60000; });
@@ -2083,6 +2199,7 @@ window.DebuggLtd = (function(){
     }
     state.lastTick = now;
     moveNotices(now);
+    moveInterns(now);
     save();
 
     managersStaff();
@@ -2099,6 +2216,7 @@ window.DebuggLtd = (function(){
       moveMarket(t);
       moveApplicants(t);
       moveNotices(t);
+      moveInterns(t);
       moveDesk(t);
       checkStage();
       managersStaff();
