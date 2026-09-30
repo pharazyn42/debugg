@@ -220,7 +220,7 @@ DESK_SIZES = 1 (50%), 2 (33%), 3 (17%) questions
 DESK_PAY = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 }         // ¤ per right answer, by difficulty (Learn = 1)
 DESK_BOOST = { 1: ×1, 2: ×1.25, 3: ×1.5 }                 // when every answer in the job is right
 DESK_REP = 1, DESK_SEEN = 40                               // reputation per right answer; recent questions kept out
-START_CASH = 150, FOUNDER_BONUS_CAP = 1000             // + ¤1 per puzzle XP at founding
+START_CASH = 250, FOUNDER_BONUS_CAP = 1000             // + ¤1 per puzzle XP at founding
 DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance per puzzle level above 1
 
 LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old saves fold it into C/C++
@@ -306,8 +306,8 @@ state = {
   picks the pair when nobody else can take a hotfix; the guide's first step is now staffing them.
   After 7 days (company time) they finish their hotfix, leave, and apply as a **graduate** for half
   a graduate's hire cost (`INTERN_OFFER`), keeping their XP.
-- **Founding**: a new company gets ¤150 plus a founder's bonus of ¤1 per
-  puzzle XP already earned, up to ¤1,000.
+- **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026) plus a
+  founder's bonus of ¤1 per puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
   from `debugg-xp`). Each level above 1 adds 1% success chance to contracts
   in that language, up to +10%, shown on the Director's card and in the
@@ -487,7 +487,7 @@ state = {
   every 8–24 hours (the first 2 hours after founding), at most 3 waiting, each asking the
   market price × 0.9–1.2, with the offer open for 12 hours ("took a job elsewhere" after).
   Reputation decides who applies (`APPLICANT_REP`): juniors from the start, seniors from
-  500, principals from 3,000, weighted 6 : 3 : 1 among those open. A competition move on a
+  500, principals from 5,000, weighted 6 : 3 : 1 among those open. A competition move on a
   level also hires away a waiting applicant at it. Arrivals and expiries happen while the
   page is closed (not while paused). Decided with the player-owner: promotion is the steady,
   cheap way to grow seniority; applicants are the pricey chance to get ahead. This is
@@ -1278,7 +1278,9 @@ Replace the current flat reliability-by-level model:
   3 grads) nets about ¤1,150/hour.
 - **Still to do:** the demo's money sink is now managers and co-working desks (September 2026);
   check with play data whether it's enough, or whether training (item 14) is needed too.
-  Reputation builds fast (0.5 a hotfix) for when it gates anything (item 12).
+  Reputation: a hotfix gives 0.05 (0.5 until October 2026, when the pacing simulator showed
+  reputation ~10–20× ahead of its targets; principals now apply from 5,000, not 3,000), so
+  seniors apply from about day 2 for a keen player and principals from about week 1–2.
 
 #### 10b. Look and feel
 A design pass over the whole site: the daily puzzles, Debugg Ltd, the

@@ -56,7 +56,7 @@ for v0.1 onwards.
 | First senior applicant (500 rep) | Day 1–2 | Day 3 | **~6 h** with 4 grads: early |
 | First home-grown senior (+3 days contract time) | Day 5–6 | Day 10–11 | ✓ (by the timer) |
 | **Mid-size**: 3 managers, 25 staff | Week 2 | Week 3–4 | ? |
-| First principal applicant (3,000 rep) | Week 1–2 | Week 3 | ? |
+| First principal applicant (5,000 rep) | Week 1–2 | Week 3 | ? |
 | First minor release | Week 2 | Week 3–4 | ? |
 | First home-grown principal (+14 days) | Week 3–4 | Week 6–7 | ✓ (by the timer) |
 | **Large**: 6 managers, 60 staff | Month 1–2 | Month 2–3 | ? |
@@ -200,7 +200,7 @@ What it found:
    business on day 2 and ¤120,000 in hand.
 2. **The first grad isn't affordable at founding.** ¤150 start cash against a ¤180 grad (costs
    went ×3 in the first balance pass; start cash didn't), so a new player without puzzle XP can't
-   follow the guide's first step until they've done a desk job. Start cash ¤250?
+   follow the guide's first step until they've done a desk job. **Fixed:** start cash is ¤250.
 3. **Desks cap the company at 13, and cash then piles up.** 4 spare-room desks plus 8 co-working
    desks is 12 staff and the Director, reached on day 2 by keen players. After that there's
    nothing to buy: ¤1.3 million by day 14, in the demo and the full game alike. Mid-size (25
@@ -209,7 +209,9 @@ What it found:
 4. **Reputation builds about 10–20× faster than §5's targets.** Every delivered hotfix gives 0.5,
    and a small business delivers thousands a day: ~5,000 by day 2 (keen), 65,000 by day 14. The
    applicant thresholds (500 seniors, 3,000 principals) stop meaning anything on day 1–2, and a
-   principal can be hired before any senior.
+   principal can be hired before any senior. **Fixed:** a hotfix gives 0.05 reputation, and
+   principals apply from 5,000. Simulated: 500 on day 2 (keen) or day 3–4 (casual); 5,000 around
+   day 7–8 (keen) and day 14+ (casual).
 5. **Managers never form patch teams from people on repeating hotfixes.** `managersStaff()` only
    staffs developers who are idle, and a repeat never ends, so a patch only starts when a newly
    hired senior happens to arrive while two others are free. Casual players never saw one.

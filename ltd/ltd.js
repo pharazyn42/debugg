@@ -25,7 +25,7 @@ window.DebuggLtd = (function(){
   const DESK_REP = 1;
   const DESK_SEEN = 40;  // questions recently asked, kept out of new jobs
   // A new company starts with ¤150, plus ¤1 per puzzle XP already earned (up to ¤1,000).
-  const START_CASH = 150;
+  const START_CASH = 250;
   const FOUNDER_BONUS_CAP = 1000;
   // Puzzle levels boost contract success in that language: +1% per level above 1, up to +10%.
   const DIRECTOR_BOOST_PER_LEVEL = 0.01;
@@ -194,7 +194,7 @@ window.DebuggLtd = (function(){
     const APPLICANT_OPEN_H = 12;
     const MAX_APPLICANTS = 3;
     const APPLICANT_ASK = [0.9, 1.2];             // × the market price
-    const APPLICANT_REP = { Junior: 0, Senior: 500, Principal: 3000 };
+    const APPLICANT_REP = { Junior: 0, Senior: 500, Principal: 5000 };
     const APPLICANT_WEIGHT = { Junior: 6, Senior: 3, Principal: 1 };
 
     // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
@@ -271,7 +271,7 @@ window.DebuggLtd = (function(){
     // Contract types are named after release types, smallest first:
     // hotfix → patch → minor release → major release.
     const TIERS = [
-      { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 0.33,  rep: 0.5,
+      { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 0.33,  rep: 0.05,
         needs: {}, req: '1 developer, any level' },
       { key: 'patch', name: 'Patch',          plural: 'Patches',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 0.4,  rep: 2,
         needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
