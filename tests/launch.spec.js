@@ -8,8 +8,8 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#foundBtn');
-  // ¤150 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
-  await expect(page.locator('#statMoney')).toHaveText('¤250');
+  // ¤250 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
+  await expect(page.locator('#statMoney')).toHaveText('¤350');
   await page.click('#backupLink');
   const code = await page.inputValue('#backupCode');
   expect(code.startsWith('DEBUGG1.')).toBe(true);
@@ -32,7 +32,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await expect(other.locator('#feedback')).toContainText('Solved');
   await expect(other.locator('#streak')).toHaveText('1');
   await other.click('#ltdNote a');
-  await expect(other.locator('#statMoney')).toHaveText('¤250');
+  await expect(other.locator('#statMoney')).toHaveText('¤350');
   expect((await readJson(other, 'debugg-xp')).python).toBe(100);
 });
 

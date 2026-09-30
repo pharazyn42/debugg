@@ -10,7 +10,12 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- A new company starts with ¤250 instead of ¤150, so you can hire your first graduate (¤180) straight
+  away.
+- Reputation grows more slowly: a hotfix now earns 0.05 reputation instead of 0.5, and principals
+  apply once the studio has 5,000 reputation instead of 3,000. Before, hotfixes on repeat piled up
+  thousands in a day, so seniors and principals were applying almost from the start. Now seniors
+  turn up after a day or two and principals after a week or two.
 
 ## 0.0.8 — 30 September 2026
 

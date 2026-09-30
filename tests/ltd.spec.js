@@ -80,13 +80,13 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
 test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
   await withStorage(page, { 'debugg-xp': { python: 450, javascript: 120 } });
   await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤720');
+  await expect(page.locator('#statMoney')).toHaveText('¤820');
   await expect(page.locator('#welcomeToast')).toContainText('¤570 founder’s bonus');
 
   await page.click('#ltdClose');
   await withStorage(page, { 'debugg-xp': { python: 5000 } });
   await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤1,150');
+  await expect(page.locator('#statMoney')).toHaveText('¤1,250');
 });
 
 test('the daily puzzle is its own game: it pays the company nothing, and the Ltd tab shows the desk instead', async ({ page }) => {
@@ -101,7 +101,7 @@ test('the daily puzzle is its own game: it pays the company nothing, and the Ltd
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
   await expect(page.locator('#ltdNote')).toHaveText('Your company is running, with 1 desk job waiting. Open Ltd →');
   await guess(page, (await puzzleFor(page, 3)).display);
-  expect((await ltd(page)).money).toBe(150);
+  expect((await ltd(page)).money).toBe(250);
   expect((await ltd(page)).paid).toBeUndefined();
 });
 
@@ -124,7 +124,7 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   await expect(page.locator('.desk-q-num')).toHaveText('Question 2 of 2');
   await answerDesk(page, learn, true);
   await expect(page.locator('#deskDone')).toContainText('Desk job: 2 of 2 right, ¤138 (with the ×1.25 bonus for getting them all) and +2 reputation.');
-  expect((await ltd(page)).money).toBe(150 + 138);
+  expect((await ltd(page)).money).toBe(250 + 138);
   expect((await ltd(page)).desk).toMatchObject({ jobs: [], done: 1 });
   expect((await ltd(page)).desk.seen).toEqual([daily.id, learn.id]);
 
@@ -187,10 +187,10 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
   await withStorage(page, { 'debugg-xp': { python: 100 } });  // a ¤100 founder's bonus
   await found(page);
-  // ¤150 is just short of a graduate's ¤180.
-  await expect(page.locator('#statMoney')).toHaveText('¤250');
+  // ¤250 and the ¤100 bonus, less a graduate's ¤180.
+  await expect(page.locator('#statMoney')).toHaveText('¤350');
   await page.click('[data-action=hire][data-role=Graduate]');
-  await expect(page.locator('#statMoney')).toHaveText('¤70');
+  await expect(page.locator('#statMoney')).toHaveText('¤170');
   await expect(page.locator('#statHeads')).toHaveText('2');
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
@@ -202,7 +202,7 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12, 30));
   await page.reload();
   // 30 minutes of a ¤2/min salary, plus the ¤20 contract.
-  await expect(page.locator('#statMoney')).toHaveText('¤30');
+  await expect(page.locator('#statMoney')).toHaveText('¤130');
   await expect(page.locator('#welcomeToast')).toContainText('1 contract wrapped up while you were away');
   await expect(page.locator('#log')).toContainText('delivered');
 });
@@ -219,7 +219,7 @@ test('hiring costs only go up, with inflation and competition', async ({ page })
   await editCompany(page, s => { s.market.prices.Graduate = 1.5; });
   await expect(grad).toHaveText('¤270 ↑50%');
   await page.click('[data-action=hire][data-role=Graduate]');
-  await expect(page.locator('#statMoney')).toHaveText('¤180');
+  await expect(page.locator('#statMoney')).toHaveText('¤280');
   // A move that's due happens on load, and is logged; prices never fall.
   await editCompany(page, s => { s.market.nextAt = Date.now() - 1000; });
   await expect(page.locator('#log')).toContainText(/Inflation: every hire costs|Competition: a rival studio is hiring/);
@@ -234,7 +234,7 @@ test('experienced developers apply now and then; only grads and managers have hi
   await expect(page.locator('[data-action=hire]')).toHaveCount(2);
   await expect(page.locator('[data-action=hire][data-role=Junior]')).toHaveCount(0);
   await expect(page.locator('#applicants')).toContainText('Nobody’s applied yet');
-  await expect(page.locator('#applicants')).toContainText('Seniors apply once the studio has 500 reputation; Principals apply once the studio has 3,000 reputation');
+  await expect(page.locator('#applicants')).toContainText('Seniors apply once the studio has 500 reputation; Principals apply once the studio has 5,000 reputation');
   const now = await page.evaluate(() => Date.now());
   expect((await ltd(page)).nextApplicantAt - now).toBe(2 * 3600000);
 
@@ -473,12 +473,12 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
   await expect(page.locator('.job')).toContainText('High stakes');
   expect((await ltd(page)).jobs[0]).toMatchObject({ risk: 'high', payout: 10, chance: 0.41 });
 
-  // A failed retry loses the contract and 4× the usual reputation (a hotfix's 0.5 ÷ 2 × 4 = 1).
+  // A failed retry loses the contract and 4× the usual reputation (a hotfix's 0.05 ÷ 2 × 4 = 0.1).
   await editCompany(page, s => {
     Object.assign(s.jobs[0], { chance: 0, attempt: 2, endsAt: Date.now() - 1000 });
   });
   await expect(page.locator('#log')).toContainText('✕ high stakes Hotfix (Python) retry failed again — contract lost.');
-  expect((await ltd(page)).reputation).toBe(9);
+  expect((await ltd(page)).reputation).toBeCloseTo(9.9);
 });
 
 test('a repeating contract always retries a failure itself, even one from long ago', async ({ page }) => {
@@ -525,12 +525,12 @@ test('a repeating contract keeps working through the last 4 hours of a long time
                 chance: 1, payout: 5, repeat: true, status: 'running', attempt: 1 }];
   });
   // Payroll is drawn for 4 hours (¤480), and the repeats ran through those 4 hours: a couple of
-  // hundred hotfixes, about ¤1,000 and 70 reputation, and one still going.
+  // hundred hotfixes, about ¤1,000 and 7 reputation, and one still going.
   const s = await ltd(page);
   const job = s.jobs.find(j => j.team.includes('g1'));
   expect(job).toMatchObject({ status: 'running', repeat: true });
   expect(job.endsAt).toBeGreaterThan(Date.now());
-  expect(s.reputation).toBeGreaterThan(40);
+  expect(s.reputation).toBeGreaterThan(4);
   expect(s.money).toBeGreaterThan(1300);
 });
 
@@ -855,7 +855,7 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.reload();
   await page.click('#ltdLink');
   await expect(page.locator('#welcomeToast')).toContainText('paused for 2h');
-  await expect(page.locator('#statMoney')).toHaveText('¤70');
+  await expect(page.locator('#statMoney')).toHaveText('¤170');
   const job = (await ltd(page)).jobs[0];
   expect(job.endsAt - Date.parse(at(14))).toBe(60000);
 });
@@ -901,7 +901,7 @@ test('/studio/ redirects to the main page with the studio on', async ({ page }) 
   await expect(page.locator('#ltdIntro')).toBeVisible();
   await page.click('#ltdLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  await expect(page.locator('#statMoney')).toHaveText('¤150');
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
 });
 
 test('Daily and Ltd are tabs; on the Daily tab a running company is a note linking to it', async ({ page }) => {
@@ -915,7 +915,7 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
   expect(await ltd(page)).toBeNull();
   await page.click('#ltdLink');
-  await expect(page.locator('#statMoney')).toHaveText('¤150');
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
   await expect(page.locator('#ltdIntro')).toBeHidden();
 
   await page.click('#dailyTab');
@@ -925,7 +925,7 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
   await expect(page.locator('#ltdBoard')).toBeHidden();
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   await page.click('#ltdNote a');
-  await expect(page.locator('#statMoney')).toHaveText('¤150');
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
 
   // The game has two tabs, Daily and Ltd; Learn is its own section, linked from the footer and the
   // Director's languages, and it links back.
