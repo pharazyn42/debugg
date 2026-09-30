@@ -7,7 +7,9 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- Python Unit 6, "Functions": making and calling functions, parameters, `return` (and why
+  `print` isn't the same), default and keyword arguments, and which variables a function can see.
+  Four lessons and a checkpoint; it opens once you've passed Unit 5's checkpoint.
 
 ## 0.0.8 — 30 September 2026
 
