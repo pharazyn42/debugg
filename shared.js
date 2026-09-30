@@ -24,7 +24,7 @@ window.Debugg = (function(){
   // only changes when saves have to be reset.
   const APP_VERSION = '0.0.4';
   const LTD_VERSION = '0.0.4';
-  const LEARN_VERSION = '0.0.7';
+  const LEARN_VERSION = '0.0.8';
   // Per product: its version, where "seen" is kept, which saves mean a returning player, its What's
   // new and its changelog. `game` is the daily's old name, kept for callers that still pass it.
   const PRODUCTS = {

@@ -7,6 +7,10 @@ one for fixes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.8 — 30 September 2026
+
 - Python Unit 5, "Loops": `for` over lists and strings, counting with `range`, `while` loops
   (and making sure they end), `break` and `continue`, and building up totals and lists. Four
   lessons and a checkpoint; it opens once you've passed Unit 4's checkpoint.
