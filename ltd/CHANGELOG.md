@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.10 — 30 September 2026
+
 - Your intern now needs you. They write each hotfix slowly (about 25 minutes, and they keep going
   while you're away), and they can get **stuck** up to 3 times on the way: each time the hotfix stalls until you
   help by answering a puzzle in its language, from past daily puzzles and Debuggit Learn. Get it
