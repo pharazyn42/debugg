@@ -962,7 +962,9 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
 `len`, slices, methods and immutability, f-strings and `str`/`int`; 4 lessons and a checkpoint,
 37 steps), and Unit 3, *Lists* (`learn/python/03-lists.js`: indexing and `len`, changing lists,
 `append`/`pop`/`remove`/`in`, slices, `+` and `*`, aliasing and copies, `sort()` vs `sorted()`,
-`sum`/`min`/`max`; 4 lessons and a checkpoint, 36 steps). Decided with the player-owner, replacing parts of the sketch below:
+`sum`/`min`/`max`; 4 lessons and a checkpoint, 36 steps), and Unit 4, *Conditions*
+(`learn/python/04-conditions.js`: comparisons, `if`/`else`, `elif` and the first match winning,
+`and`/`or`/`not`, truthiness and the `x == 1 or 2` slip; 4 lessons and a checkpoint, 34 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
@@ -1009,8 +1011,9 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   each course is written fresh for its language, not translated from Python.
 - **The launch plan (0.1.0),** decided with the player-owner, September 2026. Learn launches first
   (see "Releases"), and needs:
-  - **Content:** all five planned Python units, one PR each, in order: Conditions, Loops,
-    Functions, Dictionaries, The classic traps (4 lessons and a checkpoint each). After each, a
+  - **Content:** all five planned Python units, one PR each, in order: Conditions (done), Loops,
+    Functions, Dictionaries, The classic traps (4 lessons and a checkpoint each), each released
+    to demo players as it's done (the player-owner's call). After each, a
     separate Daily PR tags past puzzles with the new unit's `learn` field.
   - **Experience:** the visual course path. The daily goal and the phone and accessibility passes
     can follow the launch.
