@@ -138,15 +138,18 @@ window.DebuggLtd = (function(){
     // (whatever the studio's reputation).
     //
     // The intern gets stuck (the player-owner's idea, September 2026). They write a hotfix on the
-    // clock (slowly: about 25 minutes), and INTERN_STUCK of their hotfixes get stuck once, at a
-    // random point in the middle (INTERN_STUCK_AT), and stall, however long you're away, until the
-    // Director answers a puzzle in the hotfix's language from the desk's pool. Right: the hotfix
-    // jumps INTERN_NUDGE of its length ahead, and the answer pays like a desk question (DESK_PAY by
+    // clock (slowly: about 25 minutes), and can get stuck up to INTERN_STUCK_MAX times: each of
+    // that many points, at random along the way (INTERN_STUCK_AT, as a share of the work), is a
+    // sticking point with INTERN_STUCK chance (`job.stuckPoints`). Stuck, the hotfix stalls,
+    // however long you're away, until the Director answers a puzzle in the hotfix's language from
+    // the desk's pool. Right: the hotfix jumps INTERN_NUDGE of its length ahead (clearing any
+    // sticking point it jumps past), and the answer pays like a desk question (DESK_PAY by
     // difficulty, × the stage's desk share) and DESK_REP reputation. Wrong: it loses INTERN_NUDGE
     // of its progress (never below none). Once written, it's always delivered, for a hotfix's pay.
     // No repeats, since each one may need you.
     const INTERN_STUCK = 0.5;
-    const INTERN_STUCK_AT = [0.2, 0.8];
+    const INTERN_STUCK_MAX = 3;
+    const INTERN_STUCK_AT = [0.1, 0.9];
     const INTERN_NUDGE = 0.25;
     const INTERN_DAYS = 7;
     const INTERN_OFFER = 0.5;
@@ -951,7 +954,11 @@ window.DebuggLtd = (function(){
 
       const now = Date.now();
       const job = newJob(offer, memberIds.slice(), now, ev, !!repeat && !members.some(isIntern));
-      if(members.some(isIntern) && Math.random() < INTERN_STUCK) job.stuckAt = now + ev.ms * between(INTERN_STUCK_AT);
+      if(members.some(isIntern)){
+        job.stuckPoints = [];
+        for(let i = 0; i < INTERN_STUCK_MAX; i++) if(Math.random() < INTERN_STUCK) job.stuckPoints.push(between(INTERN_STUCK_AT));
+        job.stuckPoints.sort((a, b) => a - b);
+      }
       state.jobs.push(job);
       state.board[offerIdx] = replacementFor(offer);
       save();
@@ -1062,10 +1069,11 @@ window.DebuggLtd = (function(){
         addLog('info', '↻ Retrying ' + jobTag(j) + ' for ' + fmt(j.payout) + '.');
       });
       // An intern who's got stuck stalls until you help (see INTERN_STUCK).
-      state.jobs.filter(j => isRunning(j) && j.stuckAt && j.stuckAt < j.endsAt && j.stuckAt <= now).forEach(j => {
+      const stuckTime = j => j.stuckPoints && j.stuckPoints.length ? j.startedAt + j.stuckPoints[0] * (j.endsAt - j.startedAt) : Infinity;
+      state.jobs.filter(j => isRunning(j) && stuckTime(j) < j.endsAt && stuckTime(j) <= now).forEach(j => {
+        j.left = j.endsAt - stuckTime(j);
         j.status = 'stuck';
-        j.left = j.endsAt - j.stuckAt;
-        delete j.stuckAt;
+        j.stuckPoints.shift();
         addLog('info', '✋ ' + (person(j.team.find(id => isIntern(person(id)))) || {}).name + ' is stuck on the ' +
           j.lang + ' hotfix. Answer a puzzle to help them.');
       });
@@ -1147,7 +1155,7 @@ window.DebuggLtd = (function(){
     function skipTime(ms){
       if(!(ms > 0)) return;
       state.lastTick = (state.lastTick || Date.now()) + ms;
-      state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; if(j.stuckAt) j.stuckAt += ms; });
+      state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; });
       state.board.forEach(o => { o.expiresAt += ms; });
       if(state.market) state.market.nextAt += ms;
       if(state.nextApplicantAt) state.nextApplicantAt += ms;
@@ -1349,6 +1357,9 @@ window.DebuggLtd = (function(){
       job.status = 'running';
       job.startedAt = now - (length - left);
       job.endsAt = now + left;
+      // A jump past a sticking point clears it.
+      const done = 1 - left / length;
+      job.stuckPoints = (job.stuckPoints || []).filter(p => p > done);
       let text;
       if(right){
         const cash = helpPay(q.difficulty);
@@ -2074,7 +2085,7 @@ window.DebuggLtd = (function(){
     function internForecast(offer, ev, intern){
       return '<div class="forecast">' + esc(intern.name) + ' writes it in <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b>' +
           ' (' + ev.sloc + ' SLOC/min), and it’s delivered for <b>' + fmt(ev.payout) + '</b> when it’s written.<br>' +
-        'Half the time they get <b>stuck</b> on the way, and the hotfix stalls, even while you’re away, until you help: a ' +
+        'They can get <b>stuck</b> up to ' + INTERN_STUCK_MAX + ' times on the way, and each time the hotfix stalls, even while you’re away, until you help: a ' +
           esc(offer.lang) + ' puzzle from past daily puzzles and Debuggit Learn. Right, and it jumps ' + Math.round(INTERN_NUDGE * 100) +
           '% ahead, and your help pays <b>' + helpPayText() + '</b> and +' + DESK_REP + ' reputation; wrong, and it loses ' +
           Math.round(INTERN_NUDGE * 100) + '% of its progress.<br>' +

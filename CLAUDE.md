@@ -260,7 +260,7 @@ state = {
   board:  [ { id, tier, lang, sloc, risk, expert, expiresAt } ],  // a hotfix per language + an expert hotfix + 2 of each other type; sloc = work target;
                                                           // risk = 'standard'|'risky'|'high'; expert = skill level needed (0 = none)
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
-              status: 'running'|'failed'|'stuck', attempt: 1|2, stuckAt?, left?, question? } ],  // stuck*: intern hotfixes
+              status: 'running'|'failed'|'stuck', attempt: 1|2, stuckPoints?, left?, question? } ],  // stuck*: intern hotfixes
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
   collapsedTiers: [],                             // contract board groups folded in the UI ('hotfix', …)
@@ -309,14 +309,16 @@ state = {
   **graduate** for half a graduate's hire cost (`INTERN_OFFER`), keeping their XP, whatever the
   studio's reputation.
 - **The intern gets stuck** (item 4c, built; `INTERN_STUCK`, `isStuck()`, `startHelp()`,
-  `finishHelp()`): the intern writes each hotfix on the clock (about 25 minutes), and
-  `INTERN_STUCK` (50%) of them get stuck once, at a random point between 20% and 80% of the way
-  (`job.stuckAt`, set when it starts; `skipTime()` moves it on resume). A stuck job
+  `finishHelp()`): the intern writes each hotfix on the clock (about 25 minutes), and can get
+  stuck up to `INTERN_STUCK_MAX` (3) times: when it starts, each of 3 points, at random between 10%
+  and 90% of the way, is a sticking point with `INTERN_STUCK` (50%) chance (`job.stuckPoints`,
+  shares of the work, so 0–3 stops: 12.5 / 37.5 / 37.5 / 12.5%; the player-owner's call, after a
+  first cut with at most one). A stuck job
   (`status: 'stuck'`, `job.left` = the time it still needs) stalls, however long the player is
   away, until **Help them** (on the job card) asks one puzzle in the hotfix's language from the
   desk's pool (`stuckQuestion()`: not asked lately or waiting in a desk job; kept in
   `job.question` so a reload asks the same one), played in the desk's player. Right: the hotfix
-  jumps `INTERN_NUDGE` (25%) of its length ahead, and the help pays `DESK_PAY` by the puzzle's
+  jumps `INTERN_NUDGE` (25%) of its length ahead (clearing any sticking point it jumps past), and the help pays `DESK_PAY` by the puzzle's
   difficulty × the stage's desk share, and `DESK_REP`. Wrong: it loses 25% of its progress (never
   more than it had). Settled on the answer, so a reload can't retry it. Once written, an intern's
   hotfix is always delivered (no success roll), for a hotfix's usual pay and XP; `state.internDone`

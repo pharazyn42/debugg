@@ -301,7 +301,7 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await page.click('[data-pick="director"]');
   await page.click('[data-action=pick-start]');
   // 2. When they get stuck, help them with a puzzle.
-  await editCompany(page, s => { s.jobs[0].stuckAt = Date.now() - 1000; });
+  await editCompany(page, s => { s.jobs[0].stuckPoints = [0]; });
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'stuck');
   await expect(page.locator('.guide')).toContainText(intern.name + ' is stuck');
   await page.click('[data-action=intern-help].guide-target');
@@ -349,7 +349,7 @@ test('a new company starts with a free intern, who writes hotfixes with you and 
   await page.click('[data-action=pick-suggest]');
   await expect(page.locator('#teamModal .check.no')).toHaveCount(0);
   // They write it slowly, sometimes getting stuck; no repeats.
-  await expect(page.locator('#teamModal .forecast')).toContainText('Half the time they get stuck on the way');
+  await expect(page.locator('#teamModal .forecast')).toContainText('They can get stuck up to 3 times on the way');
   await expect(page.locator('#teamModal [data-picker-repeat]')).toHaveCount(0);
   await page.click('[data-action=pick-start]');
   const job = (await ltd(page)).jobs[0];
@@ -381,12 +381,13 @@ test('a new company starts with a free intern, who writes hotfixes with you and 
   await expect(page.locator('.applicant[data-applicant="' + intern.id + '"]')).toContainText('Graduate');
 });
 
-// Puts the intern and you on a 20-minute Python hotfix, halfway through and stuck since a second ago.
+// Puts the intern and you on a 20-minute Python hotfix, halfway through and just stuck, with another
+// sticking point at 60%.
 async function stuckHotfix(page){
   await editCompany(page, s => {
     const intern = s.roster.find(p => p.role === 'Intern');
     s.jobs = [{ id: 'ij1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 0.25, team: [intern.id, 'director'],
-                startedAt: Date.now() - 10 * 60000, endsAt: Date.now() + 10 * 60000, stuckAt: Date.now() - 1000,
+                startedAt: Date.now() - 10 * 60000, endsAt: Date.now() + 10 * 60000, stuckPoints: [0.4999, 0.6],
                 chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 }];
   });
 }
@@ -424,7 +425,7 @@ test('the intern sometimes gets stuck, and the hotfix stalls until you help with
   expect(await minutesLeft(page)).toBeCloseTo(5, 1);
   expect(s.desk.seen).toContain(q.id);
   await expect(page.locator('#deskDone')).toContainText('hotfix jumps ahead');
-  // It doesn't get stuck twice, and once written it's always delivered.
+  // The jump to 75% cleared the sticking point at 60%, and once written it's always delivered.
   await page.clock.setFixedTime(at(14, 6));
   await page.reload();
   s = await ltd(page);
@@ -434,7 +435,8 @@ test('the intern sometimes gets stuck, and the hotfix stalls until you help with
   await expect(page.locator('#log')).toContainText('Hotfix (Python) delivered');
 });
 
-test('a wrong answer loses the intern some progress', async ({ page }) => {
+test('a wrong answer loses the intern some progress, and they can get stuck again', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
   await found(page);
   await stuckHotfix(page);
   await page.click('[data-action=intern-help]');
@@ -445,6 +447,13 @@ test('a wrong answer loses the intern some progress', async ({ page }) => {
   expect(s.jobs[0].status).toBe('running');
   expect(await minutesLeft(page)).toBeCloseTo(15, 1);
   await expect(page.locator('#log')).toContainText('loses some progress');
+  // Back at 25%, the sticking point at 60% is 7 minutes on.
+  await page.clock.setFixedTime(at(12, 8));
+  await page.reload();
+  const again = (await ltd(page)).jobs[0];
+  expect(again.status).toBe('stuck');
+  expect(again.stuckPoints).toEqual([]);
+  await expect(page.locator('.job.stuck')).toContainText('stuck at 60%');
 });
 
 test('a company from before interns gets one, once', async ({ page }) => {
