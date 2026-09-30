@@ -9,6 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.5 — 30 September 2026
+
 - Debuggit Ltd now has its own version number and [its own list of changes](whatsnew.html?ltd),
   shown in the footer on the Ltd tab. This list is now just the daily puzzle.
 - On phones, tapping into an answer box no longer zooms the page in (and leaves it zoomed after
