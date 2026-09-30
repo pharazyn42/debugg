@@ -7,6 +7,10 @@ one for fixes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.7 — 30 September 2026
+
 - Python Unit 4, "Conditions": comparing values, making choices with `if`, `elif` and `else`,
   and combining them with `and`, `or` and `not` (plus why `x == 1 or 2` is always true). Four
   lessons and a checkpoint; it opens once you've passed Unit 3's checkpoint.
