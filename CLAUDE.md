@@ -41,8 +41,8 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
 | `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
 | `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
-| `CHANGELOG.md`, `learn/CHANGELOG.md`, `whatsnew.html` | The lists of changes, by release, written for players: the game's, and Debuggit Learn's. The What's new page shows the game's, or Learn's with `?learn` (without "Unreleased"). |
-| `tools/release.js`, `tools/check-scope.js` | Cuts a release of the game or of Learn (`[learn] bump|notes|check|tag|name <version>`), and the CI check that keeps each PR to one of them. See "Releases" below. |
+| `CHANGELOG.md`, `ltd/CHANGELOG.md`, `learn/CHANGELOG.md`, `whatsnew.html` | The lists of changes, by release, written for players: the daily puzzle's, Debuggit Ltd's and Debuggit Learn's. The What's new page shows the daily's, Ltd's with `?ltd`, or Learn's with `?learn` (without "Unreleased"). |
+| `tools/release.js`, `tools/check-scope.js` | Cuts a release of the daily, Ltd or Learn (`[ltd|learn] bump|notes|check|tag|name <version>`), and the CI check that keeps each PR to one of them. See "Releases" below. |
 | `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `img/` | The Debuggit duck: `duck.svg` (logo and favicon), `duck-180.png` (home-screen icon) and `share.png` (the 1200×630 link-preview card). The PNGs are rendered from the SVG; redo them if the duck changes. |
 | `daily/` | The daily page's parts: `formats.js` (each puzzle format's question and answer text), `stats.js` (the stats panel), `sharecard.js` (the share picture), `archive.js` (past puzzles, played as practice at `index.html?day=N`) and `trace.js` (Step through it). |
@@ -122,33 +122,39 @@ versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
 marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
 `window.DEBUGG_WIPED_VERSIONS`.
 
-**Releases.** Two products, released separately (the player-owner's call, September 2026, since
-the Ltd game changes far more often than Learn): **Debuggit**, the game (the daily puzzle and
-Debuggit Ltd), and **Debuggit Learn**. Each has:
-- **Its own semantic version:** `APP_VERSION` or `LEARN_VERSION` in `shared.js`. Both are separate
-  from `SAVE_VERSION`, which only changes to reset saves. Both started at 0.0.2 (Learn's 0.0.1 and
-  0.0.2 notes were moved out of the game's changelog when they split). They run 0.0.x through the
-  demo; **0.1.0 is the launch** for each, since the v0.1 reset clears Learn progress too. After
-  that, the middle number is for new things to play (Learn: new units or courses) and the last
-  for fixes and balance.
-- **Its own changelog:** `CHANGELOG.md` for the game, `learn/CHANGELOG.md` for Learn.
-- **Its own What's new:** `whatsnew.html`, or `whatsnew.html?learn`. Game pages' footers show
-  "v0.0.2 demo" and Learn's "Learn v0.0.2 demo", each linking to its own What's new. Each has its
-  own "· new" until the player has looked (`debugg-seen-version`, `debugg-seen-learn-version`).
-- **Its own tags and GitHub Releases:** `v0.0.3` / "Debuggit v0.0.3", and `learn-v0.0.3` /
-  "Debuggit Learn v0.0.3". Learn's releases are never marked the repository's "latest".
+**Releases.** Three products, released separately (the player-owner's calls, September 2026: Learn
+first, since the Ltd game changes far more often than Learn, then the daily and Ltd): **Debuggit**,
+the daily puzzle; **Debuggit Ltd**, the studio game; and **Debuggit Learn**. Each has:
+- **Its own semantic version:** `APP_VERSION` (the daily), `LTD_VERSION` or `LEARN_VERSION` in
+  `shared.js`. All are separate from `SAVE_VERSION`, which only changes to reset saves. The daily
+  and Ltd shared one version up to 0.0.4, where Ltd's starts (its notes from 0.0.1 to 0.0.4 were
+  moved into its own changelog); Learn split off at 0.0.2. They run 0.0.x through the demo;
+  **0.1.0 is the launch** for each, since the v0.1 reset clears everything. After that, the middle
+  number is for new things to play (Learn: new units or courses) and the last for fixes and balance.
+- **Its own changelog:** `CHANGELOG.md` for the daily, `ltd/CHANGELOG.md` for Ltd,
+  `learn/CHANGELOG.md` for Learn.
+- **Its own What's new:** `whatsnew.html`, `whatsnew.html?ltd` or `whatsnew.html?learn`
+  (`PRODUCTS` in `shared.js` says which changelog each reads). The Daily tab's footer (and the
+  privacy page's) shows "v0.0.4 demo", the Ltd tab's "Ltd v0.0.4 demo" and Learn's "Learn v0.0.5
+  demo", each linking to its own What's new. Each has its own "· new" until the player has looked
+  (`debugg-seen-version`, `debugg-seen-ltd-version`, `debugg-seen-learn-version`).
+- **Its own tags and GitHub Releases:** `v0.0.5` / "Debuggit v0.0.5", `ltd-v0.0.5` / "Debuggit Ltd
+  v0.0.5", and `learn-v0.0.5` / "Debuggit Learn v0.0.5". Only the daily's releases are marked the
+  repository's "latest".
 
-**One product per branch (decided with the player-owner).** A branch, and so a PR, changes Learn
-or the game, never both. The exception is a change that really affects both: then both
-changelogs get notes in that PR, and both products are released together.
+**One product per branch (decided with the player-owner).** A branch, and so a PR, changes one
+product, never more. The exception is a change that really affects more than one: then each
+changelog it touches gets notes in that PR, and those products are released together.
 - The **scope** CI job (`tools/check-scope.js`) enforces this on every PR. Learn files are
-  `learn/` (the sandbox included), `learn.html`, `sandbox.html` and `tests/learn.spec.js` and
-  `tests/sandbox.spec.js`. Game files are `index.html`, `ltd/`, `puzzles/`, `studio/`,
-  `CHANGELOG.md` and the game's specs. A PR touching both
-  fails unless it changes both changelogs.
+  `learn/` (the sandbox included), `learn.html`, `sandbox.html`, `tests/learn.spec.js` and
+  `tests/sandbox.spec.js`. Ltd files are `ltd/` (its changelog included), `studio/` and
+  `tests/ltd.spec.js`. Daily files are `index.html`, `daily/`, `puzzles/`, `CHANGELOG.md` and
+  `tests/daily.spec.js`. `index.html` also holds the Ltd tab, so on a branch whose other files are
+  all Ltd's it counts as Ltd's. A PR touching more than one fails unless it changes each one's
+  changelog.
 - Everything else is shared (`shared.js`, `base.css`, `backup.js`, tools, docs, CI) and counts for
-  neither side. A shared change players will notice still needs a line in the changelog of each
-  product it affects.
+  none. A shared change players will notice still needs a line in the changelog of each product it
+  affects.
 - This session works from one designated branch, so each PR from it is kept to one product, and
   the branch is re-synced with `main` after every merge.
 
@@ -160,14 +166,15 @@ The routine:
   - Which product: whichever they name. If they don't name one, release every product with
     something under Unreleased.
   - Which version: the one they give, otherwise the next patch number.
-  - Bump with `node tools/release.js bump <version>` for the game, or
-    `node tools/release.js learn bump <version>` for Learn. That dates the Unreleased notes and
+  - Bump with `node tools/release.js bump <version>` for the daily,
+    `node tools/release.js ltd bump <version>` for Ltd, or `node tools/release.js learn bump <version>`
+    for Learn. That dates the Unreleased notes and
     sets the version. Then commit, PR (its scope check passes, since a release only touches
     `shared.js` and that product's changelog) and merge.
   - Then run the **Release** workflow on `main` with that product and version
     (`workflow_dispatch`). Claude starts it through the GitHub connection, since this session
-    can't push tags, or the player-owner can from the Actions tab. Pushing a `v<version>` or
-    `learn-v<version>` tag also starts it.
+    can't push tags, or the player-owner can from the Actions tab. Pushing a `v<version>`,
+    `ltd-v<version>` or `learn-v<version>` tag also starts it.
 - `.github/workflows/release.yml` runs every test (it calls `tests.yml`), checks that `shared.js`
   and that product's changelog agree with the version, then creates the tag and a GitHub
   Release with that version's notes. Tests failing means no release.

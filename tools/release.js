@@ -1,27 +1,30 @@
 #!/usr/bin/env node
-// Releases (see "Releases" in CLAUDE.md). Debuggit (the daily puzzle and Debuggit Ltd) and
-// Debuggit Learn are released separately, each with its own version, changelog and tags:
+// Releases (see "Releases" in CLAUDE.md). Debuggit (the daily puzzle), Debuggit Ltd and Debuggit
+// Learn are released separately, each with its own version, changelog and tags:
 //
-//   game   APP_VERSION in shared.js,   CHANGELOG.md,        tags v0.0.3
+//   daily  APP_VERSION in shared.js,   CHANGELOG.md,        tags v0.0.3
+//   ltd    LTD_VERSION in shared.js,   ltd/CHANGELOG.md,    tags ltd-v0.0.3
 //   learn  LEARN_VERSION in shared.js, learn/CHANGELOG.md,  tags learn-v0.0.3
 //
-//   node tools/release.js [learn] bump 0.0.3 [2026-10-12]  Dates the changelog's "Unreleased" notes as
-//                                                          0.0.3 and sets the version. Commit, merge, then
-//                                                          run the Release workflow.
-//   node tools/release.js [learn] notes 0.0.3              Prints that version's notes (the GitHub Release's text).
-//   node tools/release.js [learn] check 0.0.3              Fails unless shared.js and the changelog are at 0.0.3.
-//   node tools/release.js [learn] tag 0.0.3                Prints the tag name (v0.0.3, or learn-v0.0.3).
-//   node tools/release.js [learn] name 0.0.3               Prints the release's title.
-// With no product, it's the game.
+//   node tools/release.js [ltd|learn] bump 0.0.3 [2026-10-12]  Dates the changelog's "Unreleased" notes as
+//                                                              0.0.3 and sets the version. Commit, merge, then
+//                                                              run the Release workflow.
+//   node tools/release.js [ltd|learn] notes 0.0.3              Prints that version's notes (the GitHub Release's text).
+//   node tools/release.js [ltd|learn] check 0.0.3              Fails unless shared.js and the changelog are at 0.0.3.
+//   node tools/release.js [ltd|learn] tag 0.0.3                Prints the tag name (v0.0.3, ltd-v0.0.3 or learn-v0.0.3).
+//   node tools/release.js [ltd|learn] name 0.0.3               Prints the release's title.
+// With no product, it's the daily puzzle ("daily", or its old name "game").
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const SHARED = path.join(ROOT, 'shared.js');
 const PRODUCTS = {
-  game:  { constant: 'APP_VERSION',   changelog: 'CHANGELOG.md',       tag: 'v',       name: 'Debuggit' },
+  daily: { constant: 'APP_VERSION',   changelog: 'CHANGELOG.md',       tag: 'v',       name: 'Debuggit' },
+  ltd:   { constant: 'LTD_VERSION',   changelog: 'ltd/CHANGELOG.md',   tag: 'ltd-v',   name: 'Debuggit Ltd' },
   learn: { constant: 'LEARN_VERSION', changelog: 'learn/CHANGELOG.md', tag: 'learn-v', name: 'Debuggit Learn' }
 };
+PRODUCTS.game = PRODUCTS.daily;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const EMPTY = 'Nothing yet.';
 
@@ -44,7 +47,8 @@ function join(doc){ return doc.head + doc.sections.map(s => '## ' + s.title + '\
 function findVersion(doc, v){ return doc.sections.find(s => s.title === v || s.title.startsWith(v + ' ')); }
 
 const args = process.argv.slice(2);
-const productKey = PRODUCTS[args[0]] ? args.shift() : 'game';
+const named = PRODUCTS[args[0]] ? args.shift() : 'daily';
+const productKey = named === 'game' ? 'daily' : named;
 const P = PRODUCTS[productKey];
 const [cmd, version, dateArg] = args;
 const CHANGELOG = path.join(ROOT, P.changelog);
@@ -90,5 +94,5 @@ if(cmd === 'bump'){
   parse(version);
   console.log(P.name + ' v' + version);
 }else{
-  fail('usage: node tools/release.js [learn] bump|notes|check|tag|name <version> [date]');
+  fail('usage: node tools/release.js [ltd|learn] bump|notes|check|tag|name <version> [date]');
 }

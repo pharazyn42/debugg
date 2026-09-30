@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What’s new in Debuggit</title>
-<meta name="description" content="Every Debuggit release: what changed in the daily puzzles and Debuggit Ltd, and in Debuggit Learn.">
+<meta name="description" content="Every Debuggit release: what changed in the daily puzzle, in Debuggit Ltd and in Debuggit Learn.">
 <link rel="icon" href="img/duck.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="img/duck-180.png">
 <link rel="stylesheet" href="base.css">
@@ -40,20 +40,26 @@
 <script src="shared.js"></script>
 <script>
 // Shows a list of changes (see "Releases" in CLAUDE.md) with a small Markdown reader: headings,
-// lists, paragraphs, **bold**, `code` and [links](…). The game's is CHANGELOG.md; with ?learn,
-// it's Debuggit Learn's, learn/CHANGELOG.md, which has its own versions.
+// lists, paragraphs, **bold**, `code` and [links](…). The daily puzzle's is CHANGELOG.md; with ?ltd
+// it's Debuggit Ltd's (ltd/CHANGELOG.md), and with ?learn Debuggit Learn's (learn/CHANGELOG.md).
+// Each has its own versions.
 (function(){
   const D = window.Debugg;
-  const learn = new URLSearchParams(location.search).has('learn');
-  const product = learn ? 'learn' : 'game';
-  const VERSION = learn ? D.LEARN_VERSION : D.APP_VERSION;
-  if(learn){
-    document.title = 'What’s new in Debuggit Learn';
-    document.getElementById('title').textContent = 'What’s new in Learn';
-    document.getElementById('sub').textContent = 'Every Debuggit Learn release, newest first.';
+  const params = new URLSearchParams(location.search);
+  const product = params.has('learn') ? 'learn' : params.has('ltd') ? 'ltd' : 'daily';
+  const P = D.PRODUCTS[product];
+  const VERSION = P.version;
+  const OTHER = {
+    ltd:   { short: 'Ltd',   back: 'index.html?ltd' },
+    learn: { short: 'Learn', back: 'learn/' }
+  }[product];
+  if(OTHER){
+    document.title = 'What’s new in ' + P.name;
+    document.getElementById('title').textContent = 'What’s new in ' + OTHER.short;
+    document.getElementById('sub').textContent = 'Every ' + P.name + ' release, newest first.';
     const back = document.getElementById('backLink');
-    back.href = 'learn/';
-    back.textContent = 'back to Debuggit Learn';
+    back.href = OTHER.back;
+    back.textContent = 'back to ' + P.name;
   }
   const esc = D.escapeHtml;
   function inline(text){
@@ -97,7 +103,7 @@
     flush();
     return out.join('\n');
   }
-  fetch(learn ? 'learn/CHANGELOG.md' : 'CHANGELOG.md', { cache: 'no-cache' })
+  fetch(P.log, { cache: 'no-cache' })
     .then(r => { if(!r.ok) throw new Error(r.status); return r.text(); })
     .then(md => { document.getElementById('notes').innerHTML = render(md); })
     .catch(() => { document.getElementById('notes').innerHTML = '<p>The list of changes couldn’t load. Try again in a moment.</p>'; });

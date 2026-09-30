@@ -1049,7 +1049,7 @@
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen', 'debugg-seen-version'].includes(k)).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen', 'debugg-seen-version', 'debugg-seen-ltd-version', 'debugg-seen-learn-version'].includes(k)).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });
@@ -1132,6 +1132,8 @@
       $('sub').textContent = 'Your software studio. Hire developers and put them on contracts that keep running while you’re away, ' +
         'and take the desk jobs that turn up for you, the Director.';
       document.title = 'Debuggit Ltd';
+      // Debuggit Ltd has its own version and What's new (see "Releases" in CLAUDE.md).
+      window.Debugg.renderVersion($('appVersion'), '', 'ltd');
     }
     $('ltdIntro').hidden = !ltdView || document.body.classList.contains('ltd-running');
   }

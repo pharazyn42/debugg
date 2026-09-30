@@ -20,7 +20,8 @@ jobs:
       - run: python3 --version && gcc --version | head -1 && clang --version | head -1 && rustc --version
       - run: node tools/check-puzzles.js
 
-  # A pull request changes Debuggit Learn or the game, not both, unless both changelogs have notes
+  # A pull request changes one product (the daily puzzle, Debuggit Ltd or Debuggit Learn), unless
+  # each one it changes has notes in its changelog
   # (tools/check-scope.js; see "Releases" in CLAUDE.md).
   scope:
     if: github.event_name == 'pull_request'
