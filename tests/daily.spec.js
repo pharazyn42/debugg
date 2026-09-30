@@ -658,3 +658,16 @@ test('order the lines: tap to move or use the arrows, with 3 checks', async ({ p
   await expect(page.locator('#code .order-row')).toHaveCount(0);
   await expect(page.locator('#code .cl')).toHaveCount(lines.length);
 });
+
+// Phones zoom in on a text box under 16px when it gets the focus, so on touch screens they're 16px.
+test.describe('on a touch screen', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  test('text boxes are 16px, so tapping into one doesn\'t zoom the page', async ({ page }) => {
+    const size = sel => page.locator(sel).evaluate(el => getComputedStyle(el).fontSize);
+    await openAt(page, 'index.html');
+    expect(await size('#guess')).toBe('16px');
+    await openAt(page, 'learn/sandbox.html');
+    expect(await size('#src')).toBe('16px');
+    expect(await size('#puzzlePick')).toBe('16px');
+  });
+});

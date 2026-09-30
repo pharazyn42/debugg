@@ -8,10 +8,13 @@
 // short Review round a day later, then after 3 days and 7 days, until it's been right three times running.
 //
 // Learn keeps its own XP and streak, separate from the daily puzzles, in one save: debugg-learn.
+// The lesson, checkpoint or review in progress is kept in debugg-learn-session, so a trip to the
+// sandbox and back (or a reload) carries on where it was.
 window.DebuggLearn = (function(){
   const D = window.Debugg;
   const L = window.DEBUGG_LEARN;
   const SAVE_KEY = 'debugg-learn';
+  const SESSION_KEY = 'debugg-learn-session';
   const LESSON_XP = 10;       // for finishing a lesson the first time
   const STAR_XP = 5;          // per star, paid again only for stars beyond your best
   const CHECKPOINT_XP = 30;   // for passing a checkpoint the first time
@@ -180,6 +183,7 @@ window.DebuggLearn = (function(){
 
   function renderMap(){
     session = null;
+    dropSession();
     $('title').textContent = 'Learn ' + L.courses[lang].name;
     $('sub').textContent = L.courses[lang].soon
       ? 'The ' + L.courses[lang].name + ' course is coming soon. Here’s what it will cover.'
@@ -265,7 +269,54 @@ window.DebuggLearn = (function(){
     session.current = session.queue.shift();
     session.answered = false;
     if(session.kind === 'review') session.unit = session.items[session.current].unit;
+    keepSession();
     renderStep();
+  }
+
+  // --- Keeping the session ------------------------------------------------------------------------
+  // Saved by ids (and a review by its entries), after every step and answer. Dropped when it ends or
+  // the course map is shown.
+  function keepSession(){
+    const s = session;
+    const kept = { kind: s.kind, lang, unit: s.unit.id, lesson: s.lesson ? s.lesson.id : null, total: s.total,
+                   queue: s.queue, current: s.current, answered: s.answered, done: s.done, mistakes: s.mistakes, correct: s.correct };
+    if(s.kind === 'review'){
+      kept.items = s.items.map(i => ({ lang: i.entry.lang, unit: i.entry.unit, lesson: i.entry.lesson, q: i.entry.q }));
+      kept.missed = [...s.missed];
+    }
+    try{ localStorage.setItem(SESSION_KEY, JSON.stringify(kept)); }catch(e){}
+  }
+  function dropSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+  // Picks a kept session back up: an answered step moves on, as Continue would. One whose unit,
+  // lesson or questions have changed since (or whose review entries have gone) is dropped.
+  function resumeSession(){
+    let k = null;
+    try{ k = JSON.parse(localStorage.getItem(SESSION_KEY)); }catch(e){}
+    if(!k || typeof k !== 'object' || k.lang !== lang || !Array.isArray(k.queue)) return false;
+    const u = unitsOf(lang).find(x => x.id === k.unit);
+    let s = null;
+    if(k.kind === 'review' && Array.isArray(k.items)){
+      const items = k.items.map(it => {
+        const entry = save.review.find(r => r.lang === it.lang && r.unit === it.unit && r.lesson === it.lesson && r.q === it.q);
+        const found = entry && reviewStep(entry);
+        return found && Object.assign({ entry }, found);
+      });
+      if(items.length && items.every(Boolean))
+        s = { kind: 'review', items, unit: items[0].unit, steps: items.map(i => i.step), missed: new Set(k.missed || []) };
+    }else if(k.kind === 'lesson' && u){
+      const les = u.lessons.find(l => l.id === k.lesson);
+      if(les) s = { kind: 'lesson', unit: u, lesson: les, steps: les.steps };
+    }else if(k.kind === 'checkpoint' && u) s = { kind: 'checkpoint', unit: u, steps: u.checkpoint.steps };
+    const fits = i => Number.isInteger(i) && i >= 0 && s && i < s.steps.length;
+    if(!s || s.steps.length !== k.total || !k.queue.every(fits) || !fits(k.current)) return false;
+    session = Object.assign(s, { total: k.total, queue: k.queue, current: k.current, done: k.done || 0,
+                                 mistakes: k.mistakes || 0, correct: k.correct || 0 });
+    session.shownPct = Math.round(session.done / session.total * 100);
+    renderStats();
+    if(session.kind === 'review') session.unit = session.items[session.current].unit;
+    if(k.answered) next();
+    else{ session.answered = false; renderStep(); }
+    return true;
   }
 
   function codeHtml(code, opts = {}){
@@ -375,6 +426,7 @@ window.DebuggLearn = (function(){
           : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
           : 'This one comes back in a review tomorrow.') + '</span>' + runLink(s) + '</div>';
     }
+    keepSession();
     $('continueBtn').hidden = false;
     $('continueBtn').focus();
   }
@@ -510,6 +562,7 @@ window.DebuggLearn = (function(){
         '<button class="' + (passed ? 'btn-primary' : 'btn-ghost') + '" data-action="quit">Back to the course</button></div></div>';
     }
     session = null;
+    dropSession();
     renderStats(xpBefore);
     $('view').innerHTML = html;
     const first = document.querySelector('#summary .btn-primary');
@@ -562,8 +615,11 @@ window.DebuggLearn = (function(){
   });
 
   renderLangs();
-  renderMap();
-  focusUnit();
+  // A lesson left open (e.g. for the sandbox) carries on, unless the address asks for a unit.
+  if(location.hash.slice(1).split('/')[1] || !resumeSession()){
+    renderMap();
+    focusUnit();
+  }
 
   // For tests: the step on screen, and the whole save.
   return { current: () => session && session.steps[session.current], progress: () => save };

@@ -453,3 +453,75 @@ test('pressing Enter on a wrong typed answer shows why, and waits for Continue',
   await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
   await expect(page.locator('#continueBtn')).toBeVisible();
 });
+
+test('a lesson in progress carries on after a trip to the sandbox and back', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await answer(page);                    // the first teach step
+  const missed = await answer(page, false);
+  await answer(page);
+  const onScreen = await current(page);
+  const progress = await page.locator('.progress-num').textContent();
+  // Off to the sandbox, then its "← Debuggit Learn" link back.
+  await page.goto('learn/sandbox.html');
+  await page.click('#backLink');
+  await expect(page.locator('h1')).toHaveText('print() and text');
+  expect(await current(page)).toEqual(onScreen);
+  await expect(page.locator('.progress-num')).toHaveText(progress);
+  // An answered question moves on after a reload, as Continue would.
+  const s = await current(page);
+  if(s.type !== 'teach'){
+    await pickOrType(page, s);
+    await page.reload();
+    expect(await current(page)).not.toEqual(s);
+  }
+  // The miss still counts, and still comes back before the end.
+  const later = [];
+  while(!(await page.locator('#summary').count())) later.push(await answer(page));
+  expect(later[later.length - 1]).toEqual(missed);
+  await expect(page.locator('#summary .big-stars')).toHaveText('★★☆');
+  expect(await page.evaluate(() => localStorage.getItem('debugg-learn-session'))).toBeNull();
+  // Once it's over, a reload shows the course.
+  await page.reload();
+  await expect(page.locator('#continue')).toBeVisible();
+});
+
+test('leaving a lesson for the course, or following a unit link, drops it', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await answer(page);
+  await page.click('[data-action=quit]');
+  await page.reload();
+  await expect(page.locator('#continue')).toBeVisible();
+  await page.click('[data-action=lesson][data-lesson=print]');
+  await answer(page);
+  await page.goto('learn/#python/strings');
+  await page.reload();
+  await expect(page.locator('.unit.focus')).toHaveAttribute('data-unit', 'strings');
+  expect(await page.evaluate(() => localStorage.getItem('debugg-learn-session'))).toBeNull();
+});
+
+test('a review round in progress carries on after a reload', async ({ page }) => {
+  await page.click('[data-action=lesson][data-lesson=print]');
+  let missed = null;
+  while(!(await page.locator('#summary').count())){
+    const s = await current(page);
+    if(!missed && s.type !== 'teach') missed = await answer(page, false);
+    else await answer(page, true);
+  }
+  await openAt(page, 'learn/', 4);
+  await page.click('#reviewBtn');
+  await answer(page, false);
+  await page.reload();
+  await expect(page.locator('h1')).toHaveText('Review');
+  expect((await current(page)).question).toBe(missed.question);
+  await answer(page, true);
+  await expect(page.locator('#summary .big-score')).toHaveText('0/1');
+  expect((await learnSave(page)).review).toMatchObject([{ box: 0, due: 5 }]);
+});
+
+// Answers the question on screen right, without continuing.
+async function pickOrType(page, s){
+  if(s.type === 'predict'){ await page.fill('#answer', s.display); await page.click('#checkBtn'); }
+  else if(s.type === 'line') await page.click('#step .code-line[data-line="' + s.line + '"]');
+  else await pickOption(page, s.options.find(o => o.correct).text);
+  await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
+}
