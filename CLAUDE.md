@@ -941,6 +941,23 @@ put these on the roadmap, in this order:
   service worker, possible without a backend), with a daily nudge; reliable push needs the
   backend above.
 
+#### 3g. The daily's launch plan (0.1.0)
+Decided with the player-owner, September 2026.
+- **When:** a week or two after Learn's 0.1.0 (item 3d), on a Monday so Day 1 is a warm-up.
+  Debuggit Ltd launches separately, later; it stays a demo meanwhile.
+- **Features: as it is.** Today's formats, stats, share picture, past puzzles and Step through it.
+  The item 3f features (weekend code challenges, hard mode, shared stats) come after, as 0.2+.
+- **Languages: Python only.** Others join the rotation later, each once it has its first Learn
+  units (item 3d).
+- **Puzzle stock: 12 weeks banked.** Python-only uses one each of difficulties 1–4 and two 5s a
+  week, so about 12 each at 1–4 and 24 at 5 (from 8 each and 12: roughly 28 more, mostly 5s).
+- **Shared with Learn's launch, done first:** a per-product demo flag and reset (so the daily's
+  launch clears only the daily's saves), the move to Cloudflare Pages (item 2d) and the custom
+  domain (after the checks in 2c).
+- **Check:** a phone and desktop play-through on the new site.
+- **Then:** the daily's demo off, its save version `'0.1'`, `LAUNCH` set to the launch Monday,
+  `node tools/release.js bump 0.1.0`, a PR, and the Release workflow.
+
 #### 3c. One game: puzzles first, studio optional — done
 - Built from `ideas/debugg-ltd-merge-plan.md`, ahead of 3b: the desk is
   the daily puzzles (today all "what does this output"), and the other
