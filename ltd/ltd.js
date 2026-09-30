@@ -126,7 +126,7 @@ window.DebuggLtd = (function(){
       Junior:    { sloc: 12, salary: 5,  cost: 750,   reliability: 0.80 },
       Senior:    { sloc: 30, salary: 12, cost: 3000,  reliability: 0.90 },
       Principal: { sloc: 70, salary: 28, cost: 12000, reliability: 0.95 },
-      Intern:    { sloc: 3,  salary: 0,                reliability: 0.65 }
+      Intern:    { sloc: 0.2, salary: 0,               reliability: 0.65 }
     };
     // Every company starts with an intern (the player-owner's idea, September 2026): free, slow,
     // and only on hotfixes, which they take with the Director alongside them. The Director joins
@@ -134,14 +134,25 @@ window.DebuggLtd = (function(){
     // in any language the intern knows or the Director is comfortable in (directorKnows()). An
     // intern takes no desk, isn't counted in the headcount or the supervision structure, and never
     // hands in their notice. After INTERN_DAYS the internship ends: they finish the hotfix they're
-    // on, leave, and apply to stay on as a graduate for INTERN_OFFER of a graduate's hire cost.
+    // on, leave, and apply to stay on as a graduate for INTERN_OFFER of a graduate's hire cost
+    // (whatever the studio's reputation).
+    //
+    // An intern's hotfix is a puzzle (the player-owner's idea, September 2026). The intern writes it
+    // on the clock (slowly: about 25 minutes), then it waits for the Director to review it: a
+    // puzzle in the hotfix's language from the desk's pool. A wrong answer fails the hotfix. A right
+    // one delivers it, unless the intern mucks it up (1 − the pair's success chance), in which case
+    // a second puzzle reviews their fix, and that one they can't muck up. A delivered hotfix pays
+    // like a desk question (DESK_PAY by the puzzle's difficulty, × the offer's risk and the stage's
+    // desk share) and DESK_REP reputation, and the intern gets the hotfix's XP. No repeats, since
+    // each one needs you; a written hotfix waits for you however long you're away.
     const INTERN_DAYS = 7;
     const INTERN_OFFER = 0.5;
     function isIntern(p){ return !!p && p.role === 'Intern'; }
     const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
-    // Experienced developers can't be hired at will: they apply now and then (see "Applicants"
-    // below). Managers and graduates have hire buttons.
-    const APPLICANT_ROLES = ['Junior', 'Senior', 'Principal'];
+    // Developers can't be hired at will: they apply now and then (see "Applicants" below), graduates
+    // included since September 2026 (the player-owner's call), so an early company gets by on its
+    // intern and the puzzles until it has some reputation. Only managers have a hire button.
+    const APPLICANT_ROLES = ['Graduate', 'Junior', 'Senior', 'Principal'];
     const HIRE_BUTTONS = HIRE_ORDER.filter(r => !APPLICANT_ROLES.includes(r));
     const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate', 'Intern'];
 
@@ -186,16 +197,17 @@ window.DebuggLtd = (function(){
 
     // Applicants: every APPLICANT_EVERY_H hours or so (at random) an experienced developer
     // applies, asking the market price ± a little, and their offer stays open for
-    // APPLICANT_OPEN_H hours. Reputation decides who applies: juniors from the start, seniors
-    // and principals once the studio is known (APPLICANT_REP). At most MAX_APPLICANTS wait
-    // at once. When a rival competes for a level, it also hires away an applicant at it.
+    // APPLICANT_OPEN_H hours. Reputation decides who applies (APPLICANT_REP): nobody until the
+    // studio has a little, then graduates and juniors, and seniors and principals once it's known.
+    // At most MAX_APPLICANTS wait at once. When a rival competes for a level, it also hires away an
+    // applicant at it.
     const APPLICANT_EVERY_H = [8, 24];
-    const FIRST_APPLICANT_H = 2;                  // a new company's first applicant
+    const FIRST_APPLICANT_H = 1;                  // the first applicant, once anyone will apply
     const APPLICANT_OPEN_H = 12;
     const MAX_APPLICANTS = 3;
     const APPLICANT_ASK = [0.9, 1.2];             // × the market price
-    const APPLICANT_REP = { Junior: 0, Senior: 500, Principal: 5000 };
-    const APPLICANT_WEIGHT = { Junior: 6, Senior: 3, Principal: 1 };
+    const APPLICANT_REP = { Graduate: 15, Junior: 15, Senior: 500, Principal: 5000 };
+    const APPLICANT_WEIGHT = { Graduate: 10, Junior: 6, Senior: 3, Principal: 1 };
 
     // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
     // directly below; each manager personally covers one slot at every level
@@ -561,15 +573,18 @@ window.DebuggLtd = (function(){
                expiresAt: at + APPLICANT_OPEN_H * 3600000 };
     }
     // Lets applicants go whose offers have run out, then brings in everyone due by `now`
-    // (skipping any whose offer would already have run out while the page was closed).
+    // (skipping any whose offer would already have run out while the page was closed). Until the
+    // studio has the reputation for anyone to apply, nobody's due; the first comes within
+    // FIRST_APPLICANT_H once someone will.
     function moveApplicants(now){
       if(!state.applicants) state.applicants = [];
-      if(!state.nextApplicantAt) state.nextApplicantAt = now + FIRST_APPLICANT_H * 3600000;
       state.applicants = state.applicants.filter(a => {
         if(a.expiresAt > now) return true;
         addLog('info', a.person.name + ' (' + a.role.toLowerCase() + ') took a job elsewhere.');
         return false;
       });
+      if(!applicantRoles().length){ state.nextApplicantAt = 0; return; }
+      if(!state.nextApplicantAt) state.nextApplicantAt = now + FIRST_APPLICANT_H * 3600000;
       for(let i = 0; state.nextApplicantAt <= now && i < 60; i++){
         const at = state.nextApplicantAt;
         if(at + APPLICANT_OPEN_H * 3600000 > now && state.applicants.length < MAX_APPLICANTS){
@@ -724,14 +739,12 @@ window.DebuggLtd = (function(){
         track('left/' + p.role.toLowerCase());
       });
     }
-    // An internship that has run its course: once off any running hotfix (a repeat stops), the
-    // intern leaves and applies to stay on as a graduate, keeping what they've learnt.
+    // An internship that has run its course: once their hotfix is written and reviewed, the intern
+    // leaves and applies to stay on as a graduate, keeping what they've learnt.
     function internEnds(p){ return p.since + INTERN_DAYS * 86400000; }
     function moveInterns(now){
       state.roster.filter(p => isIntern(p) && internEnds(p) <= now).forEach(p => {
-        const job = jobFor(p.id);
-        if(job && isRunning(job)){ job.repeat = false; return; }
-        if(job) state.jobs = state.jobs.filter(j => j !== job);
+        if(jobFor(p.id)) return;
         state.roster = state.roster.filter(x => x !== p);
         const cost = Math.round(hireCost('Graduate') * INTERN_OFFER / 5) * 5;
         const grad = { id: p.id, name: p.name, role: 'Graduate', since: now, lang: Object.assign({}, p.lang) };
@@ -901,7 +914,8 @@ window.DebuggLtd = (function(){
       const knows = !!intern && (skillLevel(intern.lang[offer.lang]) > 0 || directorKnows(offer.lang));
       const checks = [
         { label: 'an intern and you, the Director (' + members.length + ')', ok: !!intern && !!director && !others.length && tier.key === 'hotfix' },
-        { label: 'you or ' + (intern ? intern.name : 'the intern') + ' know ' + offer.lang, ok: knows }
+        { label: 'you or ' + (intern ? intern.name : 'the intern') + ' know ' + offer.lang, ok: knows },
+        { label: 'there are ' + offer.lang + ' puzzles to review it with', ok: hasPuzzles(offer.lang) }
       ];
       if(offer.expert) checks.push({ label: 'at ' + offer.lang + ' Lv ' + offer.expert + '+ (expert)', ok: !!intern && meetsExpert(intern, offer) });
       const valid = checks.every(c => c.ok);
@@ -929,7 +943,7 @@ window.DebuggLtd = (function(){
       if(!ev.valid) return false;
 
       const now = Date.now();
-      state.jobs.push(newJob(offer, memberIds.slice(), now, ev, !!repeat));
+      state.jobs.push(newJob(offer, memberIds.slice(), now, ev, !!repeat && !members.some(isIntern)));
       state.board[offerIdx] = replacementFor(offer);
       save();
       return true;
@@ -947,6 +961,9 @@ window.DebuggLtd = (function(){
     }
 
     function isRunning(job){ return (job.status || 'running') === 'running'; }
+    // An intern's hotfix that's written and waiting for the Director's review (see INTERN_DAYS).
+    function inReview(job){ return job.status === 'review'; }
+    function isInternJob(job){ return job.team.some(id => isIntern(person(id))); }
     function jobTag(job){
       return (job.risk && job.risk !== 'standard' ? riskOf(job).name.toLowerCase() + ' ' : '') + (job.expert ? 'expert ' : '') +
         TIERS[job.tier].name + ' (' + job.lang + (job.expert ? ' Lv ' + job.expert : '') + ')';
@@ -1037,6 +1054,14 @@ window.DebuggLtd = (function(){
         const due = state.jobs.filter(j => isRunning(j) && j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
         if(!due.length) break;
         const job = due[0];
+        if(isInternJob(job)){
+          // Written: it waits for the Director's review, however long that takes.
+          job.status = 'review';
+          job.repeat = false;
+          addLog('info', '✎ ' + (person(job.team.find(id => isIntern(person(id)))) || {}).name + ' has written the ' +
+            job.lang + ' hotfix. Review it to deliver it.');
+          continue;
+        }
         const delivered = settleJob(job);
         finished++;
         if(!delivered && job.attempt === 1){
@@ -1215,7 +1240,7 @@ window.DebuggLtd = (function(){
     }
     function startDeskJob(id){
       const job = state.desk.jobs.find(j => j.id === id);
-      if(!job || !deskPool) return;
+      if(!job || !deskPool || reviewActive) return;
       const qs = deskQuestions(job);
       if(!qs.length){ state.desk.jobs = state.desk.jobs.filter(j => j !== job); save(); renderDesk(); return; }
       deskActive = id;
@@ -1254,6 +1279,87 @@ window.DebuggLtd = (function(){
       save();
       renderAll();
     }
+    // Reviewing the intern's hotfixes (see INTERN_DAYS): one puzzle in the hotfix's language, from
+    // the desk's pool, not asked lately and not waiting in a desk job. Before the pool has loaded,
+    // only Python is assumed to have puzzles.
+    function hasPuzzles(langName){
+      if(!deskPool) return langName === 'Python';
+      const key = puzzleKey(langName);
+      for(const q of deskPool.values()) if(q.lang === key) return true;
+      return false;
+    }
+    function reviewQuestion(job){
+      const key = puzzleKey(job.lang);
+      const taken = new Set(state.desk.seen.concat(state.desk.jobs.flatMap(j => j.questions)));
+      const all = [...deskPool.values()].filter(q => q.lang === key);
+      const fresh = all.filter(q => !taken.has(q.id));
+      const from = fresh.length ? fresh : all;
+      return from.length ? from[Math.floor(Math.random() * from.length)].id : null;
+    }
+    // What a review can pay: DESK_PAY's range, × the offer's risk and the stage's desk share.
+    function reviewPay(job, difficulty){ return Math.round(DESK_PAY[difficulty] * riskOf(job).pay * stage().desk); }
+    function reviewPayText(job){ return fmt(reviewPay(job, 1)) + '–' + fmt(reviewPay(job, 5)).replace('¤', '') + ' by the puzzle'; }
+    let reviewActive = null;  // the id of the intern's hotfix being reviewed
+    function startReview(id){
+      const job = state.jobs.find(j => j.id === id);
+      if(!job || !inReview(job) || !deskPool || deskActive || reviewActive) return;
+      if(!job.question || !deskPool.get(job.question)) job.question = reviewQuestion(job);
+      const q = job.question && deskPool.get(job.question);
+      if(!q) return;
+      save();
+      reviewActive = job.id;
+      let text = '';
+      const box = document.getElementById('deskPlay');
+      box.hidden = false;
+      renderAll();
+      window.DebuggDesk.play(box, [q], {
+        answered: [],
+        onAnswer: right => { text = finishReview(job, q, right); },
+        onDone: () => {
+          reviewActive = null;
+          const again = state.jobs.includes(job) && inReview(job);
+          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/duck.svg" alt="" width="36" height="36"' +
+            (again ? '' : ' class="hop"') + '><p>' + esc(text) + '</p>' +
+            (again ? '<button type="button" class="btn-primary btn-small" data-action="intern-review" data-job="' + job.id + '">Review the fix</button> ' : '') +
+            '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
+          renderAll();
+        }
+      });
+      if(box.scrollIntoView) box.scrollIntoView({ block: 'nearest' });
+    }
+    // Settles the hotfix on the answer (so a reload can't retry it), and returns what happened.
+    function finishReview(job, q, right){
+      const tier = TIERS[job.tier];
+      const intern = person(job.team.find(id => isIntern(person(id))));
+      const name = intern ? intern.name : 'Your intern';
+      state.desk.seen = state.desk.seen.concat(q.id).slice(-DESK_SEEN);
+      job.question = null;
+      let text;
+      if(!right){
+        state.reputation = Math.max(0, state.reputation - tier.rep / 2 * riskOf(job).repLoss);
+        state.jobs = state.jobs.filter(j => j !== job);
+        text = 'Your review missed it, so the ' + jobTag(job) + ' failed.';
+        addLog('bad', '✕ ' + text);
+      }else if(job.attempt !== 2 && Math.random() >= job.chance){
+        job.attempt = 2;
+        text = 'Right, but ' + name + ' mucked up the fix. Review it again to deliver the hotfix.';
+        addLog('info', '↻ ' + text);
+      }else{
+        const cash = reviewPay(job, q.difficulty);
+        const xp = tier.xpPerMin * (job.endsAt - job.startedAt) / 60000;
+        state.money += cash;
+        state.reputation += DESK_REP;
+        if(intern) intern.lang[job.lang] = (intern.lang[job.lang] || 0) + xp;
+        state.jobs = state.jobs.filter(j => j !== job);
+        state.internDone = (state.internDone || 0) + 1;
+        text = jobTag(job) + ' delivered — ' + fmt(cash) + ', +' + DESK_REP + ' reputation and +' + fmtXp(xp) + ' XP to ' + name + '.';
+        addLog('ok', '✓ ' + text);
+      }
+      track('intern/review/' + (right ? (state.jobs.includes(job) ? 'mucked' : 'delivered') : 'failed'));
+      save();
+      renderAll();
+      return text;
+    }
     function renderDesk(){
       const now = Date.now();
       const jobs = state.desk.jobs;
@@ -1269,7 +1375,7 @@ window.DebuggLtd = (function(){
           '<div class="desk-meta">' + (j.answered.length ? j.answered.length + ' answered · ' : '') +
             (playing ? 'in progress' : fmtDuration(Math.max(0, j.expiresAt - now)) + ' left') + '</div></div>' +
           (playing ? '' : '<button type="button" class="btn-primary btn-small" data-action="desk-start" data-job="' + j.id + '"' +
-            (deskActive ? ' disabled' : '') + (guide && guide.key === 'desk' && j === jobs[0] ? ' data-guide="1"' : '') + '>' +
+            (deskActive || reviewActive ? ' disabled' : '') + (guide && guide.key === 'desk' && j === jobs[0] ? ' data-guide="1"' : '') + '>' +
             (j.answered.length ? 'Carry on' : 'Start') + '</button>') + '</div>';
       }).join('') + (jobs.length < DESK_MAX ? '<p class="desk-empty">' + (jobs.length ? 'Another' : 'A desk job') + ' turns up in about ' +
         fmtDuration(Math.max(60000, state.desk.nextAt - now)) + '.</p>' : '');
@@ -1279,6 +1385,7 @@ window.DebuggLtd = (function(){
       const b = e.target.closest('[data-action]');
       if(!b || b.disabled) return;
       if(b.dataset.action === 'desk-start') startDeskJob(b.dataset.job);
+      else if(b.dataset.action === 'intern-review') startReview(b.dataset.job);
       else if(b.dataset.action === 'desk-close'){
         const box = document.getElementById('deskPlay');
         box.hidden = true;
@@ -1350,24 +1457,40 @@ window.DebuggLtd = (function(){
       return placed.length;
     }
 
-    // The first steps, shown as one "next step" card until the player has a dev on a contract and
-    // has done a desk job (or dismisses it): hire a grad, put them on a hotfix they can take (with
-    // repeat on), take a desk job. Returns { key, text, offerId? } or null.
+    // The first steps, shown as one "next step" card until the player has a dev on a contract (or
+    // dismisses it): put the intern on a hotfix, review it, take a desk job, hire a graduate once one
+    // applies (they wait for a little reputation), and put them on a hotfix. Returns
+    // { key, text, offerId? } or null.
     function guideStep(){
       if(state.guideDone) return null;
       const devs = state.roster.filter(isDev);
       const intern = state.roster.find(isIntern);
-      if(!devs.length && intern && !state.jobs.length){
+      const internJob = intern && jobFor(intern.id);
+      if(!devs.length && intern && !internJob && !state.internDone){
         const offer = state.board.find(o => isHotfix(o.tier) && !o.expert && o.lang === 'Python') ||
-                      state.board.find(o => isHotfix(o.tier) && !o.expert && directorKnows(o.lang));
+                      state.board.find(o => internCan(o));
         return { key: 'intern', offerId: offer && offer.id,
           text: '<b>Put your intern, ' + esc(intern.name) + ', to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and yourself, and start it. Interns are free, and you help them ' +
-            'in any language you know: Python, and any you’ve earned daily puzzle XP in. Leave <b>Repeat</b> on and they’ll keep going while you’re away.' };
+            'in any language you know: Python, and any you’ve earned daily puzzle XP in. They write it; you review it with a puzzle.' };
+      }
+      if(!devs.length && internJob && !state.internDone){
+        return { key: 'review', text: inReview(internJob)
+          ? '<b>Review ' + esc(intern.name) + '’s hotfix.</b> Press <b>Review it</b> under Contracts and answer the puzzle. ' +
+            'Get it right to deliver it: it pays like a desk job, and earns reputation.'
+          : '<b>' + esc(intern.name) + ' is writing the hotfix.</b> It’s ready for your review in about ' +
+            fmtDuration(Math.max(60000, internJob.endsAt - Date.now())) + ', even if you close the page. Take a desk job meanwhile.' };
+      }
+      if(!(state.desk && state.desk.done)){
+        return { key: 'desk', text: '<b>Take a desk job.</b> At your desk, answer a question or two from past daily puzzles ' +
+          'and Debuggit Learn. Every right answer pays the company and earns reputation, and new jobs turn up about every hour.' };
       }
       if(!devs.length){
-        return { key: 'hire', text: '<b>Hire a graduate.</b> They write the code; you run the company. It costs ' +
-          fmt(hireCost('Graduate')) + ' and ¤' + ROLES.Graduate.salary + '/min in salary.' };
+        const grad = (state.applicants || []).find(a => a.role === 'Graduate');
+        return { key: 'hire', text: grad
+          ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied, under Applicants: they write the code; you run the company.'
+          : '<b>Earn some reputation.</b> Graduates apply once the studio has ' + APPLICANT_REP.Graduate + ' reputation (you have ' +
+            Math.floor(state.reputation || 0) + '). Every right answer, on a desk job or your intern’s hotfixes, earns 1.' };
       }
       if(!state.jobs.some(j => j.team.some(id => isDev(person(id) || {})))){
         const d = devs[0];
@@ -1376,10 +1499,6 @@ window.DebuggLtd = (function(){
           text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
             'while you’re away. On the bench they only do odd jobs, which barely cover their salary.' };
-      }
-      if(!(state.desk && state.desk.done)){
-        return { key: 'desk', text: '<b>Take a desk job.</b> At your desk, answer a question or two from past daily puzzles ' +
-          'and Debuggit Learn. Every right answer pays the company, and new jobs turn up about every hour.' };
       }
       state.guideDone = true;
       save();
@@ -1486,7 +1605,7 @@ window.DebuggLtd = (function(){
       }else if(isIntern(p)){
         body += '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, p.lang, 'lang');
         body += '<div class="skill-section-title">Internship</div><div class="req-list"><div class="no">' +
-                'Free, and takes hotfixes with you alongside, in any language they or you know. ' +
+                'Free, and writes hotfixes with you alongside, in any language they or you know; you review each one with a puzzle. ' +
                 'Ends in ' + fmtDuration(Math.max(0, internEnds(p) - now)) + ', when they’ll ask to stay on as a graduate for half the usual cost.</div></div>';
       }else{
         body += '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
@@ -1500,7 +1619,8 @@ window.DebuggLtd = (function(){
         '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salaryOf(p)) + '/min upkeep' +
         (p.raise ? ' (incl. a ' + fmtRate(p.raise) + ' rise)' : '') + ' · ' +
         fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts<br>' +
-        (job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
+        (job && inReview(job) ? 'Waiting on you: review the ' + esc(job.lang) + ' hotfix'
+         : job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
          : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ') — ' + fmtClock(job.endsAt - now) + ' left'
              : 'Idle') + '</div>' +
         body);
@@ -1609,7 +1729,7 @@ window.DebuggLtd = (function(){
         const broke = state.money < cost;
         const rise = Math.round((cost / ROLES[role].cost - 1) * 100);
         hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') +
-                (guide && guide.key === 'hire' && role === 'Graduate' ? ' guide-target' : '') + '" data-action="hire" data-role="' + role + '"' +
+                '" data-action="hire" data-role="' + role + '"' +
                 (why || broke ? ' disabled' : '') + '>' +
                 '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost"' +
                   (rise > 0 ? ' title="Up ' + rise + '% since the company started, from inflation and competition"' : '') + '>' + fmt(cost) +
@@ -1631,18 +1751,26 @@ window.DebuggLtd = (function(){
           '<div class="card-stats"><span>' + ROLES[a.role].sloc + ' SLOC/min · ' + topSkillsText(a.person) + '</span>' +
           '<span>−¤' + ROLES[a.role].salary + '/min</span></div>' +
           '<div class="card-foot"><span class="promo">Offer open ' + fmtDuration(a.expiresAt - now) + '</span>' +
-          '<button class="btn-small btn-promote" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>' +
+          '<button class="btn-small btn-promote' + (guide && guide.key === 'hire' && a.role === 'Graduate' ? ' guide-target' : '') +
+            '" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>' +
             'Hire for ' + fmt(a.cost) + '</button></div>' +
           (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
             : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
           '</div>';
       }).join('');
-      if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Experienced developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
+      if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
+      // "Graduates and juniors apply once the studio has 15 reputation; seniors once it has 500"
       const locked = APPLICANT_ROLES.filter(r => (state.reputation || 0) < APPLICANT_REP[r]);
       if(locked.length){
-        html += '<p class="applicants-note">' + locked.map(r => (r === 'Senior' ? 'Seniors' : 'Principals') +
-          ' apply once the studio has ' + APPLICANT_REP[r].toLocaleString('en-GB') + ' reputation').join('; ') +
-          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts and desk jobs earn it.</p>';
+        const by = [];
+        locked.forEach(r => {
+          const g = by.find(x => x.rep === APPLICANT_REP[r]);
+          const name = (r === 'Graduate' ? 'graduate' : r.toLowerCase()) + 's';
+          if(g) g.names.push(name); else by.push({ rep: APPLICANT_REP[r], names: [name] });
+        });
+        const text = by.map(g => g.names.join(' and ') + ' apply once the studio has ' + g.rep.toLocaleString('en-GB') + ' reputation').join('; ');
+        html += '<p class="applicants-note">' + text.charAt(0).toUpperCase() + text.slice(1) +
+          ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts, desk jobs and your intern’s hotfixes earn it.</p>';
       }
       setHTML(applicantsEl, html);
     }
@@ -1650,7 +1778,9 @@ window.DebuggLtd = (function(){
     function cardHTML(p, now){
       const role = ROLES[p.role];
       const job = jobFor(p.id);
-      const status = job && !isRunning(job)
+      const status = job && inReview(job)
+        ? '<span class="promo blocked">' + esc(job.lang) + ' hotfix written — review it below</span>'
+        : job && !isRunning(job)
         ? '<span class="promo blocked">' + TIERS[job.tier].name + ' failed — retry or drop it below</span>'
         : job
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
@@ -1729,7 +1859,7 @@ window.DebuggLtd = (function(){
     // Whether the intern and the Director could take this offer (a hotfix in a language one knows).
     function internCan(o){
       const intern = state.roster.find(isIntern);
-      return !!intern && isHotfix(o.tier) && !o.expert && (skillLevel(intern.lang[o.lang]) > 0 || directorKnows(o.lang));
+      return !!intern && isHotfix(o.tier) && !o.expert && (skillLevel(intern.lang[o.lang]) > 0 || directorKnows(o.lang)) && hasPuzzles(o.lang);
     }
     function offersHTML(offers){
       const devs = state.roster.filter(isDev);
@@ -1788,6 +1918,18 @@ window.DebuggLtd = (function(){
         setHTML(jobsEl, jobs.map(j => {
           const t = TIERS[j.tier];
           const team = j.team.map(id => { const p = person(id); return p ? esc(p.name) : '?'; }).join(', ');
+          if(inReview(j)){
+            return '<div class="job review">' +
+              '<div class="job-top"><span class="left">' + t.name +
+              ' <span class="chip lang">' + esc(j.lang) + '</span>' + riskTag(j) + '</span>' +
+              '<span class="time" style="color:var(--amber)">' + (j.attempt === 2 ? 'Fixed' : 'Written') + '</span></div>' +
+              '<div class="detail">' + team + ' · ' + (j.attempt === 2 ? 'the fix is' : 'it’s') + ' waiting for your review: a ' + esc(j.lang) +
+                ' puzzle' + (j.attempt === 2 ? '' : ' · ' + Math.round((1 - j.chance) * 100) + '% chance they muck it up') + ' · ' + reviewPayText(j) + '</div>' +
+              '<div class="actions" style="margin:8px 0 0;">' +
+                '<button class="btn-primary btn-small' + (guide && guide.key === 'review' ? ' guide-target' : '') + '" data-action="intern-review" data-job="' + j.id + '"' +
+                  (reviewActive || deskActive ? ' disabled' : '') + '>' + (j.attempt === 2 ? 'Review the fix' : 'Review it') + '</button>' +
+              '</div></div>';
+          }
           if(!isRunning(j)){
             return '<div class="job failed">' +
               '<div class="job-top"><span class="left">' + t.name +
@@ -1806,10 +1948,11 @@ window.DebuggLtd = (function(){
             '<span class="time" data-time="' + j.id + '"></span></div>' +
             '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
             '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
-            ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
-            ' on delivery' + (j.attempt === 2 ? ' · retry' : '') + '</div>' +
-            '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
-            (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>' +
+            (isInternJob(j) ? ' · then you review it · ' + reviewPayText(j) + '</div>'
+              : ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
+                ' on delivery' + (j.attempt === 2 ? ' · retry' : '') + '</div>' +
+                '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
+                (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>') +
             '</div>';
         }).join(''));
         jobs.filter(isRunning).forEach(j => {
@@ -1920,6 +2063,17 @@ window.DebuggLtd = (function(){
       return chosen.map(p => p.id);
     }
 
+    // What the intern's hotfix will be: written on the clock, then reviewed with a puzzle.
+    function internForecast(offer, ev, intern){
+      return '<div class="forecast">' + esc(intern.name) + ' writes it in <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b>' +
+          ' (' + ev.sloc + ' SLOC/min), then you <b>review it</b>: a ' + esc(offer.lang) + ' puzzle, from past daily puzzles and Debuggit Learn.<br>' +
+        'Right, and it’s delivered for <b>' + reviewPayText(offer) + '</b> and +' + DESK_REP + ' reputation, unless ' + esc(intern.name) +
+          ' mucks it up (<b>' + Math.round((1 - ev.chance) * 100) + '%</b>' +
+          (ev.boost ? ', less +' + Math.round(ev.boost * 100) + '% from your ' + esc(offer.lang) + ' level' : '') +
+          '): then a second puzzle reviews the fix, and that one they can’t muck up. Wrong, and it fails.<br>' +
+        esc(intern.name) + ' gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered. ' +
+          'A written hotfix waits for your review, however long you’re away.</div>';
+    }
     function renderPicker(){
       if(!picker) return;
       const ctx = pickerContext();
@@ -1927,6 +2081,7 @@ window.DebuggLtd = (function(){
       const { offer, tier, pool, unqualified, busyCount } = ctx;
       const members = pool.filter(p => picker.selected.has(p.id));
       const ev = evaluateTeam(tier, offer, members);
+      const intern = members.find(isIntern);
 
       const order = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate', 'Intern', 'Director'];
       const rows = pool.slice().sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role)).map(p => {
@@ -1960,7 +2115,7 @@ window.DebuggLtd = (function(){
         '<div class="pick-list">' + (rows || '<div class="empty">Nobody free who can take this on.</div>') + '</div>' +
         (busyCount ? '<div class="empty" style="margin-bottom:10px;">' + busyCount + ' more busy on other contracts.</div>' : '') +
         '<div class="checks">' + ev.checks.map(c => '<span class="check ' + (c.ok ? 'ok' : 'no') + '">' + (c.ok ? '✓ ' : '✕ ') + esc(c.label) + '</span>').join('') + '</div>' +
-        '<div class="forecast">' +
+        (intern ? internForecast(offer, ev, intern) : '<div class="forecast">' +
           'Success chance <b>' + Math.round(ev.chance * 100) + '%</b>' +
             (ev.boost ? ' (incl. +' + Math.round(ev.boost * 100) + '% from your ' + esc(offer.lang) + ' level)' : '') +
             (offer.risk && offer.risk !== 'standard' ? ' (incl. −' + Math.round(-riskOf(offer).chance * 100) + '% for the risk)' : '') +
@@ -1977,7 +2132,7 @@ window.DebuggLtd = (function(){
           (offer.risk && offer.risk !== 'standard' ? ', and each failure costs ' + riskOf(offer).repLoss + '× the usual reputation.' : '.') +
         '</div>' +
         '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
-          'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' +
+          'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>') +
         '<div class="actions">' +
           '<button class="btn-primary" data-action="pick-start"' + (ev.valid ? '' : ' disabled') + '>Start contract</button>' +
           '<button class="btn-ghost" data-action="pick-suggest">Suggest a team</button>' +
@@ -2053,7 +2208,7 @@ window.DebuggLtd = (function(){
       if(action === 'hire'){
         const role = btn.dataset.role;
         const cost = hireCost(role);
-        if(state.money < cost || hireProblem(role)) return;
+        if(!HIRE_BUTTONS.includes(role) || state.money < cost || hireProblem(role)) return;
         state.money -= cost;
         const hire = makeHire(role);
         state.roster.push(hire);
@@ -2106,9 +2261,12 @@ window.DebuggLtd = (function(){
       }else if(action === 'staff'){
         openPicker(btn.dataset.offer);
         return;
+      }else if(action === 'intern-review'){
+        startReview(btn.dataset.job);
+        return;
       }else if(action === 'retry-job' || action === 'drop-job'){
         const job = state.jobs.find(j => j.id === btn.dataset.job);
-        if(!job || isRunning(job)) return;
+        if(!job || isRunning(job) || inReview(job)) return;
         if(action === 'retry-job'){
           retryJob(job, Date.now());
           addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
@@ -2175,8 +2333,15 @@ window.DebuggLtd = (function(){
     if(!state.internGiven){
       state.roster.push(makeIntern(Date.now()));
       state.internGiven = true;
-      addLog('info', 'An intern has joined: free, and they take hotfixes with you in any language you know.');
+      addLog('info', 'An intern has joined: free, and they write hotfixes with you in any language you know.');
     }
+    // Intern hotfixes from before they were reviewed with a puzzle: no repeats, and one left failed
+    // goes to review instead.
+    state.jobs.forEach(j => {
+      if(!isInternJob(j)) return;
+      j.repeat = false;
+      if(j.status === 'failed'){ j.status = 'review'; j.attempt = 1; }
+    });
 
     // Offers from before contracts had a SLOC target.
     if(state.board.some(o => !o.sloc)) state.board = makeBoard();

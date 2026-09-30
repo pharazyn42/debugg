@@ -67,14 +67,14 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
   await guess(page, (await puzzleFor(page, 3)).display);  // 100 XP: level 2
   await page.click('#foundBtn');
   await expect(page.locator('#statMoney')).toBeVisible();
-  await page.click('[data-action=hire][data-role=Graduate]');
+  await page.click('[data-action=cowork-add]');
   await page.click('#backupLink');
   await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
     'level/python/2',
     'level/overall/2',
     'puzzle/python/day-3/solved-in-1',
     'ltd/founded',
-    'ltd/hired/graduate',
+    'ltd/office/cowork',
     'backup/opened'
   ]);
 });
