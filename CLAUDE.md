@@ -1004,10 +1004,36 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   sandbox runs.
 - **Open to everyone from day one** (decided with the player-owner, September 2026): Learn is
   never locked behind daily puzzles or anything else.
-- **Still to do:** the rest of the Python course (Conditions, Loops,
-  Functions, Dictionaries, the classic traps), the other experience items (a
-  visual course path and daily goal, a phone and accessibility pass), other languages' courses, the Rosetta-style "second language" lessons, and
-  badges.
+- **Every course starts from zero** (the player-owner's call, September 2026): any course can be
+  someone's first, so none assumes another language. No Rosetta-style "second language" lessons;
+  each course is written fresh for its language, not translated from Python.
+- **The launch plan (0.1.0),** decided with the player-owner, September 2026. Learn launches first
+  (see "Releases"), and needs:
+  - **Content:** all five planned Python units, one PR each, in order: Conditions, Loops,
+    Functions, Dictionaries, The classic traps (4 lessons and a checkpoint each). After each, a
+    separate Daily PR tags past puzzles with the new unit's `learn` field.
+  - **Experience:** the visual course path. The daily goal and the phone and accessibility passes
+    can follow the launch.
+  - **A per-product demo and reset:** each product gets its own demo flag and reset, so Learn's
+    launch clears only Learn's saves (`debugg-learn`) and the daily and Ltd stay demos until
+    theirs. Today there's one `DEMO` and one `SAVE_VERSION`, so this comes before the launch.
+  - **Hosting first:** the move to Cloudflare Pages (item 2d, with the dev site, `release` branch,
+    DEV badge and redirect page) and a **custom domain** (after the domain and trademark checks
+    in 2c) both happen before the launch, so launch progress is never lost to a later move.
+  - Then a phone and desktop check on the new site, and `node tools/release.js learn bump 0.1.0`.
+- **After the launch, Python's next parts** (proposed): Part 2, intermediate (tuples and sets;
+  `enumerate`/`zip`/`for…else`; comprehensions; `*args`, `**kwargs`, `lambda` and keys; string
+  formatting and `split`/`join`; errors and exceptions) as Learn 0.2; then Part 3, objects
+  (classes, class vs instance attributes, inheritance, special methods) and Part 4, advanced
+  (generators, closures and decorators, copying and identity, `collections`/`itertools`).
+- **When to add languages** (proposed): after Python's Part 2, rather than going deeper. A language
+  gets its first 3–4 units before, or when, it joins the daily rotation, so missed puzzles have
+  somewhere to link. JavaScript next (it runs in the sandbox and has puzzles; its own traps unit:
+  `==` vs `===`, `"5" + 1`, `var`/`let`, `this`, `NaN`), then C (with Embedded C, item 3e), then
+  Rust. GoatCounter's lesson events decide the balance after that: many finishing Python's later
+  units means more depth; early drop-off means polish first.
+- **Still to do otherwise:** the daily goal, a phone and accessibility pass, other languages'
+  courses, and badges.
 
 The original sketch:
 This is the idea that started Debugg: a fun way to learn different
@@ -1037,7 +1063,7 @@ at your own pace. It expands the "Learn track" sketched in 3b.
   which JavaScript (or Rust, or C++) version does the same thing, or
   what's different about how each handles it (integer division, string
   immutability, equality, scoping). Once you know one language, this is
-  the fast, fun way into the next.
+  the fast, fun way into the next. **Dropped** (September 2026): every course starts from zero.
 - **Game feel, Duolingo-style:**
   - a visual path per language, with units, checkpoints and a "boss"
     puzzle at the end of each unit;
@@ -1068,7 +1094,7 @@ at your own pace. It expands the "Learn track" sketched in 3b.
     learning streak? 3b currently says lessons don't count, so the daily
     puzzle stays the one thing to do each day.
   - Which languages after Python: JavaScript first (already built), or go
-    straight for something new like Rust?
+    straight for something new like Rust? (Proposed since: JavaScript, then C, then Rust.)
   - Order against the other Phase 1 work: the lesson formats overlap with
     3b's multiple choice and fill-the-blank, so building those formats
     first serves both.
