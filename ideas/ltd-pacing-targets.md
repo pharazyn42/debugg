@@ -141,13 +141,10 @@ A healthy idle curve, stated so a simulator can test it:
 ## 7. How to use this
 
 1. **Agree the targets** (the milestone table and the principles are the bits to argue over).
-2. **Build the simulator** alongside roadmap item 1's engine extraction (`ltd/engine.js`):
-   a headless script that runs the engine with a seeded RNG and a simple strategy for each profile
-   (hire the cheapest useful person, put everyone on the best contract they can take, keep repeat
-   on, answer desk jobs with an 80% hit rate) for 60 days of game time, and prints the milestone
-   table and the ratios above. `npm run pacing`.
+2. **Run the simulator** (built, see §8): `npm run sim -- --profile casual --days 14`.
 3. **Tune the constants** until the table matches, re-running it with every balance change.
-   A CI job could fail a PR that moves a demo milestone by more than, say, 25%.
+   Try a change first on a copy of the game (`--ltd my-copy.js`). Later, a CI job could fail a PR
+   that moves a demo milestone by more than, say, 25%.
 4. **Check against real players**: GoatCounter's `ltd/founded`, `ltd/hired/…`, `ltd/stage/…`
    and `ltd/paused` events give the real milestone times. Where players differ from the
    simulator, trust the players and fix the strategy.
@@ -156,6 +153,65 @@ For the BBQ game, sections 1–3 and 6 carry over as they are; section 4's numbe
 from its own constants (fixed cook times, meat costs), and it gets targets of its own for cash
 flow (a big booking should never be unaffordable for more than a few hours once it's worth
 taking).
+
+## 8. The simulator, and its first results
+
+`tools/sim-ltd.js` (`npm run sim`) plays the **real game**, not a model of it. Every check-in
+"opens the page": a fresh VM runs `shared.js` and `ltd/ltd.js` unchanged against a stand-in page,
+a fake clock and a seeded random number generator, and resumes the save, so time away is caught
+up exactly as it is for players. While the page is open it runs the game's own tick once a game
+minute, and a simple player clicks the game's own buttons. The player: answers desk jobs (80%
+right), keeps anyone who hands in their notice, retries failures, promotes whoever's ready, hires
+applicants and then grads while keeping half an hour's payroll in hand, hires a manager when the
+developers are at the span limit, rents a co-working desk when needed, and (in a start-up) puts
+idle developers on standard hotfixes on repeat. Options: `--profile keen|casual|always`,
+`--days`, `--seeds`, `--full` (the whole game, not the demo), `--hit`, `--xp`, `--step`, `--ltd`,
+`--json`. Per seed, a simulated week takes well under a second for casual, a few seconds for keen
+and about half a minute for always (`--step 5` speeds that up).
+
+It doesn't yet replace roadmap item 1's engine extraction and unit tests; it would run on
+`ltd/engine.js` just as well once that exists.
+
+### First results (September 2026, 3 seeds each)
+
+The keen column is a `--full` run, which plays like the demo while the desks cap the company (below).
+
+| | Keen, 14 days | Casual, 14 days | Casual, offline fix (below) |
+|---|---|---|---|
+| First grad | 2.5 h | 10.5 h | 10.5 h |
+| Small business | day 1, 7pm | **never** | day 3 |
+| More than 10 staff | day 1–2 | never | day 3 |
+| First patch | day 4–5 | never | never |
+| Staff on day 14 | 13 (the most desks allow) | **2** | 13 |
+| Cash on day 14 | ~¤1,300,000 | **−¤4,600** | ~¤300,000 |
+| Reputation on day 14 | ~65,000 | 135 | ~46,000 |
+
+What it found:
+
+1. **A game bug: repeats die when the page is closed for more than 4 hours.** Offline catch-up
+   charges 4 hours of payroll, but a repeating contract only restarts if it finished within the
+   last 4 hours (`resolveDueJobs`), so after a longer absence the chain stops a minute after the
+   page closed. A grad left overnight costs about ¤480 and earns nothing. A **casual** player goes
+   backwards every night and never gets past one grad; keen players lose a night's payroll every
+   day. Starting the chain again at the start of the capped window (the "offline fix" column)
+   makes casual players reach Small business on day 3. **Fix this before any balancing** (an Ltd
+   PR of its own).
+2. **The first grad isn't affordable at founding.** ¤150 start cash against a ¤180 grad (costs
+   went ×3 in the first balance pass; start cash didn't), so a new player without puzzle XP can't
+   follow the guide's first step until they've done a desk job. Start cash ¤250?
+3. **Desks cap the company at 13, and cash then piles up.** 4 spare-room desks plus 8 co-working
+   desks is 12 staff and the Director, reached on day 2 by keen players. After that there's
+   nothing to buy: ¤1.3 million by day 14, in the demo and the full game alike. Mid-size (25
+   staff) can't be reached until business units exist (phase 2 of item 15e). Principle 1 fails
+   from day 2.
+4. **Reputation builds about 10–20× faster than §5's targets.** Every delivered hotfix gives 0.5,
+   and a small business delivers thousands a day: ~5,000 by day 2 (keen), 65,000 by day 14. The
+   applicant thresholds (500 seniors, 3,000 principals) stop meaning anything on day 1–2, and a
+   principal can be hired before any senior.
+5. **Managers never form patch teams from people on repeating hotfixes.** `managersStaff()` only
+   staffs developers who are idle, and a repeat never ends, so a patch only starts when a newly
+   hired senior happens to arrive while two others are free. Casual players never saw one.
+   Managers (or the player) need a reason and a way to take people off hotfixes for bigger work.
 
 ## Open questions
 
