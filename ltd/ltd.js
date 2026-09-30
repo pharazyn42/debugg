@@ -953,6 +953,11 @@ window.DebuggLtd = (function(){
       // Repeats don't chain further back than the offline cap.
       const repeatCutoff = now - OFFLINE_CAP_SECONDS * 1000;
       let finished = 0;
+      // A repeating job left failed (by a save from before repeats always retried) retries now.
+      state.jobs.filter(j => !isRunning(j) && j.repeat).forEach(j => {
+        retryJob(j, now);
+        addLog('info', '↻ Retrying ' + jobTag(j) + ' for ' + fmt(j.payout) + '.');
+      });
       for(;;){
         const due = state.jobs.filter(j => isRunning(j) && j.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
         if(!due.length) break;
@@ -960,10 +965,11 @@ window.DebuggLtd = (function(){
         const delivered = settleJob(job);
         finished++;
         if(!delivered && job.attempt === 1){
-          // Repeating teams retry automatically (it's the better deal per
-          // minute); otherwise the team waits for the player to decide.
-          if(job.repeat && job.endsAt >= repeatCutoff){
-            retryJob(job, job.endsAt);
+          // Repeating teams always retry automatically (it's the better deal per
+          // minute); otherwise the team waits for the player to decide. A failure
+          // from before the offline cap retries from the cap, like everything else.
+          if(job.repeat){
+            retryJob(job, Math.max(job.endsAt, repeatCutoff));
             addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
           }else{
             job.status = 'failed';

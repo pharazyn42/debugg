@@ -427,6 +427,36 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
   expect((await ltd(page)).reputation).toBe(9);
 });
 
+test('a repeating contract always retries a failure itself, even one from long ago', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 8 * 3600000, lang: { Python: 10 } });
+    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, risk: 'standard', expiresAt: Date.now() + 3600000 };
+  });
+  await page.click('[data-action=staff][data-offer=o1]');
+  await page.click('[data-pick=g1]');
+  await page.click('[data-action=pick-start]');  // hotfixes repeat by default
+  await expect(page.locator('.job')).toHaveCount(1);
+
+  // It failed 6 hours ago, before the 4-hour offline cap: it retries from the cap, not waiting.
+  await editCompany(page, s => {
+    Object.assign(s.jobs[0], { chance: 0, startedAt: Date.now() - 6 * 3600000 - 60000, endsAt: Date.now() - 6 * 3600000 });
+  });
+  await expect(page.locator('#log')).toContainText('↻ Retrying Hotfix (Python)');
+  await expect(page.locator('.job.failed')).toHaveCount(0);
+
+  // A save with a repeating job left waiting on the player retries it straight away.
+  await editCompany(page, s => {
+    s.jobs = s.jobs.filter(j => j.team.includes('g1')).slice(0, 1);
+    Object.assign(s.jobs[0], { status: 'failed', attempt: 1, chance: 1, repeat: true, startedAt: Date.now() - 60000, endsAt: Date.now() - 1000 });
+  });
+  await expect(page.locator('.job.failed')).toHaveCount(0);
+  const job = (await ltd(page)).jobs.find(j => j.team.includes('g1'));
+  expect(job).toMatchObject({ status: 'running', attempt: 2 });
+});
+
 test('the board has a hotfix in every language, and no domains', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');
