@@ -964,7 +964,10 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
 `append`/`pop`/`remove`/`in`, slices, `+` and `*`, aliasing and copies, `sort()` vs `sorted()`,
 `sum`/`min`/`max`; 4 lessons and a checkpoint, 36 steps), and Unit 4, *Conditions*
 (`learn/python/04-conditions.js`: comparisons, `if`/`else`, `elif` and the first match winning,
-`and`/`or`/`not`, truthiness and the `x == 1 or 2` slip; 4 lessons and a checkpoint, 34 steps). Decided with the player-owner, replacing parts of the sketch below:
+`and`/`or`/`not`, truthiness and the `x == 1 or 2` slip; 4 lessons and a checkpoint, 34 steps), and
+Unit 5, *Loops* (`learn/python/05-loops.js`: `for` over lists and strings, running totals, `range`
+and its stop, `while` and ending it, `break`/`continue`, building lists; 4 lessons and a
+checkpoint, 37 steps). Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
@@ -1011,8 +1014,8 @@ a checkpoint, 35 steps), Unit 2, *Strings* (`learn/python/02-strings.js`: indexi
   each course is written fresh for its language, not translated from Python.
 - **The launch plan (0.1.0),** decided with the player-owner, September 2026. Learn launches first
   (see "Releases"), and needs:
-  - **Content:** all five planned Python units, one PR each, in order: Conditions (done), Loops,
-    Functions, Dictionaries, The classic traps (4 lessons and a checkpoint each), each released
+  - **Content:** all five planned Python units, one PR each, in order: Conditions (done), Loops
+    (done), Functions, Dictionaries, The classic traps (4 lessons and a checkpoint each), each released
     to demo players as it's done (the player-owner's call). After each, a
     separate Daily PR tags past puzzles with the new unit's `learn` field.
   - **Experience:** the visual course path. The daily goal and the phone and accessibility passes
