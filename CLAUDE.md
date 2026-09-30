@@ -488,7 +488,7 @@ state = {
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through putting the intern on the Python hotfix with
-  the Director, helping them when they're stuck, a desk job, earning the 15
+  the Director, helping them when they're stuck, a desk job, earning the 5
   reputation graduates need and hiring one who applies, and putting them on a hotfix
   they can take (the button pulses, `.guide-target`) with repeat on.
   It ends (`state.guideDone`) once those are done, or when dismissed. After that, notes stay:
@@ -505,7 +505,7 @@ state = {
   managers have a hire button. Developers *apply*, graduates included since item 4d: one
   every 8–24 hours, at most 3 waiting, each asking the
   market price × 0.9–1.2, with the offer open for 12 hours ("took a job elsewhere" after).
-  Reputation decides who applies (`APPLICANT_REP`): nobody below 15 (`nextApplicantAt` is 0
+  Reputation decides who applies (`APPLICANT_REP`): nobody below 5 (`nextApplicantAt` is 0
   meanwhile), then graduates and juniors, seniors from 500, principals from 5,000, weighted
   10 : 6 : 3 : 1 among those open; the first comes within `FIRST_APPLICANT_H` (1) of anyone being
   able to. A competition move on a
@@ -1233,11 +1233,13 @@ Replace the current flat reliability-by-level model:
   sits beside desk jobs (a separate list, or among them).
 
 #### 4d. Graduates apply by reputation (the player-owner's idea, September 2026; built, see "Applicants" above)
-- **Decided:** graduates (and juniors) apply from 15 reputation, graduates most often (weight 10);
-  the intern's end-of-week graduate offer comes whatever the reputation. The pacing simulator shows
-  the first graduate arriving around game-hour 16 for a keen player (at founding before), and slower
-  growth after, since graduates now only come as applicants every 8–24 hours; a balance question for
-  item 10.
+- **Decided:** graduates (and juniors) apply from 5 reputation (15 at first, but the pacing
+  simulator put a keen player's first graduate at game-hours 18–21, which the player-owner found
+  too slow), graduates most often (weight 10), and the very first applicant is always a graduate
+  (`state.hadApplicant`). The intern's end-of-week graduate offer comes whatever the reputation.
+  Simulated: a keen player's first graduate at about game-hour 7, a casual player's on day 2 (at
+  founding before this item). Growth after is slower than before, since graduates only come as
+  applicants every 8–24 hours; a balance question for item 10.
 - **Graduates can't be hired.** They lose their hire button and **apply** instead, like juniors,
   seniors and principals (see "Applicants" above), once the company's reputation reaches a
   threshold (to be decided). Until then the player sticks it out with the intern and the

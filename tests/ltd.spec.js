@@ -244,26 +244,27 @@ test('developers apply now and then, graduates too, once the studio has some rep
   await expect(page.locator('[data-action=hire]')).toHaveCount(1);
   await expect(page.locator('[data-action=hire][data-role=Graduate]')).toHaveCount(0);
   await expect(page.locator('#applicants')).toContainText('Nobody’s applied yet');
-  await expect(page.locator('#applicants')).toContainText('Graduates and juniors apply once the studio has 15 reputation; ' +
+  await expect(page.locator('#applicants')).toContainText('Graduates and juniors apply once the studio has 5 reputation; ' +
     'seniors apply once the studio has 500 reputation; principals apply once the studio has 5,000 reputation (you have 0)');
   // With no reputation, nobody's on the way.
   expect((await ltd(page)).nextApplicantAt).toBe(0);
   await editCompany(page, s => { s.nextApplicantAt = Date.now() - 1000; });
   expect((await ltd(page)).applicants).toHaveLength(0);
 
-  // At 15 reputation the first comes within the hour.
-  await editCompany(page, s => { s.reputation = 15; s.nextApplicantAt = 0; });
+  // At 5 reputation the first comes within the hour.
+  await editCompany(page, s => { s.reputation = 5; s.nextApplicantAt = 0; });
   const now = await page.evaluate(() => Date.now());
   expect((await ltd(page)).nextApplicantAt - now).toBe(3600000);
   await expect(page.locator('#applicants')).not.toContainText('Graduates and juniors apply');
 
-  // Someone applies: a graduate or a junior, asking the market price ± a little.
+  // Someone applies, asking the market price ± a little: the very first is always a graduate.
   await editCompany(page, s => { s.money = 5000; s.nextApplicantAt = Date.now() - 1000; });
   const saved = await ltd(page);
   expect(saved.applicants).toHaveLength(1);
   const a = saved.applicants[0];
-  expect(['Graduate', 'Junior']).toContain(a.role);
-  const base = a.role === 'Graduate' ? 180 : 750;
+  expect(a.role).toBe('Graduate');
+  expect(saved.hadApplicant).toBe(true);
+  const base = 180;
   expect(a.cost).toBeGreaterThanOrEqual(base * 0.9 - 5);
   expect(a.cost).toBeLessThanOrEqual(base * 1.2 + 5);
   expect(saved.nextApplicantAt - now).toBeGreaterThanOrEqual(8 * 3600000 - 1000);
@@ -313,7 +314,7 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   for(const q of qs) await answerDesk(page, q, true);
   // 4. Graduates apply once there's a little reputation; hire one.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'hire');
-  await expect(page.locator('.guide')).toContainText('Graduates apply once the studio has 15 reputation');
+  await expect(page.locator('.guide')).toContainText('Graduates apply once the studio has 5 reputation');
   await editCompany(page, s => {
     s.applicants = [{ id: 'ga1', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
                       person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];

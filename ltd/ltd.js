@@ -201,7 +201,9 @@ window.DebuggLtd = (function(){
     // Applicants: every APPLICANT_EVERY_H hours or so (at random) an experienced developer
     // applies, asking the market price ± a little, and their offer stays open for
     // APPLICANT_OPEN_H hours. Reputation decides who applies (APPLICANT_REP): nobody until the
-    // studio has a little, then graduates and juniors, and seniors and principals once it's known.
+    // studio has a little, then graduates and juniors (the very first applicant is always a
+    // graduate, `state.hadApplicant`, so a new company can afford them), and seniors and principals
+    // once it's known.
     // At most MAX_APPLICANTS wait at once. When a rival competes for a level, it also hires away an
     // applicant at it.
     const APPLICANT_EVERY_H = [8, 24];
@@ -209,7 +211,7 @@ window.DebuggLtd = (function(){
     const APPLICANT_OPEN_H = 12;
     const MAX_APPLICANTS = 3;
     const APPLICANT_ASK = [0.9, 1.2];             // × the market price
-    const APPLICANT_REP = { Graduate: 15, Junior: 15, Senior: 500, Principal: 5000 };
+    const APPLICANT_REP = { Graduate: 5, Junior: 5, Senior: 500, Principal: 5000 };
     const APPLICANT_WEIGHT = { Graduate: 10, Junior: 6, Senior: 3, Principal: 1 };
 
     // Tiered structure: each dev supervises up to MENTOR_SPAN of the level
@@ -570,7 +572,9 @@ window.DebuggLtd = (function(){
     function newApplicant(at){
       const roles = applicantRoles();
       let roll = Math.random() * roles.reduce((n, r) => n + APPLICANT_WEIGHT[r], 0);
-      const role = roles.find(r => (roll -= APPLICANT_WEIGHT[r]) < 0) || roles[0];
+      const role = !state.hadApplicant && roles.includes('Graduate') ? 'Graduate'
+        : roles.find(r => (roll -= APPLICANT_WEIGHT[r]) < 0) || roles[0];
+      state.hadApplicant = true;
       const p = makeHire(role);
       return { id: p.id, role, person: p, cost: Math.round(hireCost(role) * between(APPLICANT_ASK) / 5) * 5,
                expiresAt: at + APPLICANT_OPEN_H * 3600000 };
@@ -1488,6 +1492,8 @@ window.DebuggLtd = (function(){
         const grad = (state.applicants || []).find(a => a.role === 'Graduate');
         return { key: 'hire', text: grad
           ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied, under Applicants: they write the code; you run the company.'
+          : (state.reputation || 0) >= APPLICANT_REP.Graduate
+          ? '<b>A graduate will apply soon.</b> The studio has the reputation; the first applicant turns up within the hour or so.'
           : '<b>Earn some reputation.</b> Graduates apply once the studio has ' + APPLICANT_REP.Graduate + ' reputation (you have ' +
             Math.floor(state.reputation || 0) + '). Every right answer, on a desk job or helping your stuck intern, earns 1.' };
       }
