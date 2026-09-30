@@ -186,6 +186,8 @@ async function openPage(world){
     click: dataset => fire(slots.studio, 'click', dataset),
     desk: dataset => fire(slots.desk, 'click', dataset),
     picker: dataset => fire(document.getElementById('teamModal'), 'click', dataset),
+    // Ticks someone in the team picker.
+    pick: id => fire(document.getElementById('teamModal'), 'change', { pick: id }, { checked: true }),
     close: () => sandbox.DebuggLtd.stop()
   };
 }
@@ -206,6 +208,8 @@ const skillLevel = xp => { const t = [10, 50, 150, 400, 1000]; let lv = 0;
 function payroll(s){ return s.roster.reduce((n, p) => n + (SALARY[p.role] || 0) + (p.raise || 0), 0) + ((s.office && s.office.cowork) || 0); }
 function priceOf(s, role){ return Math.round(COST[role] * ((s.market && s.market.prices[role]) || 1) / 5) * 5; }
 function devs(s){ return s.roster.filter(p => DEV_ROLES.includes(p.role)); }
+// Headcount as the game counts it: the intern isn't in it.
+function heads(s){ return s.roster.filter(p => p.role !== 'Intern').length; }
 
 // One look at the company: what a sensible player does on a check-in, in order. Cash is kept
 // above a reserve of half an hour's payroll, so the company never spends itself into debt.
@@ -236,7 +240,7 @@ function play(page, log, now, opts){
   // Hiring. Room for one more on-site person, renting a co-working desk if needed.
   // Returns 'free', 'rented' (a co-working desk just now) or null (no room).
   const deskFor = () => {
-    const used = s.roster.filter(p => p.role !== 'Director').length;
+    const used = s.roster.filter(p => p.role !== 'Director' && p.role !== 'Intern').length;
     const cowork = (s.office && s.office.cowork) || 0;
     if(used < SPARE_ROOM_DESKS + cowork) return 'free';
     if(cowork >= COWORK_MAX) return null;
@@ -262,6 +266,19 @@ function play(page, log, now, opts){
   // Graduates while there's room and money.
   for(let k = 0; k < 20 && hire('Graduate', { action: 'hire', role: 'Graduate' }, priceOf(s, 'Graduate')); k++);
 
+  // The intern: a free Python hotfix with the Director alongside, on repeat, whenever they're idle.
+  const intern = s.roster.find(p => p.role === 'Intern');
+  if(intern && !s.jobs.some(j => j.team.includes(intern.id))){
+    const offer = s.board.find(o => o.tier === 0 && o.lang === 'Python' && (o.risk || 'standard') === 'standard' && !o.expert);
+    if(offer){
+      const n = s.jobs.length;
+      act(page.click, { action: 'staff', offer: offer.id });
+      act(page.pick, intern.id);
+      act(page.pick, 'director');
+      act(page.picker, { action: 'pick-start' });
+      if(s.jobs.length === n) act(page.picker, { action: 'pick-cancel' });
+    }
+  }
   // Staffing: in a start-up the player puts each idle developer on a hotfix they know, on repeat
   // (from a small business on, the managers do it every tick).
   if(!s.roster.some(p => p.role === 'Manager')){
@@ -355,7 +372,7 @@ async function run(opts, seed){
   const schedule = PROFILES[opts.profile](playerRng);
   const note = s => {
     if(devs(s).length >= 4) log('devs/4');
-    if(s.roster.length > 10) log('heads/11');
+    if(heads(s) > 10) log('heads/11');
     if(s.stage && s.stage !== 'startup') STAGE_KEYS.slice(1, STAGE_KEYS.indexOf(s.stage) + 1).forEach(k => log('stage/' + k));
     (s.applicants || []).forEach(a => log('applicant/' + a.role.toLowerCase()));
     s.jobs.forEach(j => log('job/' + TIER_KEYS[j.tier]));
@@ -364,7 +381,7 @@ async function run(opts, seed){
     const day = Math.floor((clock.now - DAY1) / DAY) + 1;   // calendar days, as in the milestone times
     const counts = {};
     s.roster.forEach(p => { counts[p.role] = (counts[p.role] || 0) + 1; });
-    days[day] = { day, money: s.money, rep: s.reputation, heads: s.roster.length, counts,
+    days[day] = { day, money: s.money, rep: s.reputation, heads: heads(s), counts,
                   stage: s.stage || 'startup', payroll: payroll(s), spent, active: activeMs };
   };
 

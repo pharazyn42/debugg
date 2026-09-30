@@ -163,8 +163,8 @@ up exactly as it is for players. While the page is open it runs the game's own t
 minute, and a simple player clicks the game's own buttons. The player: answers desk jobs (80%
 right), keeps anyone who hands in their notice, retries failures, promotes whoever's ready, hires
 applicants and then grads while keeping half an hour's payroll in hand, hires a manager when the
-developers are at the span limit, rents a co-working desk when needed, and (in a start-up) puts
-idle developers on standard hotfixes on repeat. Options: `--profile keen|casual|always`,
+developers are at the span limit, rents a co-working desk when needed, keeps the intern on a Python hotfix with the Director, and
+(in a start-up) puts idle developers on standard hotfixes on repeat. Options: `--profile keen|casual|always`,
 `--days`, `--seeds`, `--full` (the whole game, not the demo), `--hit`, `--xp`, `--step`, `--ltd`,
 `--json`. Per seed, a simulated week takes well under a second for casual, a few seconds for keen
 and about half a minute for always (`--step 5` speeds that up).
@@ -174,7 +174,8 @@ It doesn't yet replace roadmap item 1's engine extraction and unit tests; it wou
 
 ### First results (September 2026, 3 seeds each)
 
-The keen column is a `--full` run, which plays like the demo while the desks cap the company (below).
+These were run before the intern (Ltd, after 0.0.6). The keen column is a `--full` run, which
+plays like the demo while the desks cap the company (below).
 
 | | Keen, 14 days | Casual, 14 days | Casual, offline fix (below) |
 |---|---|---|---|
@@ -194,8 +195,9 @@ What it found:
    page closed. A grad left overnight costs about ¤480 and earns nothing. A **casual** player goes
    backwards every night and never gets past one grad; keen players lose a night's payroll every
    day. Starting the chain again at the start of the capped window (the "offline fix" column)
-   makes casual players reach Small business on day 3. **Fix this before any balancing** (an Ltd
-   PR of its own).
+   makes casual players reach Small business on day 3. **Fixed** in PR #64. Re-run with the intern,
+   a casual player's first week goes from Small business on day 7 and ¤4,000 in debt to Small
+   business on day 2 and ¤120,000 in hand.
 2. **The first grad isn't affordable at founding.** ¤150 start cash against a ¤180 grad (costs
    went ×3 in the first balance pass; start cash didn't), so a new player without puzzle XP can't
    follow the guide's first step until they've done a desk job. Start cash ¤250?
