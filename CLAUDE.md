@@ -260,7 +260,7 @@ state = {
   board:  [ { id, tier, lang, sloc, risk, expert, expiresAt } ],  // a hotfix per language + an expert hotfix + 2 of each other type; sloc = work target;
                                                           // risk = 'standard'|'risky'|'high'; expert = skill level needed (0 = none)
   jobs:   [ { id, tier, lang, sloc, teamSloc, team: [ids], startedAt, endsAt, chance, payout, repeat,
-              status: 'running'|'failed', attempt: 1|2 } ],
+              status: 'running'|'failed'|'stuck', attempt: 1|2, stuckPoints?, left?, question? } ],  // stuck*: intern hotfixes
   log:    [ { kind: 'ok'|'bad'|'info', text } ],
   collapsedLevels: [],                            // roster tree groups folded in the UI
   collapsedTiers: [],                             // contract board groups folded in the UI ('hotfix', …)
@@ -297,15 +297,35 @@ state = {
   on a hotfix still pays for itself.
 - **The intern** (the player-owner's idea, September 2026, after a playtest where a lone grad lost
   money; `ROLES.Intern`, `INTERN_DAYS`, `evaluateInternTeam()`, `moveInterns()`): every company
-  starts with one (older saves get one once, `state.internGiven`). Free (no salary), 3 SLOC/min,
+  starts with one (older saves get one once, `state.internGiven`). Free (no salary), 0.2 SLOC/min
+  (3 until item 4c, so a hotfix takes them about 25 minutes),
   65% reliability, and only on hotfixes, which they take **with the Director as a second person**
   (so one intern job at a time), in a language the intern knows or the Director is comfortable in
   (`directorKnows()`: Python always, which was the player-owner's open question and is a
   placeholder, plus any language with daily-puzzle XP). No desk, not in the headcount, the
   supervision structure, notices or odd jobs, and never auto-staffed by managers. "Suggest a team"
   picks the pair when nobody else can take a hotfix; the guide's first step is now staffing them.
-  After 7 days (company time) they finish their hotfix, leave, and apply as a **graduate** for half
-  a graduate's hire cost (`INTERN_OFFER`), keeping their XP.
+  After 7 days (company time) they finish their hotfix (and its review), leave, and apply as a
+  **graduate** for half a graduate's hire cost (`INTERN_OFFER`), keeping their XP, whatever the
+  studio's reputation.
+- **The intern gets stuck** (item 4c, built; `INTERN_STUCK`, `isStuck()`, `startHelp()`,
+  `finishHelp()`): the intern writes each hotfix on the clock (about 25 minutes), and can get
+  stuck up to `INTERN_STUCK_MAX` (3) times: when it starts, each of 3 points, at random between 10%
+  and 90% of the way, is a sticking point with `INTERN_STUCK` (50%) chance (`job.stuckPoints`,
+  shares of the work, so 0–3 stops: 12.5 / 37.5 / 37.5 / 12.5%; the player-owner's call, after a
+  first cut with at most one). A stuck job
+  (`status: 'stuck'`, `job.left` = the time it still needs) stalls, however long the player is
+  away, until **Help them** (on the job card) asks one puzzle in the hotfix's language from the
+  desk's pool (`stuckQuestion()`: not asked lately or waiting in a desk job; kept in
+  `job.question` so a reload asks the same one), played in the desk's player. Right: the hotfix
+  jumps `INTERN_NUDGE` (25%) of its length ahead (clearing any sticking point it jumps past), and the help pays `DESK_PAY` by the puzzle's
+  difficulty × the stage's desk share, and `DESK_REP`. Wrong: it loses 25% of its progress (never
+  more than it had). Settled on the answer, so a reload can't retry it. Once written, an intern's
+  hotfix is always delivered (no success roll), for a hotfix's usual pay and XP; `state.internDone`
+  counts them. No repeats (old saves' intern jobs lose theirs). The pair can only take hotfixes in
+  languages the pool has puzzles for (`hasPuzzles()`; Python for now). Decided with the
+  player-owner, after a first version where every hotfix waited for a review puzzle: getting stuck
+  keeps the writing time as the limit, so puzzles can't be farmed for money.
 - **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026) plus a
   founder's bonus of ¤1 per puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
@@ -470,8 +490,9 @@ state = {
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
   top of the Studio panel walks a new company through putting the intern on the Python hotfix with
-  the Director, hiring a grad, putting them on a hotfix
-  they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
+  the Director, helping them when they're stuck, a desk job, earning the 5
+  reputation graduates need and hiring one who applies, and putting them on a hotfix
+  they can take (the button pulses, `.guide-target`) with repeat on.
   It ends (`state.guideDone`) once those are done, or when dismissed. After that, notes stay:
   devs on the bench doing odd jobs (which barely cover their salary; a contract earns far more),
   and cash below zero. The welcome message can be dismissed. Added after a playtest where an unstaffed
@@ -483,11 +504,13 @@ state = {
   behind a "Show 3 in languages nobody on staff knows" toggle (`state.showUnknownOffers`), unless
   nobody's been hired yet.
 - **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): only
-  graduates and managers have hire buttons. Juniors, seniors and principals *apply*: one
-  every 8–24 hours (the first 2 hours after founding), at most 3 waiting, each asking the
+  managers have a hire button. Developers *apply*, graduates included since item 4d: one
+  every 8–24 hours, at most 3 waiting, each asking the
   market price × 0.9–1.2, with the offer open for 12 hours ("took a job elsewhere" after).
-  Reputation decides who applies (`APPLICANT_REP`): juniors from the start, seniors from
-  500, principals from 5,000, weighted 6 : 3 : 1 among those open. A competition move on a
+  Reputation decides who applies (`APPLICANT_REP`): nobody below 5 (`nextApplicantAt` is 0
+  meanwhile), then graduates and juniors, seniors from 500, principals from 5,000, weighted
+  10 : 6 : 3 : 1 among those open; the first comes within `FIRST_APPLICANT_H` (1) of anyone being
+  able to. A competition move on a
   level also hires away a waiting applicant at it. Arrivals and expiries happen while the
   page is closed (not while paused). Decided with the player-owner: promotion is the steady,
   cheap way to grow seniority; applicants are the pricey chance to get ahead. This is
@@ -1198,7 +1221,7 @@ Replace the current flat reliability-by-level model:
 
   This ties in with the success-chance rework (4a).
 
-#### 4c. The intern's hotfixes are puzzles (the player-owner's idea, September 2026; not started)
+#### 4c. The intern's hotfixes are puzzles (the player-owner's idea, September 2026; built differently, see "The intern gets stuck" above)
 - **The intern's hotfixes stop running on time.** When the player puts the Director and the
   intern on a hotfix, the Director (the player) is given a random puzzle in that hotfix's
   language, and solving it is what delivers the hotfix. The puzzles could come from the same
@@ -1211,7 +1234,14 @@ Replace the current flat reliability-by-level model:
   and XP stay as a hotfix's, whether an unanswered puzzle expires like a desk job, and how it
   sits beside desk jobs (a separate list, or among them).
 
-#### 4d. Graduates apply by reputation (the player-owner's idea, September 2026; not started)
+#### 4d. Graduates apply by reputation (the player-owner's idea, September 2026; built, see "Applicants" above)
+- **Decided:** graduates (and juniors) apply from 5 reputation (15 at first, but the pacing
+  simulator put a keen player's first graduate at game-hours 18–21, which the player-owner found
+  too slow), graduates most often (weight 10), and the very first applicant is always a graduate
+  (`state.hadApplicant`). The intern's end-of-week graduate offer comes whatever the reputation.
+  Simulated: a keen player's first graduate at about game-hour 7, a casual player's on day 2 (at
+  founding before this item). Growth after is slower than before, since graduates only come as
+  applicants every 8–24 hours; a balance question for item 10.
 - **Graduates can't be hired.** They lose their hire button and **apply** instead, like juniors,
   seniors and principals (see "Applicants" above), once the company's reputation reaches a
   threshold (to be decided). Until then the player sticks it out with the intern and the

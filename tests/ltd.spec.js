@@ -43,14 +43,24 @@ async function setDeskJob(page, questions){
   await expect(page.locator('[data-action=desk-start][data-job=dj1]')).toBeVisible();
 }
 
+// Graduates apply rather than being hired at will: brings one in (asking `cost`) and hires them.
+async function hireGrad(page, cost = 180){
+  await editCompany(page, (s, c) => {
+    s.applicants = [{ id: 'ga1', role: 'Graduate', cost: c, expiresAt: Date.now() + 3600000,
+                      person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
+  }, cost);
+  await page.click('[data-action=hire-applicant][data-id=ga1]');
+  await expect(page.locator('.applicant[data-applicant=ga1]')).toHaveCount(0);
+}
+
 // Edits the saved company, then reloads.
-async function editCompany(page, fn){
-  await page.evaluate(src => {
+async function editCompany(page, fn, arg){
+  await page.evaluate(([src, arg]) => {
     if(window.DebuggLtd) window.DebuggLtd.stop();  // so the running page can't save over the edit
     const s = JSON.parse(localStorage.getItem('debugg-ltd'));
-    new Function('s', src)(s);
+    new Function('s', 'arg', src)(s, arg);
     localStorage.setItem('debugg-ltd', JSON.stringify(s));
-  }, '(' + fn.toString() + ')(s)');
+  }, ['(' + fn.toString() + ')(s, arg)', arg === undefined ? null : arg]);
   await page.reload();
   await expect(page.locator('#statMoney')).toBeVisible();
 }
@@ -189,7 +199,7 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await found(page);
   // ¤250 and the ¤100 bonus, less a graduate's ¤180.
   await expect(page.locator('#statMoney')).toHaveText('¤350');
-  await page.click('[data-action=hire][data-role=Graduate]');
+  await hireGrad(page);
   await expect(page.locator('#statMoney')).toHaveText('¤170');
   await expect(page.locator('#statHeads')).toHaveText('2');
   await editCompany(page, s => {
@@ -210,51 +220,62 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
 test('hiring costs only go up, with inflation and competition', async ({ page }) => {
   await withStorage(page, { 'debugg-xp': { python: 300 } });
   await found(page);
-  const grad = page.locator('[data-action=hire][data-role=Graduate] .cost');
-  await expect(grad).toHaveText('¤180');
+  const mgr = page.locator('[data-action=hire][data-role=Manager] .cost');
+  await expect(mgr).toHaveText('¤900');
   const nextAt = (await ltd(page)).market.nextAt - await page.evaluate(() => Date.now());
   expect(nextAt).toBeGreaterThanOrEqual(12 * 3600000 - 60000);
   expect(nextAt).toBeLessThanOrEqual(36 * 3600000);
-  // A rival hiring graduates has pushed their price up by half.
-  await editCompany(page, s => { s.market.prices.Graduate = 1.5; });
-  await expect(grad).toHaveText('¤270 ↑50%');
-  await page.click('[data-action=hire][data-role=Graduate]');
-  await expect(page.locator('#statMoney')).toHaveText('¤280');
+  // A rival hiring managers has pushed their price up by half.
+  await editCompany(page, s => { s.market.prices.Manager = 1.5; s.money = 2000; });
+  await expect(mgr).toHaveText('¤1,350 ↑50%');
+  await page.click('[data-action=hire][data-role=Manager]');
+  await expect(page.locator('#statMoney')).toHaveText('¤650');
   // A move that's due happens on load, and is logged; prices never fall.
   await editCompany(page, s => { s.market.nextAt = Date.now() - 1000; });
   await expect(page.locator('#log')).toContainText(/Inflation: every hire costs|Competition: a rival studio is hiring/);
   const prices = (await ltd(page)).market.prices;
   expect(Object.values(prices).some(m => m > 1)).toBe(true);
   expect(Object.values(prices).every(m => m >= 1)).toBe(true);
-  expect(prices.Graduate).toBeGreaterThanOrEqual(1.5);
+  expect(prices.Manager).toBeGreaterThanOrEqual(1.5);
 });
 
-test('experienced developers apply now and then; only grads and managers have hire buttons', async ({ page }) => {
+test('developers apply now and then, graduates too, once the studio has some reputation; only managers have a hire button', async ({ page }) => {
   await found(page);
-  await expect(page.locator('[data-action=hire]')).toHaveCount(2);
-  await expect(page.locator('[data-action=hire][data-role=Junior]')).toHaveCount(0);
+  await expect(page.locator('[data-action=hire]')).toHaveCount(1);
+  await expect(page.locator('[data-action=hire][data-role=Graduate]')).toHaveCount(0);
   await expect(page.locator('#applicants')).toContainText('Nobody’s applied yet');
-  await expect(page.locator('#applicants')).toContainText('Seniors apply once the studio has 500 reputation; Principals apply once the studio has 5,000 reputation');
-  const now = await page.evaluate(() => Date.now());
-  expect((await ltd(page)).nextApplicantAt - now).toBe(2 * 3600000);
+  await expect(page.locator('#applicants')).toContainText('Graduates and juniors apply once the studio has 5 reputation; ' +
+    'seniors apply once the studio has 500 reputation; principals apply once the studio has 5,000 reputation (you have 0)');
+  // With no reputation, nobody's on the way.
+  expect((await ltd(page)).nextApplicantAt).toBe(0);
+  await editCompany(page, s => { s.nextApplicantAt = Date.now() - 1000; });
+  expect((await ltd(page)).applicants).toHaveLength(0);
 
-  // Someone applies. With no reputation yet, it's a junior.
+  // At 5 reputation the first comes within the hour.
+  await editCompany(page, s => { s.reputation = 5; s.nextApplicantAt = 0; });
+  const now = await page.evaluate(() => Date.now());
+  expect((await ltd(page)).nextApplicantAt - now).toBe(3600000);
+  await expect(page.locator('#applicants')).not.toContainText('Graduates and juniors apply');
+
+  // Someone applies, asking the market price ± a little: the very first is always a graduate.
   await editCompany(page, s => { s.money = 5000; s.nextApplicantAt = Date.now() - 1000; });
   const saved = await ltd(page);
   expect(saved.applicants).toHaveLength(1);
   const a = saved.applicants[0];
-  expect(a.role).toBe('Junior');
-  expect(a.cost).toBeGreaterThanOrEqual(675);
-  expect(a.cost).toBeLessThanOrEqual(900);
+  expect(a.role).toBe('Graduate');
+  expect(saved.hadApplicant).toBe(true);
+  const base = 180;
+  expect(a.cost).toBeGreaterThanOrEqual(base * 0.9 - 5);
+  expect(a.cost).toBeLessThanOrEqual(base * 1.2 + 5);
   expect(saved.nextApplicantAt - now).toBeGreaterThanOrEqual(8 * 3600000 - 1000);
-  await expect(page.locator('#log')).toContainText('applied to join as a junior');
+  await expect(page.locator('#log')).toContainText('applied to join as a ' + a.role.toLowerCase());
   const card = page.locator('.applicant[data-applicant="' + a.id + '"]');
   await expect(card).toContainText('Offer open 12h');
   await card.locator('[data-action=hire-applicant]').click();
   await expect(page.locator('.applicant')).toHaveCount(0);
   const after = await ltd(page);
   expect(after.money).toBeCloseTo(5000 - a.cost, 0);
-  expect(after.roster.find(p => p.id === a.id).role).toBe('Junior');
+  expect(after.roster.find(p => p.id === a.id).role).toBe(a.role);
 
   // An offer that runs out is gone.
   await editCompany(page, s => {
@@ -279,34 +300,43 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await page.click('[data-pick="' + intern.id + '"]');
   await page.click('[data-pick="director"]');
   await page.click('[data-action=pick-start]');
-  // 2. Hire a graduate.
-  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'hire');
-  await expect(page.locator('[data-action=hire][data-role=Graduate]')).toHaveClass(/guide-target/);
-  await page.click('[data-action=hire][data-role=Graduate]');
-  // 3. Put them on a hotfix they can take, with repeat on.
-  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'staff');
-  const grad = (await ltd(page)).roster.find(p => p.role === 'Graduate');
-  const lang = Object.keys(grad.lang)[0];
-  await expect(page.locator('.guide')).toContainText('Put ' + grad.name + ' to work');
-  const target = page.locator('[data-action=staff].guide-target');
-  await expect(target).toHaveCount(1);
-  await expect(page.locator('.offer:has(.guide-target) .chip.lang')).toHaveText(lang);
-  // Grads are full at one while you're alone, and the note says why.
-  await expect(page.locator('#structureNote')).toContainText('Grads 1/1 are full, though you have room for 3 more devs (Devs 1/4)');
-  await target.click();
-  await page.click('[data-pick="' + grad.id + '"]');
-  await page.click('[data-action=pick-start]');
-  // 4. Take a desk job.
+  // 2. When they get stuck, help them with a puzzle.
+  await editCompany(page, s => { s.jobs[0].stuckPoints = [0]; });
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'stuck');
+  await expect(page.locator('.guide')).toContainText(intern.name + ' is stuck');
+  await page.click('[data-action=intern-help].guide-target');
+  await answerDesk(page, await stuckQuestion(page), true);
+  // 3. Take a desk job.
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'desk');
   const job = (await ltd(page)).desk.jobs[0];
   const qs = await page.evaluate(ids => { const all = DebuggDesk.all(Debugg.today()); return ids.map(id => all.get(id)); }, job.questions);
   await page.click('[data-action=desk-start].guide-target');
   for(const q of qs) await answerDesk(page, q, true);
+  // 4. Graduates apply once there's a little reputation; hire one.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'hire');
+  await expect(page.locator('.guide')).toContainText('Graduates apply once the studio has 5 reputation');
+  await editCompany(page, s => {
+    s.applicants = [{ id: 'ga1', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
+                      person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
+  });
+  await expect(page.locator('.guide')).toContainText('Gus A. has applied');
+  await page.click('[data-action=hire-applicant].guide-target');
+  // 5. Put them on a hotfix they can take, with repeat on.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'staff');
+  await expect(page.locator('.guide')).toContainText('Put Gus A. to work');
+  const target = page.locator('[data-action=staff].guide-target');
+  await expect(target).toHaveCount(1);
+  await expect(page.locator('.offer:has(.guide-target) .chip.lang')).toHaveText('Python');
+  // Grads are full at one while you're alone, and the note says why.
+  await expect(page.locator('#structureNote')).toContainText('Grads 1/1 are full, though you have room for 3 more devs (Devs 1/4)');
+  await target.click();
+  await page.click('[data-pick=ga1]');
+  await page.click('[data-action=pick-start]');
   await expect(page.locator('.guide')).toHaveCount(0);
   expect((await ltd(page)).guideDone).toBe(true);
 });
 
-test('a new company starts with a free intern, who takes hotfixes with you and moves on after 7 days', async ({ page }) => {
+test('a new company starts with a free intern, who writes hotfixes with you and moves on after 7 days', async ({ page }) => {
   await found(page);
   const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
   expect(intern).toBeTruthy();
@@ -318,29 +348,112 @@ test('a new company starts with a free intern, who takes hotfixes with you and m
   await page.click('[data-action=staff][data-offer="' + python.id + '"]');
   await page.click('[data-action=pick-suggest]');
   await expect(page.locator('#teamModal .check.no')).toHaveCount(0);
+  // They write it slowly, sometimes getting stuck; no repeats.
+  await expect(page.locator('#teamModal .forecast')).toContainText('They can get stuck up to 3 times on the way');
+  await expect(page.locator('#teamModal [data-picker-repeat]')).toHaveCount(0);
   await page.click('[data-action=pick-start]');
   const job = (await ltd(page)).jobs[0];
   expect(job.team.sort()).toEqual(['director', intern.id].sort());
-  expect(job.repeat).toBe(true);
+  expect(job.repeat).toBe(false);
+  expect(job.endsAt - job.startedAt).toBeGreaterThan(15 * 60000);
+  await expect(page.locator('.job')).toContainText('when it’s written');
+  await expect(page.locator('.job [data-repeat]')).toHaveCount(0);
   // A language neither of you knows is no good (free the pair first).
   await editCompany(page, s => { s.jobs = []; });
   const rust = (await ltd(page)).board.find(o => o.tier === 0 && !o.expert && o.lang === 'Rust');
   await page.click('[data-action=staff][data-offer="' + rust.id + '"]');
   await page.click('[data-pick="' + intern.id + '"]');
   await page.click('[data-pick="director"]');
-  await expect(page.locator('#teamModal .check.no')).toHaveText('✕ you or ' + intern.name + ' know Rust');
+  await expect(page.locator('#teamModal .check.no').first()).toHaveText('✕ you or ' + intern.name + ' know Rust');
   await expect(page.locator('[data-action=pick-start]')).toBeDisabled();
   await page.click('[data-action=pick-cancel]');
-  // After 7 days the internship ends: they leave and apply to stay on as a graduate for half price.
+  // After 7 days the internship ends: they leave and apply to stay on as a graduate for half price,
+  // though the studio has no reputation yet.
   await editCompany(page, s => {
     s.jobs = [];
     s.roster.find(p => p.role === 'Intern').since = Date.now() - 8 * 86400000;
   });
   const after = await ltd(page);
+  expect(after.reputation).toBe(0);
   expect(after.roster.some(p => p.role === 'Intern')).toBe(false);
   const offer = after.applicants.find(a => a.id === intern.id);
   expect(offer).toMatchObject({ role: 'Graduate', cost: 90 });
   await expect(page.locator('.applicant[data-applicant="' + intern.id + '"]')).toContainText('Graduate');
+});
+
+// Puts the intern and you on a 20-minute Python hotfix, halfway through and just stuck, with another
+// sticking point at 60%.
+async function stuckHotfix(page){
+  await editCompany(page, s => {
+    const intern = s.roster.find(p => p.role === 'Intern');
+    s.jobs = [{ id: 'ij1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 0.25, team: [intern.id, 'director'],
+                startedAt: Date.now() - 10 * 60000, endsAt: Date.now() + 10 * 60000, stuckPoints: [0.4999, 0.6],
+                chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 }];
+  });
+}
+// The puzzle the open help is asking.
+function stuckQuestion(page){
+  return page.evaluate(() => DebuggDesk.all(Debugg.today()).get(document.querySelector('.desk-q').dataset.qid));
+}
+const minutesLeft = async page => ((await ltd(page)).jobs[0].endsAt - await page.evaluate(() => Date.now())) / 60000;
+
+test('the intern sometimes gets stuck, and the hotfix stalls until you help with a puzzle', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await stuckHotfix(page);
+  const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  await expect(page.locator('.job.stuck')).toContainText('stuck at 50% until you help: a Python puzzle');
+  await expect(page.locator('.card[data-id="' + intern.id + '"]')).toContainText('Stuck on the Python hotfix — help them below');
+  await expect(page.locator('#log')).toContainText(intern.name + ' is stuck on the Python hotfix');
+  // Two hours away: still stuck, nothing delivered.
+  await page.clock.setFixedTime(at(14));
+  await page.reload();
+  let s = await ltd(page);
+  expect(s.jobs[0].status).toBe('stuck');
+  expect(s.money).toBe(250);
+  // Right: 25% (5 minutes) ahead, and desk pay and reputation for the help.
+  await page.click('[data-action=intern-help]');
+  const q = await stuckQuestion(page);
+  expect(q.lang).toBe('python');
+  expect((await ltd(page)).jobs[0].question).toBe(q.id);
+  await answerDesk(page, q, true);
+  s = await ltd(page);
+  const pay = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 }[q.difficulty];
+  expect(s.money).toBe(250 + pay);
+  expect(s.reputation).toBe(1);
+  expect(s.jobs[0].status).toBe('running');
+  expect(await minutesLeft(page)).toBeCloseTo(5, 1);
+  expect(s.desk.seen).toContain(q.id);
+  await expect(page.locator('#deskDone')).toContainText('hotfix jumps ahead');
+  // The jump to 75% cleared the sticking point at 60%, and once written it's always delivered.
+  await page.clock.setFixedTime(at(14, 6));
+  await page.reload();
+  s = await ltd(page);
+  expect(s.jobs).toHaveLength(0);
+  expect(s.money).toBe(250 + pay + 5);
+  expect(s.internDone).toBe(1);
+  await expect(page.locator('#log')).toContainText('Hotfix (Python) delivered');
+});
+
+test('a wrong answer loses the intern some progress, and they can get stuck again', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await found(page);
+  await stuckHotfix(page);
+  await page.click('[data-action=intern-help]');
+  await answerDesk(page, await stuckQuestion(page), false);
+  const s = await ltd(page);
+  expect(s.money).toBe(250);
+  expect(s.reputation).toBe(0);
+  expect(s.jobs[0].status).toBe('running');
+  expect(await minutesLeft(page)).toBeCloseTo(15, 1);
+  await expect(page.locator('#log')).toContainText('loses some progress');
+  // Back at 25%, the sticking point at 60% is 7 minutes on.
+  await page.clock.setFixedTime(at(12, 8));
+  await page.reload();
+  const again = (await ltd(page)).jobs[0];
+  expect(again.status).toBe('stuck');
+  expect(again.stuckPoints).toEqual([]);
+  await expect(page.locator('.job.stuck')).toContainText('stuck at 60%');
 });
 
 test('a company from before interns gets one, once', async ({ page }) => {
@@ -795,7 +908,7 @@ test('a company saved with domains is converted to languages only', async ({ pag
   await page.clock.setFixedTime(at(12));
   await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
-  await page.click('[data-action=hire][data-role=Graduate]');
+  await hireGrad(page);
   await editCompany(page, s => {
     delete s.boardVersion;
     const g = s.roster.find(p => p.role === 'Graduate');
@@ -838,7 +951,7 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.clock.setFixedTime(at(12));
   await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
-  await page.click('[data-action=hire][data-role=Graduate]');
+  await hireGrad(page);
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
     s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: [g.id],

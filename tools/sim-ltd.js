@@ -13,6 +13,7 @@
 // game's own buttons (hire, staff a team, promote, desk jobs…) through stand-in click events. When
 // the check-in ends the context is thrown away and the clock jumps to the next one.
 //
+// Graduates, like everyone else, are hired from applicants (from 15 reputation).
 // Profiles (ideas/ltd-pacing-targets.md §1): keen checks in every 2–4 hours from 7am to 11pm for
 // 5–10 minutes; casual at about 8am and 8pm for 10 minutes; always keeps the page open.
 // --full plays the whole game (DEMO off); the default is the demo, as players have it today.
@@ -134,6 +135,7 @@ function fakeDesk(rng, hit){
   const pool = new Map();
   for(let d = 1; d <= 5; d++) for(let i = 0; i < 8; i++) pool.set('daily-' + d + '-' + i, { id: 'daily-' + d + '-' + i, difficulty: d });
   for(let i = 0; i < 120; i++) pool.set('learn-' + i, { id: 'learn-' + i, difficulty: 1 });
+  pool.forEach(q => { q.lang = 'python'; });
   return {
     load: () => Promise.resolve(),
     all: () => pool,
@@ -263,11 +265,11 @@ function play(page, log, now, opts){
   // A manager when the developers are at the Director's and managers' span.
   const managers = s.roster.filter(p => p.role === 'Manager').length;
   if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers) hire('Manager', { action: 'hire', role: 'Manager' }, priceOf(s, 'Manager'));
-  // Graduates while there's room and money.
-  for(let k = 0; k < 20 && hire('Graduate', { action: 'hire', role: 'Graduate' }, priceOf(s, 'Graduate')); k++);
 
-  // The intern: a free Python hotfix with the Director alongside, on repeat, whenever they're idle.
+  // The intern: a free Python hotfix with the Director alongside whenever they're idle, helped with
+  // a puzzle (answered right at the desk's hit rate) when they're stuck.
   const intern = s.roster.find(p => p.role === 'Intern');
+  for(const j of s.jobs.filter(j => j.status === 'stuck')) act(page.click, { action: 'intern-help', job: j.id });
   if(intern && !s.jobs.some(j => j.team.includes(intern.id))){
     const offer = s.board.find(o => o.tier === 0 && o.lang === 'Python' && (o.risk || 'standard') === 'standard' && !o.expert);
     if(offer){

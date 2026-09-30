@@ -10,7 +10,17 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- Your intern now needs you. They write each hotfix slowly (about 25 minutes, and they keep going
+  while you're away), and they can get **stuck** up to 3 times on the way: each time the hotfix stalls until you
+  help by answering a puzzle in its language, from past daily puzzles and Debuggit Learn. Get it
+  right and the hotfix jumps a quarter ahead, and your help pays like a desk question (¤40–¤100 by
+  difficulty) and 1 reputation; get it wrong and it loses a quarter of its progress. Once written,
+  an intern's hotfix is always delivered. Intern hotfixes no longer repeat.
+- Graduates now apply, like everyone else, instead of being hired with a button, and nobody applies
+  until the studio has **5 reputation**: until then it's you, your intern and the puzzles. From 5,
+  graduates and juniors apply (graduates most often), the first within the hour, and it's always a
+  graduate. Your intern's offer
+  to stay on as a graduate at the end of their week still comes whatever your reputation.
 
 ## 0.0.9 — 30 September 2026
 
