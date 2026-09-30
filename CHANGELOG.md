@@ -9,6 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.4 — 30 September 2026
+
 - **The daily puzzle and Debuggit Ltd are now separate.** The daily is its own game again and no
   longer pays the company, and the Ltd tab no longer shows it. Your puzzle levels still make your
   Director better at contracts.
