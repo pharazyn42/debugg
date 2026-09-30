@@ -294,6 +294,17 @@ state = {
   Before this the desk was today's daily puzzle (¤2 per puzzle XP, a streak bonus, the `paid`
   ledger, which old saves drop), and before that an unlimited set of desk contracts; a lone grad
   on a hotfix still pays for itself.
+- **The intern** (the player-owner's idea, September 2026, after a playtest where a lone grad lost
+  money; `ROLES.Intern`, `INTERN_DAYS`, `evaluateInternTeam()`, `moveInterns()`): every company
+  starts with one (older saves get one once, `state.internGiven`). Free (no salary), 3 SLOC/min,
+  65% reliability, and only on hotfixes, which they take **with the Director as a second person**
+  (so one intern job at a time), in a language the intern knows or the Director is comfortable in
+  (`directorKnows()`: Python always, which was the player-owner's open question and is a
+  placeholder, plus any language with daily-puzzle XP). No desk, not in the headcount, the
+  supervision structure, notices or odd jobs, and never auto-staffed by managers. "Suggest a team"
+  picks the pair when nobody else can take a hotfix; the guide's first step is now staffing them.
+  After 7 days (company time) they finish their hotfix, leave, and apply as a **graduate** for half
+  a graduate's hire cost (`INTERN_OFFER`), keeping their XP.
 - **Founding**: a new company gets ¤150 plus a founder's bonus of ¤1 per
   puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
@@ -457,7 +468,8 @@ state = {
   (they were locked until September 2026), so a demo company can become a small business. This is the
   start of item 13.
 - **First steps and warnings** (`guideStep()`, `renderGuide()`): a "Next step" card at the
-  top of the Studio panel walks a new company through hiring a grad, putting them on a hotfix
+  top of the Studio panel walks a new company through putting the intern on the Python hotfix with
+  the Director, hiring a grad, putting them on a hotfix
   they can take (the button pulses, `.guide-target`) with repeat on, and solving today's puzzle.
   It ends (`state.guideDone`) once those are done, or when dismissed. After that, notes stay:
   devs on the bench doing odd jobs (which barely cover their salary; a contract earns far more),

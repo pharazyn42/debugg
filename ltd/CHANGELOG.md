@@ -10,6 +10,11 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- Every company now starts with an **intern**. They're free, and they take hotfixes with you
+  alongside them, in Python or any language you've earned daily puzzle XP in (or one they've picked
+  up). You can only help one at a time, and they're slow, but every hotfix is pure profit. After 7
+  days the internship ends and they ask to stay on as a graduate for half the usual cost. Companies
+  you already have get an intern too.
 - Contracts set to repeat now keep going while you're away for more than 4 hours. Time away counts
   for up to 4 hours, and payroll was drawn for all 4, but a repeat that had finished before those
   4 hours stopped instead of carrying on through them. A grad left overnight cost about ¤480 and
