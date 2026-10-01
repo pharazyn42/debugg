@@ -3,7 +3,7 @@
 A track for the C that runs on microcontrollers: bits, registers, fixed-width types, interrupts
 and timing. It builds on the daily C puzzles and the Learn engine, adds a few question types that
 suit hardware, and later connects to Debuggit Ltd's Embedded/Controls contracts. Summary and status
-live in `CLAUDE.md` (item 3e); this file is the detail.
+live in `ideas/roadmap.md` (item 3e); this file is the detail.
 
 ## Why a separate track
 

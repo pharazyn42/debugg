@@ -78,7 +78,7 @@ A **Next step** card walks a new company through its intern's first hotfix (and 
 
 The studio's code (`ltd/ltd.js`, `ltd/desk.js`, `ltd/ltd.css`) only loads on the Ltd tab. It reads your puzzle XP for the Director's languages; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 
-`ideas/debugg-ltd-merge-plan.md` is the plan this was built from, and `CLAUDE.md` has the studio's full design and roadmap.
+`ideas/debugg-ltd-merge-plan.md` is the plan this was built from, `ltd/CLAUDE.md` has the studio's design and `ideas/roadmap.md` its roadmap.
 
 ## Adding a puzzle
 
@@ -113,14 +113,14 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 
 ## Roadmap
 
-- **v0.1:** the first real release, with a launch date, the full company and a reset of all demo progress. See items 2 and 2c in `CLAUDE.md`.
-- **Company-first, decided from the demo:** make Debuggit Ltd the game, with the daily puzzle as the Director's desk (still shareable, and still playable without a company) and Learn as its own lane. The demo runs as the daily; GoatCounter's company events then show whether puzzle players take to the studio. The game is now called Debuggit (item 2c). See item 2c in `CLAUDE.md`.
-- **Puzzle formats** (decided; see item 3b in `CLAUDE.md`): the weekly difficulty rotation is built, with every day using "what does this output" for now. Still to come are the other formats, which follow the week too. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debuggit Ltd desk pay) rises with difficulty.
+- **v0.1:** the first real release, with a launch date, the full company and a reset of all demo progress. See items 2 and 2c in `ideas/roadmap.md`.
+- **Company-first, decided from the demo:** make Debuggit Ltd the game, with the daily puzzle as the Director's desk (still shareable, and still playable without a company) and Learn as its own lane. The demo runs as the daily; GoatCounter's company events then show whether puzzle players take to the studio. The game is now called Debuggit (item 2c). See item 2c in `ideas/roadmap.md`.
+- **Puzzle formats** (decided; see item 3b in `ideas/roadmap.md`): the weekly difficulty rotation is built, with every day using "what does this output" for now. Still to come are the other formats, which follow the week too. Monday is easiest (multiple choice, fill the blank), Friday the hardest, and the weekend is one bigger code challenge (make it pass, write it). Formats in the rotation: what does this output, multiple choice, fill the blank, value of `x`, how many times does this run, will it error, order the lines, spot the bug, spot the difference, fix it, make it pass, write it, which is faster, and code golf. Guesses and hints vary by format, and XP (and Debuggit Ltd desk pay) rises with difficulty.
 - **Embedded C track:** C for microcontrollers (bits and masks, registers and `volatile`, fixed-width types, interrupts, timing) as daily puzzles, a 10-unit Learn course with new question types (register values, flip the bits, a virtual LED board), and later Debuggit Ltd's embedded contracts. See `ideas/embedded-c-roadmap.md`.
 - **Learn track:** lessons per language played in order at any time, teaching one concept each with a "try this next" for the sandbox. Lessons earn XP but don't count towards the streak. Monday's daily puzzles are learn-level too.
 - **Progression** that keeps people coming back, building on the streak, language levels and the company, e.g. unlockable puzzle packs and achievements.
-- **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debuggit Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `CLAUDE.md`.
-- **Debuggit Ltd:** its own roadmap is in `CLAUDE.md`. Tests are done. Next are versioning and the balance pass, and a big company stats panel is planned (item 15d).
+- **Hosting, visitors and player stats:** work out how to host and serve the site, track visitors, and measure levels and progression (puzzle solve rates, return rates, how far players get in Debuggit Ltd). Probably cookie-free analytics first, then a small backend for shared puzzle stats and syncing progress between devices. See item 2b in `ideas/roadmap.md`.
+- **Debuggit Ltd:** its own roadmap is in `ideas/roadmap.md`. Tests are done. Next are versioning and the balance pass, and a big company stats panel is planned (item 15d).
 
 ## Other ideas
 

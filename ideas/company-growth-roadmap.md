@@ -4,7 +4,7 @@ A sketch of where the company **works** as it grows, and what it does with space
 room, to renting a **business unit** (a small office unit, like one on a business park), to
 bigger premises, to **owning property**, to letting out **rental units** for income. It pulls
 together roadmap items 13 (business stages), 15 (office space) and 18 (multiple sites), and
-gives the demo a money sink. Status and decisions live in `CLAUDE.md`; this file is the detail.
+gives the demo a money sink. Status and decisions live in `ideas/roadmap.md` and `ltd/CLAUDE.md`; this file is the detail.
 Every number here is a placeholder for the balance pass (item 10).
 
 ## The progression
