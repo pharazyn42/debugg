@@ -114,17 +114,17 @@ test('the wordmark is "debug it" in the day\'s language, and each page has its o
   await expect(page.locator('.wordmark')).toHaveText('debugg.it()');
 });
 
-test('the Debuggit duck is the logo and favicon, and reacts to how the game went', async ({ page }) => {
+test('the Debuggit kiwi is the logo and favicon, and reacts to how the game went', async ({ page }) => {
   await openAt(page, 'index.html', 3);
   await fresh(page);
-  await expect(page.locator('.brand .duck-logo')).toHaveAttribute('src', 'img/duck.svg');
-  await expect.poll(() => page.evaluate(() => document.querySelector('.brand .duck-logo').naturalWidth)).toBeGreaterThan(0);
-  await expect(page.locator('link[rel=icon]')).toHaveAttribute('href', 'img/duck.svg');
+  await expect(page.locator('.brand .mascot-logo')).toHaveAttribute('src', 'img/kiwi.svg');
+  await expect.poll(() => page.evaluate(() => document.querySelector('.brand .mascot-logo').naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('link[rel=icon]')).toHaveAttribute('href', 'img/kiwi.svg');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /img\/share\.png$/);
-  await expect(page.locator('#duckSays')).toBeHidden();
+  await expect(page.locator('#kiwiSays')).toBeHidden();
   await guess(page, (await puzzleFor(page, 3)).display);
-  await expect(page.locator('#duckSays')).toHaveClass(/happy/);
-  await expect(page.locator('#duckLine')).toHaveText('Quack! First try, no hints.');
+  await expect(page.locator('#kiwiSays')).toHaveClass(/happy/);
+  await expect(page.locator('#kiwiLine')).toHaveText('First try, no hints.');
 
   // A solve with a hint and a miss.
   await page.clock.setFixedTime(dayDate(4));
@@ -132,15 +132,15 @@ test('the Debuggit duck is the logo and favicon, and reacts to how the game went
   await page.click('#hintBtn');
   await guess(page, 'nope');
   await guess(page, (await puzzleFor(page, 4)).display);
-  await expect(page.locator('#duckLine')).toHaveText('Quack! Debugged it in 2 guesses, with 1 hint.');
+  await expect(page.locator('#kiwiLine')).toHaveText('Debugged it in 2 guesses, with 1 hint.');
 
   // A reveal gets a wobble, and it's still there after a reload.
   await page.clock.setFixedTime(dayDate(5));
   await page.reload();
   await page.click('#revealBtn');
-  await expect(page.locator('#duckSays')).toHaveClass(/dizzy/);
+  await expect(page.locator('#kiwiSays')).toHaveClass(/dizzy/);
   await page.reload();
-  await expect(page.locator('#duckLine')).toContainText('Even the duck gets stuck sometimes');
+  await expect(page.locator('#kiwiLine')).toContainText('Even the kiwi misses a bug sometimes');
 });
 
 test('answers are matched loosely', async ({ page }) => {
@@ -367,7 +367,7 @@ test('sharing copies a spoiler-free result', async ({ page, context }) => {
   await page.click('#revealBtn');
   await page.click('#shareBtn');
   await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^debugg\(it\) Day 4 · Python\n🟥🟥🟥🟥\nNot this time 🦆\n/);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^debugg\(it\) Day 4 · Python\n🟥🟥🟥🟥\nNot this time 🥝\n/);
 });
 
 test('a missed puzzle links to Debuggit Learn: the unit it names, or the course', async ({ page }) => {
@@ -449,7 +449,7 @@ test('the result can be shared as a picture, with no spoilers', async ({ page })
   // The squares: red then green, the rest empty.
   const colours = await page.evaluate(async () => {
     const c = await DebuggShareCard.draw({ wordmark: 'debugg(it)', title: 'Day 3 · Python', attempts: ['wrong', 'correct'], max: 4,
-      hints: 0, solved: true, result: 'Debugged it in 2', site: 'x', duck: 'img/duck.svg' });
+      hints: 0, solved: true, result: 'Debugged it in 2', site: 'x', mascot: 'img/kiwi.svg' });
     const g = c.getContext('2d');
     return [0, 1, 2].map(i => Array.from(g.getImageData(92 + i * 140 + 10, 260, 1, 1).data.slice(0, 3)));
   });

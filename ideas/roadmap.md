@@ -500,7 +500,7 @@ lists passed in; 4 lessons and a checkpoint, 37 steps). Decided with the player-
   missed again, it starts over. 2 XP per question right first time, and a round counts for the Learn
   streak. The checker fails two questions with the same text and code in one lesson or checkpoint.
 - **Lesson feel** (the third experience item): keys 1–9 pick an option or a line and Enter continues
-  (hints on the options, hidden on touch screens); the duck hops or wobbles in each answer's
+  (hints on the options, hidden on touch screens); the kiwi hops or wobbles in each answer's
   feedback; the progress and XP bars slide from where they were (`grow()`); the summary pops its
   stars in, shows "Level up!" on a new Learn level and "+1 today" when the streak went up, and
   focuses its main button. Steps with code have a **"Run it yourself ↗"** link (teaching steps
@@ -795,37 +795,37 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
   panel, the board), list what feels off, and agree a direction before
   changing anything.
 - **A kiwi instead of the duck, and "Find the bugs, feed the kiwi"** (the player-owner's idea,
-  September 2026; on the roadmap, not started). The mascot becomes a **kiwi**, which eats bugs
-  (insects), so every bug you find feeds it: a better fit than the rubber duck, and a distinctive
-  New Zealand one. The tagline would be **"Find the bugs, feed the kiwi."** Things to settle when
-  it's built:
-  - **Everything the duck is now:**
-    - the logo beside the wordmark, the favicon and home-screen icon (`img/duck.svg`,
-      `img/duck-180.png`);
-    - the link-preview card (`img/share.png`) and the share picture (`daily/sharecard.js`);
-    - its reactions after puzzles, Learn lessons and desk jobs (a hop, a wobble);
-    - its lines ("Quack! First try, no hints.", "Even the duck gets stuck", the share text's 🦆);
-    - the demo notice.
+  September 2026). The mascot becomes a **kiwi**, which eats bugs (insects), so every bug you find
+  feeds it: a better fit than the rubber duck, and a distinctive New Zealand one. The tagline is
+  **"Find the bugs, feed the kiwi."**
+  - **Done (October 2026):** the picture, in one SVG (`img/kiwi.svg`, `img/kiwi-180.png`), and
+    everything the duck was: the logo, favicon and home-screen icon; the link-preview card
+    (`img/share.png`) and the share picture (`daily/sharecard.js`); its reactions after puzzles,
+    Learn lessons and desk jobs (a hop, a wobble); its lines (the "Quack!" is gone) and the
+    share text's emoji (🥝, since there's no kiwi-bird emoji); Learn's lesson examples; the
+    tagline on the card and in the link preview. Learn went first, then the rest of the site.
   - **Feeding as a game idea,** not just a slogan: e.g. the kiwi visibly fed or growing with your
-    streak or bugs found, fitting the kiwi's own reactions (pecking, a happy trill).
-  - **Rubber-duck debugging** was the duck's reason to exist; the kiwi's is the bugs, so the copy
-    changes rather than just the picture.
-  - **Naming:** "Duckling, by Debuggit" (the Learn name idea, item 2c) would need rethinking
-    (e.g. a kiwi chick), and the "Quack" in reactions goes.
-  - Draw it as one SVG like the duck, recolour-able for a light theme, and redo the PNGs from it.
-- **Visual identity.** Started: the Debuggit duck (a rubber duck, for
-  rubber-duck debugging) is the logo, favicon and home-screen icon, beside
+    streak or bugs found, fitting the kiwi's own reactions (pecking, a happy trill). Not started.
+  - **Naming:** "Duckling, by Debuggit" (the Learn name idea, item 2c) needs rethinking
+    (e.g. a kiwi chick).
+  - **Still to do on the art:** recolour-able for a light theme (the colours are fixed in the SVG
+    now) and more poses (pecking, happy, dizzy). The old duck files (`img/duck.svg`,
+    `img/duck-180.png`) are unused and can go once nothing points at them.
+  - Rubber-duck debugging was the duck's reason to exist; the kiwi's is the bugs, so the copy
+    changed rather than just the picture.
+- **Visual identity.** Started: the Debuggit kiwi (it replaced the rubber duck in October 2026)
+  is the logo, favicon and home-screen icon, beside
   the language wordmark; it has a link-preview card (`img/share.png`,
   with Open Graph tags on the puzzle page) and reacts after each puzzle
-  and Learn lesson. Still to do: a duck on the share card itself, more
-  expressions, and the duck as the hint voice and Learn guide. Settle the colour palette, type scale, spacing
+  and Learn lesson. Still to do: more
+  expressions, and the kiwi as the hint voice and Learn guide. Settle the colour palette, type scale, spacing
   and icon style as design tokens in `base.css`, and have `ltd/ltd.css`
   and the sandbox use them rather than their own values.
 - **The daily puzzle.** The first impression and the end-of-game screen
   matter most:
   - a clear result summary;
   - a Wordle-style share card (guesses and hints as squares, no
-    spoilers). **Done** (September 2026): "Share your result" under the duck copies (or, on
+    spoilers). **Done** (September 2026): "Share your result" under the kiwi copies (or, on
     phones, opens the share sheet with) e.g. `debugg(it) Day 3 · Python`, `🟥🟩⬛⬛ · 1 hint`,
     `Debugged it in 2` and the link, and "Share as a picture" makes a 1200×630 card
     (`daily/sharecard.js`);

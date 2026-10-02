@@ -1293,7 +1293,7 @@ window.DebuggLtd = (function(){
       addLog(right.length ? 'ok' : 'info', '✓ ' + text);
       track('desk/done/' + qs.length + '/' + right.length);
       const box = document.getElementById('deskPlay');
-      box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/duck.svg" alt="" width="36" height="36" class="' + (all ? 'hop' : '') + '"><p>' + esc(text) + '</p>' +
+      box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/kiwi.svg" alt="" width="36" height="36" class="' + (all ? 'hop' : '') + '"><p>' + esc(text) + '</p>' +
         '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
       save();
       renderAll();
@@ -1336,7 +1336,7 @@ window.DebuggLtd = (function(){
         onAnswer: right => { text = finishHelp(job, q, right); },
         onDone: () => {
           helpActive = null;
-          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/duck.svg" alt="" width="36" height="36" class="hop"><p>' + esc(text) + '</p>' +
+          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/kiwi.svg" alt="" width="36" height="36" class="hop"><p>' + esc(text) + '</p>' +
             '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
           renderAll();
         }

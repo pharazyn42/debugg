@@ -1,4 +1,4 @@
-// The share card: the day's result as a 1200×630 picture, with the duck, the wordmark, a square
+// The share card: the day's result as a 1200×630 picture, with the kiwi, the wordmark, a square
 // per guess and no spoilers. Drawn on a canvas, then shared as a file (phones) or downloaded.
 window.DebuggShareCard = (function(){
   const W = 1200, H = 630;
@@ -6,7 +6,7 @@ window.DebuggShareCard = (function(){
               amber: '#f2b84b', green: '#4fd18b', greenDim: '#1f4a35', red: '#ef6a6a', redDim: '#4a2222' };
   const SANS = "'Sora', system-ui, sans-serif", MONO = "'JetBrains Mono', ui-monospace, monospace";
 
-  function loadDuck(src){
+  function loadMascot(src){
     return new Promise(resolve => {
       const img = new Image();
       img.onload = () => resolve(img);
@@ -45,7 +45,7 @@ window.DebuggShareCard = (function(){
   }
 
   // r: { wordmark, title ("Day 3 · Wednesday · Python"), attempts: ['wrong', 'correct'], max, hints,
-  //      solved, result ("Debugged it in 2"), site, duck (image URL) }. Resolves to a canvas.
+  //      solved, result ("Debugged it in 2"), site, mascot (image URL) }. Resolves to a canvas.
   async function draw(r){
     if(document.fonts && document.fonts.load){
       try{ await Promise.all([document.fonts.load('600 40px Sora'), document.fonts.load('500 40px "JetBrains Mono"')]); }catch(e){}
@@ -63,8 +63,8 @@ window.DebuggShareCard = (function(){
     g.lineWidth = 2;
     g.stroke();
 
-    const duck = await loadDuck(r.duck || 'img/duck.svg');
-    if(duck) g.drawImage(duck, 90, 80, 120, 120);
+    const mascot = await loadMascot(r.mascot || 'img/kiwi.svg');
+    if(mascot) g.drawImage(mascot, 90, 80, 120, 120);
     g.textBaseline = 'middle';
     g.fillStyle = C.amber;
     g.font = '600 54px ' + MONO;
