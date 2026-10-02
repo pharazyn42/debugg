@@ -238,7 +238,7 @@ new ideas there. Index (status in brackets):
 - 3 Languages only for now (done)
 - 3b Puzzle formats and the weekly rotation (most formats built)
 - 3c One game: puzzles first, studio optional (done)
-- 3d Learn: courses, units, review queue, launch plan (Python units 1–6 built)
+- 3d Learn: courses, units, review queue, launch plan (Python units 1–7 built)
 - 3e Embedded C track (planned; detail in `ideas/embedded-c-roadmap.md`)
 - 3f Daily: weekend code challenges, hard mode, shared stats (next)
 - 3g The daily's launch plan (0.1.0)

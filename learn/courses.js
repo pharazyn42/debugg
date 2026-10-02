@@ -8,8 +8,8 @@ window.DEBUGG_LEARN = {
       name: 'Python',
       files: ['learn/python/01-values.js', 'learn/python/02-strings.js', 'learn/python/03-lists.js',
         'learn/python/04-conditions.js', 'learn/python/05-loops.js',
-        'learn/python/06-functions.js'],
-      planned: ['Dictionaries', 'The classic traps']
+        'learn/python/06-functions.js', 'learn/python/07-dictionaries.js'],
+      planned: ['The classic traps']
     },
     // Coming soon: a tab with the planned units, and no lessons yet. `sections` are later parts of
     // the same course, shown under their own heading; Embedded C follows ideas/embedded-c-roadmap.md.
