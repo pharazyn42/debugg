@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- The three buttons at the top of every page are now named `debuggit.learn()`, `debuggit.daily()` and `debuggit.ltd()`, so the daily puzzle's says what it is. The logos and the share picture keep their wordmarks.
 
 ## 0.0.12 — 2 October 2026
 

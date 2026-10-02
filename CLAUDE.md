@@ -65,7 +65,7 @@ streak }`) when a game ends, but nothing listens to it now.
 **Two areas: the game and Learn** (split September 2026, the player-owner's call). The game is the
 daily puzzle and Debuggit Ltd, with **Daily | Ltd** tabs on `index.html`. **Debuggit Learn** is its
 own section at `learn/`; every page of the two areas shows the same top row of three buttons named for
-the wordmarks, `debugg.learn()`, `debugg(it)` (demo) and `debugg.ltd()` (demo), so there are no product
+the products (not the logos, which keep the wordmarks), `debuggit.learn()`, `debuggit.daily()` (demo) and `debuggit.ltd()` (demo), so there are no product
 links in the footers; it's the same site, so
 saves, XP levels and the backup code are shared. The game links into Learn from the top row, the
 Director's languages on the Ltd card (`a.learn-lang`, for courses that
