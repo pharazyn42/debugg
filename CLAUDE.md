@@ -167,7 +167,18 @@ changelog it touches gets notes in that PR, and those products are released toge
 
 The routine:
 - **Every change players will notice adds a line under `## Unreleased`** in its product's
-  changelog, in the same PR, written for players.
+  changelog, in the same PR, written for players. The changelogs are the full developer log and
+  stay in full.
+- **What's new shows players a curated view** (`playerView()` in `whatsnew.html`; the player-owner's
+  call, October 2026). While the demo runs (0.0.x, before any 0.1.0) every section is shown. After
+  that a section shows only its `<!-- player -->` … `<!-- /player -->` block: 3 to 6 one-line bullets
+  of what players will notice (new things to play, changes they'd see, fixes they'd have hit; not
+  tests, tooling, refactors or small balance tweaks). **Every minor release (0.1.0, 0.2.0…) has one**
+  and `tools/release.js bump` refuses a minor without it. **Before bumping a minor, draft that block
+  from the patch notes since the last minor, show it to the player-owner and get it approved**; for
+  0.1.0 it is the launch summary of the product, and the 0.0.x demo sections drop out of the page
+  automatically. A patch gets a block only for a critical fix players would notice, when the
+  player-owner agrees. The "· new" badge still follows `shared.js`'s version.
 - The player-owner says **release**, optionally with the product and version ("release Learn",
   "release 0.1.0").
   - Which product: whichever they name. If they don't name one, release every product with
