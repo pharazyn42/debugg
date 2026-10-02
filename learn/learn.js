@@ -270,11 +270,12 @@ window.DebuggLearn = (function(){
     next();
   }
   // Practice: a set from a passed unit's pool, any time. A wrong answer comes back before the end
-  // until it's right (like a lesson), and also joins the review queue. No XP, so it can't be farmed.
+  // until it's right (like a lesson), and also joins the review queue. Pays REVIEW_XP for each question
+  // right first time, like a review.
   function startPractice(u){
     const pool = checkpointPool(u);
     const steps = pickCheckpoint(u).map(i => pool[i]);
-    session = { kind: 'practice', unit: u, steps, queue: steps.map((_, i) => i), total: steps.length, done: 0, mistakes: 0 };
+    session = { kind: 'practice', unit: u, steps, queue: steps.map((_, i) => i), total: steps.length, done: 0, mistakes: 0, missed: new Set() };
     track('practice/' + unitKey(u) + '/started');
     next();
   }
@@ -298,7 +299,7 @@ window.DebuggLearn = (function(){
     if(!passedUnits(lang).length) return renderMap();
     const picked = pickMixed();
     session = { kind: 'mixed', units: picked.map(x => x.u), unit: picked[0].u, steps: picked.map(x => x.step),
-                queue: picked.map((_, i) => i), total: picked.length, done: 0, mistakes: 0 };
+                queue: picked.map((_, i) => i), total: picked.length, done: 0, mistakes: 0, missed: new Set() };
     track('mixed/started');
     next();
   }
@@ -340,9 +341,9 @@ window.DebuggLearn = (function(){
                    queue: s.queue, current: s.current, answered: s.answered, done: s.done, mistakes: s.mistakes, correct: s.correct };
     if(s.kind === 'checkpoint' || s.kind === 'practice') kept.qs = s.steps.map(qHash);
     if(s.kind === 'mixed') kept.qs = s.steps.map((st, i) => s.units[i].id + ':' + qHash(st));
+    if(s.missed) kept.missed = [...s.missed];
     if(s.kind === 'review'){
       kept.items = s.items.map(i => ({ lang: i.entry.lang, unit: i.entry.unit, lesson: i.entry.lesson, q: i.entry.q }));
-      kept.missed = [...s.missed];
     }
     try{ localStorage.setItem(SESSION_KEY, JSON.stringify(kept)); }catch(e){}
   }
@@ -374,12 +375,12 @@ window.DebuggLearn = (function(){
         return st && { u: un, step: st };
       });
       if(found.length && found.every(Boolean))
-        s = { kind: 'mixed', units: found.map(x => x.u), unit: found[0].u, steps: found.map(x => x.step) };
+        s = { kind: 'mixed', units: found.map(x => x.u), unit: found[0].u, steps: found.map(x => x.step), missed: new Set(k.missed || []) };
     }else if((k.kind === 'checkpoint' || k.kind === 'practice') && u && (k.kind === 'checkpoint' || unitPassed(u))){
       // The questions drawn, by hash; a kept session from before the pool is the unit's own steps.
       const pool = checkpointPool(u);
       const steps = Array.isArray(k.qs) ? k.qs.map(h => pool.find(q => qHash(q) === h)) : u.checkpoint.steps;
-      if(steps.every(Boolean)) s = { kind: k.kind, unit: u, steps };
+      if(steps.every(Boolean)) s = { kind: k.kind, unit: u, steps, missed: new Set(k.missed || []) };
     }
     const fits = i => Number.isInteger(i) && i >= 0 && s && i < s.steps.length;
     if(!s || s.steps.length !== k.total || !k.queue.every(fits) || !fits(k.current)) return false;
@@ -494,8 +495,8 @@ window.DebuggLearn = (function(){
       session.mistakes++;
       if(session.kind === 'checkpoint') session.done++;
       else session.queue.push(session.current);  // it comes back before the end
-      if(session.kind === 'review') session.missed.add(session.current);
-      else addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
+      if(session.missed) session.missed.add(session.current);
+      if(session.kind !== 'review') addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
       fb.className = 'feedback show wrong';
       fb.innerHTML = kiwi + '<div><b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
@@ -597,12 +598,16 @@ window.DebuggLearn = (function(){
         '<button class="' + (left ? 'btn-ghost' : 'btn-primary') + '" data-action="quit">Back to the course</button></div></div>';
     }else if(session.kind === 'practice' || session.kind === 'mixed'){
       const mixed = session.kind === 'mixed';
+      // Like a review: a small amount for each question right first time.
+      const xp = REVIEW_XP * (session.total - session.missed.size);
+      save.xp[lang] = (save.xp[lang] || 0) + xp;
       markStreak();
       write();
       track(mixed ? 'mixed/done' : 'practice/' + unitKey(u) + '/done');
       html = '<div class="summary" id="summary"><img class="summary-mascot" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64">' +
         '<h2>' + (mixed ? 'Mixed practice done' : 'Practice done') + '</h2>' +
-        '<p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right. They’ll come up in a review tomorrow.' : 'No mistakes.') + '</p>' +
+        '<p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right. They’ll come up in a review tomorrow.' : 'No mistakes.') +
+        (xp ? ' <b>+' + xp + ' XP</b>' : '') + '</p>' +
         celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
         (mixed ? '<button class="btn-primary" data-action="mixed">Another mix</button>'
           : '<button class="btn-primary" data-action="practice" data-unit="' + u.id + '">Practice again</button>') +

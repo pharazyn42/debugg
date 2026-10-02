@@ -7,7 +7,7 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- Practice and Mixed practice now pay XP: 2 XP for each question you get right first time, the same as a review. (They didn't pay anything before.)
 
 ## 0.0.12 — 2 October 2026
 
