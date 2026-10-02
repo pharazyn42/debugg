@@ -9,6 +9,7 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- The list of changes no longer starts with a note about version numbers: it goes straight to the newest version.
 - The **Save/restore progress**, **Sandbox** and **Feedback** buttons at the bottom of the page now look the same (the Sandbox and Feedback links had a different font and square corners, and Save progress was orange), and Save progress is renamed to say it restores too.
 
 ## 0.0.9 — 2 October 2026

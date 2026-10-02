@@ -108,8 +108,11 @@
       if(list){ out.push('<ul>' + list.map(li => '<li>' + inline(li) + '</li>').join('') + '</ul>'); list = null; }
     };
     let skipping = false;  // "Unreleased" is for the dev site's notes, not players
+    let intro = true;      // the note about version numbers above the first version is for developers
     md.split('\n').forEach(line => {
       const h = /^(#{1,3}) (.*)$/.exec(line);
+      if(h && h[1].length === 2) intro = false;
+      if(intro) return;
       if(h && h[1].length <= 2) skipping = h[1].length === 2 && /^unreleased/i.test(h[2]);
       if(skipping) return;
       const li = /^\s*[-*] (.*)$/.exec(line);

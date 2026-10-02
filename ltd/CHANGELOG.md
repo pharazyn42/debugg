@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- The list of changes no longer starts with a note about version numbers: it goes straight to the newest version.
 
 ## 0.0.14 — 2 October 2026
 
