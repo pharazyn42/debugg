@@ -15,6 +15,7 @@ window.DebuggLearn = (function(){
   const L = window.DEBUGG_LEARN;
   const SAVE_KEY = 'debugg-learn';
   const SESSION_KEY = 'debugg-learn-session';
+  const COLLAPSED_KEY = 'debugg-learn-collapsed';   // which units are folded on the map: a per-device convenience
   const LESSON_XP = 10;       // for finishing a lesson the first time
   const STAR_XP = 5;          // per star, paid again only for stars beyond your best
   const CHECKPOINT_XP = 30;   // for passing a checkpoint the first time
@@ -61,11 +62,30 @@ window.DebuggLearn = (function(){
     const h = location.hash.slice(1).split('/')[0];
     return L.courses[h] ? h : langs[0];
   }
+  function readCollapsed(){
+    try{ const c = JSON.parse(localStorage.getItem(COLLAPSED_KEY)); if(c && typeof c === 'object') return c; }catch(e){}
+    return {};
+  }
+  function writeCollapsed(c){ try{ localStorage.setItem(COLLAPSED_KEY, JSON.stringify(c)); }catch(e){} }
+  // The Collapse all / Expand all button says what it will do next.
+  function syncFoldAll(){
+    const btn = document.getElementById('foldAll');
+    if(!btn) return;
+    const units = [...document.querySelectorAll('.unit:not(.locked):not(.planned)')];
+    btn.textContent = units.some(el => !el.classList.contains('collapsed')) ? 'Collapse all' : 'Expand all';
+  }
+  function setFolded(el, folded){
+    el.classList.toggle('collapsed', folded);
+    const t = el.querySelector('.unit-toggle');
+    if(t) t.setAttribute('aria-expanded', folded ? 'false' : 'true');
+  }
   function focusUnit(){
     const id = location.hash.slice(1).split('/')[1];
     const el = id && document.querySelector('.unit[data-unit="' + CSS.escape(id) + '"]');
     if(!el) return;
     el.classList.add('focus');
+    setFolded(el, false);  // a link to a unit shows it open
+    syncFoldAll();
     el.scrollIntoView({ block: 'start' });
   }
   let lang = pickLang();
@@ -215,14 +235,19 @@ window.DebuggLearn = (function(){
     const h = L.courses[lang].heading;
     if(h && units.length) html += '<div class="course-section first" data-section="part-1"><h2 class="section-title">' + esc(h.title) + '</h2>' +
       (h.summary ? '<p class="section-summary">' + esc(h.summary) + '</p>' : '') + '</div>';
+    const folded = readCollapsed();
+    if(units.filter(unitOpen).length >= 2)
+      html += '<div class="map-tools"><button class="btn-ghost btn-small" id="foldAll" data-action="fold-all">Collapse all</button></div>';
     units.forEach((u, ui) => {
       const open = unitOpen(u);
       const passed = unitPassed(u);
       const allDone = u.lessons.every(les => lessonDone(u, les));
-      html += '<section class="unit' + (open ? '' : ' locked') + (passed ? ' passed' : '') + '" data-unit="' + u.id + '">' +
+      const isFolded = open && !!folded[unitKey(u)];
+      html += '<section class="unit' + (open ? '' : ' locked') + (passed ? ' passed' : '') + (isFolded ? ' collapsed' : '') + '" data-unit="' + u.id + '">' +
         '<div class="unit-head"><span class="unit-num">Unit ' + (ui + 1) + '</span>' +
         (passed ? '<span class="unit-badge">✓ passed</span>' : '') + '</div>' +
-        '<h2>' + esc(u.title) + '</h2><p class="unit-summary">' + esc(u.summary) + '</p>';
+        '<h2>' + (open ? '<button class="unit-toggle" data-action="fold-unit" data-unit="' + u.id + '" aria-expanded="' + (isFolded ? 'false' : 'true') + '">' +
+          esc(u.title) + '</button>' : esc(u.title)) + '</h2><p class="unit-summary">' + esc(u.summary) + '</p>';
       if(!open){
         html += '<p class="unit-lock">Pass Unit ' + ui + '’s checkpoint to unlock.</p></section>';
         return;
@@ -259,6 +284,7 @@ window.DebuggLearn = (function(){
       (s.planned || []).forEach(title => { html += planned(title); });
     });
     $('view').innerHTML = html;
+    syncFoldAll();
   }
 
   // --- Lessons and checkpoints ------------------------------------------------------------------
@@ -273,11 +299,12 @@ window.DebuggLearn = (function(){
     next();
   }
   // Practice: a set from a passed unit's pool, any time. A wrong answer comes back before the end
-  // until it's right (like a lesson), and also joins the review queue. No XP, so it can't be farmed.
+  // until it's right (like a lesson), and also joins the review queue. Pays REVIEW_XP for each question
+  // right first time, like a review.
   function startPractice(u){
     const pool = checkpointPool(u);
     const steps = pickCheckpoint(u).map(i => pool[i]);
-    session = { kind: 'practice', unit: u, steps, queue: steps.map((_, i) => i), total: steps.length, done: 0, mistakes: 0 };
+    session = { kind: 'practice', unit: u, steps, queue: steps.map((_, i) => i), total: steps.length, done: 0, mistakes: 0, missed: new Set() };
     track('practice/' + unitKey(u) + '/started');
     next();
   }
@@ -301,7 +328,7 @@ window.DebuggLearn = (function(){
     if(!passedUnits(lang).length) return renderMap();
     const picked = pickMixed();
     session = { kind: 'mixed', units: picked.map(x => x.u), unit: picked[0].u, steps: picked.map(x => x.step),
-                queue: picked.map((_, i) => i), total: picked.length, done: 0, mistakes: 0 };
+                queue: picked.map((_, i) => i), total: picked.length, done: 0, mistakes: 0, missed: new Set() };
     track('mixed/started');
     next();
   }
@@ -343,9 +370,9 @@ window.DebuggLearn = (function(){
                    queue: s.queue, current: s.current, answered: s.answered, done: s.done, mistakes: s.mistakes, correct: s.correct };
     if(s.kind === 'checkpoint' || s.kind === 'practice') kept.qs = s.steps.map(qHash);
     if(s.kind === 'mixed') kept.qs = s.steps.map((st, i) => s.units[i].id + ':' + qHash(st));
+    if(s.missed) kept.missed = [...s.missed];
     if(s.kind === 'review'){
       kept.items = s.items.map(i => ({ lang: i.entry.lang, unit: i.entry.unit, lesson: i.entry.lesson, q: i.entry.q }));
-      kept.missed = [...s.missed];
     }
     try{ localStorage.setItem(SESSION_KEY, JSON.stringify(kept)); }catch(e){}
   }
@@ -377,12 +404,12 @@ window.DebuggLearn = (function(){
         return st && { u: un, step: st };
       });
       if(found.length && found.every(Boolean))
-        s = { kind: 'mixed', units: found.map(x => x.u), unit: found[0].u, steps: found.map(x => x.step) };
+        s = { kind: 'mixed', units: found.map(x => x.u), unit: found[0].u, steps: found.map(x => x.step), missed: new Set(k.missed || []) };
     }else if((k.kind === 'checkpoint' || k.kind === 'practice') && u && (k.kind === 'checkpoint' || unitPassed(u))){
       // The questions drawn, by hash; a kept session from before the pool is the unit's own steps.
       const pool = checkpointPool(u);
       const steps = Array.isArray(k.qs) ? k.qs.map(h => pool.find(q => qHash(q) === h)) : u.checkpoint.steps;
-      if(steps.every(Boolean)) s = { kind: k.kind, unit: u, steps };
+      if(steps.every(Boolean)) s = { kind: k.kind, unit: u, steps, missed: new Set(k.missed || []) };
     }
     const fits = i => Number.isInteger(i) && i >= 0 && s && i < s.steps.length;
     if(!s || s.steps.length !== k.total || !k.queue.every(fits) || !fits(k.current)) return false;
@@ -497,8 +524,8 @@ window.DebuggLearn = (function(){
       session.mistakes++;
       if(session.kind === 'checkpoint') session.done++;
       else session.queue.push(session.current);  // it comes back before the end
-      if(session.kind === 'review') session.missed.add(session.current);
-      else addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
+      if(session.missed) session.missed.add(session.current);
+      if(session.kind !== 'review') addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
       fb.className = 'feedback show wrong';
       fb.innerHTML = kiwi + '<div><b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
@@ -600,12 +627,16 @@ window.DebuggLearn = (function(){
         '<button class="' + (left ? 'btn-ghost' : 'btn-primary') + '" data-action="quit">Back to the course</button></div></div>';
     }else if(session.kind === 'practice' || session.kind === 'mixed'){
       const mixed = session.kind === 'mixed';
+      // Like a review: a small amount for each question right first time.
+      const xp = REVIEW_XP * (session.total - session.missed.size);
+      save.xp[lang] = (save.xp[lang] || 0) + xp;
       markStreak();
       write();
       track(mixed ? 'mixed/done' : 'practice/' + unitKey(u) + '/done');
       html = '<div class="summary" id="summary"><img class="summary-mascot" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64">' +
         '<h2>' + (mixed ? 'Mixed practice done' : 'Practice done') + '</h2>' +
-        '<p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right. They’ll come up in a review tomorrow.' : 'No mistakes.') + '</p>' +
+        '<p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right. They’ll come up in a review tomorrow.' : 'No mistakes.') +
+        (xp ? ' <b>+' + xp + ' XP</b>' : '') + '</p>' +
         celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
         (mixed ? '<button class="btn-primary" data-action="mixed">Another mix</button>'
           : '<button class="btn-primary" data-action="practice" data-unit="' + u.id + '">Practice again</button>') +
@@ -668,6 +699,20 @@ window.DebuggLearn = (function(){
     const btn = e.target.closest('[data-action]');
     if(!btn || btn.disabled) return;
     const a = btn.dataset.action;
+    // Folding units only changes the map in place: no jump to the top.
+    if(a === 'fold-unit' || a === 'fold-all'){
+      const folded = readCollapsed();
+      const els = a === 'fold-unit' ? [btn.closest('.unit')] : [...document.querySelectorAll('.unit:not(.locked):not(.planned)')];
+      const fold = a === 'fold-unit' ? !els[0].classList.contains('collapsed') : els.some(el => !el.classList.contains('collapsed'));
+      els.forEach(el => {
+        setFolded(el, fold);
+        const u = unitById(el.dataset.unit);
+        if(fold) folded[unitKey(u)] = true; else delete folded[unitKey(u)];
+      });
+      writeCollapsed(folded);
+      syncFoldAll();
+      return;
+    }
     if(a === 'lesson'){
       const u = unitById(btn.dataset.unit);
       startLesson(u, u.lessons.find(l => l.id === btn.dataset.lesson));
