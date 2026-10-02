@@ -43,6 +43,11 @@
 // lists, paragraphs, **bold**, `code` and [links](…). The daily puzzle's is CHANGELOG.md; with ?ltd
 // it's Debuggit Ltd's (ltd/CHANGELOG.md), and with ?learn Debuggit Learn's (learn/CHANGELOG.md).
 // Each has its own versions.
+//
+// The changelogs are the developer log, in full. What players see is curated (see "Releases" in
+// CLAUDE.md): while the demo runs (0.0.x, before any 0.1.0) every section is shown; after that only
+// the <!-- player --> … <!-- /player --> block of a section, which every minor release (0.1.0,
+// 0.2.0…) has, and a patch has only when players would notice the fix.
 (function(){
   const D = window.Debugg;
   const params = new URLSearchParams(location.search);
@@ -68,7 +73,34 @@
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
       .replace(/\[([^\]]+)\]\((https?:[^)\s]+|[\w./#?=&-]+)\)/g, '<a href="$2">$1</a>');
   }
-  function render(md){
+  const versionOf = t => { const m = /^(\d+)\.(\d+)\.(\d+)/.exec(t); return m && m.slice(1).map(Number); };
+  const cmp = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  const BLOCK = /<!--\s*player\s*-->([\s\S]*?)<!--\s*\/player\s*-->/g;
+  // The markdown players see, and the version to mark "you're here" (the newest one shown that isn't
+  // newer than this one, as a hidden patch isn't listed).
+  function playerView(md){
+    const parts = md.split(/^## /m);
+    const sections = parts.slice(1).map(p => {
+      const i = p.indexOf('\n');
+      return { title: p.slice(0, i).trim(), body: p.slice(i + 1) };
+    });
+    const launched = sections.some(s => { const v = versionOf(s.title); return v && (v[0] > 0 || v[1] > 0); });
+    const mine = versionOf(VERSION);
+    let here = null;
+    const kept = [];
+    sections.forEach(sec => {
+      const v = versionOf(sec.title);
+      if(!v) return kept.push({ sec, text: sec.body });  // "Unreleased" and the like are handled by render()
+      const demo = v[0] === 0 && v[1] === 0;
+      const blocks = [...sec.body.matchAll(BLOCK)].map(m => m[1].trim());
+      const text = demo && !launched ? sec.body.replace(BLOCK, '$1') : blocks.join('\n\n');
+      if(text.trim()) kept.push({ sec, text, v });
+    });
+    kept.filter(k => k.v && mine && cmp(k.v, mine) <= 0).forEach(k => { if(!here || cmp(k.v, here) > 0) here = k.v; });
+    return { md: parts[0] + kept.map(k => '## ' + k.sec.title + '\n\n' + k.text.trim() + '\n').join('\n'),
+             here: here && here.join('.') };
+  }
+  function render(md, here){
     const out = [];
     let list = null, para = [];
     const flush = () => {
@@ -86,7 +118,7 @@
         if(h[1].length === 1) return;  // the file's own title; the page has one
         const level = h[1].length;
         const text = h[2];
-        const current = level === 2 && text.startsWith(VERSION + ' ');
+        const current = level === 2 && text.startsWith(here + ' ');
         out.push('<h' + level + '>' + inline(text) + (current ? '<span class="current">you’re here</span>' : '') + '</h' + level + '>');
       }else if(li){
         if(para.length) flush();
@@ -105,7 +137,7 @@
   }
   fetch(P.log, { cache: 'no-cache' })
     .then(r => { if(!r.ok) throw new Error(r.status); return r.text(); })
-    .then(md => { document.getElementById('notes').innerHTML = render(md); })
+    .then(md => { const view = playerView(md); document.getElementById('notes').innerHTML = render(view.md, view.here); })
     .catch(() => { document.getElementById('notes').innerHTML = '<p>The list of changes couldn’t load. Try again in a moment.</p>'; });
   D.markVersionSeen(product);
   D.renderVersion(document.getElementById('appVersion'), '', product);

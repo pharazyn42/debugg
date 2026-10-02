@@ -10,6 +10,11 @@
 //                                                              0.0.3 and sets the version. Commit, merge, then
 //                                                              run the Release workflow.
 //   node tools/release.js [ltd|learn] notes 0.0.3              Prints that version's notes (the GitHub Release's text).
+//
+// The changelogs are the full developer log. What's new shows players only a section's
+// <!-- player --> … <!-- /player --> block (while the demo runs, 0.0.x, every section). A minor release
+// (0.1.0, 0.2.0…) must have one, so `bump` refuses without it; a patch only gets one when players would
+// notice the fix.
 //   node tools/release.js [ltd|learn] check 0.0.3              Fails unless shared.js and the changelog are at 0.0.3.
 //   node tools/release.js [ltd|learn] tag 0.0.3                Prints the tag name (v0.0.3, ltd-v0.0.3 or learn-v0.0.3).
 //   node tools/release.js [ltd|learn] name 0.0.3               Prints the release's title.
@@ -27,6 +32,10 @@ const PRODUCTS = {
 PRODUCTS.game = PRODUCTS.daily;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const EMPTY = 'Nothing yet.';
+const PLAYER_BLOCK = /<!--\s*player\s*-->([\s\S]*?)<!--\s*\/player\s*-->/;
+const MARKERS = /^[ \t]*<!--\s*\/?player\s*-->[ \t]*\n?/gm;
+// 0.1.0, 0.2.0, 1.0.0…: a new "minor" (the demo's 0.0.x is all patches of nothing).
+function isMinor(v){ const [a, b, c] = parse(v); return c === 0 && (a > 0 || b > 0); }
 
 function fail(msg){ console.error('release: ' + msg); process.exit(1); }
 function parse(v){
@@ -68,6 +77,9 @@ if(cmd === 'bump'){
   const unreleased = doc.sections.find(s => /^unreleased$/i.test(s.title));
   if(!unreleased) fail(P.changelog + ' has no "## Unreleased" section');
   if(!unreleased.body || unreleased.body === EMPTY) fail('nothing under "## Unreleased" to release');
+  if(isMinor(version) && !PLAYER_BLOCK.test(unreleased.body))
+    fail(version + ' is a minor release, so players get a curated entry. Under "## Unreleased" in ' + P.changelog + ', write 3 to 6 one-line\n' +
+      'bullets of what players will notice, wrapped in <!-- player --> and <!-- /player --> lines (the detailed bullets can stay beside them).');
   const d = dateArg ? new Date(dateArg + 'T12:00:00Z') : new Date();
   if(isNaN(d)) fail('"' + dateArg + '" isn\'t a date like 2026-10-12');
   const title = version + ' — ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
@@ -81,7 +93,7 @@ if(cmd === 'bump'){
   parse(version);
   const s = findVersion(doc, version);
   if(!s) fail(P.changelog + ' has no ' + version);
-  console.log(s.body);
+  console.log(s.body.replace(MARKERS, ''));
 }else if(cmd === 'check'){
   parse(version);
   if(current() !== version) fail('shared.js has ' + P.constant + ' at ' + current() + ', not ' + version);

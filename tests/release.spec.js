@@ -204,3 +204,42 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
   expect(run('game', 'tag', next).trim()).toBe('v' + next);
   expect(run('daily', 'check', next)).toContain('CHANGELOG.md are at ' + next);
 });
+
+test('What’s new after launch shows only each minor release’s player entry, and a patch only if it has one', async ({ page }) => {
+  const log = [
+    '# What\'s new', '',
+    '## Unreleased', '', '- Not for players yet.', '',
+    '## 0.1.2 — 3 November 2026', '', '- Internal tidy-up.', '',
+    '## 0.1.1 — 2 November 2026', '', '- Dev detail.', '<!-- player -->', '- Fixed saves not restoring.', '<!-- /player -->', '',
+    '## 0.1.0 — 1 November 2026', '', '- Dev detail of the launch.', '<!-- player -->', '- Play the daily puzzle.', '- Learn Python.', '<!-- /player -->', '',
+    '## 0.0.9 — 20 October 2026', '', '- A demo-only change.', ''
+  ].join('\n');
+  await page.route('**/CHANGELOG.md*', r => r.fulfill({ contentType: 'text/markdown', body: log }));
+  await page.goto('whatsnew.html');
+  const notes = page.locator('#notes');
+  await expect(notes.locator('h2')).toHaveText([/^0\.1\.1/, /^0\.1\.0/]);
+  await expect(notes).toContainText('Fixed saves not restoring.');
+  await expect(notes).toContainText('Learn Python.');
+  for(const hidden of ['Internal tidy-up', 'Dev detail', 'demo-only', 'Not for players', '<!--']) await expect(notes).not.toContainText(hidden);
+});
+
+test('tools/release.js refuses a minor release without a player entry, and strips the markers from the notes', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'debugg-release-'));
+  fs.mkdirSync(path.join(dir, 'tools'));
+  for(const f of ['shared.js', 'CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+  fs.mkdirSync(path.join(dir, 'learn')); fs.mkdirSync(path.join(dir, 'ltd'));
+  for(const f of ['ltd/CHANGELOG.md', 'learn/CHANGELOG.md']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+  const run = (...args) => execFileSync('node', [path.join(dir, 'tools/release.js'), ...args], { encoding: 'utf8', stdio: 'pipe' });
+  const fails = (...args) => { try{ run(...args); }catch(e){ return e.stderr; } throw new Error('expected a failure'); };
+  const log = path.join(dir, 'CHANGELOG.md');
+  const setUnreleased = text => fs.writeFileSync(log, fs.readFileSync(log, 'utf8').replace(/## Unreleased\n[\s\S]*?(?=\n## )/, '## Unreleased\n\n' + text + '\n'));
+  setUnreleased('- Lots of detail.');
+  expect(fails('bump', '0.1.0')).toContain('curated entry');
+  // A patch needs none.
+  setUnreleased('- A fix.');
+  run('bump', '0.0.99', '2026-11-01');
+  // With the block it goes through, and the GitHub Release text has no markers.
+  setUnreleased('- Lots of detail.\n<!-- player -->\n- Play the daily.\n<!-- /player -->');
+  run('bump', '0.1.0', '2026-11-02');
+  expect(run('notes', '0.1.0')).toBe('- Lots of detail.\n- Play the daily.\n\n');
+});
