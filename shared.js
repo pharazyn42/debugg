@@ -22,9 +22,9 @@ window.Debugg = (function(){
   // version, changelog and tags (see "Releases" in CLAUDE.md). Semantic versioning: 0.0.x during the
   // demo, 0.1.0 for the launch (which resets demo saves). All are separate from SAVE_VERSION, which
   // only changes when saves have to be reset.
-  const APP_VERSION = '0.0.8';
-  const LTD_VERSION = '0.0.13';
-  const LEARN_VERSION = '0.0.14';
+  const APP_VERSION = '0.0.9';
+  const LTD_VERSION = '0.0.14';
+  const LEARN_VERSION = '0.0.15';
   // Per product: its version, where "seen" is kept, which saves mean a returning player, its What's
   // new and its changelog. `game` is the daily's old name, kept for callers that still pass it.
   const PRODUCTS = {
