@@ -120,7 +120,7 @@ test('the Debuggit kiwi is the logo and favicon, and reacts to how the game went
   await expect(page.locator('.brand .mascot-logo')).toHaveAttribute('src', 'img/kiwi.svg');
   await expect.poll(() => page.evaluate(() => document.querySelector('.brand .mascot-logo').naturalWidth)).toBeGreaterThan(0);
   await expect(page.locator('link[rel=icon]')).toHaveAttribute('href', 'img/kiwi.svg');
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /img\/share\.png$/);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /img\/share\.png\?v=\d+$/);
   await expect(page.locator('#kiwiSays')).toBeHidden();
   await guess(page, (await puzzleFor(page, 3)).display);
   await expect(page.locator('#kiwiSays')).toHaveClass(/happy/);
