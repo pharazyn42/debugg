@@ -234,7 +234,9 @@ window.DebuggLearn = (function(){
       const qs = checkpointAsk(u);
       html += '<li><button class="lesson-row checkpoint' + (passed ? ' done' : '') + '" data-action="checkpoint" data-unit="' + u.id + '">' +
         '<span class="lesson-name">Checkpoint · ' + qs + ' questions, pass with ' + cp.pass + '</span>' +
-        '<span class="lesson-state">' + (passed ? best.best + '/' + qs : allDone ? 'Take it →' : 'Test out →') + '</span></button></li></ol>';
+        '<span class="lesson-state">' + (passed ? best.best + '/' + qs : allDone ? 'Take it →' : 'Test out →') + '</span></button></li>' +
+        (passed ? '<li><button class="lesson-row practice" data-action="practice" data-unit="' + u.id + '">' +
+          '<span class="lesson-name">Practice · ' + qs + ' questions from this unit</span><span class="lesson-state">Start →</span></button></li>' : '') + '</ol>';
       if(!allDone && !passed) html += '<p class="unit-note">Already know this? Pass the checkpoint to skip ahead.</p>';
       html += '</section>';
     });
@@ -260,6 +262,15 @@ window.DebuggLearn = (function(){
     session = { kind: 'lesson', unit: u, lesson: les, steps, queue: steps.map((_, i) => i),
                 total: steps.length, done: 0, mistakes: 0 };
     track('started/' + lessonKey(u, les));
+    next();
+  }
+  // Practice: a set from a passed unit's pool, any time. A wrong answer comes back before the end
+  // until it's right (like a lesson), and also joins the review queue. No XP, so it can't be farmed.
+  function startPractice(u){
+    const pool = checkpointPool(u);
+    const steps = pickCheckpoint(u).map(i => pool[i]);
+    session = { kind: 'practice', unit: u, steps, queue: steps.map((_, i) => i), total: steps.length, done: 0, mistakes: 0 };
+    track('practice/' + unitKey(u) + '/started');
     next();
   }
   function startCheckpoint(u){
@@ -297,7 +308,7 @@ window.DebuggLearn = (function(){
     const s = session;
     const kept = { kind: s.kind, lang, unit: s.unit.id, lesson: s.lesson ? s.lesson.id : null, total: s.total,
                    queue: s.queue, current: s.current, answered: s.answered, done: s.done, mistakes: s.mistakes, correct: s.correct };
-    if(s.kind === 'checkpoint') kept.qs = s.steps.map(qHash);
+    if(s.kind === 'checkpoint' || s.kind === 'practice') kept.qs = s.steps.map(qHash);
     if(s.kind === 'review'){
       kept.items = s.items.map(i => ({ lang: i.entry.lang, unit: i.entry.unit, lesson: i.entry.lesson, q: i.entry.q }));
       kept.missed = [...s.missed];
@@ -324,11 +335,11 @@ window.DebuggLearn = (function(){
     }else if(k.kind === 'lesson' && u){
       const les = u.lessons.find(l => l.id === k.lesson);
       if(les) s = { kind: 'lesson', unit: u, lesson: les, steps: les.steps };
-    }else if(k.kind === 'checkpoint' && u){
+    }else if((k.kind === 'checkpoint' || k.kind === 'practice') && u && (k.kind === 'checkpoint' || unitPassed(u))){
       // The questions drawn, by hash; a kept session from before the pool is the unit's own steps.
       const pool = checkpointPool(u);
       const steps = Array.isArray(k.qs) ? k.qs.map(h => pool.find(q => qHash(q) === h)) : u.checkpoint.steps;
-      if(steps.every(Boolean)) s = { kind: 'checkpoint', unit: u, steps };
+      if(steps.every(Boolean)) s = { kind: k.kind, unit: u, steps };
     }
     const fits = i => Number.isInteger(i) && i >= 0 && s && i < s.steps.length;
     if(!s || s.steps.length !== k.total || !k.queue.every(fits) || !fits(k.current)) return false;
@@ -372,8 +383,9 @@ window.DebuggLearn = (function(){
     const where = session.kind === 'lesson'
       ? unitName + ' · lesson ' + (session.unit.lessons.indexOf(session.lesson) + 1) + ' of ' + session.unit.lessons.length
       : session.kind === 'review' ? unitName + ' · a question you missed before'
+      : session.kind === 'practice' ? unitName + ' · practice'
       : unitName + ' · pass with ' + session.unit.checkpoint.pass;
-    $('title').textContent = session.kind === 'lesson' ? session.lesson.title : session.kind === 'review' ? 'Review' : 'Checkpoint';
+    $('title').textContent = session.kind === 'lesson' ? session.lesson.title : session.kind === 'review' ? 'Review' : session.kind === 'practice' ? 'Practice' : 'Checkpoint';
     $('sub').textContent = where;
     let body = '';
     let key = 0;
@@ -447,6 +459,7 @@ window.DebuggLearn = (function(){
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
         '<span class="again">' + (session.kind === 'lesson' ? 'This one comes back before the end of the lesson, and in a review tomorrow.'
           : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
+          : session.kind === 'practice' ? 'This one comes back before the end of the practice, and in a review tomorrow.'
           : 'This one comes back in a review tomorrow.') + '</span>' + runLink(s) + '</div>';
     }
     keepSession();
@@ -540,6 +553,16 @@ window.DebuggLearn = (function(){
         celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
         (left ? '<button class="btn-primary" data-action="review">Review ' + Math.min(left, REVIEW_ROUND) + ' more</button>' : '') +
         '<button class="' + (left ? 'btn-ghost' : 'btn-primary') + '" data-action="quit">Back to the course</button></div></div>';
+    }else if(session.kind === 'practice'){
+      markStreak();
+      write();
+      track('practice/' + unitKey(u) + '/done');
+      html = '<div class="summary" id="summary"><img class="summary-mascot" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64">' +
+        '<h2>Practice done</h2>' +
+        '<p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right. They’ll come up in a review tomorrow.' : 'No mistakes.') + '</p>' +
+        celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
+        '<button class="btn-primary" data-action="practice" data-unit="' + u.id + '">Practice again</button>' +
+        '<button class="btn-ghost" data-action="quit">Back to the course</button></div></div>';
     }else if(session.kind === 'lesson'){
       const key = lessonKey(u, session.lesson);
       const stars = starsFor(session.mistakes);
@@ -602,6 +625,7 @@ window.DebuggLearn = (function(){
       const u = unitById(btn.dataset.unit);
       startLesson(u, u.lessons.find(l => l.id === btn.dataset.lesson));
     }else if(a === 'checkpoint') startCheckpoint(unitById(btn.dataset.unit));
+    else if(a === 'practice') startPractice(unitById(btn.dataset.unit));
     else if(a === 'review') startReview();
     else if(a === 'quit') renderMap();
     else if(a === 'continue') onContinue();

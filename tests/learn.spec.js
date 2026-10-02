@@ -666,3 +666,32 @@ test('a repeated checkpoint draws a different set from the unit\'s pool', async 
   expect(await asked()).toEqual(second);
   await expect(page.locator('#step')).toBeVisible();
 });
+
+test('a passed unit offers practice: wrong answers come back until right, and join the review queue', async ({ page }) => {
+  // Not offered until the checkpoint is passed.
+  await expect(page.locator('.lesson-row.practice')).toHaveCount(0);
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    s.checkpoints = { 'python/values': { passed: true, best: 8 } };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await openAt(page, 'learn/');
+  const row = page.locator('.unit[data-unit=values] .lesson-row.practice');
+  await expect(row).toContainText('Practice · 8 questions');
+  await row.click();
+  await expect(page.locator('#title')).toHaveText('Practice');
+  // Miss the first question: 8 questions plus 1 coming back is 9 answers in all.
+  let answered = 0;
+  await answer(page, false); answered++;
+  while(!(await page.locator('#summary').count())){ await answer(page, true); answered++; }
+  expect(answered).toBe(9);
+  await expect(page.locator('#summary h2')).toHaveText('Practice done');
+  const save = await learnSave(page);
+  expect(save.review).toHaveLength(1);
+  expect(save.xp.python || 0).toBe(0);
+  // Practice again draws a different set from the pool of 24.
+  await page.click('#summary [data-action=practice]');
+  await expect(page.locator('#title')).toHaveText('Practice');
+  const counts = (await learnSave(page)).asked['python/values'];
+  expect(Object.keys(counts)).toHaveLength(16);
+});

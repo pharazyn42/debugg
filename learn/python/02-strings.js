@@ -512,6 +512,90 @@ print(int(n) + 1)`,
         answers: ['8'],
         nudge: 'Not quite. int() turns the text into a number first.',
         explain: 'int("7") is the number 7, and 7 + 1 is 8.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `s = "debug"
+print(s[-2:])`,
+        display: 'ug',
+        answers: ['ug'],
+        nudge: 'Not quite. -2 counts two from the end, and the slice runs to the end.',
+        explain: 'The last two characters of debug are u and g.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print("a-b-c".replace("-", ""))`,
+        options: [
+          { text: 'abc', correct: true },
+          { text: 'a-b-c', why: 'replace() gives back a new string with the change made.' },
+          { text: 'a b c', why: 'The second value is empty text, not a space.' }
+        ],
+        explain: 'Each - is replaced with nothing, leaving abc.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print("hello"[:3])`,
+        display: 'hel',
+        answers: ['hel'],
+        nudge: 'Not quite. The slice starts at the beginning and stops before position 3.',
+        explain: 'Positions 0, 1 and 2 are h, e and l.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `s = "Hello"
+print(s.lower() == "hello")`,
+        options: [
+          { text: 'True', correct: true },
+          { text: 'False', why: 'lower() gives hello, which is equal to "hello".' }
+        ],
+        explain: 'lower() makes the text hello, which matches.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print("ab" + "cd"[0])`,
+        display: 'abc',
+        answers: ['abc'],
+        nudge: 'Not quite. "cd"[0] is just the first character of "cd".',
+        explain: '"cd"[0] is c, so the result is ab joined with c.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `word = "cat"
+print(word[0])
+print(word[3])`,
+        line: 3,
+        errors: true,
+        explain: 'cat has positions 0, 1 and 2, so word[3] is out of range and Python stops with an IndexError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>2</code>.',
+        code: `print("kiwi".___("w"))`,
+        target: '2',
+        options: [
+          { text: 'find', correct: true },
+          { text: 'count', why: 'count gives how many w\'s there are: 1, not their position.' },
+          { text: 'upper', why: 'upper() takes no value to look for, so this stops with an error.' }
+        ],
+        explain: 'find("w") gives the position of the first w, which is 2.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `n = 3
+print(f"{n} + {n} = {n + n}")`,
+        display: '3 + 3 = 6',
+        answers: ['3 + 3 = 6'],
+        nudge: 'Not quite. Anything in braces is worked out and put in.',
+        explain: 'Each {} is replaced by its value: 3 + 3 = 6.'
       }
     ]
   }

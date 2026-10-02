@@ -572,6 +572,108 @@ print(n)`,
           { text: '2', why: 'The loop reaches 3 before it breaks, and n keeps that value.' }
         ],
         explain: 'break stops the loop with n still 3.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `for ch in "hey":
+    last = ch
+print(last)`,
+        display: 'y',
+        answers: ['y'],
+        nudge: 'Not quite. last is replaced on every round.',
+        explain: 'The loop ends on y, which is what last holds.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `n = 0
+while n < 3:
+    n = n + 1
+print(n)`,
+        display: '3',
+        answers: ['3'],
+        nudge: 'Not quite. When does the loop stop?',
+        explain: 'n goes 1, 2, 3, and at 3 the test n < 3 fails.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(list(range(2, 8, 2)))`,
+        options: [
+          { text: '[2, 4, 6]', correct: true },
+          { text: '[2, 4, 6, 8]', why: 'range stops before 8.' },
+          { text: '[2, 3, 4, 5, 6, 7]', why: 'The third value is the step: 2 at a time.' }
+        ],
+        explain: 'From 2 in steps of 2, stopping before 8: 2, 4, 6.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `t = 0
+for i in range(1, 4):
+    t = t + i * 2
+print(t)`,
+        display: '12',
+        answers: ['12'],
+        nudge: 'Not quite. i takes 1, 2 and 3, and each is doubled.',
+        explain: '2 + 4 + 6 is 12.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `total = 0
+for n in [1, 2, 3, 4]:
+    if n % 2 == 0:
+        continue
+    total = total + n
+print(total)`,
+        options: [
+          { text: '4', correct: true },
+          { text: '6', why: 'continue skips the even numbers, so they aren\'t added.' },
+          { text: '10', why: 'The even numbers are skipped, not added.' }
+        ],
+        explain: 'continue skips 2 and 4, so only 1 + 3 is added.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `for i in range(3):
+    print(i)
+print(i + x)`,
+        line: 3,
+        errors: true,
+        explain: 'x was never given a value, so line 3 stops with a NameError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>[1, 4, 9]</code>.',
+        code: `sq = []
+for n in [1, 2, 3]:
+    sq.append(n ___ 2)
+print(sq)`,
+        target: '[1, 4, 9]',
+        options: [
+          { text: '**', correct: true },
+          { text: '*', why: 'n * 2 doubles it: [2, 4, 6].' },
+          { text: '+', why: 'n + 2 adds two: [3, 4, 5].' }
+        ],
+        explain: 'n ** 2 squares each number.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `words = ["a", "bb", "ccc"]
+n = 0
+for w in words:
+    n = n + len(w)
+print(n)`,
+        display: '6',
+        answers: ['6'],
+        nudge: 'Not quite. Add up the lengths of the words.',
+        explain: '1 + 2 + 3 is 6.'
       }
     ]
   }

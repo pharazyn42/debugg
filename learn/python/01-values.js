@@ -475,6 +475,95 @@ print(f"a is {a}")`,
         answers: ['a is 3'],
         nudge: 'Not quite. a is updated before it\'s printed.',
         explain: 'a becomes 2 + 1 = 3, and the f-string puts it in: a is 3.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print("Hi" + " " + "Bo")`,
+        options: [
+          { text: 'Hi Bo', correct: true },
+          { text: 'HiBo', why: 'The middle string is a single space, and + joins it in too.' },
+          { text: 'Hi + Bo', why: 'The + joins the strings; it isn\'t printed.' }
+        ],
+        explain: 'The three strings are joined: Hi, a space, then Bo.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print(2 ** 3 + 1)`,
+        display: '9',
+        answers: ['9'],
+        nudge: 'Not quite. ** (to the power of) is worked out before +.',
+        explain: '2 ** 3 is 8, and 8 + 1 is 9.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(10 - 4 - 3)`,
+        options: [
+          { text: '3', correct: true },
+          { text: '9', why: 'That would be 10 - (4 - 3). Subtraction goes left to right.' },
+          { text: '11', why: 'Both numbers are taken away, not added.' }
+        ],
+        explain: 'Left to right: 10 - 4 is 6, and 6 - 3 is 3.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `x = 10
+x = x - 4
+print(x // 4)`,
+        display: '1',
+        answers: ['1'],
+        nudge: 'Not quite. Work out x first, then how many whole 4s fit in it.',
+        explain: 'x is 6, and one whole 4 fits into 6.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(3, "apples")`,
+        options: [
+          { text: '3 apples', correct: true },
+          { text: '3apples', why: 'print() puts a space between the items you give it.' },
+          { text: '3, apples', why: 'The comma separates the items in the code; it isn\'t printed.' }
+        ],
+        explain: 'print() puts a space between the items.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `print("start")
+print("Hello)
+print("end")`,
+        line: 2,
+        errors: true,
+        explain: 'Line 2 opens a string with " but never closes it, so Python stops with a SyntaxError before running anything.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>7.5</code>.',
+        code: `print(15 ___ 2)`,
+        target: '7.5',
+        options: [
+          { text: '/', correct: true },
+          { text: '//', why: '// drops the fraction: 15 // 2 is 7.' },
+          { text: '%', why: '% gives what\'s left over: 15 % 2 is 1.' }
+        ],
+        explain: '/ is true division: 15 / 2 is 7.5.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `first = "Ada"
+last = "Lovelace"
+print(first, last)`,
+        display: 'Ada Lovelace',
+        answers: ['Ada Lovelace'],
+        nudge: 'Not quite. print() puts a space between the items.',
+        explain: 'The two values are printed with a space between: Ada Lovelace.'
       }
     ]
   }

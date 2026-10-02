@@ -622,6 +622,109 @@ print(x)`,
           { text: 'None', why: 'x is an ordinary variable with the value 1.' }
         ],
         explain: 'Assigning inside a function makes a new local x, so the outside x stays 1.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `def f(n):
+    return n + 1
+print(f(f(1)))`,
+        options: [
+          { text: '3', correct: true },
+          { text: '2', why: 'The inner call gives 2, and the outer call adds one more.' },
+          { text: 'None', why: 'The function returns a value, so it isn\'t None.' }
+        ],
+        explain: 'f(1) is 2, and f(2) is 3.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `def greet(name="you"):
+    return "hi " + name
+print(greet())`,
+        display: 'hi you',
+        answers: ['hi you'],
+        nudge: 'Not quite. With no value given, the default is used.',
+        explain: 'No value is given, so name is the default "you".'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `def f(n):
+    n = n * 2
+print(f(4))`,
+        options: [
+          { text: 'None', correct: true },
+          { text: '8', why: 'There is no return, so nothing is given back.' },
+          { text: '4', why: 'There is no return, so nothing is given back.' }
+        ],
+        explain: 'Without return the function gives back None.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `def big(a, b):
+    if a > b:
+        return a
+    return b
+print(big(3, 8))`,
+        display: '8',
+        answers: ['8'],
+        nudge: 'Not quite. Which one is bigger?',
+        explain: '3 > 8 is false, so the function returns b, 8.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `def total(a, b=10):
+    return a + b
+print(total(1), total(1, 2))`,
+        options: [
+          { text: '11 3', correct: true },
+          { text: '11 11', why: 'When b is given, it replaces the default.' },
+          { text: '2 3', why: 'Without a second value, b is 10.' }
+        ],
+        explain: 'total(1) uses b = 10 and gives 11; total(1, 2) gives 3.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `def add(a, b):
+    return a + b
+print(add(1))`,
+        line: 3,
+        errors: true,
+        explain: 'add needs two values and line 3 gives one, so Python stops with a TypeError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>12</code>.',
+        code: `def f(x):
+    return x * 3
+print(f(___))`,
+        target: '12',
+        options: [
+          { text: '4', correct: true },
+          { text: '3', why: 'f(3) is 9.' },
+          { text: '12', why: 'f(12) is 36.' }
+        ],
+        explain: 'f(4) is 4 * 3 = 12.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `def f(x):
+    y = x + 1
+    return y
+z = f(1)
+print(z + f(2))`,
+        display: '5',
+        answers: ['5'],
+        nudge: 'Not quite. Work out each call, then add the results.',
+        explain: 'f(1) is 2 and f(2) is 3, so z + f(2) is 5.'
       }
     ]
   }

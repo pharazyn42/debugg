@@ -18,7 +18,7 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
 - A wrong answer shows why, and the right answer, and the question comes back at the end of the lesson.
   The lesson ends once every question has been answered right.
 - Stars by mistakes: none → 3, 1–2 → 2, more → 1. Replaying can raise them.
-- A checkpoint asks each question once and you pass with `pass` correct; retry any time. It draws `ask` questions (default: as many as `steps`) from a pool, `steps` plus `more`, favouring the ones asked least often and shuffling the order, so a retry is a different set. Counts are kept in the save (`asked`).
+- A checkpoint asks each question once and you pass with `pass` correct; retry any time. It draws `ask` questions (default: as many as `steps`) from a pool, `steps` plus `more`, favouring the ones asked least often and shuffling the order, so a retry is a different set. Counts are kept in the save (`asked`). The same pool feeds **Practice**, a row on every passed unit: `ask` questions from the pool, a wrong answer coming back before the end until it's right (and joining the review queue), no XP. Aim for about 24 questions in the pool.
 - **Review:** every question missed, in a lesson or a checkpoint, joins the review queue and comes
   back a day later in a **Review** round (up to 8 questions, oldest first), shown in the Continue card
   when due. Right first time, it comes back after 3 days, then 7; right three times running, it's
