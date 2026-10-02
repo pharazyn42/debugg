@@ -1018,7 +1018,7 @@ test('/studio/ redirects to the main page with the studio on', async ({ page }) 
 });
 
 test('Daily and Ltd are tabs; on the Daily tab a running company is a note linking to it', async ({ page }) => {
-  await expect(page.locator('.modes .lang-tab')).toHaveText(['Daily (demo)', 'Ltd (demo)', 'Learn']);
+  await expect(page.locator('.modes .lang-tab')).toHaveText(['Learn', 'Daily (demo)', 'Ltd (demo)']);
   await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#ltdIntro')).toBeHidden();
   await page.click('#ltdTab');
@@ -1040,9 +1040,9 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
   await page.click('#ltdNote a');
   await expect(page.locator('#statMoney')).toHaveText('¤250');
 
-  // The top buttons are Daily and Ltd (both demos for now) and Learn, its own section, which is also
-  // linked from the footer and the Director's languages, and it links back.
-  await expect(page.locator('.modes a')).toHaveText(['Daily (demo)', 'Ltd (demo)', 'Learn']);
+  // The top buttons are Learn (its own section, also linked from the footer and the Director's
+  // languages, and it links back), then Daily and Ltd, both demos for now.
+  await expect(page.locator('.modes a')).toHaveText(['Learn', 'Daily (demo)', 'Ltd (demo)']);
   await expect(page.locator('.card.director a.learn-lang')).toHaveText('Python');
   await expect(page.locator('.card.director a.learn-lang')).toHaveAttribute('href', 'learn/#python');
   await page.click('.card.director a.learn-lang');

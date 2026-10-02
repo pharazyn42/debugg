@@ -9,7 +9,7 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-- Debuggit, Debuggit Ltd and Debuggit Learn now share one row of buttons at the top of each page: **Daily (demo)**, **Ltd (demo)** and **Learn**. The daily and Ltd are marked as demos until their own launch.
+- Debuggit, Debuggit Ltd and Debuggit Learn now share one row of buttons at the top of each page: **Learn**, **Daily (demo)** and **Ltd (demo)**. The daily and Ltd are marked as demos until their own launch.
 - The link preview under a shared result now shows the kiwi card. Apps keep link previews for a
   while, so a link you or a friend shared before may still show the duck until the app refreshes it.
 
