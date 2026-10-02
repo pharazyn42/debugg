@@ -490,11 +490,11 @@ test('the daily page links to Learn, and resetting puzzles keeps Learn progress'
   await page.click('[data-action=lesson][data-lesson=print]');
   await finishAll(page);
   // Learn's page has the same three top buttons, with Learn the current one.
-  await expect(page.locator('.modes a')).toHaveText(['Daily (demo)', 'Ltd (demo)', 'Learn']);
+  await expect(page.locator('.modes a')).toHaveText(['Learn', 'Daily (demo)', 'Ltd (demo)']);
   await expect(page.locator('#learnTab')).toHaveAttribute('aria-current', 'page');
   await page.click('#dailyTab');
   await expect(page.locator('h1')).toHaveText('What does this print?');
-  await expect(page.locator('.modes a')).toHaveText(['Daily (demo)', 'Ltd (demo)', 'Learn']);
+  await expect(page.locator('.modes a')).toHaveText(['Learn', 'Daily (demo)', 'Ltd (demo)']);
   await page.click('#resetLink');
   await page.click('#learnFooter');
   await expect(page.locator('h1')).toHaveText('Learn Python');
