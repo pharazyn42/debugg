@@ -695,3 +695,23 @@ test('the schedule never serves a puzzle twice until a language has used them al
   // When the schedule does start again, it's because every puzzle has been served, not before.
   if(r.rep) expect(r.served).toBe(r.total);
 });
+
+test('the Save/restore progress, Sandbox and Feedback buttons at the bottom all look the same', async ({ page }) => {
+  const look = () => page.evaluate(() => [...document.querySelectorAll('.footer-actions > *')].map(el => {
+    const s = getComputedStyle(el);
+    return { text: el.textContent.trim(), font: s.fontFamily, size: s.fontSize, weight: s.fontWeight, color: s.color,
+             border: s.borderTopWidth + ' ' + s.borderTopColor, radius: s.borderTopLeftRadius, padding: s.padding,
+             height: Math.round(el.getBoundingClientRect().height), cursor: s.cursor };
+  }));
+  for(const path of ['index.html', 'learn/']){
+    await openAt(page, path, 3);
+    const [save, sandbox, feedback] = await look();
+    expect(save.text).toBe('Save/restore progress');
+    expect(sandbox.text).toBe('Sandbox');
+    expect(feedback.text).toBe('Feedback');
+    for(const key of ['font', 'size', 'weight', 'color', 'border', 'radius', 'padding', 'height', 'cursor']){
+      expect(sandbox[key], path + ': Sandbox ' + key).toBe(save[key]);
+      expect(feedback[key], path + ': Feedback ' + key).toBe(save[key]);
+    }
+  }
+});
