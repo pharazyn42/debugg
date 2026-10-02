@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.11 — 2 October 2026
+
 - A kiwi replaces the duck beside the desk when its jobs are done.
 
 ## 0.0.10 — 30 September 2026
