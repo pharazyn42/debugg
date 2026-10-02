@@ -405,14 +405,14 @@ window.DebuggLearn = (function(){
     session.answered = true;
     const s = session.steps[session.current];
     const fb = $('stepFeedback');
-    // The duck reacts: a hop when you're right, a wobble when you're not.
-    const duck = '<img class="fb-duck" src="../img/duck.svg" alt="" width="36" height="36">';
+    // The kiwi reacts: a hop when you're right, a wobble when you're not.
+    const kiwi = '<img class="fb-mascot" src="../img/kiwi.svg" alt="" width="36" height="36">';
     document.querySelectorAll('#step .option, #step .code-line, #answer, #checkBtn').forEach(el => { el.disabled = true; });
     if(right){
       session.done++;
       if(session.kind === 'checkpoint') session.correct++;
       fb.className = 'feedback show correct';
-      fb.innerHTML = duck + '<div><b>Quack! Correct.</b> ' + s.explain + runLink(s) + '</div>';
+      fb.innerHTML = kiwi + '<div><b>Correct.</b> ' + s.explain + runLink(s) + '</div>';
     }else{
       session.mistakes++;
       if(session.kind === 'checkpoint') session.done++;
@@ -420,7 +420,7 @@ window.DebuggLearn = (function(){
       if(session.kind === 'review') session.missed.add(session.current);
       else addReview(session.unit, session.kind === 'lesson' ? session.lesson : null, s);
       fb.className = 'feedback show wrong';
-      fb.innerHTML = duck + '<div><b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
+      fb.innerHTML = kiwi + '<div><b>Not quite.</b> ' + (whyWrong ? esc(whyWrong) + ' ' : '') +
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
         '<span class="again">' + (session.kind === 'lesson' ? 'This one comes back before the end of the lesson, and in a review tomorrow.'
           : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
@@ -509,7 +509,7 @@ window.DebuggLearn = (function(){
       write();
       track('review/done');
       const left = dueReviews(lang).length;
-      html = '<div class="summary" id="summary"><img class="summary-duck" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64">' +
+      html = '<div class="summary" id="summary"><img class="summary-mascot" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64">' +
         '<p class="big-score">' + right + '/' + session.items.length + '</p><h2>Review done</h2>' +
         '<p>' + right + ' right first time' + (xp ? ' <b>+' + xp + ' XP</b>' : '') + '.' +
         (learnt ? ' ' + learnt + ' learnt for good.' : '') +
@@ -530,7 +530,7 @@ window.DebuggLearn = (function(){
       track('lesson/' + key + '/' + stars + '-stars');
       const i = u.lessons.indexOf(session.lesson);
       const nextLesson = u.lessons[i + 1];
-      html = '<div class="summary" id="summary"><img class="summary-duck" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64">' + bigStars(stars) +
+      html = '<div class="summary" id="summary"><img class="summary-mascot" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64">' + bigStars(stars) +
         '<h2>Lesson complete</h2><p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right.' : 'No mistakes.') +
         ' <b>+' + xp + ' XP</b>' + (before && !xp ? ' (you’d already earned these stars)' : '') + '</p>' +
         celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
@@ -553,7 +553,7 @@ window.DebuggLearn = (function(){
       track('checkpoint/' + key + '/' + (passed ? 'passed' : 'not-passed'));
       const units = unitsOf(lang);
       const nextUnit = units[units.indexOf(u) + 1];
-      html = '<div class="summary" id="summary"><img class="summary-duck' + (passed ? '' : ' dizzy') + '" src="../img/duck.svg" alt="The Debuggit duck" width="64" height="64"><p class="big-score">' + session.correct + '/' + total + '</p>' +
+      html = '<div class="summary" id="summary"><img class="summary-mascot' + (passed ? '' : ' dizzy') + '" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64"><p class="big-score">' + session.correct + '/' + total + '</p>' +
         '<h2>' + (passed ? 'Checkpoint passed!' : 'Not this time') + '</h2>' +
         '<p>' + (passed ? (xp ? '<b>+' + xp + ' XP.</b> ' : '') + (nextUnit ? 'Unit ' + (units.indexOf(nextUnit) + 1) + ' is unlocked.' : 'That’s every unit written so far. More are coming.')
           : 'You need ' + u.checkpoint.pass + ' to pass. Go over the lessons, then try again: there’s no limit.') + '</p>' +

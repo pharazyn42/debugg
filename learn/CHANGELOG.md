@@ -7,7 +7,9 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- A kiwi replaces the duck as Learn's mascot: in the header and the sandbox's, beside each
+  answer (it hops when you're right and tilts when you're not), on the lesson summary, and as the
+  tab and home-screen icon. The "Quack!" is gone from the correct-answer message.
 
 ## 0.0.9 — 30 September 2026
 
