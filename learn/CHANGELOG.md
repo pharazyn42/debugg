@@ -7,6 +7,7 @@ one for fixes.
 
 ## Unreleased
 
+- Practice and Mixed practice now pay XP: 2 XP for each question you get right first time, the same as a review. (They didn't pay anything before.)
 - Units on the course map can be folded away to save space: tap a unit's title to collapse or expand it, or use **Collapse all** / **Expand all** above the list. Learn remembers which ones you folded on that device.
 
 ## 0.0.12 — 2 October 2026
