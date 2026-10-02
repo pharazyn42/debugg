@@ -283,9 +283,14 @@ function checkLearn(ctx, only){
       });
       lessons += u.lessons.length;
       if(u.checkpoint){
-        const qs = u.checkpoint.steps.filter(s => s.type !== 'teach').length;
-        if(!(u.checkpoint.pass >= 1 && u.checkpoint.pass <= qs)) fail(lang + '/' + u.id + '/checkpoint', ['pass mark must be 1 to ' + qs]);
-        all.push({ where: lang + '/' + u.id + '/checkpoint', steps: u.checkpoint.steps });
+        // The pool is `steps` plus `more`; each attempt asks `ask` of them (default: as many as `steps`).
+        const pool = u.checkpoint.steps.concat(u.checkpoint.more || []);
+        const ask = u.checkpoint.ask || u.checkpoint.steps.length;
+        const where = lang + '/' + u.id + '/checkpoint';
+        if(pool.some(s => s.type === 'teach')) fail(where, ['a checkpoint has questions only']);
+        if(!(ask >= 1 && ask <= pool.length)) fail(where, ['ask must be 1 to ' + pool.length + ' (the pool size)']);
+        if(!(u.checkpoint.pass >= 1 && u.checkpoint.pass <= ask)) fail(where, ['pass mark must be 1 to ' + ask]);
+        all.push({ where, steps: pool });
       }
       all.forEach(({ where, steps: list }) => {
         // The review queue finds a missed question by its text and code, so no two in a lesson or

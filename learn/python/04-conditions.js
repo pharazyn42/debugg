@@ -546,6 +546,221 @@ else:
         ],
         explain: `x == 1 is False, but "or 2" is true, so the condition is true whatever x is.`
       }
+    ],
+    more: [
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(5 > 3, 5 == 3)`,
+        options: [
+          { text: 'True False', correct: true },
+          { text: 'True True', why: '5 == 3 asks whether they are equal, and they aren\'t.' },
+          { text: 'False False', why: '5 is bigger than 3, so 5 > 3 is True.' }
+        ],
+        explain: '5 > 3 is True and 5 == 3 is False.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `n = 7
+if n % 2 == 0:
+    print("even")
+else:
+    print("odd")`,
+        display: 'odd',
+        answers: ['odd'],
+        nudge: 'Not quite. What is left when 7 is divided by 2?',
+        explain: '7 % 2 is 1, not 0, so the else part runs.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `x = 15
+if x > 20:
+    print("big")
+elif x > 10:
+    print("medium")
+else:
+    print("small")`,
+        options: [
+          { text: 'medium', correct: true },
+          { text: 'big', why: '15 is not more than 20.' },
+          { text: 'small', why: 'The elif is checked before the else, and 15 > 10 is true.' }
+        ],
+        explain: 'The first test fails, the elif x > 10 is true, so medium prints and the rest is skipped.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(True and not False)`,
+        options: [
+          { text: 'True', correct: true },
+          { text: 'False', why: 'not False is True, and True and True is True.' }
+        ],
+        explain: 'not False is True, so True and True is True.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `a = 5
+n = 0
+if a > 1:
+    n = n + 1
+if a > 3:
+    n = n + 1
+if a > 9:
+    n = n + 1
+print(n)`,
+        display: '2',
+        answers: ['2'],
+        nudge: 'Not quite. Every separate if is checked. How many of them are true?',
+        explain: 'The first two ifs are true and the third isn\'t, so n goes up twice: 2.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `mark = 70
+if mark = 70:
+    print("pass")`,
+        line: 2,
+        errors: true,
+        explain: 'Line 2 uses = (store) where == (compare) is needed, so Python stops with a SyntaxError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>not a teen</code>.',
+        code: `age = 8
+if age >= 13 ___ age <= 19:
+    print("teen")
+else:
+    print("not a teen")`,
+        target: 'not a teen',
+        options: [
+          { text: 'and', correct: true },
+          { text: 'or', why: 'With or, one true side is enough: 8 <= 19, so it would print teen.' }
+        ],
+        explain: 'With and, both sides must be true, and 8 >= 13 isn\'t.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `word = "apple"
+print(word == "Apple", word == "apple")`,
+        options: [
+          { text: 'False True', correct: true },
+          { text: 'True True', why: 'Capital letters matter when comparing text, so "apple" and "Apple" differ.' },
+          { text: 'False False', why: 'word is exactly "apple", so the second comparison is True.' }
+        ],
+        explain: 'Text has to match exactly, capitals included.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(10 >= 10, 10 != 10)`,
+        options: [
+          { text: 'True False', correct: true },
+          { text: 'True True', why: '10 != 10 asks whether they differ, and they don\'t.' },
+          { text: 'False False', why: '>= means "bigger or equal", and 10 is equal to 10.' }
+        ],
+        explain: '10 >= 10 is True and 10 != 10 is False.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `n = -3
+if n > 0:
+    print("pos")
+elif n < 0:
+    print("neg")
+else:
+    print("zero")`,
+        display: 'neg',
+        answers: ['neg'],
+        nudge: 'Not quite. Check each test in order, top down.',
+        explain: 'n > 0 is false, n < 0 is true, so neg prints.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(not 5 > 3)`,
+        options: [
+          { text: 'False', correct: true },
+          { text: 'True', why: '5 > 3 is True first, and then not turns it round.' }
+        ],
+        explain: '5 > 3 is True, and not True is False.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `x = 7
+if x > 5 and x < 10:
+    print("in")
+else:
+    print("out")`,
+        display: 'in',
+        answers: ['in'],
+        nudge: 'Not quite. Are both sides true?',
+        explain: '7 is above 5 and below 10, so both are true.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `name = ""
+if name:
+    print("has name")
+else:
+    print("empty")`,
+        options: [
+          { text: 'empty', correct: true },
+          { text: 'has name', why: 'Empty text counts as false.' }
+        ],
+        explain: 'An empty string is falsy, so the else part runs.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `n = 4
+if n > 3
+    print("big")`,
+        line: 2,
+        errors: true,
+        explain: 'Line 2 is missing the colon at the end, so Python stops with a SyntaxError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>fizz</code>.',
+        code: `n = 9
+if n % 3 ___ 0:
+    print("fizz")`,
+        target: 'fizz',
+        options: [
+          { text: '==', correct: true },
+          { text: '!=', why: 'n % 3 is 0, so "not equal to 0" is false and nothing prints.' },
+          { text: '=', why: 'A single = stores a value; to compare you need ==.' }
+        ],
+        explain: '9 % 3 is 0, and == asks whether it equals 0.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `a = 4
+b = 9
+if a > b:
+    print(a)
+else:
+    print(b)`,
+        display: '9',
+        answers: ['9'],
+        nudge: 'Not quite. Is a bigger than b?',
+        explain: '4 > 9 is false, so the else part prints b, 9.'
+      }
     ]
   }
 });

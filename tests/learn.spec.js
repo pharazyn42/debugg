@@ -103,7 +103,9 @@ test('the Continue card starts the next lesson or checkpoint in one tap', async 
   await page.reload();
   await expect(card.locator('.continue-label')).toHaveText('All caught up');
   await expect(card).toContainText('Next up: The classic traps, coming soon.');
-  await expect(card.locator('button')).toHaveCount(0);
+  // Nothing left to continue; the only button is mixed practice.
+  await expect(card.locator('button')).toHaveCount(1);
+  await expect(card.locator('#mixedBtn')).toBeVisible();
   // A coming-soon course has no card.
   await page.goto('learn/#c');
   await expect(page.locator('h1')).toHaveText('Learn C');
@@ -644,3 +646,82 @@ async function pickOrType(page, s){
   else await pickOption(page, s.options.find(o => o.correct).text);
   await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
 }
+
+test('a repeated checkpoint draws a different set from the unit\'s pool', async ({ page }) => {
+  const asked = async () => page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs);
+  await page.click('[data-action=checkpoint][data-unit=values]');
+  const first = await asked();
+  expect(first).toHaveLength(8);
+  expect(new Set(first).size).toBe(8);
+  // Quit the attempt, then start again: the 8 questions not yet asked come first.
+  await page.evaluate(() => localStorage.removeItem('debugg-learn-session'));
+  await openAt(page, 'learn/');
+  await page.click('[data-action=checkpoint][data-unit=values]');
+  const second = await asked();
+  expect(second).toHaveLength(8);
+  expect(second.filter(h => first.includes(h))).toHaveLength(0);
+  const counts = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn')).asked['python/values']);
+  expect(Object.keys(counts)).toHaveLength(16);
+  expect(Object.values(counts).every(n => n === 1)).toBe(true);
+  // Reloading mid-attempt keeps the same questions.
+  await page.reload();
+  expect(await asked()).toEqual(second);
+  await expect(page.locator('#step')).toBeVisible();
+});
+
+test('a passed unit offers practice: wrong answers come back until right, and join the review queue', async ({ page }) => {
+  // Not offered until the checkpoint is passed.
+  await expect(page.locator('.lesson-row.practice')).toHaveCount(0);
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    s.checkpoints = { 'python/values': { passed: true, best: 8 } };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await openAt(page, 'learn/');
+  const row = page.locator('.unit[data-unit=values] .lesson-row.practice');
+  await expect(row).toContainText('Practice · 8 questions');
+  await row.click();
+  await expect(page.locator('#title')).toHaveText('Practice');
+  // Miss the first question: 8 questions plus 1 coming back is 9 answers in all.
+  let answered = 0;
+  await answer(page, false); answered++;
+  while(!(await page.locator('#summary').count())){ await answer(page, true); answered++; }
+  expect(answered).toBe(9);
+  await expect(page.locator('#summary h2')).toHaveText('Practice done');
+  const save = await learnSave(page);
+  expect(save.review).toHaveLength(1);
+  expect(save.xp.python || 0).toBe(0);
+  // Practice again draws a different set from the pool of 24.
+  await page.click('#summary [data-action=practice]');
+  await expect(page.locator('#title')).toHaveText('Practice');
+  const counts = (await learnSave(page)).asked['python/values'];
+  expect(Object.keys(counts)).toHaveLength(16);
+});
+
+test('mixed practice draws across the passed units, and a reload keeps the set', async ({ page }) => {
+  await expect(page.locator('#mixedPractice')).toHaveCount(0);
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    s.checkpoints = { 'python/values': { passed: true, best: 8 }, 'python/strings': { passed: true, best: 8 } };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await openAt(page, 'learn/');
+  await expect(page.locator('#mixedPractice')).toContainText('10 questions from the 2 units');
+  await page.click('#mixedBtn');
+  await expect(page.locator('#title')).toHaveText('Mixed practice');
+  const qs = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs);
+  expect(qs).toHaveLength(10);
+  // Five from each unit, turn and turn about.
+  expect(qs.filter(q => q.startsWith('values:'))).toHaveLength(5);
+  expect(qs.filter(q => q.startsWith('strings:'))).toHaveLength(5);
+  await page.reload();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs)).toEqual(qs);
+  await expect(page.locator('#title')).toHaveText('Mixed practice');
+  // A miss comes back before the end and joins the review queue.
+  let answered = 0;
+  await answer(page, false); answered++;
+  while(!(await page.locator('#summary').count())){ await answer(page, true); answered++; }
+  expect(answered).toBe(11);
+  await expect(page.locator('#summary h2')).toHaveText('Mixed practice done');
+  expect((await learnSave(page)).review).toHaveLength(1);
+});

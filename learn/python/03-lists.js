@@ -450,6 +450,191 @@ print("Rust" in langs, len(langs * 2))`,
         ],
         explain: `"Rust" isn't in the list, and repeating a 2-item list twice gives 4 items.`
       }
+    ],
+    more: [
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `nums = [4, 5, 6]
+print(nums[1])`,
+        options: [
+          { text: '5', correct: true },
+          { text: '4', why: 'Positions start at 0, so nums[0] is 4.' },
+          { text: '6', why: 'nums[2] is 6; nums[1] is the second item.' }
+        ],
+        explain: 'Position 1 is the second item, 5.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `a = [1, 2]
+a.append(3)
+print(len(a))`,
+        display: '3',
+        answers: ['3'],
+        nudge: 'Not quite. append adds one more item.',
+        explain: 'After the append the list is [1, 2, 3], which has 3 items.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `x = [3, 1, 2]
+x.sort()
+print(x)`,
+        options: [
+          { text: '[1, 2, 3]', correct: true },
+          { text: 'None', why: 'The sort changes x itself. Only printing x.sort() would show None.' },
+          { text: '[3, 1, 2]', why: 'sort() changes the list in place, so x is now in order.' }
+        ],
+        explain: 'sort() puts x itself in order.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print([1, 2, 3, 4, 5][1:4])`,
+        display: '[2, 3, 4]',
+        answers: ['[2, 3, 4]'],
+        nudge: 'Not quite. The slice starts at position 1 and stops before position 4.',
+        explain: 'Positions 1, 2 and 3 hold 2, 3 and 4.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print(sum([2, 3, 5]))`,
+        display: '10',
+        answers: ['10'],
+        nudge: 'Not quite. sum() adds up every item.',
+        explain: '2 + 3 + 5 is 10.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `colors = ["red", "green"]
+colors.append("blue")
+print(colors[3])`,
+        line: 3,
+        errors: true,
+        explain: 'The list has 3 items, at positions 0, 1 and 2, so colors[3] is out of range and Python stops with an IndexError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>[1, 2, 3]</code>.',
+        code: `a = [1, 2]
+a.___(3)
+print(a)`,
+        target: '[1, 2, 3]',
+        options: [
+          { text: 'append', correct: true },
+          { text: 'add', why: 'Lists have no add method; the one that puts an item on the end is append.' },
+          { text: 'sort', why: 'sort() puts the list in order and takes no value.' }
+        ],
+        explain: 'append(3) puts 3 on the end.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print("b" in ["a", "b"], "z" in ["a", "b"])`,
+        options: [
+          { text: 'True False', correct: true },
+          { text: 'False False', why: '"b" is in the list, so the first answer is True.' },
+          { text: 'True True', why: '"z" isn\'t in the list, so the second answer is False.' }
+        ],
+        explain: '"b" is in the list and "z" isn\'t.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `nums = [5, 6, 7]
+print(nums[-1])`,
+        display: '7',
+        answers: ['7'],
+        nudge: 'Not quite. -1 is the last item.',
+        explain: 'nums[-1] is the last item, 7.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `a = [1, 2]
+b = a + [3]
+print(a, b)`,
+        options: [
+          { text: '[1, 2] [1, 2, 3]', correct: true },
+          { text: '[1, 2, 3] [1, 2, 3]', why: 'Joining with + makes a new list; a is left as it was.' },
+          { text: '[1, 2] [3]', why: 'b is a joined with [3], so it starts with a\'s items.' }
+        ],
+        explain: '+ makes a new list for b and leaves a alone.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `x = [1, 2, 3]
+x.remove(2)
+print(x)`,
+        display: '[1, 3]',
+        answers: ['[1, 3]'],
+        nudge: 'Not quite. remove() takes out the value you give it.',
+        explain: 'remove(2) takes the 2 out, leaving [1, 3].'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(len([[1, 2], [3]]))`,
+        options: [
+          { text: '2', correct: true },
+          { text: '3', why: 'The inner lists each count as one item.' }
+        ],
+        explain: 'The outer list holds two items: [1, 2] and [3].'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `nums = [3, 1, 2]
+print(sorted(nums)[0])`,
+        display: '1',
+        answers: ['1'],
+        nudge: 'Not quite. sorted() gives a list in order; then take its first item.',
+        explain: 'sorted gives [1, 2, 3], and its first item is 1.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `items = ["a", "b"]
+items.append("c")
+print(items + "d")`,
+        line: 3,
+        errors: true,
+        explain: 'Line 3 joins a list and a string with +, which Python won\'t do, so it stops with a TypeError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>c</code>.',
+        code: `letters = ["a", "b", "c"]
+print(letters[___])`,
+        target: 'c',
+        options: [
+          { text: '-1', correct: true },
+          { text: '1', why: 'letters[1] is b.' },
+          { text: '3', why: 'There are only positions 0 to 2, so this stops with an IndexError.' }
+        ],
+        explain: '-1 is the last item, c.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `a = [1, 2, 3]
+b = a
+b[0] = 9
+print(a[0])`,
+        display: '9',
+        answers: ['9'],
+        nudge: 'Not quite. a and b are two names for the same list.',
+        explain: 'b is the same list as a, so changing b[0] changes a[0] too.'
+      }
     ]
   }
 });
