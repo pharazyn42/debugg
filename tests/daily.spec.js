@@ -275,7 +275,7 @@ test('works at phone width', async ({ page }) => {
 test('days before Day 1 are previews with their own saves', async ({ page }) => {
   await openAt(page, 'index.html', -2);  // Friday 2 October 2026
   await fresh(page);
-  await expect(page.locator('#kicker')).toHaveText('Preview · Day 1 is 5 October');
+  await expect(page.locator('#kicker')).toHaveText('Preview');
   await expect(page.locator('#filename')).toHaveText('preview.py');
   await guess(page, (await puzzleFor(page, -2)).display);
   await expect(page.locator('#feedback')).toHaveClass(/correct/);

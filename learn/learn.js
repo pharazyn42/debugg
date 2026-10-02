@@ -606,6 +606,7 @@ window.DebuggLearn = (function(){
     const l = pickLang();
     if(l !== lang || !session){ lang = l; renderLangs(); renderMap(); focusUnit(); }
   });
+  $('backupLink').addEventListener('click', () => window.DebuggBackup.open());
   $('resetLearn').addEventListener('click', e => {
     e.preventDefault();
     if(!confirm('Reset all your Learn progress: lessons, stars, Learn XP and the Learn streak? Daily puzzles aren’t affected.')) return;

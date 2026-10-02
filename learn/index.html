@@ -235,7 +235,7 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="./" id="learnTab" aria-current="page">Learn</a><a class="lang-tab" href="../index.html" id="dailyTab">Daily <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="../index.html?ltd" id="ltdTab">Ltd <span class="demo-tag">(demo)</span></a></nav>
+    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="./" id="learnTab" aria-current="page" title="Learn to code">debugg.learn()</a><a class="lang-tab" href="../index.html" id="dailyTab" title="The daily puzzle">debugg(it) <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="../index.html?ltd" id="ltdTab" title="The studio game">debugg.ltd() <span class="demo-tag">(demo)</span></a></nav>
     <div class="brand"><img class="mascot-logo" src="../img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="./" aria-label="Debuggit Learn">debugg.learn()</a></div>
     <h1 id="title">Learn</h1>
     <p class="sub" id="sub"></p>
@@ -247,15 +247,19 @@
 
   <footer>
     <div>Learn has its own XP and streak, separate from the daily puzzles. Demo progress resets when v0.1 comes out.</div>
-    <div class="footer-links"><a href="../index.html">daily puzzle</a> · <a href="../index.html?ltd">Debuggit Ltd</a> · <a href="sandbox.html">sandbox</a> ·
-      <a href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">feedback</a> ·
-      <a href="../privacy.html">privacy</a> · <a href="#" id="resetLearn">reset Learn progress</a></div>
+    <div class="footer-actions">
+      <button class="btn-ghost save-btn" id="backupLink" type="button" title="Keep a code that brings your progress back on any device">Save progress</button>
+      <a class="btn-ghost" href="sandbox.html">Sandbox</a>
+      <a class="btn-ghost" href="https://github.com/pharazyn42/debugg/issues/new" target="_blank" rel="noopener" title="Opens a public GitHub issue">Feedback</a>
+    </div>
+    <div class="footer-links"><a href="../privacy.html">privacy</a> · <a href="#" id="resetLearn">reset Learn progress</a></div>
     <div class="app-version" id="appVersion"></div>
   </footer>
 </div>
 
 <script src="../shared.js"></script>
 <script src="../analytics.js"></script>
+<script src="../backup.js"></script>
 <script src="courses.js"></script>
 <script src="python/01-values.js"></script>
 <script src="python/02-strings.js"></script>
