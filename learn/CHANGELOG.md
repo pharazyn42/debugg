@@ -7,6 +7,10 @@ one for fixes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.11 — 2 October 2026
+
 - Learn now has the same row of buttons at the top as the game (`debugg.learn()`, `debugg(it)` (demo) and `debugg.ltd()` (demo)), in place of the "← Debuggit" link and the links to the daily and Ltd at the bottom.
 - **Save progress** is now a button at the bottom of Learn too, beside Sandbox and Feedback, so you can back up and restore your progress from here.
 

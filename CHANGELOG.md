@@ -9,6 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.7 — 2 October 2026
+
 - Debuggit, Debuggit Ltd and Debuggit Learn now share one row of buttons at the top of each page, named after each one's logo: `debugg.learn()`, `debugg(it)` and `debugg.ltd()`. The daily and Ltd are marked **(demo)** until their own launch, so the links to the other products at the bottom of the page are gone.
 - The first line above the puzzle no longer says when Day 1 is: there's no release date yet, so it just says it's a demo preview.
 - **Save progress** is now a button at the bottom of the page, beside Sandbox and Feedback, instead of a small "backup" link.
