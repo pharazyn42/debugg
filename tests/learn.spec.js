@@ -727,3 +727,42 @@ test('mixed practice draws across the passed units, and a reload keeps the set',
   await expect(page.locator('#summary h2')).toHaveText('Mixed practice done');
   expect((await learnSave(page)).review).toHaveLength(1);
 });
+
+test('units fold away, Collapse all / Expand all work, and the choice is remembered', async ({ page }) => {
+  // With one open unit there is nothing to fold all of.
+  await expect(page.locator('#foldAll')).toHaveCount(0);
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    s.checkpoints = { 'python/values': { passed: true, best: 8 }, 'python/strings': { passed: true, best: 8 } };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await openAt(page, 'learn/');
+  const values = page.locator('.unit[data-unit=values]');
+  const strings = page.locator('.unit[data-unit=strings]');
+  await expect(values.locator('.lessons')).toBeVisible();
+  await values.locator('.unit-toggle').click();
+  await expect(values).toHaveClass(/collapsed/);
+  await expect(values.locator('.unit-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(values.locator('.lessons')).toBeHidden();
+  await expect(values.locator('h2')).toBeVisible();
+  await expect(strings.locator('.lessons')).toBeVisible();
+  // Collapse all folds the rest; the button then offers Expand all.
+  await expect(page.locator('#foldAll')).toHaveText('Collapse all');
+  await page.click('#foldAll');
+  await expect(strings).toHaveClass(/collapsed/);
+  await expect(page.locator('.unit.locked.collapsed')).toHaveCount(0);
+  await expect(page.locator('#foldAll')).toHaveText('Expand all');
+  // It is remembered across a reload.
+  await page.reload();
+  await expect(values).toHaveClass(/collapsed/);
+  await expect(page.locator('#foldAll')).toHaveText('Expand all');
+  await page.click('#foldAll');
+  await expect(values).not.toHaveClass(/collapsed/);
+  await expect(strings).not.toHaveClass(/collapsed/);
+  await expect(page.locator('#foldAll')).toHaveText('Collapse all');
+  // A link to a folded unit opens it.
+  await strings.locator('.unit-toggle').click();
+  await page.goto('learn/#python/strings');
+  await page.reload();
+  await expect(strings).not.toHaveClass(/collapsed/);
+});

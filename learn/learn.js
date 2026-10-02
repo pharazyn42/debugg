@@ -15,6 +15,7 @@ window.DebuggLearn = (function(){
   const L = window.DEBUGG_LEARN;
   const SAVE_KEY = 'debugg-learn';
   const SESSION_KEY = 'debugg-learn-session';
+  const COLLAPSED_KEY = 'debugg-learn-collapsed';   // which units are folded on the map: a per-device convenience
   const LESSON_XP = 10;       // for finishing a lesson the first time
   const STAR_XP = 5;          // per star, paid again only for stars beyond your best
   const CHECKPOINT_XP = 30;   // for passing a checkpoint the first time
@@ -61,11 +62,30 @@ window.DebuggLearn = (function(){
     const h = location.hash.slice(1).split('/')[0];
     return L.courses[h] ? h : langs[0];
   }
+  function readCollapsed(){
+    try{ const c = JSON.parse(localStorage.getItem(COLLAPSED_KEY)); if(c && typeof c === 'object') return c; }catch(e){}
+    return {};
+  }
+  function writeCollapsed(c){ try{ localStorage.setItem(COLLAPSED_KEY, JSON.stringify(c)); }catch(e){} }
+  // The Collapse all / Expand all button says what it will do next.
+  function syncFoldAll(){
+    const btn = document.getElementById('foldAll');
+    if(!btn) return;
+    const units = [...document.querySelectorAll('.unit:not(.locked):not(.planned)')];
+    btn.textContent = units.some(el => !el.classList.contains('collapsed')) ? 'Collapse all' : 'Expand all';
+  }
+  function setFolded(el, folded){
+    el.classList.toggle('collapsed', folded);
+    const t = el.querySelector('.unit-toggle');
+    if(t) t.setAttribute('aria-expanded', folded ? 'false' : 'true');
+  }
   function focusUnit(){
     const id = location.hash.slice(1).split('/')[1];
     const el = id && document.querySelector('.unit[data-unit="' + CSS.escape(id) + '"]');
     if(!el) return;
     el.classList.add('focus');
+    setFolded(el, false);  // a link to a unit shows it open
+    syncFoldAll();
     el.scrollIntoView({ block: 'start' });
   }
   let lang = pickLang();
@@ -212,14 +232,19 @@ window.DebuggLearn = (function(){
     renderStats();
     const units = unitsOf(lang);
     let html = continueHTML();
+    const folded = readCollapsed();
+    if(units.filter(unitOpen).length >= 2)
+      html += '<div class="map-tools"><button class="btn-ghost btn-small" id="foldAll" data-action="fold-all">Collapse all</button></div>';
     units.forEach((u, ui) => {
       const open = unitOpen(u);
       const passed = unitPassed(u);
       const allDone = u.lessons.every(les => lessonDone(u, les));
-      html += '<section class="unit' + (open ? '' : ' locked') + (passed ? ' passed' : '') + '" data-unit="' + u.id + '">' +
+      const isFolded = open && !!folded[unitKey(u)];
+      html += '<section class="unit' + (open ? '' : ' locked') + (passed ? ' passed' : '') + (isFolded ? ' collapsed' : '') + '" data-unit="' + u.id + '">' +
         '<div class="unit-head"><span class="unit-num">Unit ' + (ui + 1) + '</span>' +
         (passed ? '<span class="unit-badge">✓ passed</span>' : '') + '</div>' +
-        '<h2>' + esc(u.title) + '</h2><p class="unit-summary">' + esc(u.summary) + '</p>';
+        '<h2>' + (open ? '<button class="unit-toggle" data-action="fold-unit" data-unit="' + u.id + '" aria-expanded="' + (isFolded ? 'false' : 'true') + '">' +
+          esc(u.title) + '</button>' : esc(u.title)) + '</h2><p class="unit-summary">' + esc(u.summary) + '</p>';
       if(!open){
         html += '<p class="unit-lock">Pass Unit ' + ui + '’s checkpoint to unlock.</p></section>';
         return;
@@ -256,6 +281,7 @@ window.DebuggLearn = (function(){
       (s.planned || []).forEach(title => { html += planned(title); });
     });
     $('view').innerHTML = html;
+    syncFoldAll();
   }
 
   // --- Lessons and checkpoints ------------------------------------------------------------------
@@ -670,6 +696,20 @@ window.DebuggLearn = (function(){
     const btn = e.target.closest('[data-action]');
     if(!btn || btn.disabled) return;
     const a = btn.dataset.action;
+    // Folding units only changes the map in place: no jump to the top.
+    if(a === 'fold-unit' || a === 'fold-all'){
+      const folded = readCollapsed();
+      const els = a === 'fold-unit' ? [btn.closest('.unit')] : [...document.querySelectorAll('.unit:not(.locked):not(.planned)')];
+      const fold = a === 'fold-unit' ? !els[0].classList.contains('collapsed') : els.some(el => !el.classList.contains('collapsed'));
+      els.forEach(el => {
+        setFolded(el, fold);
+        const u = unitById(el.dataset.unit);
+        if(fold) folded[unitKey(u)] = true; else delete folded[unitKey(u)];
+      });
+      writeCollapsed(folded);
+      syncFoldAll();
+      return;
+    }
     if(a === 'lesson'){
       const u = unitById(btn.dataset.unit);
       startLesson(u, u.lessons.find(l => l.id === btn.dataset.lesson));
