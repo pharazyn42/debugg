@@ -103,7 +103,9 @@ test('the Continue card starts the next lesson or checkpoint in one tap', async 
   await page.reload();
   await expect(card.locator('.continue-label')).toHaveText('All caught up');
   await expect(card).toContainText('Next up: The classic traps, coming soon.');
-  await expect(card.locator('button')).toHaveCount(0);
+  // Nothing left to continue; the only button is mixed practice.
+  await expect(card.locator('button')).toHaveCount(1);
+  await expect(card.locator('#mixedBtn')).toBeVisible();
   // A coming-soon course has no card.
   await page.goto('learn/#c');
   await expect(page.locator('h1')).toHaveText('Learn C');
