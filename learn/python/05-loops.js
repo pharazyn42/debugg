@@ -21,9 +21,9 @@ window.DEBUGG_LEARN.units.push({
           type: 'teach',
           title: 'Strings too',
           text: `A <code>for</code> loop over a string gives you one character at a time.`,
-          code: `for ch in "duck":
+          code: `for ch in "kiwi":
     print(ch)`,
-          output: 'd\nu\nc\nk'
+          output: 'k\ni\nw\ni'
         },
         {
           type: 'teach',

@@ -63,12 +63,12 @@ print("5" == 5)`,
         {
           type: 'predict',
           question: 'What does this print?',
-          code: `word = "duck"
-print(word == "Duck", len(word) == 4)`,
+          code: `word = "kiwi"
+print(word == "Kiwi", len(word) == 4)`,
           display: 'False True',
           answers: ['False True'],
           nudge: 'Not quite. Check the capital letter, then count the characters.',
-          explain: `"duck" and "Duck" differ in their first letter, so that's False. "duck" has 4 characters, so the second is True.`
+          explain: `"kiwi" and "Kiwi" differ in their first letter, so that's False. "kiwi" has 4 characters, so the second is True.`
         },
         {
           type: 'blank',

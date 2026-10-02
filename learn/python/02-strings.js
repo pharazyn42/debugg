@@ -13,10 +13,10 @@ window.DEBUGG_LEARN.units.push({
           type: 'teach',
           title: 'Every character has a position',
           text: `A string is a row of characters, and each one has a position called its <b>index</b>. Counting starts at <b>0</b>, not 1. Put the index in square brackets to get that character.`,
-          code: `word = "duck"
+          code: `word = "kiwi"
 print(word[0])
 print(word[3])`,
-          output: 'd\nk'
+          output: 'k\ni'
         },
         {
           type: 'choice',
@@ -52,21 +52,21 @@ print(len(word), word[5])`,
           type: 'teach',
           title: 'Counting from the end',
           text: `A negative index counts back from the end: <code>[-1]</code> is the last character, <code>[-2]</code> the one before. It's handy when you don't know how long the string is.`,
-          code: `word = "quack"
+          code: `word = "feather"
 print(word[-1])
 print(word[-2])`,
-          output: 'k\nc'
+          output: 'r\ne'
         },
         {
           type: 'blank',
           question: 'Pick what goes in the gap so this prints <code>k</code>.',
-          code: `word = "duck"
+          code: `word = "beak"
 print(word[___])`,
           target: 'k',
           options: [
             { text: '-1', correct: true },
-            { text: '4', why: `"duck" has indexes 0 to 3. Index 4 is past the end, which is an error.` },
-            { text: '1', why: `Index 1 is the second character, u.` }
+            { text: '4', why: `"beak" has indexes 0 to 3. Index 4 is past the end, which is an error.` },
+            { text: '1', why: `Index 1 is the second character, e.` }
           ],
           explain: `-1 always means the last character, whatever the length.`
         },
@@ -230,14 +230,14 @@ print("banana".count("a"))`,
         {
           type: 'blank',
           question: 'Pick what goes in the gap so this prints <code>True</code>.',
-          code: `print("duck" ___ "rubber duck")`,
+          code: `print("kiwi" ___ "baby kiwi")`,
           target: 'True',
           options: [
             { text: 'in', correct: true },
             { text: '==', why: `== asks whether the two strings are exactly equal, and they aren't, so it prints False.` },
-            { text: '+', why: `+ joins the strings, printing "duckrubber duck".` }
+            { text: '+', why: `+ joins the strings, printing "kiwibaby kiwi".` }
           ],
-          explain: `"duck" appears inside "rubber duck", so "duck" in "rubber duck" is True.`
+          explain: `"kiwi" appears inside "baby kiwi", so "kiwi" in "baby kiwi" is True.`
         },
         {
           type: 'line',
