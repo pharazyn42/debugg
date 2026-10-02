@@ -690,7 +690,9 @@ test('a passed unit offers practice: wrong answers come back until right, and jo
   await expect(page.locator('#summary h2')).toHaveText('Practice done');
   const save = await learnSave(page);
   expect(save.review).toHaveLength(1);
-  expect(save.xp.python || 0).toBe(0);
+  // 7 of the 8 were right first time, at 2 XP each, like a review.
+  expect(save.xp.python).toBe(14);
+  await expect(page.locator('#summary')).toContainText('+14 XP');
   // Practice again draws a different set from the pool of 24.
   await page.click('#summary [data-action=practice]');
   await expect(page.locator('#title')).toHaveText('Practice');
