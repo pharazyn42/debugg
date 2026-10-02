@@ -11,7 +11,12 @@ in play and the day each joins. A new language only gets the easy days (Monday a
 first two weeks, then takes its turn at every difficulty, shifting one day along each week. Within its
 days, a language uses its puzzles in the order they appear in its file: each day takes the first unused
 puzzle of that weekday's difficulty (Monday 1 up to Friday 5; the weekend gets a 5), or the nearest
-difficulty if none is left. Once all of a language's puzzles are used, they start over.
+difficulty if none is left. **A puzzle is never served twice** while its language has an unused one, and the
+puzzles shown on the preview days (the last two weeks before Day 1) count as already served. If a language ever
+had none left, the schedule would start again from the top, as a last resort. `npm run check-puzzles` stops that
+reaching players: it fails if two puzzles of a language have the same code, or if the first day that would repeat is
+less than 30 days away (`MIN_FRESH_DAYS`), and it prints the last day with a fresh puzzle. When it starts failing,
+write more puzzles, at the end of the files.
 
 So add new puzzles to the **end** of a file: that only changes days that would otherwise have fallen
 back to another difficulty. (Adding an output puzzle also moves the preview days, which count back from

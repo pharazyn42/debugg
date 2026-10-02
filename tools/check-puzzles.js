@@ -326,6 +326,45 @@ function traceEndsRight(p, end){
   return end.out === p.display + '\n';
 }
 
+// The schedule must never serve a puzzle twice (shared.js, "scheduled"). Two checks:
+//  - no two puzzles of a language have the same code (ignoring spacing), and
+//  - the stock lasts: the first day the schedule would have to reuse a puzzle must be at least
+//    MIN_FRESH_DAYS after today (or after Day 1, if that's later), so the next batch gets written long
+//    before the stock runs out. This one fails once the date draws near, on purpose.
+const MIN_FRESH_DAYS = 30;
+function checkSchedule(ctx){
+  const D = ctx.Debugg;
+  const lines = [];
+  let failed = 0;
+  const seen = new Map();
+  ctx.DEBUGG_PUZZLES.forEach(p => {
+    const key = p.lang + '|' + p.code.split('\n').map(l => l.trim().replace(/\s+/g, ' ')).join('\n').trim();
+    if(seen.has(key)){
+      failed++;
+      lines.push('✗ two ' + p.lang + ' puzzles have the same code: ' + JSON.stringify(p.code.split('\n')[0]));
+    }
+    seen.set(key, true);
+  });
+  const dayMs = 24 * 60 * 60 * 1000;
+  const day1 = D.launchDate();
+  const repeat = D.firstRepeatDay();
+  const startOfFresh = new Date(Math.max(Date.now(), day1.getTime()));
+  const need = new Date(startOfFresh.getTime() + MIN_FRESH_DAYS * dayMs);
+  if(!repeat){
+    lines.push('No puzzle repeats for at least 1000 days.');
+  }else{
+    const when = new Date(day1.getTime() + (repeat.day - 1) * dayMs);
+    const text = 'Fresh puzzles last until Day ' + (repeat.day - 1) + ' (' + new Date(when.getTime() - dayMs).toDateString() +
+      '); Day ' + repeat.day + ' (' + when.toDateString() + ') would repeat a ' + repeat.lang + ' puzzle.';
+    if(when < need){
+      failed++;
+      lines.push('✗ ' + text + '\n    That is less than ' + MIN_FRESH_DAYS + ' days away. Write more ' + repeat.lang +
+        ' puzzles (see puzzles/README.md, and add them to the end of the file) so no puzzle is served twice.');
+    }else lines.push(text);
+  }
+  return { failed, lines };
+}
+
 function main(){
   const ctx = loadGame();
   const D = global.D = ctx.Debugg;
@@ -390,11 +429,13 @@ function main(){
   console.log('\nPuzzles: ' + (puzzles.length - failed - skipped) + ' passed' + (failed ? ', ' + failed + ' failed' : '') +
     (skipped ? ', ' + skipped + ' skipped (toolchain missing)' : '') + '.');
 
+  const sched = only.length ? { failed: 0, lines: [] } : checkSchedule(ctx);
+  if(sched.lines.length) console.log('\nSchedule:\n  ' + sched.lines.join('\n  '));
   const learn = checkLearn(ctx, only);
   console.log('\nLearn courses:\n' + learn.summary.join('\n'));
   console.log('\nLearn: ' + (learn.steps - learn.failed) + ' of ' + learn.steps + ' steps passed.');
   fs.rmSync(TMP, { recursive: true, force: true });
-  process.exit(failed || learn.failed ? 1 : 0);
+  process.exit(failed || learn.failed || sched.failed ? 1 : 0);
 }
 
 main();
