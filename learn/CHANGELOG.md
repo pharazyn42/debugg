@@ -7,7 +7,7 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- Units on the course map can be folded away to save space: tap a unit's title to collapse or expand it, or use **Collapse all** / **Expand all** above the list. Learn remembers which ones you folded on that device.
 
 ## 0.0.12 — 2 October 2026
 
