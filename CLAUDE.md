@@ -2,8 +2,9 @@
 
 The game is called **Debuggit** (September 2026; see item 2c). The code, the repository, the
 `debugg-*` save keys and `window.Debugg` keep the old spelling, and "Debugg" below means the
-same game. Its logo is a wordmark, "debug it" as a line of code in the day's puzzle language
-(`renderWordmark()` in `shared.js`).
+same game. Its wordmark is "debug it" as a line of code in the day's puzzle language
+(`wordmarkFor()` in `shared.js`), used by the share text and picture; the pages show no wordmark of
+their own, since the top buttons name them, except the sandbox, whose heading is `debuggit.run()`.
 
 Context for continuing work on this repo. **Debugg** is the daily puzzle game:
 read a short Python or JavaScript snippet and guess what it prints. **Debugg
@@ -65,7 +66,7 @@ streak }`) when a game ends, but nothing listens to it now.
 **Two areas: the game and Learn** (split September 2026, the player-owner's call). The game is the
 daily puzzle and Debuggit Ltd, with **Daily | Ltd** tabs on `index.html`. **Debuggit Learn** is its
 own section at `learn/`; every page of the two areas shows the same top row of three buttons named for
-the products (not the logos, which keep the wordmarks), `debuggit.learn()`, `debuggit.daily()` (demo) and `debuggit.ltd()` (demo), so there are no product
+the products, `debuggit.learn()`, `debuggit.daily()` (demo) and `debuggit.ltd()` (demo), so there are no product
 links in the footers; it's the same site, so
 saves, XP levels and the backup code are shared. The game links into Learn from the top row, the
 Director's languages on the Ltd card (`a.learn-lang`, for courses that

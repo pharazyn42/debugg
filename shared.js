@@ -377,21 +377,22 @@ window.Debugg = (function(){
   }
 
   // --- The wordmark ---------------------------------------------------------------
-  // The game is called Debuggit, and its logo is a line of code: "debug it" written in the day's
-  // puzzle language, so the header changes with the rotation. Each page (Learn, the sandbox, the
-  // studio) has its own method on it. It's coloured by the same highlighter as the puzzles.
+  // The game is called Debuggit, and its wordmark is a line of code: "debug it" written in the day's
+  // puzzle language, which starts the share text and picture. The sandbox's heading is `debuggit.run()`;
+  // the other pages are named by the buttons at the top, so they have no wordmark of their own.
+  // It's coloured by the same highlighter as the puzzles.
   const NAME = 'Debuggit';
   const WORDMARKS = {
     python:     { code: 'debugg(it)',   lang: 'python' },
     javascript: { code: 'debugg.it()',  lang: 'javascript' },
     c:          { code: 'debugg(&it);', lang: 'c' },
     rust:       { code: 'debugg!(it)',  lang: 'rust' },
-    learn:      { code: 'debugg.learn()', lang: 'javascript', label: NAME + ' Learn' },
-    sandbox:    { code: 'debugg.run()', lang: 'javascript', label: NAME + ' Sandbox' },
-    ltd:        { code: 'debugg.ltd()', lang: 'javascript', label: NAME + ' Ltd' }
+    sandbox:    { code: 'debuggit.run()', lang: 'javascript', label: NAME + ' Sandbox' }
   };
-  // Fills `el` with the wordmark for a language or page ('python', 'learn', …; anything else gets
-  // the default, debugg.it()). Screen readers hear the plain name.
+  // The wordmark's text for a language or page ('python', 'sandbox'; anything else gets the default,
+  // debugg.it()), for the share card (no page element needed).
+  function wordmarkFor(which){ return (WORDMARKS[which] || WORDMARKS.javascript).code; }
+  // Fills `el` with the wordmark for a language or page. Screen readers hear the plain name.
   function renderWordmark(el, which){
     const w = WORDMARKS[which] || WORDMARKS.javascript;
     el.innerHTML = '<span aria-hidden="true">' + highlight(w.code, w.lang) + '</span>';
@@ -437,7 +438,7 @@ window.Debugg = (function(){
   }
   function markVersionSeen(product = 'daily'){ try{ localStorage.setItem(PRODUCTS[product].seen, PRODUCTS[product].version); }catch(e){} }
 
-  return { NAME, APP_VERSION, LTD_VERSION, LEARN_VERSION, PRODUCTS, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
+  return { NAME, APP_VERSION, LTD_VERSION, LEARN_VERSION, PRODUCTS, renderVersion, markVersionSeen, renderWordmark, wordmarkFor, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
            dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, firstRepeatDay, codeId, FORMATS, formatOf, formatFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };
