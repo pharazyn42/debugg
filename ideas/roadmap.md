@@ -532,7 +532,7 @@ comprehensions wait for Part 2, with the list ones. Decided with the player-owne
     DEV badge and redirect page) and a **custom domain** (after the domain and trademark checks
     in 2c) both happen before the launch, so launch progress is never lost to a later move.
   - Then a phone and desktop check on the new site, and `node tools/release.js learn bump 0.1.0`.
-- **After the launch, Python's next parts** (proposed): Part 2, intermediate (tuples and sets;
+- **After the launch, Python's next parts** (proposed; Part 2 is already on the map as a "coming soon" teaser, a `sections` entry in `learn/courses.js` with units *Tuples and sets*, *Looping tools*, *Comprehensions*, *More on functions*, *Working with text* and *Errors and exceptions*, which move into `files` as they're written): Part 2, intermediate (tuples and sets;
   `enumerate`/`zip`/`for…else`; comprehensions; `*args`, `**kwargs`, `lambda` and keys; string
   formatting and `split`/`join`; errors and exceptions) as Learn 0.2; then Part 3, objects
   (classes, class vs instance attributes, inheritance, special methods) and Part 4, advanced
