@@ -409,9 +409,10 @@ test('Unit 7, Dictionaries, opens once Unit 6’s checkpoint is passed', async (
   }
   await expect(unit).not.toHaveClass(/locked/);
   const rows = unit.locator('.lesson-row');
-  await expect(rows).toHaveCount(5);
+  await expect(rows).toHaveCount(6);
   await expect(rows.nth(0)).toContainText('Keys and values');
   await expect(rows.nth(3)).toContainText('Looping over a dictionary');
+  await expect(rows.nth(4)).toContainText('Nesting and converting');
   await page.click('[data-action=lesson][data-lesson=make]');
   await finishAll(page);
   await expect(page.locator('#summary .big-stars')).toHaveText('★★★');

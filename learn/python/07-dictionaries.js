@@ -3,7 +3,7 @@ window.DEBUGG_LEARN.units.push({
   lang: 'python',
   id: 'dictionaries',
   title: 'Dictionaries',
-  summary: 'Store values under names instead of positions: making dictionaries, looking things up, changing them, and looping over them.',
+  summary: 'Store values under names instead of positions: making dictionaries, looking things up, changing and merging them, looping over them, nesting them, and converting to and from lists.',
   lessons: [
     {
       id: 'make',
@@ -132,6 +132,29 @@ print(d)`,
         },
         {
           type: 'teach',
+          title: 'Merging with update',
+          text: `<code>update()</code> copies in all the pairs from another dictionary. New keys are added, and keys that already exist take the new value.`,
+          code: `a = {"x": 1, "y": 2}
+a.update({"y": 20, "z": 30})
+print(a)`,
+          output: "{'x': 1, 'y': 20, 'z': 30}"
+        },
+        {
+          type: 'choice',
+          asks: 'output',
+          question: 'What does this print?',
+          code: `d = {"a": 1, "b": 2}
+d.update({"b": 5, "c": 6})
+print(d)`,
+          options: [
+            { text: "{'a': 1, 'b': 5, 'c': 6}", correct: true },
+            { text: "{'a': 1, 'b': 2, 'c': 6}", why: `"b" is in both dictionaries, and update() lets the new value win: 5, not 2.` },
+            { text: "{'b': 5, 'c': 6}", why: `update() only adds to a dictionary. Pairs it isn't given, like "a", stay where they are.` }
+          ],
+          explain: `"c" is added, "b" is replaced by 5, and "a" is left alone.`
+        },
+        {
+          type: 'teach',
           title: 'Removing a pair',
           text: `<code>del</code> removes a key and its value.`,
           code: `d = {"a": 1, "b": 2}
@@ -256,6 +279,31 @@ print(stock.get("pears"))`,
           code: `stock = {"apples": 3}
 print(stock.get("pears", 0))`,
           output: '0'
+        },
+        {
+          type: 'teach',
+          title: 'setdefault',
+          text: `<code>setdefault(key, value)</code> gives back the key's value. If the key is missing, it first <b>adds</b> it with the value you give. A key that's already there is left alone.`,
+          code: `d = {"a": 1}
+print(d.setdefault("a", 9))
+print(d.setdefault("b", 9))
+print(d)`,
+          output: "1\n9\n{'a': 1, 'b': 9}"
+        },
+        {
+          type: 'choice',
+          asks: 'output',
+          question: 'What does this print?',
+          code: `d = {"a": 1}
+d.setdefault("a", 9)
+d.setdefault("b", 9)
+print(d)`,
+          options: [
+            { text: "{'a': 1, 'b': 9}", correct: true },
+            { text: "{'a': 9, 'b': 9}", why: `setdefault never changes a key that's already there, so "a" stays 1.` },
+            { text: "{'a': 1}", why: `"b" is missing, so setdefault adds it with 9. Unlike get(), it changes the dictionary.` }
+          ],
+          explain: `"a" exists, so it's left as 1. "b" doesn't, so it's added with 9.`
         },
         {
           type: 'predict',
@@ -401,6 +449,124 @@ print(seen)`,
           explain: `The first time round, "h" isn't a key yet, so seen["h"] on line 3 is a KeyError. Use seen.get(ch, 0) to start from 0.`
         }
       ]
+    },
+    {
+      id: 'nested',
+      title: 'Nesting and converting',
+      steps: [
+        {
+          type: 'teach',
+          title: 'A dictionary in a dictionary',
+          text: `A value can be anything, including another dictionary. To reach inside, look up one key after another: the first gives the inner dictionary, and the second looks in that.`,
+          code: `pets = {
+    "kiwi": {"legs": 2},
+    "cat": {"legs": 4}
+}
+print(pets["cat"]["legs"])`,
+          output: '4'
+        },
+        {
+          type: 'choice',
+          asks: 'output',
+          question: 'What does this print?',
+          code: `zoo = {
+    "emu": {"legs": 2, "age": 7},
+    "ant": {"legs": 6, "age": 1}
+}
+print(zoo["ant"]["legs"])`,
+          options: [
+            { text: '6', correct: true },
+            { text: '1', why: `1 is the ant's age. The second key asked for "legs".` },
+            { text: '2', why: `2 is the emu's legs. The first key picked "ant", not "emu".` }
+          ],
+          explain: `zoo["ant"] is the ant's dictionary, and ["legs"] looks up its legs: 6.`
+        },
+        {
+          type: 'teach',
+          title: 'Changing inside',
+          text: `Assign to a nested key the same way. You can also add a whole new inner dictionary.`,
+          code: `zoo = {"emu": {"legs": 2}}
+zoo["emu"]["legs"] = 3
+zoo["ant"] = {"legs": 6}
+print(zoo)`,
+          output: "{'emu': {'legs': 3}, 'ant': {'legs': 6}}"
+        },
+        {
+          type: 'predict',
+          question: 'What does this print?',
+          code: `d = {"a": {"x": 1}, "b": {"x": 5}}
+print(d["a"]["x"] + d["b"]["x"])`,
+          display: '6',
+          answers: ['6'],
+          nudge: 'Not quite. Each part reaches into a different inner dictionary.',
+          explain: `d["a"]["x"] is 1 and d["b"]["x"] is 5, so it prints 1 + 5 = 6.`
+        },
+        {
+          type: 'line',
+          question: 'This program stops with an error. Tap the line that causes it.',
+          code: `d = {"a": {"x": 1}}
+print(d["a"]["x"])
+print(d["b"]["x"])`,
+          line: 3,
+          errors: true,
+          explain: `"b" isn't a key in d, so the first lookup on line 3 is a KeyError, before ["x"] is even tried.`
+        },
+        {
+          type: 'teach',
+          title: 'From dictionary to list',
+          text: `<code>list()</code> turns a dictionary's keys into a list, the same as <code>list(d.keys())</code>. For the values, use <code>list(d.values())</code>. And <code>sorted()</code> gives the keys in order.`,
+          code: `legs = {"kiwi": 2, "cat": 4}
+print(list(legs))
+print(list(legs.keys()))
+print(list(legs.values()))`,
+          output: "['kiwi', 'cat']\n['kiwi', 'cat']\n[2, 4]"
+        },
+        {
+          type: 'choice',
+          asks: 'output',
+          question: 'What does this print?',
+          code: `d = {"b": 2, "a": 1}
+print(sorted(d))`,
+          options: [
+            { text: "['a', 'b']", correct: true },
+            { text: "['b', 'a']", why: `That's the order the keys were added in. sorted() puts them in order: "a" first.` },
+            { text: '[1, 2]', why: `sorted(d) sorts the keys, not the values.` }
+          ],
+          explain: `sorted() on a dictionary sorts its keys, giving ['a', 'b'].`
+        },
+        {
+          type: 'teach',
+          title: 'From list to dictionary',
+          text: `To go the other way, loop over a list and add a pair for each item.`,
+          code: `names = ["kiwi", "cat"]
+d = {}
+for name in names:
+    d[name] = len(name)
+print(d)`,
+          output: "{'kiwi': 4, 'cat': 3}"
+        },
+        {
+          type: 'teach',
+          title: 'Two lists into one',
+          text: `<code>zip()</code> pairs two lists up item by item, and <code>dict()</code> turns those pairs into a dictionary. The first list gives the keys and the second gives the values.`,
+          code: `names = ["kiwi", "cat"]
+legs = [2, 4]
+print(dict(zip(names, legs)))`,
+          output: "{'kiwi': 2, 'cat': 4}"
+        },
+        {
+          type: 'predict',
+          question: 'What does this print?',
+          code: `ks = ["a", "b"]
+vs = [10, 20]
+d = dict(zip(ks, vs))
+print(d["b"])`,
+          display: '20',
+          answers: ['20'],
+          nudge: 'Not quite. The two lists are paired up in order: "a" with 10, "b" with 20.',
+          explain: `zip pairs "a" with 10 and "b" with 20, so d["b"] is 20.`
+        }
+      ]
     }
   ],
   checkpoint: {
@@ -410,25 +576,24 @@ print(seen)`,
         type: 'choice',
         asks: 'output',
         question: 'What does this print?',
-        code: `d = {"a": 1, "b": 2}
-print(d["b"] * 10)`,
+        code: `d = {"a": {"x": 1}, "b": {"x": 2}}
+print(d["b"]["x"])`,
         options: [
-          { text: '20', correct: true },
-          { text: '10', why: `d["b"] is 2, not 1. That's the value for "a".` },
-          { text: 'bbbbbbbbbb', why: `"b" is the key. The lookup gives its value, 2, and that's what is multiplied.` }
+          { text: '2', correct: true },
+          { text: '1', why: `1 is the "x" inside "a". The first key picks "b".` },
+          { text: "{'x': 2}", why: `d["b"] alone would give that inner dictionary, but the second lookup, ["x"], goes inside it.` }
         ],
-        explain: `d["b"] is 2, and 2 * 10 is 20.`
+        explain: `d["b"] is {"x": 2}, and ["x"] looks up 2 inside it.`
       },
       {
         type: 'predict',
         question: 'What does this print?',
-        code: `d = {"x": 5}
-d["y"] = 7
-print(len(d), d["x"] + d["y"])`,
-        display: '2 12',
-        answers: ['2 12'],
-        nudge: 'Not quite. Assigning to a new key adds a pair.',
-        explain: `"y" is added, so there are 2 pairs, and 5 + 7 is 12.`
+        code: `d = dict(zip(["a", "b"], [1, 2]))
+print(d["a"], len(d))`,
+        display: '1 2',
+        answers: ['1 2'],
+        nudge: 'Not quite. zip pairs the keys with the values in order.',
+        explain: `zip pairs "a" with 1 and "b" with 2, so d["a"] is 1 and there are 2 pairs.`
       },
       {
         type: 'choice',

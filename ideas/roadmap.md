@@ -468,9 +468,11 @@ and its stop, `while` and ending it, `break`/`continue`, building lists; 4 lesso
 checkpoint, 37 steps), and Unit 6, *Functions* (`learn/python/06-functions.js`: `def` and calling,
 parameters, `return` vs `print` and `None`, defaults and keyword arguments, local variables and
 lists passed in; 4 lessons and a checkpoint, 37 steps), and Unit 7, *Dictionaries*
-(`learn/python/07-dictionaries.js`: keys and values and `KeyError`, adding, updating and removing
-pairs, `in`, `get()` and its fallback, looping with `items()` and `values()`, counting with a
-dictionary; 4 lessons and a checkpoint, 42 steps). Decided with the player-owner, replacing parts of the sketch below:
+(`learn/python/07-dictionaries.js`: keys and values and `KeyError`, adding, updating, merging and
+removing pairs, `in`, `get()`, `setdefault()` and `update()`, looping with `keys()`, `values()` and
+`items()`, counting with a dictionary, nested dictionaries, converting between lists and
+dictionaries (`list()`, `sorted()`, `dict(zip())`); 5 lessons and a checkpoint, 56 steps). Dictionary
+comprehensions wait for Part 2, with the list ones. Decided with the player-owner, replacing parts of the sketch below:
 
 - **Structure:** course → units → lessons (6–10 steps) + a checkpoint per unit. Units are
   modular, one file each; the course lists them in order and names the planned ones. A course
