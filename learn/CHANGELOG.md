@@ -7,7 +7,7 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- The list of changes no longer starts with a note about version numbers: it goes straight to the newest version.
 
 ## 0.0.15 — 2 October 2026
 

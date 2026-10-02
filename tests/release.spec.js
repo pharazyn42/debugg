@@ -57,10 +57,14 @@ test('Learn’s What’s new lists only Learn, and its "new" is separate from th
   await expect(page.locator('#backLink')).toHaveAttribute('href', 'learn/');
   await page.goto('learn/');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
-  // The daily's What's new doesn't list Learn, and links to it.
+  // The daily's What's new doesn't list Learn. None of the lists starts with the changelog's note
+  // about version numbers: that's for developers.
   await page.goto('whatsnew.html');
   await expect(page.locator('#notes')).not.toContainText('Strings');
-  await expect(page.locator('#notes a[href="whatsnew.html?learn"]')).toHaveText('Debuggit Learn');
+  await expect(page.locator('#notes')).not.toContainText('version numbers');
+  await page.goto('whatsnew.html?learn');
+  await expect(page.locator('#notes')).not.toContainText('version numbers');
+  await expect(page.locator('#notes')).not.toContainText('0.1.0 is the launch');
 });
 
 test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the daily’s', async ({ page }) => {
@@ -84,10 +88,11 @@ test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the da
   await expect(page.locator('#backLink')).toHaveAttribute('href', 'index.html?ltd');
   await page.goto('index.html?ltd');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
-  // The daily's What's new doesn't list Ltd, and links to it.
+  // The daily's What's new doesn't list Ltd, and Ltd's doesn't start with the note about version numbers.
   await page.goto('whatsnew.html');
   await expect(page.locator('#notes')).not.toContainText('Managers are in the demo');
-  await expect(page.locator('#notes a[href="whatsnew.html?ltd"]').first()).toHaveText('Debuggit Ltd');
+  await page.goto('whatsnew.html?ltd');
+  await expect(page.locator('#notes')).not.toContainText('version numbers');
 });
 
 test('tools/check-scope.js keeps a branch to one product, unless each one’s changelog moves', () => {
@@ -207,7 +212,7 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
 
 test('What’s new after launch shows only each minor release’s player entry, and a patch only if it has one', async ({ page }) => {
   const log = [
-    '# What\'s new', '',
+    '# What\'s new', '', 'A note about version numbers, for developers.', '',
     '## Unreleased', '', '- Not for players yet.', '',
     '## 0.1.2 — 3 November 2026', '', '- Internal tidy-up.', '',
     '## 0.1.1 — 2 November 2026', '', '- Dev detail.', '<!-- player -->', '- Fixed saves not restoring.', '<!-- /player -->', '',
@@ -220,7 +225,7 @@ test('What’s new after launch shows only each minor release’s player entry, 
   await expect(notes.locator('h2')).toHaveText([/^0\.1\.1/, /^0\.1\.0/]);
   await expect(notes).toContainText('Fixed saves not restoring.');
   await expect(notes).toContainText('Learn Python.');
-  for(const hidden of ['Internal tidy-up', 'Dev detail', 'demo-only', 'Not for players', '<!--']) await expect(notes).not.toContainText(hidden);
+  for(const hidden of ['Internal tidy-up', 'Dev detail', 'demo-only', 'Not for players', 'version numbers', '<!--']) await expect(notes).not.toContainText(hidden);
 });
 
 test('tools/release.js refuses a minor release without a player entry, and strips the markers from the notes', () => {
