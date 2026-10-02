@@ -26,7 +26,7 @@ Solving on the 2nd, 3rd or 4th guess earns 75%, 50% or 25% of that, and each hin
 
 Learn has its **own XP and streak**, separate from the daily puzzles. The Python course's Unit 1 (Values and printing) and Unit 2 (Strings) are built; the next units are listed as coming soon. C has a coming-soon tab showing its planned units, with Embedded C as a section at the end. `learn/README.md` explains the format for writing more, and the puzzle checker runs every lesson snippet too.
 
-The game links into it from the **debugg.learn()** button at the top of every page, the Director's languages in Debuggit Ltd, and, after a missed or revealed puzzle, a link to the unit that teaches it (a puzzle's `learn` field) or to the start of the course. `learn/#python/strings` opens a course with a unit picked out. Learn links back to the game, and it shares the same saves and backup code. The old address, `learn.html`, redirects.
+The game links into it from the **debuggit.learn()** button at the top of every page, the Director's languages in Debuggit Ltd, and, after a missed or revealed puzzle, a link to the unit that teaches it (a puzzle's `learn` field) or to the start of the course. `learn/#python/strings` opens a course with a unit picked out. Learn links back to the game, and it shares the same saves and backup code. The old address, `learn.html`, redirects.
 
 ## Playing
 
