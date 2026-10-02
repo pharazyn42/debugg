@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- Debuggit Ltd's button at the top is now marked **(demo)**, and a **Learn** button sits beside it.
 
 ## 0.0.11 — 2 October 2026
 

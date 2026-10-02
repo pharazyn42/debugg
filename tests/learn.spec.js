@@ -489,10 +489,12 @@ test('the Learn streak counts days with a lesson finished', async ({ page }) => 
 test('the daily page links to Learn, and resetting puzzles keeps Learn progress', async ({ page }) => {
   await page.click('[data-action=lesson][data-lesson=print]');
   await finishAll(page);
-  await page.click('#gameLink');
+  // Learn's page has the same three top buttons, with Learn the current one.
+  await expect(page.locator('.modes a')).toHaveText(['Daily (demo)', 'Ltd (demo)', 'Learn']);
+  await expect(page.locator('#learnTab')).toHaveAttribute('aria-current', 'page');
+  await page.click('#dailyTab');
   await expect(page.locator('h1')).toHaveText('What does this print?');
-  // Learn isn't one of the game's tabs: it's linked from the footer.
-  await expect(page.locator('.modes a')).toHaveText(['Daily', 'Ltd']);
+  await expect(page.locator('.modes a')).toHaveText(['Daily (demo)', 'Ltd (demo)', 'Learn']);
   await page.click('#resetLink');
   await page.click('#learnFooter');
   await expect(page.locator('h1')).toHaveText('Learn Python');

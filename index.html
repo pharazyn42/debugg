@@ -119,7 +119,6 @@
     padding: 0 4px;
     vertical-align: 1px;
   }
-  .modes{ display: flex; justify-content: center; gap: 6px; margin: 0 0 16px; }
   /* The Debuggit kiwi's reaction after a game. */
   .kiwi-says{ display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
   .kiwi-says[hidden]{ display: none; }
@@ -338,7 +337,7 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily</a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd</a></nav>
+    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="learn/" id="learnTab">Learn</a></nav>
     <div class="brand"><img class="mascot-logo" src="img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1 id="title">What does this print?</h1>
