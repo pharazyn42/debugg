@@ -202,6 +202,9 @@ button{
 .lang-tab .mark.won{ color: var(--green); }
 .lang-tab .mark.lost{ color: var(--red); }
 .lang-tab[aria-current="page"] .mark{ color: inherit; }
+.modes{ display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 16px; }
+/* "(demo)" beside a product's tab while that product is still a demo. */
+.lang-tab .demo-tag{ font-weight: 400; opacity: 0.7; }
 
 footer{
   text-align: center;

@@ -7,7 +7,7 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- Learn now has the same row of buttons at the top as the game (**Daily (demo)**, **Ltd (demo)**, **Learn**), in place of the "← Debuggit" link.
 
 ## 0.0.10 — 2 October 2026
 
