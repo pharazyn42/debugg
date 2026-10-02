@@ -48,13 +48,13 @@ greet("Bo")`,
           code: `def show(word):
     print(word + "!")
 
-show("duck")`,
+show("kiwi")`,
           options: [
-            { text: 'duck!', correct: true },
-            { text: 'word!', why: `word is the parameter's name. In this call it holds "duck", and that's what gets printed.` },
-            { text: 'duck', why: `The function adds "!" to whatever it's given.` }
+            { text: 'kiwi!', correct: true },
+            { text: 'word!', why: `word is the parameter's name. In this call it holds "kiwi", and that's what gets printed.` },
+            { text: 'kiwi', why: `The function adds "!" to whatever it's given.` }
           ],
-          explain: `show("duck") runs the function with word set to "duck", so it prints duck!.`
+          explain: `show("kiwi") runs the function with word set to "kiwi", so it prints kiwi!.`
         },
         {
           type: 'predict',

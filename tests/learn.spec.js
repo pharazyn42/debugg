@@ -189,7 +189,7 @@ test('lessons play from the keyboard, and the summary celebrates stars, level-up
     }
     if(s.type !== 'teach'){
       await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
-      await expect(page.locator('#stepFeedback .fb-duck')).toBeVisible();
+      await expect(page.locator('#stepFeedback .fb-mascot')).toBeVisible();
     }
     await page.locator('body').click({ position: { x: 2, y: 2 } });  // Enter works wherever the focus is
     await page.keyboard.press('Enter');
@@ -510,10 +510,10 @@ test('a unit link opens the course with that unit picked out', async ({ page }) 
   await expect(page.locator('h1')).toHaveText('Learn Python');
   await expect(page.locator('.unit[data-unit=strings]')).toHaveClass(/focus/);
   await expect(page.locator('.unit[data-unit=values]')).not.toHaveClass(/focus/);
-  // The summary duck loads from the site's img/ folder.
+  // The summary kiwi loads from the site's img/ folder.
   await page.click('[data-action=lesson][data-lesson=print]');
   await finishAll(page);
-  expect(await page.locator('.summary-duck').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+  expect(await page.locator('.summary-mascot').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
 });
 
 test('pressing Enter on a wrong typed answer shows why, and waits for Continue', async ({ page }) => {

@@ -36,7 +36,7 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
 
 - Keys: 1–9 pick an option (in the order shown) or the line with that number, and Enter continues.
   Options show their number, except on touch screens.
-- The duck reacts to each answer, and the summary pops the stars in and celebrates a new Learn level
+- The kiwi reacts to each answer, and the summary pops the stars in and celebrates a new Learn level
   and the streak going up that day. Animations stop under "reduce motion".
 
 - Every step with code links to the sandbox (`learn/sandbox.html?lang=python&code=…`, in a new tab):

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Debuggit Learn</title>
 <meta name="description" content="Learn to code from the very start with short lessons: read a little, answer a question, and move on when you get it right.">
-<link rel="icon" href="../img/duck.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="../img/duck-180.png">
+<link rel="icon" href="../img/kiwi.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../img/kiwi-180.png">
 <link rel="stylesheet" href="../base.css">
 <style>
   .back{ text-align: center; margin: 0 0 14px; font-size: 13px; }
@@ -188,9 +188,9 @@
   .feedback{ display: none; border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.55; margin: 0 0 12px; }
   .feedback.show{ display: flex; gap: 12px; align-items: flex-start; }
   .feedback > div{ flex: 1; min-width: 0; }
-  .fb-duck{ flex: none; width: 36px; height: 36px; }
-  .feedback.correct .fb-duck{ animation: duck-hop 0.55s ease 1; }
-  .feedback.wrong .fb-duck{ transform: rotate(-14deg); }
+  .fb-mascot{ flex: none; width: 36px; height: 36px; }
+  .feedback.correct .fb-mascot{ animation: mascot-hop 0.55s ease 1; }
+  .feedback.wrong .fb-mascot{ transform: rotate(-14deg); }
   .feedback.correct{ background: var(--green-dim); color: #d8f5e5; }
   .feedback.wrong{ background: var(--red-dim); color: #f7dada; }
   .feedback .right-answer{ display: block; margin: 6px 0 2px; font-weight: 600; }
@@ -201,9 +201,9 @@
   .step-actions [hidden]{ display: none; }
   .guess-row{ margin-bottom: 12px; }
 
-  .summary-duck{ display: block; margin: 0 auto 6px; animation: duck-hop 0.55s ease 2; }
-  .summary-duck.dizzy{ animation: none; transform: rotate(-14deg); }
-  @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
+  .summary-mascot{ display: block; margin: 0 auto 6px; animation: mascot-hop 0.55s ease 2; }
+  .summary-mascot.dizzy{ animation: none; transform: rotate(-14deg); }
+  @keyframes mascot-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
   /* Celebrations: stars pop in, a level-up and a streak that went up today. */
   .big-stars .star{ display: inline-block; }
   .big-stars .star.on{ animation: star-pop 0.4s ease both; }
@@ -221,7 +221,7 @@
   }
   .streak-up{ color: var(--amber); }
   @media (prefers-reduced-motion: reduce){
-    .summary-duck, .feedback.correct .fb-duck, .big-stars .star.on, .level-up{ animation: none; }
+    .summary-mascot, .feedback.correct .fb-mascot, .big-stars .star.on, .level-up{ animation: none; }
     .progress-fill, .xp-fill{ transition: none; }
   }
   .summary{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px 18px; text-align: center; }
@@ -239,7 +239,7 @@
 <div class="wrap">
   <header>
     <nav class="back" aria-label="Debuggit"><a href="../index.html" id="gameLink">← Debuggit: the daily puzzle and Debuggit Ltd</a></nav>
-    <div class="brand"><img class="duck-logo" src="../img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="./" aria-label="Debuggit Learn">debugg.learn()</a></div>
+    <div class="brand"><img class="duck-logo" src="../img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="./" aria-label="Debuggit Learn">debugg.learn()</a></div>
     <h1 id="title">Learn</h1>
     <p class="sub" id="sub"></p>
   </header>

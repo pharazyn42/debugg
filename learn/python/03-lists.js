@@ -13,9 +13,9 @@ window.DEBUGG_LEARN.units.push({
           type: 'teach',
           title: 'Many values in one',
           text: `A <b>list</b> holds several values in order, inside square brackets and separated by commas. Printing a list shows the brackets too, and strings inside it keep their quotes.`,
-          code: `ducks = ["Huey", "Dewey", "Louie"]
-print(ducks)`,
-          output: `['Huey', 'Dewey', 'Louie']`
+          code: `kiwis = ["Kip", "Fern", "Pip"]
+print(kiwis)`,
+          output: `['Kip', 'Fern', 'Pip']`
         },
         {
           type: 'teach',
@@ -54,23 +54,23 @@ print(len(nums), nums[-2])`,
           type: 'teach',
           title: 'Any kind of value',
           text: `A list can hold numbers, strings, or a mix, and it can be empty: <code>[]</code>. An empty list has length 0.`,
-          code: `things = [3, "duck", 2.5]
+          code: `things = [3, "kiwi", 2.5]
 empty = []
 print(len(things), len(empty))`,
           output: '3 0'
         },
         {
           type: 'blank',
-          question: 'Pick what goes in the gap so this prints <code>Dewey</code>.',
-          code: `ducks = ["Huey", "Dewey", "Louie"]
-print(ducks[___])`,
-          target: 'Dewey',
+          question: 'Pick what goes in the gap so this prints <code>Fern</code>.',
+          code: `kiwis = ["Kip", "Fern", "Pip"]
+print(kiwis[___])`,
+          target: 'Fern',
           options: [
             { text: '1', correct: true },
-            { text: '2', why: `Index 2 is the third item, Louie.` },
-            { text: '-1', why: `-1 is the last item, Louie.` }
+            { text: '2', why: `Index 2 is the third item, Pip.` },
+            { text: '-1', why: `-1 is the last item, Pip.` }
           ],
-          explain: `Dewey is the second item, so its index is 1. (-2 would work too.)`
+          explain: `Fern is the second item, so its index is 1. (-2 would work too.)`
         },
         {
           type: 'line',
@@ -103,14 +103,14 @@ print(scores)`,
           asks: 'output',
           question: 'What does this print?',
           code: `pets = ["cat", "dog", "fish"]
-pets[0] = "duck"
+pets[0] = "kiwi"
 print(pets)`,
           options: [
-            { text: "['duck', 'dog', 'fish']", correct: true },
-            { text: "['cat', 'dog', 'fish']", why: `Lists can change: pets[0] = "duck" replaces the first item.` },
-            { text: "['duck', 'cat', 'dog', 'fish']", why: `Assigning to an index replaces the item there; it doesn't squeeze a new one in.` }
+            { text: "['kiwi', 'dog', 'fish']", correct: true },
+            { text: "['cat', 'dog', 'fish']", why: `Lists can change: pets[0] = "kiwi" replaces the first item.` },
+            { text: "['kiwi', 'cat', 'dog', 'fish']", why: `Assigning to an index replaces the item there; it doesn't squeeze a new one in.` }
           ],
-          explain: `Index 0 was "cat", and now it's "duck". The rest of the list is untouched.`
+          explain: `Index 0 was "cat", and now it's "kiwi". The rest of the list is untouched.`
         },
         {
           type: 'teach',
@@ -162,13 +162,13 @@ print(nums)`,
         {
           type: 'line',
           question: 'This program stops with an error. Tap the line that causes it.',
-          code: `birds = ["duck", "goose"]
-birds.append("swan")
-birds.remove("goose")
-birds.remove("goose")`,
+          code: `birds = ["kiwi", "emu"]
+birds.append("tui")
+birds.remove("emu")
+birds.remove("emu")`,
           line: 4,
           errors: true,
-          explain: `Line 3 removes the only "goose". On line 4 there isn't one left, so remove() stops with a ValueError.`
+          explain: `Line 3 removes the only "emu". On line 4 there isn't one left, so remove() stops with a ValueError.`
         }
       ]
     },
