@@ -7,7 +7,7 @@ one for fixes.
 
 ## Unreleased
 
-- A first look at what's next: **Python Part 2: Intermediate** appears under the Part 1 units as "coming soon": tuples and sets, looping tools, comprehensions, more on functions, working with text, and errors and exceptions.
+- A first look at what's next: **Python Part 2: Intermediate** appears under the Part 1 units (now under a "Python Part 1: The basics" heading of their own) as "coming soon": tuples and sets, looping tools, comprehensions, more on functions, working with text, and errors and exceptions.
 
 ## 0.0.12 — 2 October 2026
 

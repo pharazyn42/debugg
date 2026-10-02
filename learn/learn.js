@@ -212,6 +212,9 @@ window.DebuggLearn = (function(){
     renderStats();
     const units = unitsOf(lang);
     let html = continueHTML();
+    const h = L.courses[lang].heading;
+    if(h && units.length) html += '<div class="course-section first" data-section="part-1"><h2 class="section-title">' + esc(h.title) + '</h2>' +
+      (h.summary ? '<p class="section-summary">' + esc(h.summary) + '</p>' : '') + '</div>';
     units.forEach((u, ui) => {
       const open = unitOpen(u);
       const passed = unitPassed(u);
