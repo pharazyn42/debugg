@@ -671,3 +671,25 @@ test.describe('on a touch screen', () => {
     expect(await size('#puzzlePick')).toBe('16px');
   });
 });
+
+test('the schedule never serves a puzzle twice until a language has used them all, previews included', async ({ page }) => {
+  await openAt(page, 'index.html', 1, { formats: true });
+  const r = await page.evaluate(() => {
+    const D = window.Debugg;
+    const rep = D.firstRepeatDay();
+    const end = rep ? rep.day - 1 : 400;
+    const seen = new Map(), repeats = [];
+    // From two weeks of preview days to the day before the first repeat.
+    for(let d = -13; d <= end; d++){
+      if(D.slotDay(d) !== d) continue;  // Sundays share Saturday's puzzle
+      const p = D.puzzleFor(d);
+      const key = p.lang + '|' + p.code;
+      if(seen.has(key)) repeats.push([d, seen.get(key)]);
+      seen.set(key, d);
+    }
+    return { rep, repeats, served: seen.size, total: D.puzzlesFor('python').length };
+  });
+  expect(r.repeats, 'a puzzle came up twice, as [day, earlier day]').toEqual([]);
+  // When the schedule does start again, it's because every puzzle has been served, not before.
+  if(r.rep) expect(r.served).toBe(r.total);
+});

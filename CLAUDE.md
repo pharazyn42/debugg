@@ -213,7 +213,10 @@ the code challenges exist), saved under Saturday's day number: its
 *slot* (`slotDay()`). The schedule is computed from Day 1 in every
 browser: each slot's language (from the rotation) takes its first unused
 puzzle of that difficulty, in its file's order, else the nearest difficulty
-(easier first), and a language's puzzles are reused once all are used. Streaks run slot to slot, so the
+(easier first), and a puzzle is never served twice while its language has an unused one (the preview days' puzzles count as
+served, `PREVIEW_DAYS`). Only when a language has used every puzzle does the schedule start again, as a last resort
+(`firstRepeatDay()`); `tools/check-puzzles.js` fails when that day is less than 30 days away or two puzzles share code,
+so more get written in time. Streaks run slot to slot, so the
 weekend counts once. XP for a perfect solve follows the day (`BASE_XP`:
 60, 80, 100, 120, 150, weekend 200), and so does desk pay. Adding puzzles
 to the end only changes future days (and days that had fallen back), so

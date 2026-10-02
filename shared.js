@@ -213,20 +213,35 @@ window.Debugg = (function(){
   // The schedule, from Day 1: each slot takes, in its language, the first unused puzzle (in the
   // order of its puzzle file) in the day's format (formatFor) at the day's difficulty; failing that,
   // the first unused "what does this print?" puzzle of the day's difficulty, or the nearest difficulty
-  // if none is left (easier first on a tie). Once all of a language's puzzles have been used, they're all available
-  // again. It's worked out the same way in every browser, so everyone gets the same puzzle on the
-  // same date. Adding puzzles to the end of a file only changes days that would otherwise have
+  // if none is left (easier first on a tie). A puzzle is never served twice while the language has an
+  // unused one, and the preview days' puzzles count as already served (PREVIEW_DAYS), so a puzzle
+  // players have seen never comes back as a "new" day. Only when a language has used every puzzle does
+  // the schedule start again, as a last resort: that day is recorded (firstRepeatDay) and
+  // tools/check-puzzles.js fails well before it comes, so more puzzles get written in time. It's worked
+  // out the same way in every browser, so everyone gets the same puzzle on the same date. Adding puzzles to the end of a file only changes days that would otherwise have
   // fallen back to another difficulty; adding a language to ROTATION only changes days from its
   // first week on.
-  const schedule = { next: 1, used: {}, bySlot: {} };
+  // How many preview days (0, -1, -2…) count as already served: the demo has been live for less than this.
+  const PREVIEW_DAYS = 14;
+  const schedule = { next: 1, used: {}, bySlot: {}, seeded: false, firstRepeat: null };
   function scheduled(slot){
+    if(!schedule.seeded){
+      schedule.seeded = true;
+      for(let d = 0; d > -PREVIEW_DAYS; d--){
+        const p = puzzleFor(d);
+        if(p) (schedule.used[p.lang] || (schedule.used[p.lang] = new Set())).add(p);
+      }
+    }
     for(; schedule.next <= slot; schedule.next++){
       const d = schedule.next;
       if(slotDay(d) !== d) continue;  // Sundays share Saturday's puzzle
       const lang = langFor(d);
       const list = puzzlesFor(lang);
       const used = schedule.used[lang] || (schedule.used[lang] = new Set());
-      if(used.size >= list.length) used.clear();
+      if(used.size >= list.length){
+        if(!schedule.firstRepeat) schedule.firstRepeat = { day: d, lang };
+        used.clear();
+      }
       const kind = dayKind(d);
       const want = kind === 'weekend' ? WEEKEND_STAND_IN : kind;
       // The day's format first (see WEEK_FORMATS), at the day's difficulty.
@@ -243,6 +258,14 @@ window.Debugg = (function(){
       schedule.bySlot[d] = pick;
     }
     return schedule.bySlot[slot];
+  }
+
+  // The first day whose puzzle has to be one that was already served (every puzzle of its language has
+  // been used), as { day, lang }, or null if the schedule is fresh for `within` days from Day 1.
+  function firstRepeatDay(within){
+    const n = within || 1000;
+    scheduled(n);
+    return schedule.firstRepeat && schedule.firstRepeat.day <= n ? schedule.firstRepeat : null;
   }
 
   // The day's puzzle (its `lang` says which language it's in).
@@ -416,6 +439,6 @@ window.Debugg = (function(){
 
   return { NAME, APP_VERSION, LTD_VERSION, LEARN_VERSION, PRODUCTS, renderVersion, markVersionSeen, renderWordmark, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
-           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, codeId, FORMATS, formatOf, formatFor, stateKey, readState, isFinished, normaliseAnswer,
+           dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, firstRepeatDay, codeId, FORMATS, formatOf, formatFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };
 })();
