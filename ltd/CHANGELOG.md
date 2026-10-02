@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- The pages no longer repeat their name in a title under the buttons at the top: `debuggit.learn()`, `debuggit.daily()` and `debuggit.ltd()` are already there, so the kiwi stands alone. The sandbox's heading is now `debuggit.run()`. The share picture keeps its `debugg(it)`-style line.
 
 ## 0.0.13 — 2 October 2026
 

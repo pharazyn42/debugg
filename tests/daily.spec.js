@@ -96,20 +96,22 @@ test("a C day has no run link, since C doesn't run in the browser yet", async ({
   await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'learn/sandbox.html');
 });
 
-test('the wordmark is "debug it" in the day\'s language, and each page has its own', async ({ page }) => {
+test('the wordmark is "debug it" in the day\'s language (for sharing), and only the sandbox shows one', async ({ page }) => {
   const expected = { python: 'debugg(it)', javascript: 'debugg.it()', c: 'debugg(&it);', rust: 'debugg!(it)' };
   for(const [lang, code] of Object.entries(expected)){
     await openAt(page, 'index.html', 1, { rotation: [{ lang }] });
-    const mark = page.locator('#wordmark');
-    await expect(mark).toHaveAttribute('data-wordmark', code);
-    await expect(mark).toHaveText(code);
-    await expect(mark).toHaveAttribute('aria-label', 'Debuggit');
+    expect(await page.evaluate(l => window.Debugg.wordmarkFor(l), lang)).toBe(code);
+    // The daily's header has the kiwi but no title: the button at the top names the page.
+    await expect(page.locator('#wordmark')).toHaveCount(0);
+    await expect(page.locator('.brand .mascot-logo')).toHaveCount(1);
   }
   await expect(page).toHaveTitle('Debuggit');
   await page.goto('learn/');
-  await expect(page.locator('#wordmark')).toHaveText('debugg.learn()');
+  await expect(page.locator('#wordmark')).toHaveCount(0);
+  await expect(page.locator('.modes a').first()).toHaveText('debuggit.learn()');
   await page.goto('learn/sandbox.html');
-  await expect(page.locator('#wordmark')).toHaveText('debugg.run()');
+  await expect(page.locator('#wordmark')).toHaveText('debuggit.run()');
+  await expect(page.locator('#wordmark')).toHaveAttribute('aria-label', 'Debuggit Sandbox');
   await page.goto('privacy.html');
   await expect(page.locator('.wordmark')).toHaveText('debugg.it()');
 });

@@ -82,9 +82,9 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   // Starting it here moves to the Ltd tab.
   await expect(page).toHaveURL(/index\.html\?ltd#python$/);
   await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
-  // The wordmark becomes the studio's.
-  await expect(page.locator('#wordmark')).toHaveAttribute('data-wordmark', 'debugg.ltd()');
-  await expect(page.locator('#wordmark')).toHaveAttribute('aria-label', 'Debuggit Ltd');
+  // The top button names the studio, so the header has no wordmark of its own.
+  await expect(page.locator('#wordmark')).toHaveCount(0);
+  await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
 });
 
 test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
@@ -1040,7 +1040,7 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
   await page.click('#ltdNote a');
   await expect(page.locator('#statMoney')).toHaveText('¤250');
 
-  // The top buttons are named for each page's wordmark: Learn (its own section, also linked from the
+  // The top buttons name each page: Learn (its own section, also linked from the
   // Director's languages, and it links back), then the daily and Ltd, both demos for now.
   await expect(page.locator('.modes a')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
   await expect(page.locator('.card.director a.learn-lang')).toHaveText('Python');
