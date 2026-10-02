@@ -450,6 +450,100 @@ print("Rust" in langs, len(langs * 2))`,
         ],
         explain: `"Rust" isn't in the list, and repeating a 2-item list twice gives 4 items.`
       }
+    ],
+    more: [
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `nums = [4, 5, 6]
+print(nums[1])`,
+        options: [
+          { text: '5', correct: true },
+          { text: '4', why: 'Positions start at 0, so nums[0] is 4.' },
+          { text: '6', why: 'nums[2] is 6; nums[1] is the second item.' }
+        ],
+        explain: 'Position 1 is the second item, 5.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `a = [1, 2]
+a.append(3)
+print(len(a))`,
+        display: '3',
+        answers: ['3'],
+        nudge: 'Not quite. append adds one more item.',
+        explain: 'After the append the list is [1, 2, 3], which has 3 items.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `x = [3, 1, 2]
+x.sort()
+print(x)`,
+        options: [
+          { text: '[1, 2, 3]', correct: true },
+          { text: 'None', why: 'The sort changes x itself. Only printing x.sort() would show None.' },
+          { text: '[3, 1, 2]', why: 'sort() changes the list in place, so x is now in order.' }
+        ],
+        explain: 'sort() puts x itself in order.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print([1, 2, 3, 4, 5][1:4])`,
+        display: '[2, 3, 4]',
+        answers: ['[2, 3, 4]'],
+        nudge: 'Not quite. The slice starts at position 1 and stops before position 4.',
+        explain: 'Positions 1, 2 and 3 hold 2, 3 and 4.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print(sum([2, 3, 5]))`,
+        display: '10',
+        answers: ['10'],
+        nudge: 'Not quite. sum() adds up every item.',
+        explain: '2 + 3 + 5 is 10.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `colors = ["red", "green"]
+colors.append("blue")
+print(colors[3])`,
+        line: 3,
+        errors: true,
+        explain: 'The list has 3 items, at positions 0, 1 and 2, so colors[3] is out of range and Python stops with an IndexError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>[1, 2, 3]</code>.',
+        code: `a = [1, 2]
+a.___(3)
+print(a)`,
+        target: '[1, 2, 3]',
+        options: [
+          { text: 'append', correct: true },
+          { text: 'add', why: 'Lists have no add method; the one that puts an item on the end is append.' },
+          { text: 'sort', why: 'sort() puts the list in order and takes no value.' }
+        ],
+        explain: 'append(3) puts 3 on the end.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print("b" in ["a", "b"], "z" in ["a", "b"])`,
+        options: [
+          { text: 'True False', correct: true },
+          { text: 'False False', why: '"b" is in the list, so the first answer is True.' },
+          { text: 'True True', why: '"z" isn\'t in the list, so the second answer is False.' }
+        ],
+        explain: '"b" is in the list and "z" isn\'t.'
+      }
     ]
   }
 });

@@ -644,3 +644,25 @@ async function pickOrType(page, s){
   else await pickOption(page, s.options.find(o => o.correct).text);
   await expect(page.locator('#stepFeedback')).toHaveClass(/correct/);
 }
+
+test('a repeated checkpoint draws a different set from the unit\'s pool', async ({ page }) => {
+  const asked = async () => page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs);
+  await page.click('[data-action=checkpoint][data-unit=values]');
+  const first = await asked();
+  expect(first).toHaveLength(8);
+  expect(new Set(first).size).toBe(8);
+  // Quit the attempt, then start again: the 8 questions not yet asked come first.
+  await page.evaluate(() => localStorage.removeItem('debugg-learn-session'));
+  await openAt(page, 'learn/');
+  await page.click('[data-action=checkpoint][data-unit=values]');
+  const second = await asked();
+  expect(second).toHaveLength(8);
+  expect(second.filter(h => first.includes(h))).toHaveLength(0);
+  const counts = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn')).asked['python/values']);
+  expect(Object.keys(counts)).toHaveLength(16);
+  expect(Object.values(counts).every(n => n === 1)).toBe(true);
+  // Reloading mid-attempt keeps the same questions.
+  await page.reload();
+  expect(await asked()).toEqual(second);
+  await expect(page.locator('#step')).toBeVisible();
+});

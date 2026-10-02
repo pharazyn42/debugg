@@ -674,6 +674,103 @@ print(seen["a"])`,
         ],
         explain: `The first "a" makes the count 1 and the second makes it 2.`
       }
+    ],
+    more: [
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `d = {"a": 1, "b": 2}
+print(d["b"])`,
+        options: [
+          { text: '2', correct: true },
+          { text: 'b', why: 'd["b"] looks up the key b and gives its value.' },
+          { text: '1', why: '1 is the value for "a".' }
+        ],
+        explain: 'd["b"] looks up the key "b": its value is 2.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `d = {}
+d["k"] = 4
+print(d)`,
+        display: '{\'k\': 4}',
+        answers: ['{\'k\': 4}', '{"k": 4}'],
+        nudge: 'Not quite. Assigning to a new key adds the pair.',
+        explain: 'The new pair is added, so the dictionary prints as {\'k\': 4}.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `d = {"a": 1}
+print(d.get("z", 0))`,
+        options: [
+          { text: '0', correct: true },
+          { text: 'None', why: 'With a second value, get() gives that instead of None.' },
+          { text: 'KeyError', why: 'get() never raises an error; that\'s its point.' }
+        ],
+        explain: 'There\'s no "z", so get() gives the default you passed: 0.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `d = {"a": 1, "b": 2}
+print(list(d.keys()))`,
+        display: '[\'a\', \'b\']',
+        answers: ['[\'a\', \'b\']', '["a", "b"]'],
+        nudge: 'Not quite. keys() gives the keys, not the values.',
+        explain: 'The keys are "a" and "b".'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `d = {"x": 1, "y": 2}
+del d["x"]
+print(len(d))`,
+        display: '1',
+        answers: ['1'],
+        nudge: 'Not quite. del removes the pair.',
+        explain: 'One of the two pairs is deleted, so 1 is left.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `stock = {"pen": 3}
+print(stock["pen"])
+print(stock["cup"])`,
+        line: 3,
+        errors: true,
+        explain: 'There is no "cup" key, so line 3 stops with a KeyError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>3</code>.',
+        code: `d = {"a": 1, "b": 2}
+total = 0
+for k, v in d.___():
+    total = total + v
+print(total)`,
+        target: '3',
+        options: [
+          { text: 'items', correct: true },
+          { text: 'keys', why: 'keys() gives only the keys, so k, v can\'t be unpacked.' },
+          { text: 'values', why: 'values() gives only the values, so k, v can\'t be unpacked.' }
+        ],
+        explain: 'items() gives each (key, value) pair, so v takes 1 then 2.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(len({"a": 1, "a": 2}))`,
+        options: [
+          { text: '1', correct: true },
+          { text: '2', why: 'A key can only appear once; the second "a" replaces the first.' }
+        ],
+        explain: 'Each key appears once, so the dictionary has 1 pair.'
+      }
     ]
   }
 });

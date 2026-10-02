@@ -31,8 +31,9 @@ window.DebuggLearn = (function(){
   // --- The save -------------------------------------------------------------------------------
   // { lessons: { 'python/values/print': { stars } }, checkpoints: { 'python/values': { passed, best } },
   //   xp: { python: 40 }, streak: { count, lastDay },
-  //   review: [ { lang, unit, lesson, q, box, due } ] }   // lesson null = the checkpoint; q = questionId()
-  const blank = () => ({ lessons: {}, checkpoints: {}, xp: {}, streak: { count: 0, lastDay: null }, review: [] });
+  //   review: [ { lang, unit, lesson, q, box, due } ],
+  //   asked: { 'python/values': { <hash of questionId>: times a checkpoint has asked it } } }   // lesson null = the checkpoint; q = questionId()
+  const blank = () => ({ lessons: {}, checkpoints: {}, xp: {}, streak: { count: 0, lastDay: null }, review: [], asked: {} });
   function read(){
     try{
       const s = JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -89,10 +90,25 @@ window.DebuggLearn = (function(){
   // doesn't move them; one whose question has gone (or been reworded) is dropped. The checker makes
   // sure no two questions in a lesson or checkpoint share an id.
   const questionId = s => s.question + '\n' + (s.code || '');
+  // A checkpoint draws `ask` questions (default: as many as `steps`) from a pool, `steps` plus `more`,
+  // so a retry isn't the same test. It prefers the questions asked least often (counted in save.asked),
+  // choosing at random among ties, and shuffles the order.
+  const checkpointPool = u => u.checkpoint.steps.concat(u.checkpoint.more || []);
+  const checkpointAsk = u => u.checkpoint.ask || u.checkpoint.steps.length;
+  const qHash = s => { let h = 0; const t = questionId(s); for(let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h.toString(36); };
+  function pickCheckpoint(u){
+    const pool = checkpointPool(u);
+    const counts = save.asked[unitKey(u)] || (save.asked[unitKey(u)] = {});
+    const ranked = shuffle(pool.map((step, i) => ({ i, n: counts[qHash(step)] || 0 }))).sort((a, b) => a.n - b.n);
+    const picked = shuffle(ranked.slice(0, checkpointAsk(u)).map(x => x.i));
+    picked.forEach(i => { const h = qHash(pool[i]); counts[h] = (counts[h] || 0) + 1; });
+    write();
+    return picked;
+  }
   function reviewStep(r){
     const u = unitsOf(r.lang).find(x => x.id === r.unit);
     if(!u) return null;
-    const steps = r.lesson == null ? u.checkpoint.steps : ((u.lessons.find(l => l.id === r.lesson) || {}).steps || []);
+    const steps = r.lesson == null ? checkpointPool(u) : ((u.lessons.find(l => l.id === r.lesson) || {}).steps || []);
     const step = steps.find(s => isQuestion(s) && questionId(s) === r.q);
     return step ? { unit: u, step } : null;
   }
@@ -215,7 +231,7 @@ window.DebuggLearn = (function(){
       });
       const cp = u.checkpoint;
       const best = save.checkpoints[unitKey(u)];
-      const qs = cp.steps.filter(isQuestion).length;
+      const qs = checkpointAsk(u);
       html += '<li><button class="lesson-row checkpoint' + (passed ? ' done' : '') + '" data-action="checkpoint" data-unit="' + u.id + '">' +
         '<span class="lesson-name">Checkpoint · ' + qs + ' questions, pass with ' + cp.pass + '</span>' +
         '<span class="lesson-state">' + (passed ? best.best + '/' + qs : allDone ? 'Take it →' : 'Test out →') + '</span></button></li></ol>';
@@ -247,7 +263,8 @@ window.DebuggLearn = (function(){
     next();
   }
   function startCheckpoint(u){
-    const steps = u.checkpoint.steps;
+    const pool = checkpointPool(u);
+    const steps = pickCheckpoint(u).map(i => pool[i]);
     session = { kind: 'checkpoint', unit: u, steps, queue: steps.map((_, i) => i),
                 total: steps.length, done: 0, correct: 0, mistakes: 0 };
     next();
@@ -280,6 +297,7 @@ window.DebuggLearn = (function(){
     const s = session;
     const kept = { kind: s.kind, lang, unit: s.unit.id, lesson: s.lesson ? s.lesson.id : null, total: s.total,
                    queue: s.queue, current: s.current, answered: s.answered, done: s.done, mistakes: s.mistakes, correct: s.correct };
+    if(s.kind === 'checkpoint') kept.qs = s.steps.map(qHash);
     if(s.kind === 'review'){
       kept.items = s.items.map(i => ({ lang: i.entry.lang, unit: i.entry.unit, lesson: i.entry.lesson, q: i.entry.q }));
       kept.missed = [...s.missed];
@@ -306,7 +324,12 @@ window.DebuggLearn = (function(){
     }else if(k.kind === 'lesson' && u){
       const les = u.lessons.find(l => l.id === k.lesson);
       if(les) s = { kind: 'lesson', unit: u, lesson: les, steps: les.steps };
-    }else if(k.kind === 'checkpoint' && u) s = { kind: 'checkpoint', unit: u, steps: u.checkpoint.steps };
+    }else if(k.kind === 'checkpoint' && u){
+      // The questions drawn, by hash; a kept session from before the pool is the unit's own steps.
+      const pool = checkpointPool(u);
+      const steps = Array.isArray(k.qs) ? k.qs.map(h => pool.find(q => qHash(q) === h)) : u.checkpoint.steps;
+      if(steps.every(Boolean)) s = { kind: 'checkpoint', unit: u, steps };
+    }
     const fits = i => Number.isInteger(i) && i >= 0 && s && i < s.steps.length;
     if(!s || s.steps.length !== k.total || !k.queue.every(fits) || !fits(k.current)) return false;
     session = Object.assign(s, { total: k.total, queue: k.queue, current: k.current, done: k.done || 0,

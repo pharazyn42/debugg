@@ -518,6 +518,111 @@ print(twice(4))`,
         ],
         explain: `return stops the function straight away, so it gives back 8.`
       }
+    ],
+    more: [
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `def sq(n):
+    return n * n
+print(sq(5))`,
+        display: '25',
+        answers: ['25'],
+        nudge: 'Not quite. The function gives back n times n.',
+        explain: '5 * 5 is 25.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `def f(a, b):
+    return a - b
+print(f(b=1, a=5))`,
+        display: '4',
+        answers: ['4'],
+        nudge: 'Not quite. The names say which value goes where.',
+        explain: 'a is 5 and b is 1, so a - b is 4.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `def inc(n=1):
+    return n + 1
+print(inc(), inc(5))`,
+        options: [
+          { text: '2 6', correct: true },
+          { text: '2 2', why: 'When a value is given, it replaces the default: inc(5) is 6.' },
+          { text: '1 5', why: 'The function adds 1 to n and returns it.' }
+        ],
+        explain: 'inc() uses the default 1 and gives 2; inc(5) gives 6.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `def f(x):
+    return x
+    print("done")
+print(f(3))`,
+        options: [
+          { text: '3', correct: true },
+          { text: 'done', why: 'return ends the function, so the print inside never runs.' },
+          { text: 'None', why: 'The function does return something: x.' }
+        ],
+        explain: 'return ends the function straight away, so only the 3 is printed.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `def add(a, b):
+    return a + b
+print(add(add(1, 2), 3))`,
+        display: '6',
+        answers: ['6'],
+        nudge: 'Not quite. The inner add is worked out first.',
+        explain: 'add(1, 2) is 3, and add(3, 3) is 6.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `def double(n):
+    return n * 2
+print(double(2))
+print(n)`,
+        line: 4,
+        errors: true,
+        explain: 'n only exists inside double, so line 4 stops with a NameError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>7</code>.',
+        code: `def f(a, b):
+    return ___
+print(f(3, 4))`,
+        target: '7',
+        options: [
+          { text: 'a + b', correct: true },
+          { text: 'a', why: 'That would give back just a, which is 3.' },
+          { text: 'print(a + b)', why: 'That prints 7 inside the function, but then returns None, which is printed too.' }
+        ],
+        explain: 'a + b is 3 + 4 = 7, and return hands it back.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `x = 1
+def f():
+    x = 5
+f()
+print(x)`,
+        options: [
+          { text: '1', correct: true },
+          { text: '5', why: 'The x inside f is a new variable. The outer x is untouched.' },
+          { text: 'None', why: 'x is an ordinary variable with the value 1.' }
+        ],
+        explain: 'Assigning inside a function makes a new local x, so the outside x stays 1.'
+      }
     ]
   }
 });

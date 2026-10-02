@@ -473,6 +473,106 @@ print(x)`,
         ],
         explain: `x goes 3, 2, 1, 0, and stops as soon as x > 0 is False.`
       }
+    ],
+    more: [
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `t = 0
+for n in [1, 2, 3, 4]:
+    t = t + n
+print(t)`,
+        display: '10',
+        answers: ['10'],
+        nudge: 'Not quite. t collects every n as the loop goes round.',
+        explain: '1 + 2 + 3 + 4 is 10.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print(list(range(5)))`,
+        display: '[0, 1, 2, 3, 4]',
+        answers: ['[0, 1, 2, 3, 4]'],
+        nudge: 'Not quite. range(5) starts at 0 and stops before 5.',
+        explain: 'range(5) gives 0, 1, 2, 3 and 4.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print(list(range(10, 0, -3)))`,
+        display: '[10, 7, 4, 1]',
+        answers: ['[10, 7, 4, 1]'],
+        nudge: 'Not quite. It starts at 10, steps down by 3 and stops before 0.',
+        explain: 'From 10 in steps of -3: 10, 7, 4, 1, and the next would be -2, which is past the stop.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `n = 5
+while n > 0:
+    n = n - 2
+print(n)`,
+        options: [
+          { text: '-1', correct: true },
+          { text: '1', why: '1 is still more than 0, so the loop goes round once more.' },
+          { text: '0', why: 'n goes 5, 3, 1 and then -1; it never lands on 0.' }
+        ],
+        explain: 'n goes 5, 3, 1, -1. The loop stops once n is no longer above 0.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `count = 0
+for ch in "banana":
+    if ch == "a":
+        count = count + 1
+print(count)`,
+        display: '3',
+        answers: ['3'],
+        nudge: 'Not quite. Count the a\'s in banana.',
+        explain: 'There are three a\'s, so count ends at 3.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `nums = [1, 2, 3]
+for i in range(len(nums)):
+    print(nums[i + 1])`,
+        line: 3,
+        errors: true,
+        explain: 'On the last round i is 2, so nums[i + 1] is nums[3], which doesn\'t exist, and Python stops with an IndexError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>6</code>.',
+        code: `s = 0
+for i in range(1, ___):
+    s = s + i
+print(s)`,
+        target: '6',
+        options: [
+          { text: '4', correct: true },
+          { text: '3', why: 'range(1, 3) is 1 and 2, which add up to 3.' },
+          { text: '5', why: 'range(1, 5) is 1, 2, 3 and 4, which add up to 10.' }
+        ],
+        explain: 'range(1, 4) gives 1, 2 and 3, and they add up to 6.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `for n in [1, 2, 3, 4]:
+    if n == 3:
+        break
+print(n)`,
+        options: [
+          { text: '3', correct: true },
+          { text: '4', why: 'break leaves the loop as soon as n is 3.' },
+          { text: '2', why: 'The loop reaches 3 before it breaks, and n keeps that value.' }
+        ],
+        explain: 'break stops the loop with n still 3.'
+      }
     ]
   }
 });

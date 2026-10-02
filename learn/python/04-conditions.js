@@ -546,6 +546,117 @@ else:
         ],
         explain: `x == 1 is False, but "or 2" is true, so the condition is true whatever x is.`
       }
+    ],
+    more: [
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(5 > 3, 5 == 3)`,
+        options: [
+          { text: 'True False', correct: true },
+          { text: 'True True', why: '5 == 3 asks whether they are equal, and they aren\'t.' },
+          { text: 'False False', why: '5 is bigger than 3, so 5 > 3 is True.' }
+        ],
+        explain: '5 > 3 is True and 5 == 3 is False.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `n = 7
+if n % 2 == 0:
+    print("even")
+else:
+    print("odd")`,
+        display: 'odd',
+        answers: ['odd'],
+        nudge: 'Not quite. What is left when 7 is divided by 2?',
+        explain: '7 % 2 is 1, not 0, so the else part runs.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `x = 15
+if x > 20:
+    print("big")
+elif x > 10:
+    print("medium")
+else:
+    print("small")`,
+        options: [
+          { text: 'medium', correct: true },
+          { text: 'big', why: '15 is not more than 20.' },
+          { text: 'small', why: 'The elif is checked before the else, and 15 > 10 is true.' }
+        ],
+        explain: 'The first test fails, the elif x > 10 is true, so medium prints and the rest is skipped.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print(True and not False)`,
+        options: [
+          { text: 'True', correct: true },
+          { text: 'False', why: 'not False is True, and True and True is True.' }
+        ],
+        explain: 'not False is True, so True and True is True.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `a = 5
+n = 0
+if a > 1:
+    n = n + 1
+if a > 3:
+    n = n + 1
+if a > 9:
+    n = n + 1
+print(n)`,
+        display: '2',
+        answers: ['2'],
+        nudge: 'Not quite. Every separate if is checked. How many of them are true?',
+        explain: 'The first two ifs are true and the third isn\'t, so n goes up twice: 2.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `mark = 70
+if mark = 70:
+    print("pass")`,
+        line: 2,
+        errors: true,
+        explain: 'Line 2 uses = (store) where == (compare) is needed, so Python stops with a SyntaxError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>not a teen</code>.',
+        code: `age = 8
+if age >= 13 ___ age <= 19:
+    print("teen")
+else:
+    print("not a teen")`,
+        target: 'not a teen',
+        options: [
+          { text: 'and', correct: true },
+          { text: 'or', why: 'With or, one true side is enough: 8 <= 19, so it would print teen.' }
+        ],
+        explain: 'With and, both sides must be true, and 8 >= 13 isn\'t.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `word = "apple"
+print(word == "Apple", word == "apple")`,
+        options: [
+          { text: 'False True', correct: true },
+          { text: 'True True', why: 'Capital letters matter when comparing text, so "apple" and "Apple" differ.' },
+          { text: 'False False', why: 'word is exactly "apple", so the second comparison is True.' }
+        ],
+        explain: 'Text has to match exactly, capitals included.'
+      }
     ]
   }
 });

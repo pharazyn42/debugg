@@ -422,6 +422,97 @@ print("Score: " + score)`,
         ],
         explain: `There are three a's in "banana", and 3 + 1 is 4.`
       }
+    ],
+    more: [
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `s = "python"
+print(s[0], s[-1])`,
+        options: [
+          { text: 'p n', correct: true },
+          { text: 'p o', why: '-1 is the last character, which is n.' },
+          { text: 'y n', why: 'Counting starts at 0, so s[0] is the first character, p.' }
+        ],
+        explain: 's[0] is the first character (p) and s[-1] the last (n).'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print(len("a b c"))`,
+        display: '5',
+        answers: ['5'],
+        nudge: 'Not quite. The spaces count as characters too.',
+        explain: 'There are three letters and two spaces: 5 characters.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `print("abcdef"[1:4])`,
+        display: 'bcd',
+        answers: ['bcd'],
+        nudge: 'Not quite. The slice starts at position 1 and stops before position 4.',
+        explain: 'Positions 1, 2 and 3 are b, c and d.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print("Hello".upper())`,
+        options: [
+          { text: 'HELLO', correct: true },
+          { text: 'Hello', why: 'upper() makes every letter a capital.' },
+          { text: 'hello', why: 'That\'s lower(). upper() goes the other way.' }
+        ],
+        explain: 'upper() gives back the text in capitals.'
+      },
+      {
+        type: 'choice',
+        asks: 'output',
+        question: 'What does this print?',
+        code: `print("  hi  ".strip() + "!")`,
+        options: [
+          { text: 'hi!', correct: true },
+          { text: '  hi  !', why: 'strip() takes off the spaces at both ends first.' },
+          { text: 'hi !', why: 'strip() removes the spaces at both ends, so none are left before the !.' }
+        ],
+        explain: 'strip() removes the spaces at both ends, leaving hi.'
+      },
+      {
+        type: 'line',
+        question: 'This program stops with an error. Tap the line that causes it.',
+        code: `name = "Ada"
+age = 36
+print("Name: " + name)
+print("Age: " + age)`,
+        line: 4,
+        errors: true,
+        explain: 'Line 4 tries to join text and a number with +, which Python won\'t do, so it stops with a TypeError.'
+      },
+      {
+        type: 'blank',
+        question: 'Pick what goes in the gap so this prints <code>2</code>.',
+        code: `word = "kiwi"
+print(word.___("i"))`,
+        target: '2',
+        options: [
+          { text: 'count', correct: true },
+          { text: 'find', why: 'find gives the position of the first i, which is 1, not how many there are.' },
+          { text: 'upper', why: 'upper() takes no value to look for, so this stops with an error.' }
+        ],
+        explain: 'count("i") counts the i\'s in kiwi: 2.'
+      },
+      {
+        type: 'predict',
+        question: 'What does this print?',
+        code: `n = "7"
+print(int(n) + 1)`,
+        display: '8',
+        answers: ['8'],
+        nudge: 'Not quite. int() turns the text into a number first.',
+        explain: 'int("7") is the number 7, and 7 + 1 is 8.'
+      }
     ]
   }
 });
