@@ -124,4 +124,4 @@ The sandbox's Python tests download Pyodide from the CDN. Without internet acces
 
 ## Other ideas
 
-`ideas/contract-debugger-concept.md` is the original brainstorm that Debuggit Ltd grew out of. `ideas/bbq-idle-concept.md` sketches a separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now.
+`ideas/contract-debugger-concept.md` is the original brainstorm that Debuggit Ltd grew out of. `ideas/bbq-idle-concept.md` sketches a separate idle-game idea: a BBQ smokehouse where real low-and-slow cook times are the idle timers. It's just a concept note for now. `ideas/distillery-idle-concept.md` is another: a distillery that sells gin to start and works up to whisky, choosing how long to age it and in which barrels as public taste changes.
