@@ -187,17 +187,17 @@ Decided with the player-owner after the naming search (September 2026).
 - **Before that, the plan was to keep Debugg.** debugg.ai (an AI testing
   tool, with a VS Code extension and the `debugg-ai` GitHub organisation)
   is the clash that started the search.
-  Ideas from then that still apply: a duck mascot (rubber-duck debugging)
-  on the logo and share card, and a share card like "debugg.it() #14 ·
-  Python · debugged in 2".
+  Ideas from then that still apply: a mascot on the logo and share card
+  (a rubber duck then, a kiwi since October 2026), and a share card like
+  "debugg.it() #14 · Python · debugged in 2".
 - **Names checked and ruled out:** dbugg (DBUGG Studios, dbugg.com and
   the `dbugg` GitHub name are taken, and it sounds like Debugg anyway);
   Heisenbug (a trademarked Norwegian tech company and a QA conference);
   names of people in general (the player-owner's preference); and the
   obvious duck names (Rubberduck is a VBA debugging tool, QuackStack Ltd
-  is a web studio, DuckType is a dictation app). Unchecked duck ideas
-  for later, e.g. a default company name: Duck Test Ltd, Bathtub Labs,
-  Waddle, Quacked It.
+  is a web studio, DuckType is a dictation app). The duck-themed company-name
+  ideas that were left unchecked (Duck Test Ltd, Bathtub Labs, Waddle, Quacked It)
+  went with the duck; kiwi ones can replace them if a default company name is wanted.
 - **Keep the internals** whatever the product is called: the `debugg-*`
   storage keys, the `debugg:puzzle-finished` event and `window.Debugg`
   are invisible to players, and renaming them would break every save.
@@ -806,11 +806,11 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
     tagline on the card and in the link preview. Learn went first, then the rest of the site.
   - **Feeding as a game idea,** not just a slogan: e.g. the kiwi visibly fed or growing with your
     streak or bugs found, fitting the kiwi's own reactions (pecking, a happy trill). Not started.
-  - **Naming:** "Duckling, by Debuggit" (the Learn name idea, item 2c) needs rethinking
-    (e.g. a kiwi chick).
+  - **Naming:** Learn stays **Debuggit Learn** (decided October 2026). The "Duckling, by
+    Debuggit" idea went with the duck, and a kiwi-chick name wasn't taken up: `debugg.learn()`
+    matches `debugg.it()`, `debugg.run()` and `debugg.ltd()`.
   - **Still to do on the art:** recolour-able for a light theme (the colours are fixed in the SVG
-    now) and more poses (pecking, happy, dizzy). The old duck files (`img/duck.svg`,
-    `img/duck-180.png`) are unused and can go once nothing points at them.
+    now) and more poses (pecking, happy, dizzy).
   - Rubber-duck debugging was the duck's reason to exist; the kiwi's is the bugs, so the copy
     changed rather than just the picture.
 - **Visual identity.** Started: the Debuggit kiwi (it replaced the rubber duck in October 2026)
