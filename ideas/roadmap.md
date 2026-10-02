@@ -829,7 +829,18 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
     phones, opens the share sheet with) e.g. `debugg(it) Day 3 · Python`, `🟥🟩⬛⬛ · 1 hint`,
     `Debugged it in 2` and the link, and "Share as a picture" makes a 1200×630 card
     (`daily/sharecard.js`);
-  - the streak and XP level-ups made to feel like rewards.
+  - the streak and XP level-ups made to feel like rewards;
+  - **hints that look like hints** (the player-owner's idea, October 2026; not started). Today a
+    hint is one line of grey text in a dashed box, "Hint 1: …", and a second hint is stacked under
+    it in the same box, so the label and the clue read as one sentence. Give each hint its own
+    box, with "Hint 1" as a heading or label in a different style (smaller, or in the amber of the
+    hint dots), so the clue itself is what you read. Things to settle when it's built:
+    - how it sits with the hint dots under the tiles (a dot lighting up as the hint arrives);
+    - formats with one hint (choice and error puzzles) and with two;
+    - the kiwi as the hint's voice (see "Visual identity" above);
+    - screen readers (the label as a real heading or `aria-label`, and not relying on colour) and
+      "reduce motion" if the hint animates in;
+    - whether the weekend code challenges' nudge hints (item 3f) get the same box.
 - **Debugg Ltd.** Less wall-of-text and more at-a-glance:
   - icons or colour for roles and languages;
   - visual progress for promotions and skill bars;
