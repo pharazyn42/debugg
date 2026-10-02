@@ -9,7 +9,8 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- The link preview under a shared result now shows the kiwi card. Apps keep link previews for a
+  while, so a link you or a friend shared before may still show the duck until the app refreshes it.
 
 ## 0.0.6 — 2 October 2026
 
