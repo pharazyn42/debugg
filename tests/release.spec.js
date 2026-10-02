@@ -61,9 +61,9 @@ test('Learn’s What’s new lists only Learn, and its "new" is separate from th
   // about version numbers: that's for developers.
   await page.goto('whatsnew.html');
   await expect(page.locator('#notes')).not.toContainText('Strings');
-  await expect(page.locator('#notes')).not.toContainText('version numbers');
+  for(const intro of ['own version numbers', 'Versions go 0.0.1']) await expect(page.locator('#notes')).not.toContainText(intro);
   await page.goto('whatsnew.html?learn');
-  await expect(page.locator('#notes')).not.toContainText('version numbers');
+  for(const intro of ['own version numbers', 'Versions go 0.0.1']) await expect(page.locator('#notes')).not.toContainText(intro);
   await expect(page.locator('#notes')).not.toContainText('0.1.0 is the launch');
 });
 
@@ -92,7 +92,7 @@ test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the da
   await page.goto('whatsnew.html');
   await expect(page.locator('#notes')).not.toContainText('Managers are in the demo');
   await page.goto('whatsnew.html?ltd');
-  await expect(page.locator('#notes')).not.toContainText('version numbers');
+  for(const intro of ['own version numbers', 'Versions go 0.0.1']) await expect(page.locator('#notes')).not.toContainText(intro);
 });
 
 test('tools/check-scope.js keeps a branch to one product, unless each one’s changelog moves', () => {
