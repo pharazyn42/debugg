@@ -7,6 +7,10 @@ one for fixes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.12 — 2 October 2026
+
 - Python Unit 7, "Dictionaries": storing values under names, looking them up (and what a KeyError means), adding, changing, merging and removing pairs, checking with `in`, `get()`, `setdefault()` and `update()`, looping with `keys()`, `values()` and `items()`, counting things, dictionaries inside dictionaries, and converting between lists and dictionaries. Five lessons and a checkpoint; it opens once you've passed Unit 6's checkpoint.
 - Checkpoints are no longer the same test every time. Each unit now has a bigger pool of questions (24, for Units 1 to 7) and a checkpoint asks 8 of them, favouring the ones you've been asked least often, in a fresh order, so a retry is a different set. A question you miss still comes back in your reviews.
 - **Practice:** once you've passed a unit, a Practice row appears under its checkpoint. It asks 8 questions from the same pool, any time. A wrong answer comes back before the end until you get it right, and also joins your review queue. It gives no XP, but it counts for your streak.
