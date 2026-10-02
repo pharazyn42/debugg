@@ -9,7 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- A kiwi replaces the duck as Debuggit's mascot: the logo and tab icon, its reaction after each
+  puzzle (the "Quack!" is gone), the picture you can share and the link-preview card. The
+  tagline is now "Find the bugs, feed the kiwi." A shared result that ended with a 🦆 now ends
+  with a 🥝.
 
 ## 0.0.5 — 30 September 2026
 

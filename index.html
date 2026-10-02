@@ -6,15 +6,15 @@
 <title>Debuggit</title>
 <meta name="description" content="A Wordle-style daily game: read a short, buggy code snippet and guess what it prints. One bug a day.">
 <meta property="og:title" content="Debuggit">
-<meta property="og:description" content="Read the code. Guess what it prints. One bug a day.">
+<meta property="og:description" content="Read the code. Guess what it prints. Find the bugs, feed the kiwi.">
 <meta property="og:image" content="https://pharazyn42.github.io/debugg/img/share.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#131417">
-<link rel="icon" href="img/duck.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="img/duck-180.png">
+<link rel="icon" href="img/kiwi.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/kiwi-180.png">
 <link rel="stylesheet" href="base.css">
 <style>
   .tiles{
@@ -120,14 +120,14 @@
     vertical-align: 1px;
   }
   .modes{ display: flex; justify-content: center; gap: 6px; margin: 0 0 16px; }
-  /* The Debuggit duck's reaction after a game. */
-  .duck-says{ display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
-  .duck-says[hidden]{ display: none; }
+  /* The Debuggit kiwi's reaction after a game. */
+  .kiwi-says{ display: flex; align-items: center; gap: 12px; margin: 12px 0 0; }
+  .kiwi-says[hidden]{ display: none; }
   .share-row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
   .share-row[hidden]{ display: none; }
   .share-note{ font-size: 13px; color: var(--text-dim); white-space: pre-line; }
-  .duck-says img{ width: 44px; height: 44px; flex: none; }
-  .duck-says p{
+  .kiwi-says img{ width: 44px; height: 44px; flex: none; }
+  .kiwi-says p{
     margin: 0;
     background: var(--panel-2);
     border: 1px solid var(--line);
@@ -136,11 +136,11 @@
     font-size: 14px;
     color: var(--text);
   }
-  .duck-says.happy img{ animation: duck-hop 0.55s ease 2; }
-  .duck-says.dizzy img{ transform: rotate(-14deg); }
-  @keyframes duck-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
-  @media (prefers-reduced-motion: reduce){ .duck-says.happy img{ animation: none; } }
-  .dialog-duck{ display: block; margin: 0 auto 6px; }
+  .kiwi-says.happy img{ animation: mascot-hop 0.55s ease 2; }
+  .kiwi-says.dizzy img{ transform: rotate(-14deg); }
+  @keyframes mascot-hop{ 50%{ transform: translateY(-8px) rotate(-6deg); } }
+  @media (prefers-reduced-motion: reduce){ .kiwi-says.happy img{ animation: none; } }
+  .dialog-kiwi{ display: block; margin: 0 auto 6px; }
   /* Puzzle formats (daily/formats.js): the question above the code, and the ways to answer */
   .ask{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 12px; font-size: 14.5px; line-height: 1.55; }
   .ask[hidden]{ display: none; }
@@ -339,7 +339,7 @@
 <div class="wrap">
   <header>
     <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page">Daily</a><a class="lang-tab" href="index.html?ltd" id="ltdTab">Ltd</a></nav>
-    <div class="brand"><img class="duck-logo" src="img/duck.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
+    <div class="brand"><img class="mascot-logo" src="img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debugg.it()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1 id="title">What does this print?</h1>
     <p class="sub" id="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
@@ -398,7 +398,7 @@
     </div>
     <div class="feedback" id="feedback"></div>
     <div class="share-row" id="practiceRow"><button class="btn-ghost" id="playAgain" type="button" hidden>Play it again</button></div>
-    <div class="duck-says" id="duckSays" hidden><img src="img/duck.svg" alt="The Debuggit duck" width="44" height="44"><p id="duckLine"></p></div>
+    <div class="kiwi-says" id="kiwiSays" hidden><img src="img/kiwi.svg" alt="The Debuggit kiwi" width="44" height="44"><p id="kiwiLine"></p></div>
     <div class="share-row" id="shareRow" hidden><button class="btn-primary" id="shareBtn" type="button">Share your result</button>
       <button class="btn-ghost" id="shareImageBtn" type="button">Share as a picture</button>
       <button class="btn-ghost" id="statsBtn" type="button">Your stats</button><span class="share-note" id="shareNote" role="status"></span></div>
@@ -439,7 +439,7 @@
 </div>
 
 <dialog id="demoNotice" aria-labelledby="demoTitle">
-  <img class="dialog-duck" src="img/duck.svg" alt="" width="56" height="56">
+  <img class="dialog-kiwi" src="img/kiwi.svg" alt="" width="56" height="56">
   <h2 id="demoTitle">This is the Debuggit demo</h2>
   <p>Thanks for trying Debuggit early. The daily puzzles are all here, and Debuggit Ltd, the company you can start, is a cut-down version for now: hotfixes, and patches once you have more than 10 staff (with managers and co-working desks). Bigger contracts and premises come in v0.1.</p>
   <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
@@ -802,7 +802,7 @@
     state.revealed = true;
     save();
     renderCode();  // the real code, with the flag underlined (and the bug line marked)
-    duckSay();
+    kiwiSay();
     if(PRACTICE){
       document.getElementById('playAgain').hidden = false;
     }else{
@@ -838,12 +838,12 @@
     const h = state.hintLevel || 0;
     return shareMark + ' ' + window.Debugg.dayLabel(DAY) + ' · ' + LANG.name + '\n' +
       squares + (h ? ' · ' + h + ' hint' + (h === 1 ? '' : 's') : '') + '\n' +
-      shareResult() + (state.solved && (state.attempts.length > 1 || h) ? '' : ' 🦆') + '\n' + shareSite();
+      shareResult() + (state.solved && (state.attempts.length > 1 || h) ? '' : ' 🥝') + '\n' + shareSite();
   }
   // The same result as a picture (daily/sharecard.js).
   function shareCard(){
     return { wordmark: shareMark, title: window.Debugg.dayLabel(DAY) + ' · ' + LANG.name, attempts: state.attempts.slice(),
-             max: MAX_GUESSES, hints: state.hintLevel || 0, solved: state.solved, result: shareResult(), site: shareSite(), duck: 'img/duck.svg' };
+             max: MAX_GUESSES, hints: state.hintLevel || 0, solved: state.solved, result: shareResult(), site: shareSite(), mascot: 'img/kiwi.svg' };
   }
   document.getElementById('shareImageBtn').addEventListener('click', async () => {
     const how = await window.DebuggShareCard.share(shareCard(), 'debuggit-' + (window.Debugg.isPreview(DAY) ? 'preview' : 'day' + SLOT) + '.png');
@@ -878,17 +878,17 @@
   document.getElementById('statsBtn').addEventListener('click', openStats);
   document.getElementById('statsLink').addEventListener('click', openStats);
 
-  // The Debuggit duck reacts once the game is over: a hop for a solve, a wobble for a miss.
-  function duckSay(){
-    const box = document.getElementById('duckSays');
+  // The Debuggit kiwi reacts once the game is over: a hop for a solve, a wobble for a miss.
+  function kiwiSay(){
+    const box = document.getElementById('kiwiSays');
     const n = state.attempts.length, h = state.hintLevel || 0;
     let line;
-    if(state.solved && n === 1 && !h) line = 'Quack! First try, no hints.';
-    else if(state.solved) line = 'Quack! Debugged it in ' + n + (n === 1 ? ' guess' : ' guesses') +
+    if(state.solved && n === 1 && !h) line = 'First try, no hints.';
+    else if(state.solved) line = 'Debugged it in ' + n + (n === 1 ? ' guess' : ' guesses') +
       (h ? ', with ' + h + (h === 1 ? ' hint' : ' hints') : '') + '.';
-    else line = 'Even the duck gets stuck sometimes. Talk it through with the explanation below.';
-    document.getElementById('duckLine').textContent = line;
-    box.className = 'duck-says ' + (state.solved ? 'happy' : 'dizzy');
+    else line = 'Even the kiwi misses a bug sometimes. Talk it through with the explanation below.';
+    document.getElementById('kiwiLine').textContent = line;
+    box.className = 'kiwi-says ' + (state.solved ? 'happy' : 'dizzy');
     box.hidden = false;
   }
 
