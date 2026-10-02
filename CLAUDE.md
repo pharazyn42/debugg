@@ -64,9 +64,11 @@ streak }`) when a game ends, but nothing listens to it now.
 
 **Two areas: the game and Learn** (split September 2026, the player-owner's call). The game is the
 daily puzzle and Debuggit Ltd, with **Daily | Ltd** tabs on `index.html`. **Debuggit Learn** is its
-own section at `learn/`, with its own header and a "← Debuggit" link back; it's the same site, so
-saves, XP levels and the backup code are shared. The game links into Learn without a tab: a "learn
-to code" footer link, the Director's languages on the Ltd card (`a.learn-lang`, for courses that
+own section at `learn/`; every page of the two areas shows the same top row of three buttons named for
+the wordmarks, `debugg.learn()`, `debugg(it)` (demo) and `debugg.ltd()` (demo), so there are no product
+links in the footers; it's the same site, so
+saves, XP levels and the backup code are shared. The game links into Learn from the top row, the
+Director's languages on the Ltd card (`a.learn-lang`, for courses that
 exist), and, after a missed or revealed puzzle (not a first-guess solve), `#learnMore`: the unit
 named by the puzzle's `learn` field (`learn/#python/strings`, which picks the unit out), or the
 course from the start. `index.html` loads `learn/courses.js` to know which courses exist. The
@@ -74,7 +76,8 @@ checker fails a `learn` tag that isn't a written unit. The **sandbox** belongs t
 (`learn/sandbox.html`, showing Learn's version); the game links to it from its footer and from a
 finished puzzle's "Run it yourself", and lessons link to it from every step with code.
 
-**Tabs and switching on.** The game's pages have **Daily | Ltd** tabs. The
+**Tabs and switching on.** The game's pages have **Daily | Ltd** tabs (inside the shared top row, which
+also holds the Learn button; `.modes` in `base.css`). The
 Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
 there): the company, with its desk beside the studio and no daily puzzle (`main.desk` is hidden),
 or, with no running company, a card (`#ltdIntro`) to start or resume one. Opening the tab never

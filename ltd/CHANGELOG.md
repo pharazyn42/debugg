@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-- Debuggit Ltd's button at the top is now marked **(demo)**, and a **Learn** button sits to its left.
+- Debuggit Ltd's button at the top is now named `debugg.ltd()` and marked **(demo)**, and a `debugg.learn()` button sits to its left. The link back to the daily puzzle at the bottom of the page is gone, since the buttons at the top do that.
 
 ## 0.0.11 — 2 October 2026
 

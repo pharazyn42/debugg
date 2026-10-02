@@ -213,6 +213,11 @@ footer{
   font-size: 12px;
   font-family: var(--mono);
 }
+/* Footer buttons: save progress, sandbox, feedback. Save progress is the one to notice. */
+.footer-actions{ display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
+.footer-actions .btn-ghost{ font-size: 13px; padding: 9px 14px; text-decoration: none; }
+.footer-actions .save-btn{ color: var(--amber); border-color: var(--amber-dim); }
+.footer-actions .save-btn:hover{ color: var(--amber); border-color: var(--amber); }
 /* The version, linking to What's new; "new" until a returning player has looked. */
 .app-version{ margin-top: 8px; }
 .version-link{ color: var(--text-faint); text-decoration: none; }
