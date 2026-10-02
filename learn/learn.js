@@ -20,6 +20,7 @@ window.DebuggLearn = (function(){
   const CHECKPOINT_XP = 30;   // for passing a checkpoint the first time
   const REVIEW_XP = 2;        // per review question right first time
   const REVIEW_DAYS = [1, 3, 7];  // days until a missed question comes back, by how often it's been right since
+  const MIXED_ROUND = 10;     // questions in a mixed practice round
   const REVIEW_ROUND = 8;     // questions in a review round at most
   // Stars for a lesson, by mistakes made: 0 → 3 stars, 1–2 → 2 stars, more → 1 star.
   function starsFor(mistakes){ return mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1; }
@@ -175,13 +176,17 @@ window.DebuggLearn = (function(){
     const review = due ? '<div class="review-due" id="reviewDue"><span><b>Review</b> · ' + due + ' question' + (due > 1 ? 's' : '') +
       ' you missed before, back to check ' + (due > 1 ? 'they’ve' : 'it’s') + ' stuck</span>' +
       '<button class="btn-ghost btn-small" data-action="review" id="reviewBtn">Review ' + Math.min(due, REVIEW_ROUND) + ' →</button></div>' : '';
+    const nPassed = passedUnits(lang).length;
+    const mixed = nPassed ? '<div class="review-due mixed-practice" id="mixedPractice"><span><b>Mixed practice</b> · ' + MIXED_ROUND +
+      ' questions from ' + (nPassed > 1 ? 'the ' + nPassed + ' units' : 'the unit') + ' you’ve passed</span>' +
+      '<button class="btn-ghost btn-small" data-action="mixed" id="mixedBtn">Practise →</button></div>' : '';
     const next = nextStep(lang);
     const started = Object.keys(save.lessons).concat(Object.keys(save.checkpoints)).some(k => k.startsWith(lang + '/'));
     if(next.kind === 'done'){
       const planned = (L.courses[lang].planned || [])[0];
       return '<section class="continue done" id="continue"><span class="continue-label">All caught up</span>' +
         '<h2>You’ve finished every unit written so far</h2>' +
-        '<p>' + (planned ? 'Next up: <b>' + esc(planned) + '</b>, coming soon. ' : '') + 'Replay any lesson to earn more stars.</p>' + review + '</section>';
+        '<p>' + (planned ? 'Next up: <b>' + esc(planned) + '</b>, coming soon. ' : '') + 'Replay any lesson to earn more stars.</p>' + review + mixed + '</section>';
     }
     const u = next.unit;
     const where = 'Unit ' + (next.unitIndex + 1) + ': ' + esc(u.title);
@@ -194,7 +199,7 @@ window.DebuggLearn = (function(){
       : '<button class="btn-primary" data-action="checkpoint" data-unit="' + u.id + '">Take the checkpoint →</button>';
     return '<section class="continue" id="continue"><div class="continue-text">' +
       '<span class="continue-label">' + (started ? 'Continue' : 'Start here') + '</span>' +
-      '<h2>' + title + '</h2><p>' + where + ' · ' + detail + '</p></div>' + button + review + '</section>';
+      '<h2>' + title + '</h2><p>' + where + ' · ' + detail + '</p></div>' + button + review + mixed + '</section>';
   }
 
   function renderMap(){
@@ -273,6 +278,30 @@ window.DebuggLearn = (function(){
     track('practice/' + unitKey(u) + '/started');
     next();
   }
+  // Mixed practice: MIXED_ROUND questions drawn across every passed unit, taking turns between them
+  // (so each gets a share) and the least-asked first within each. Like practice otherwise.
+  const passedUnits = l => unitsOf(l).filter(unitPassed);
+  function pickMixed(){
+    const lists = shuffle(passedUnits(lang).map(u => {
+      const counts = save.asked[unitKey(u)] || (save.asked[unitKey(u)] = {});
+      const pool = checkpointPool(u);
+      return shuffle(pool.map(step => ({ u, step, n: counts[qHash(step)] || 0 }))).sort((a, b) => a.n - b.n);
+    }));
+    const picked = [];
+    for(let r = 0; picked.length < MIXED_ROUND && lists.some(x => x.length > r); r++)
+      lists.forEach(x => { if(x[r] && picked.length < MIXED_ROUND) picked.push(x[r]); });
+    picked.forEach(x => { const c = save.asked[unitKey(x.u)], h = qHash(x.step); c[h] = (c[h] || 0) + 1; });
+    write();
+    return shuffle(picked);
+  }
+  function startMixed(){
+    if(!passedUnits(lang).length) return renderMap();
+    const picked = pickMixed();
+    session = { kind: 'mixed', units: picked.map(x => x.u), unit: picked[0].u, steps: picked.map(x => x.step),
+                queue: picked.map((_, i) => i), total: picked.length, done: 0, mistakes: 0 };
+    track('mixed/started');
+    next();
+  }
   function startCheckpoint(u){
     const pool = checkpointPool(u);
     const steps = pickCheckpoint(u).map(i => pool[i]);
@@ -297,6 +326,7 @@ window.DebuggLearn = (function(){
     session.current = session.queue.shift();
     session.answered = false;
     if(session.kind === 'review') session.unit = session.items[session.current].unit;
+    if(session.kind === 'mixed') session.unit = session.units[session.current];
     keepSession();
     renderStep();
   }
@@ -309,6 +339,7 @@ window.DebuggLearn = (function(){
     const kept = { kind: s.kind, lang, unit: s.unit.id, lesson: s.lesson ? s.lesson.id : null, total: s.total,
                    queue: s.queue, current: s.current, answered: s.answered, done: s.done, mistakes: s.mistakes, correct: s.correct };
     if(s.kind === 'checkpoint' || s.kind === 'practice') kept.qs = s.steps.map(qHash);
+    if(s.kind === 'mixed') kept.qs = s.steps.map((st, i) => s.units[i].id + ':' + qHash(st));
     if(s.kind === 'review'){
       kept.items = s.items.map(i => ({ lang: i.entry.lang, unit: i.entry.unit, lesson: i.entry.lesson, q: i.entry.q }));
       kept.missed = [...s.missed];
@@ -335,6 +366,15 @@ window.DebuggLearn = (function(){
     }else if(k.kind === 'lesson' && u){
       const les = u.lessons.find(l => l.id === k.lesson);
       if(les) s = { kind: 'lesson', unit: u, lesson: les, steps: les.steps };
+    }else if(k.kind === 'mixed' && Array.isArray(k.qs)){
+      const found = k.qs.map(id => {
+        const [uid, h] = id.split(':');
+        const un = unitsOf(lang).find(x => x.id === uid);
+        const st = un && unitPassed(un) && checkpointPool(un).find(q => qHash(q) === h);
+        return st && { u: un, step: st };
+      });
+      if(found.length && found.every(Boolean))
+        s = { kind: 'mixed', units: found.map(x => x.u), unit: found[0].u, steps: found.map(x => x.step) };
     }else if((k.kind === 'checkpoint' || k.kind === 'practice') && u && (k.kind === 'checkpoint' || unitPassed(u))){
       // The questions drawn, by hash; a kept session from before the pool is the unit's own steps.
       const pool = checkpointPool(u);
@@ -348,6 +388,7 @@ window.DebuggLearn = (function(){
     session.shownPct = Math.round(session.done / session.total * 100);
     renderStats();
     if(session.kind === 'review') session.unit = session.items[session.current].unit;
+    if(session.kind === 'mixed') session.unit = session.units[session.current];
     if(k.answered) next();
     else{ session.answered = false; renderStep(); }
     return true;
@@ -384,8 +425,9 @@ window.DebuggLearn = (function(){
       ? unitName + ' · lesson ' + (session.unit.lessons.indexOf(session.lesson) + 1) + ' of ' + session.unit.lessons.length
       : session.kind === 'review' ? unitName + ' · a question you missed before'
       : session.kind === 'practice' ? unitName + ' · practice'
+      : session.kind === 'mixed' ? unitName + ' · a mix from the units you’ve passed'
       : unitName + ' · pass with ' + session.unit.checkpoint.pass;
-    $('title').textContent = session.kind === 'lesson' ? session.lesson.title : session.kind === 'review' ? 'Review' : session.kind === 'practice' ? 'Practice' : 'Checkpoint';
+    $('title').textContent = session.kind === 'lesson' ? session.lesson.title : session.kind === 'review' ? 'Review' : session.kind === 'practice' ? 'Practice' : session.kind === 'mixed' ? 'Mixed practice' : 'Checkpoint';
     $('sub').textContent = where;
     let body = '';
     let key = 0;
@@ -459,7 +501,7 @@ window.DebuggLearn = (function(){
         '<span class="right-answer">' + rightAnswerText(s) + '</span> ' + s.explain +
         '<span class="again">' + (session.kind === 'lesson' ? 'This one comes back before the end of the lesson, and in a review tomorrow.'
           : session.kind === 'review' ? 'This one comes back before the end of the review, and again tomorrow.'
-          : session.kind === 'practice' ? 'This one comes back before the end of the practice, and in a review tomorrow.'
+          : session.kind === 'practice' || session.kind === 'mixed' ? 'This one comes back before the end of the practice, and in a review tomorrow.'
           : 'This one comes back in a review tomorrow.') + '</span>' + runLink(s) + '</div>';
     }
     keepSession();
@@ -553,15 +595,17 @@ window.DebuggLearn = (function(){
         celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
         (left ? '<button class="btn-primary" data-action="review">Review ' + Math.min(left, REVIEW_ROUND) + ' more</button>' : '') +
         '<button class="' + (left ? 'btn-ghost' : 'btn-primary') + '" data-action="quit">Back to the course</button></div></div>';
-    }else if(session.kind === 'practice'){
+    }else if(session.kind === 'practice' || session.kind === 'mixed'){
+      const mixed = session.kind === 'mixed';
       markStreak();
       write();
-      track('practice/' + unitKey(u) + '/done');
+      track(mixed ? 'mixed/done' : 'practice/' + unitKey(u) + '/done');
       html = '<div class="summary" id="summary"><img class="summary-mascot" src="../img/kiwi.svg" alt="The Debuggit kiwi" width="64" height="64">' +
-        '<h2>Practice done</h2>' +
+        '<h2>' + (mixed ? 'Mixed practice done' : 'Practice done') + '</h2>' +
         '<p>' + (session.mistakes ? session.mistakes + ' mistake' + (session.mistakes > 1 ? 's' : '') + ', all put right. They’ll come up in a review tomorrow.' : 'No mistakes.') + '</p>' +
         celebrate(xpBefore, streakBefore) + '<div class="step-actions">' +
-        '<button class="btn-primary" data-action="practice" data-unit="' + u.id + '">Practice again</button>' +
+        (mixed ? '<button class="btn-primary" data-action="mixed">Another mix</button>'
+          : '<button class="btn-primary" data-action="practice" data-unit="' + u.id + '">Practice again</button>') +
         '<button class="btn-ghost" data-action="quit">Back to the course</button></div></div>';
     }else if(session.kind === 'lesson'){
       const key = lessonKey(u, session.lesson);
@@ -625,6 +669,7 @@ window.DebuggLearn = (function(){
       const u = unitById(btn.dataset.unit);
       startLesson(u, u.lessons.find(l => l.id === btn.dataset.lesson));
     }else if(a === 'checkpoint') startCheckpoint(unitById(btn.dataset.unit));
+    else if(a === 'mixed') startMixed();
     else if(a === 'practice') startPractice(unitById(btn.dataset.unit));
     else if(a === 'review') startReview();
     else if(a === 'quit') renderMap();

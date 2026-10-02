@@ -695,3 +695,31 @@ test('a passed unit offers practice: wrong answers come back until right, and jo
   const counts = (await learnSave(page)).asked['python/values'];
   expect(Object.keys(counts)).toHaveLength(16);
 });
+
+test('mixed practice draws across the passed units, and a reload keeps the set', async ({ page }) => {
+  await expect(page.locator('#mixedPractice')).toHaveCount(0);
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    s.checkpoints = { 'python/values': { passed: true, best: 8 }, 'python/strings': { passed: true, best: 8 } };
+    localStorage.setItem('debugg-learn', JSON.stringify(s));
+  });
+  await openAt(page, 'learn/');
+  await expect(page.locator('#mixedPractice')).toContainText('10 questions from the 2 units');
+  await page.click('#mixedBtn');
+  await expect(page.locator('#title')).toHaveText('Mixed practice');
+  const qs = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs);
+  expect(qs).toHaveLength(10);
+  // Five from each unit, turn and turn about.
+  expect(qs.filter(q => q.startsWith('values:'))).toHaveLength(5);
+  expect(qs.filter(q => q.startsWith('strings:'))).toHaveLength(5);
+  await page.reload();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs)).toEqual(qs);
+  await expect(page.locator('#title')).toHaveText('Mixed practice');
+  // A miss comes back before the end and joins the review queue.
+  let answered = 0;
+  await answer(page, false); answered++;
+  while(!(await page.locator('#summary').count())){ await answer(page, true); answered++; }
+  expect(answered).toBe(11);
+  await expect(page.locator('#summary h2')).toHaveText('Mixed practice done');
+  expect((await learnSave(page)).review).toHaveLength(1);
+});
