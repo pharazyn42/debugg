@@ -63,7 +63,7 @@ window.DebuggBackup = (function(){
     dialog.className = 'backup';
     dialog.setAttribute('aria-labelledby', 'backupTitle');
     dialog.innerHTML =
-      '<h2 id="backupTitle">Back up your progress</h2>' +
+      '<h2 id="backupTitle">Save or restore your progress</h2>' +
       '<p>Debuggit saves everything in this browser only. Clearing your browsing data, or not visiting for a while in Safari, can erase it. ' +
       'Keep this code somewhere safe (a note or an email to yourself), and paste it here on any device to get everything back: ' +
       'your puzzles, XP, streak and company.</p>' +
