@@ -7,6 +7,7 @@ one for fixes.
 
 ## Unreleased
 
+- Python Unit 7, "Dictionaries": storing values under names, looking them up (and what a KeyError means), adding, changing, merging and removing pairs, checking with `in`, `get()`, `setdefault()` and `update()`, looping with `keys()`, `values()` and `items()`, counting things, dictionaries inside dictionaries, and converting between lists and dictionaries. Five lessons and a checkpoint; it opens once you've passed Unit 6's checkpoint.
 Nothing yet.
 
 ## 0.0.11 — 2 October 2026

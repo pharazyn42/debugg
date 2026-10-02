@@ -53,7 +53,7 @@ test('the course map opens with the first lesson, and every unit file is loaded'
   // The checkpoint can be taken straight away, to test out of the unit.
   await expect(rows.nth(3)).toBeEnabled();
   await expect(rows.nth(3)).toContainText('Test out');
-  await expect(page.locator('.unit.planned').first()).toContainText('Dictionaries');
+  await expect(page.locator('.unit.planned').first()).toContainText('The classic traps');
   await expect(page.locator('#learnStreak')).toHaveText('0');
   // learn/index.html loads every unit file its course lists.
   expect(await page.evaluate(() => Object.values(DEBUGG_LEARN.courses).reduce((n, c) => n + c.files.length, 0)))
@@ -97,11 +97,12 @@ test('the Continue card starts the next lesson or checkpoint in one tap', async 
     s.checkpoints['python/conditions'] = { passed: true, best: 8 };
     s.checkpoints['python/loops'] = { passed: true, best: 8 };
     s.checkpoints['python/functions'] = { passed: true, best: 8 };
+    s.checkpoints['python/dictionaries'] = { passed: true, best: 8 };
     localStorage.setItem('debugg-learn', JSON.stringify(s));
   });
   await page.reload();
   await expect(card.locator('.continue-label')).toHaveText('All caught up');
-  await expect(card).toContainText('Next up: Dictionaries, coming soon.');
+  await expect(card).toContainText('Next up: The classic traps, coming soon.');
   await expect(card.locator('button')).toHaveCount(0);
   // A coming-soon course has no card.
   await page.goto('learn/#c');
@@ -393,6 +394,35 @@ test('Unit 6, Functions, opens once Unit 5’s checkpoint is passed', async ({ p
   expect(await learnSave(page)).toMatchObject({
     lessons: { 'python/functions/def': { stars: 3 } },
     checkpoints: { 'python/functions': { passed: true, best: 8 } }
+  });
+});
+
+test('Unit 7, Dictionaries, opens once Unit 6’s checkpoint is passed', async ({ page }) => {
+  const unit = page.locator('.unit[data-unit=dictionaries]');
+  await expect(unit.locator('h2')).toHaveText('Dictionaries');
+  await expect(unit.locator('.unit-num')).toHaveText('Unit 7');
+  await expect(unit).toHaveClass(/locked/);
+  for(const id of ['values', 'strings', 'lists', 'conditions', 'loops', 'functions']){
+    await page.click('[data-action=checkpoint][data-unit=' + id + ']');
+    await finishAll(page);
+    await page.click('#summary [data-action=quit]');
+  }
+  await expect(unit).not.toHaveClass(/locked/);
+  const rows = unit.locator('.lesson-row');
+  await expect(rows).toHaveCount(6);
+  await expect(rows.nth(0)).toContainText('Keys and values');
+  await expect(rows.nth(3)).toContainText('Looping over a dictionary');
+  await expect(rows.nth(4)).toContainText('Nesting and converting');
+  await page.click('[data-action=lesson][data-lesson=make]');
+  await finishAll(page);
+  await expect(page.locator('#summary .big-stars')).toHaveText('★★★');
+  await page.click('#summary [data-action=quit]');
+  await page.click('[data-action=checkpoint][data-unit=dictionaries]');
+  await finishAll(page);
+  await expect(page.locator('#summary h2')).toHaveText('Checkpoint passed!');
+  expect(await learnSave(page)).toMatchObject({
+    lessons: { 'python/dictionaries/make': { stars: 3 } },
+    checkpoints: { 'python/dictionaries': { passed: true, best: 8 } }
   });
 });
 
