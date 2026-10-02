@@ -9,7 +9,16 @@ window.DEBUGG_LEARN = {
       files: ['learn/python/01-values.js', 'learn/python/02-strings.js', 'learn/python/03-lists.js',
         'learn/python/04-conditions.js', 'learn/python/05-loops.js',
         'learn/python/06-functions.js', 'learn/python/07-dictionaries.js'],
-      planned: ['The classic traps']
+      // Part 1 gets a heading above its first unit, as Part 2 (below) has one above its units.
+      heading: { title: 'Python Part 1: The basics', summary: 'Values, text, lists, decisions, loops, functions and dictionaries.' },
+      planned: ['The classic traps'],
+      // Part 2 shows as a teaser until its units are written; move each into `files` as it lands.
+      sections: [{
+        id: 'part-2',
+        title: 'Python Part 2: Intermediate',
+        summary: 'Tuples and sets, tidier loops, comprehensions, more flexible functions, working with text, and handling errors.',
+        planned: ['Tuples and sets', 'Looping tools', 'Comprehensions', 'More on functions', 'Working with text', 'Errors and exceptions']
+      }]
     },
     // Coming soon: a tab with the planned units, and no lessons yet. `sections` are later parts of
     // the same course, shown under their own heading; Embedded C follows ideas/embedded-c-roadmap.md.

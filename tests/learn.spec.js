@@ -54,6 +54,15 @@ test('the course map opens with the first lesson, and every unit file is loaded'
   await expect(rows.nth(3)).toBeEnabled();
   await expect(rows.nth(3)).toContainText('Test out');
   await expect(page.locator('.unit.planned').first()).toContainText('The classic traps');
+  // Part 1 has its heading above Unit 1.
+  await expect(page.locator('.course-section .section-title').first()).toHaveText('Python Part 1: The basics');
+  expect(await page.evaluate(() => document.querySelector('.course-section').compareDocumentPosition(document.querySelector('.unit')) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+  // Part 2 is a teaser under its own heading, its units numbered on from Unit 8.
+  await expect(page.locator('.course-section .section-title').nth(1)).toHaveText('Python Part 2: Intermediate');
+  await expect(page.locator('.unit.planned')).toHaveCount(7);
+  await expect(page.locator('.unit.planned').nth(1)).toContainText('Unit 9');
+  await expect(page.locator('.unit.planned').nth(1)).toContainText('Tuples and sets');
+  await expect(page.locator('.unit.planned').last()).toContainText('Errors and exceptions');
   await expect(page.locator('#learnStreak')).toHaveText('0');
   // learn/index.html loads every unit file its course lists.
   expect(await page.evaluate(() => Object.values(DEBUGG_LEARN.courses).reduce((n, c) => n + c.files.length, 0)))

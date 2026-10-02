@@ -232,6 +232,9 @@ window.DebuggLearn = (function(){
     renderStats();
     const units = unitsOf(lang);
     let html = continueHTML();
+    const h = L.courses[lang].heading;
+    if(h && units.length) html += '<div class="course-section first" data-section="part-1"><h2 class="section-title">' + esc(h.title) + '</h2>' +
+      (h.summary ? '<p class="section-summary">' + esc(h.summary) + '</p>' : '') + '</div>';
     const folded = readCollapsed();
     if(units.filter(unitOpen).length >= 2)
       html += '<div class="map-tools"><button class="btn-ghost btn-small" id="foldAll" data-action="fold-all">Collapse all</button></div>';
