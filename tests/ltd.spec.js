@@ -1018,7 +1018,7 @@ test('/studio/ redirects to the main page with the studio on', async ({ page }) 
 });
 
 test('Daily and Ltd are tabs; on the Daily tab a running company is a note linking to it', async ({ page }) => {
-  await expect(page.locator('.modes .lang-tab')).toHaveText(['debugg.learn()', 'debugg(it) (demo)', 'debugg.ltd() (demo)']);
+  await expect(page.locator('.modes .lang-tab')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
   await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#ltdIntro')).toBeHidden();
   await page.click('#ltdTab');
@@ -1042,7 +1042,7 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
 
   // The top buttons are named for each page's wordmark: Learn (its own section, also linked from the
   // Director's languages, and it links back), then the daily and Ltd, both demos for now.
-  await expect(page.locator('.modes a')).toHaveText(['debugg.learn()', 'debugg(it) (demo)', 'debugg.ltd() (demo)']);
+  await expect(page.locator('.modes a')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
   await expect(page.locator('.card.director a.learn-lang')).toHaveText('Python');
   await expect(page.locator('.card.director a.learn-lang')).toHaveAttribute('href', 'learn/#python');
   await page.click('.card.director a.learn-lang');
