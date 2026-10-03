@@ -72,7 +72,10 @@ const RUNNERS = {
 const REQUIRED = ['lang', 'difficulty', 'code', 'flag', 'display', 'nudge', 'hints', 'explain', 'fix', 'takeaway'];
 // What each format needs on top (see puzzles/README.md). Typed formats need `answers`.
 const FORMAT_FIELDS = { output: ['answers'], choice: ['options'], value: ['answers', 'ask'], count: ['answers', 'ask'],
-                        error: ['options'], order: [], bug: ['expected', 'bugLine', 'fixLine'] };
+                        error: ['options'], order: [], bug: ['expected', 'bugLine', 'fixLine'],
+                        pass: ['task', 'tests', 'hidden', 'solution', 'wrong'] };
+// A code challenge is judged by its tests, so it has no single printed answer or flagged spot.
+const NOT_FOR = { pass: ['flag', 'display'] };
 
 // `learn` (optional) names the Learn unit that teaches what the puzzle is about; the puzzle page links
 // to it after a missed puzzle, so it must be a written unit in the puzzle's language.
@@ -81,7 +84,7 @@ function checkFields(p, D, L){
   const format = p.format || 'output';
   if(!D.FORMATS[format]) return ['unknown format "' + p.format + '"'];
   if(format !== 'output' && p.lang !== 'python') problems.push('only Python puzzles can use the ' + format + ' format so far');
-  REQUIRED.concat(FORMAT_FIELDS[format]).forEach(f => { if(p[f] === undefined || p[f] === '') problems.push('missing ' + f); });
+  REQUIRED.filter(f => !(NOT_FOR[format] || []).includes(f)).concat(FORMAT_FIELDS[format]).forEach(f => { if(p[f] === undefined || p[f] === '') problems.push('missing ' + f); });
   if(!(p.difficulty >= 1 && p.difficulty <= 5)) problems.push('difficulty must be 1 to 5');
   const hints = D.FORMATS[format].hints;
   if(!Array.isArray(p.hints) || p.hints.length !== hints) problems.push('needs exactly ' + hints + ' hint' + (hints > 1 ? 's' : ''));
@@ -100,6 +103,12 @@ function checkFields(p, D, L){
   if(format === 'bug'){
     if(p.flag && p.flag.line !== p.bugLine) problems.push('the flag should be on the bug line');
     if(p.expected === p.display) problems.push('what it should print is what it prints');
+  }
+  if(format === 'pass'){
+    const isTest = t => Array.isArray(t) && t.length === 2 && t.every(x => typeof x === 'string' && x);
+    if(!(Array.isArray(p.tests) && p.tests.length && p.tests.every(isTest))) problems.push('tests must be a list of [call, want] pairs');
+    if(!(Array.isArray(p.hidden) && p.hidden.length >= 2 && p.hidden.every(isTest))) problems.push('hidden must be at least 2 [call, want] pairs');
+    if(!(Array.isArray(p.wrong) && p.wrong.length)) problems.push('wrong must list at least one wrong solution the hidden tests catch');
   }
   if(p.flag){
     const line = (p.code || '').split('\n')[p.flag.line - 1];
@@ -162,6 +171,29 @@ function checkFormat(p){
     const m = /^(\w+)(?::|$)/m.exec(o.err.trim().split('\n').pop() || '');
     const what = o.code === 0 ? 'Runs fine' : (m ? m[1] : 'an unknown error');
     if(what !== p.display) problems.push('it ' + (o.code === 0 ? 'runs fine' : 'raises ' + what) + ', not ' + p.display);
+  }else if(f === 'pass'){
+    // The starter fails a visible test, the solution passes every test, and each wrong solution
+    // passes the visible tests but is caught by a hidden one (so hidden tests earn their keep).
+    const all = p.tests.concat(p.hidden);
+    const judge = src => testsRun(src, all);
+    const failing = (r, from, to) => r.results.slice(from, to).map((t, i) => ({ t: all[from + i], got: t.got, ok: t.ok })).filter(x => !x.ok);
+    const start = judge(p.code);
+    if(start.missing) return start;
+    if(start.crash) return [start.crash];
+    if(!start.error && !failing(start, 0, p.tests.length).length) problems.push('the starter code already passes the visible tests');
+    const sol = judge(p.solution);
+    if(sol.crash) return [sol.crash];
+    if(sol.error) problems.push('the solution raises ' + sol.error);
+    else failing(sol, 0, all.length).forEach(x => problems.push('the solution fails ' + x.t[0] + ': got ' + x.got + ', not ' + x.t[1]));
+    p.wrong.forEach((w, i) => {
+      const r = judge(w);
+      if(r.crash) return problems.push(r.crash);
+      const name = 'wrong solution ' + (i + 1);
+      if(r.error) return problems.push(name + ' raises ' + r.error + ' (it should pass the visible tests)');
+      const vis = failing(r, 0, p.tests.length);
+      if(vis.length) problems.push(name + ' fails visible test ' + vis[0].t[0] + ' (it should pass them, and be caught by a hidden one)');
+      else if(!failing(r, p.tests.length, all.length).length) problems.push(name + ' passes every hidden test too');
+    });
   }else if(f === 'bug'){
     const r = py(p.code);
     if(r.missing) return r;
@@ -176,6 +208,23 @@ function checkFormat(p){
     }
   }
   return problems;
+}
+
+// Runs a code challenge's tests with real Python, through the same harness the page uses
+// (DebuggRunner.HARNESS in daily/runner.js). Returns { error, results, printed }, { missing } or { crash }.
+let HARNESS = null;
+function testsRun(src, tests){
+  if(!HARNESS){
+    const ctx = { window: {} };
+    require('vm').runInNewContext(fs.readFileSync(path.join(ROOT, 'daily/runner.js'), 'utf8'), ctx);
+    HARNESS = ctx.window.DebuggRunner.HARNESS;
+  }
+  const driver = HARNESS + '\nimport json as _j, sys as _s\n_a = _j.load(_s.stdin)\nprint(_debugg_tests(_a["src"], _a["tests"]))\n';
+  fs.writeFileSync(path.join(TMP, 'challenge.py'), driver);
+  const r = run('python3', ['challenge.py'], { input: JSON.stringify({ src, tests }) });
+  if(r.missing) return { missing: 'python3' };
+  if(r.code !== 0) return { crash: 'the test harness failed: ' + (r.err.trim().split('\n').pop() || 'no output') };
+  return JSON.parse(r.out);
 }
 
 // A puzzle prints its display, and nothing else (a trailing newline is fine).
@@ -406,7 +455,7 @@ function main(){
       }
     }
     // Python puzzles have a step-through trace (npm run traces), which must end the way the puzzle does.
-    if(p.lang === 'python' && !problems.length){
+    if(p.lang === 'python' && p.format !== 'pass' && !problems.length){
       const t = (ctx.DEBUGG_TRACES || {})[D.codeId(p.code)];
       if(!t) problems.push('no step-through trace for this code: run npm run traces');
       else if(!traceEndsRight(p, t[t.length - 1])) problems.push('its step-through trace is out of date: run npm run traces');

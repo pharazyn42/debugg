@@ -91,6 +91,7 @@ test.describe('Python', () => {
     for(const p of puzzles){
       const format = p.format || 'output';
       if(format === 'count') continue;  // counting runs needs a tracer; the checker does it with real Python
+      if(format === 'pass') continue;  // a code challenge is judged by its tests (see the daily page's test)
       await setCode(page, p.code + (format === 'value' ? '\nprint(repr(' + p.ask.name + '))' : ''));
       const out = await run(page);
       if(format === 'error'){

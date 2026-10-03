@@ -7,7 +7,7 @@ one for fixes.
 
 ## Unreleased
 
-Nothing yet.
+- The sandbox's list of past puzzles leaves out the daily's new weekend code challenges, which it can't open yet.
 
 ## 0.0.16 — 2 October 2026
 

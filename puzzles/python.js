@@ -1296,5 +1296,111 @@ print(len(words))`,
     fix: 'Call <code>split()</code> with no argument: it splits on any run of whitespace and drops the ends, giving <code>[\'debug\', \'it\']</code>.',
     takeaway: '<code>split()</code> with no argument is almost always what you want for words; <code>split(" ")</code> keeps empty strings.',
     learn: 'strings'
+  },
+
+  // --- Weekend code challenges: "make it pass" (see puzzles/README.md) ---
+  {
+    lang: 'python',
+    format: 'pass',
+    difficulty: 5,
+    task: '<code>add_tag(tag, tags)</code> adds <code>tag</code> to the end of the list <code>tags</code> and returns that same list. Leave <code>tags</code> out and it starts from a new, empty list every time.',
+    code: `def add_tag(tag, tags=[]):
+    tags.append(tag)
+    return tags`,
+    tests: [
+      ['add_tag("python")', "['python']"],
+      ['add_tag("debug")', "['debug']"],
+      ['add_tag("b", ["a"])', "['a', 'b']"]
+    ],
+    hidden: [
+      ['add_tag("it")', "['it']"],
+      ['len(add_tag("one"))', '1'],
+      ['add_tag("x", [])', "['x']"],
+      ['(lambda t: (add_tag("c", t), t))([])', "(['c'], ['c'])"],
+      ['(lambda t: add_tag("z", t) is t)(["y"])', 'True']
+    ],
+    solution: `def add_tag(tag, tags=None):
+    if tags is None:
+        tags = []
+    tags.append(tag)
+    return tags`,
+    wrong: [
+      // An empty list passed in is falsy, so it's swapped for a new one and never changes.
+      `def add_tag(tag, tags=None):
+    if not tags:
+        tags = []
+    tags.append(tag)
+    return tags`,
+      // Builds a new list instead of adding to the one it was given.
+      `def add_tag(tag, tags=None):
+    if tags is None:
+        return [tag]
+    return tags + [tag]`,
+      // Hard-codes the visible tests.
+      `def add_tag(tag, tags=None):
+    if tags is None:
+        return {"python": ["python"], "debug": ["debug"]}[tag]
+    tags.append(tag)
+    return tags`
+    ],
+    nudge: 'Not yet. Does every call without tags get a fresh list, and does a list you pass in really change?',
+    hints: [
+      'Run the tests: the second call remembers the first one’s tag. Where could that list be living between calls?',
+      'A default value is made once, when <code>def</code> runs, and every call shares it. Make <code>None</code> the default and create the new list inside the function.'
+    ],
+    explain: 'A default like <code>tags=[]</code> is made <b>once</b>, when the function is defined, not on each call. Every call that leaves <code>tags</code> out appends to that one shared list, so the second call returns <code>[\'python\', \'debug\']</code>. The hidden tests also pass in an empty list: <code>if not tags</code> would swap it for a new one, because an empty list is falsy, so check <code>is None</code> instead.',
+    fix: '<code>def add_tag(tag, tags=None):</code>, then <code>if tags is None: tags = []</code> before the append.',
+    takeaway: 'Never use a mutable value (a list, dict or set) as a default. Default to <code>None</code> and make a new one inside, testing with <code>is None</code>.',
+    learn: 'functions'
+  },
+  {
+    lang: 'python',
+    format: 'pass',
+    difficulty: 5,
+    task: '<code>median(nums)</code> returns the middle value of a list of numbers once they’re sorted, or, when there’s an even number of them, the mean of the middle two. It mustn’t change the list it’s given.',
+    code: `def median(nums):
+    nums.sort()
+    mid = len(nums) // 2
+    return nums[mid]`,
+    tests: [
+      ['median([3, 1, 2])', '2'],
+      ['median([5])', '5'],
+      ['median([4, 1, 3, 2])', '2.5']
+    ],
+    hidden: [
+      ['median([10, 2])', '6.0'],
+      ['median([1, 2, 3, 4, 5, 6])', '3.5'],
+      ['median([-5, -1, -3])', '-3'],
+      ['median([7, 7, 1, 9])', '7.0'],
+      ['median([2.5, 0.5])', '1.5'],
+      ['(lambda xs: (median(xs), xs))([3, 1, 2])', '(2, [3, 1, 2])']
+    ],
+    solution: `def median(nums):
+    s = sorted(nums)
+    mid = len(s) // 2
+    if len(s) % 2:
+        return s[mid]
+    return (s[mid - 1] + s[mid]) / 2`,
+    wrong: [
+      // Right answers, but sort() reorders the caller's list.
+      `def median(nums):
+    nums.sort()
+    mid = len(nums) // 2
+    if len(nums) % 2:
+        return nums[mid]
+    return (nums[mid - 1] + nums[mid]) / 2`,
+      // Hard-codes the visible tests.
+      `def median(nums):
+    return {3: 2, 1: 5, 4: 2.5}[len(nums)]`
+    ],
+    nudge: 'Not yet. Check the even-length lists, and look at the list after median() has finished with it.',
+    hints: [
+      'With 4 numbers, there are two middle ones: positions 1 and 2 once sorted. The answer is their mean.',
+      '<code>nums.sort()</code> reorders the caller’s list too. <code>sorted(nums)</code> makes a sorted copy and leaves theirs alone.'
+    ],
+    explain: 'Two bugs. For an even count, <code>nums[len(nums) // 2]</code> is only the upper of the two middle values; the median is their mean, <code>(s[mid - 1] + s[mid]) / 2</code>. And <code>nums.sort()</code> sorts the caller’s own list in place, so working out a median quietly reorders their data. One hidden test checks the list afterwards.',
+    fix: 'Sort a copy with <code>s = sorted(nums)</code>, and for an even length return <code>(s[mid - 1] + s[mid]) / 2</code>.',
+    takeaway: '<code>list.sort()</code> changes the list in place (and returns <code>None</code>); <code>sorted()</code> returns a new one. Don’t change what a caller passed in unless that’s the job.',
+    learn: 'lists'
   }
 );

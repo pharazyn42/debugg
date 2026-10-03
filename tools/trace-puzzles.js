@@ -25,7 +25,8 @@ function traceAll(puzzles, D){
 
 if(require.main === module){
   const ctx = loadGame();
-  const puzzles = ctx.DEBUGG_PUZZLES.filter(p => p.lang === 'python');
+  // Code challenges (format 'pass') are the player's own code, so there's nothing to trace.
+  const puzzles = ctx.DEBUGG_PUZZLES.filter(p => p.lang === 'python' && p.format !== 'pass');
   const traces = traceAll(puzzles, ctx.Debugg);
   const ordered = {};
   Object.keys(traces).sort().forEach(k => { ordered[k] = traces[k]; });

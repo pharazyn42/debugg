@@ -40,8 +40,18 @@ weekend output. A day whose format has no puzzle left falls back to an output pu
 | `error` | picks "Runs fine" or the error it raises | 2 / 1 | `options` (4, including `'Runs fine'`) | it raises `display` (the exception's name), or runs fine |
 | `order` | puts the shuffled lines in order | 3 checks / 1 | none (`code` is the right order, 3–7 lines) | it prints `display`, and **no other order of the lines does** |
 | `bug` | taps the line with the bug | 4 / 2 | `expected`, `bugLine`, `fixLine` | it prints `display` (not `expected`), and with `fixLine` in place of `bugLine` it prints `expected`; the `flag` is on `bugLine` |
+| `pass` | edits the code until its tests pass (the weekend code challenge) | 4 submissions (runs are unlimited) / 2 | `task` (HTML), `tests` and `hidden` (`[call, want]` pairs), `solution`, `wrong`; no `flag` or `display` | the starter `code` fails a visible test, `solution` passes every test, and each `wrong` solution passes the visible tests but fails a hidden one |
 
-Formats with one hint have exactly one in `hints`. Options and lines are shuffled the same way for
+Formats with one hint have exactly one in `hints`.
+
+**Make it pass** (`pass`) is the weekend's format. The player edits `code` in the page, runs the visible
+`tests` as often as they like, and submits, which also runs the `hidden` ones. A test is `[call, want]`: the
+Python expression `call` runs after the player's code, in the same globals and in order, and passes when
+`repr()` of its value is exactly `want`. `daily/runner.js` runs them on Pyodide (loaded only when a challenge
+opens), and the checker runs the same harness with real Python. `wrong` lists the tempting wrong answers
+(hard-coding the visible tests, the half-fix) to prove the hidden tests catch them. A run that's stopped (an
+infinite loop, after 10 seconds) doesn't use a submission. Code challenges have no step-through trace,
+aren't used in Debuggit Ltd's desk jobs, and don't open in the sandbox yet. Options and lines are shuffled the same way for
 everyone (seeded by the code).
 
 ## Step-through traces

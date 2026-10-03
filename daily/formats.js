@@ -44,6 +44,8 @@ window.DebuggFormats = (function(){
       case 'bug': return { title: 'Spot the bug', sub: 'It doesn’t print what it should. Tap the line with the bug. You’ve got ' + g + ' guesses.',
         ask: '<span class="ask-row"><span>Should print</span><pre class="ask-out">' + esc(p.expected) + '</pre></span>' +
              '<span class="ask-row"><span>Actually prints</span><pre class="ask-out wrong">' + esc(p.display) + '</pre></span>' };
+      case 'pass': return { title: 'Make it pass', sub: 'Fix the code until every test passes. Run the tests as often as you like; you’ve got ' + g + ' submissions, and hidden tests check it too.',
+        ask: p.task };
       default: return { title: 'What does this print?', sub: 'Read the snippet, then guess what it prints. You’ve got ' + g + ' guesses. Fewer guesses and hints earn more XP.', ask: '' };
     }
   }
@@ -56,6 +58,7 @@ window.DebuggFormats = (function(){
       case 'error': return p.display === 'Runs fine' ? 'It runs fine.' : 'It stops with a ' + code(p.display) + '.';
       case 'order': return 'In this order it prints ' + code(p.display) + '.';
       case 'bug': return 'Line ' + p.bugLine + '. Fixed, it reads ' + code(p.fixLine.trim()) + '.';
+      case 'pass': return 'One way to pass every test:<pre class="ask-out solution">' + D.highlight(p.solution, p.lang) + '</pre>';
       default: return code(p.display);
     }
   }
@@ -64,6 +67,7 @@ window.DebuggFormats = (function(){
       case 'order': return 'that’s the order';
       case 'bug': return 'the bug is on line ' + p.bugLine;
       case 'error': return p.display === 'Runs fine' ? 'it runs fine' : p.display;
+      case 'pass': return 'every test passes';
       default: return p.display;
     }
   }

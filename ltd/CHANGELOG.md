@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- Desk jobs leave out the daily's new weekend code challenges, which need an editor rather than a single answer.
 
 ## 0.0.15 — 2 October 2026
 

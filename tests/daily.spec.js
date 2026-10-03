@@ -23,12 +23,14 @@ for(const lang of Object.keys(EXT)){
       await expect(page.locator('#kicker')).toHaveText(info.label + ' · ' + info.title + ' · ' + NAME[lang]);
       await expect(page.locator('#filename')).toHaveText('day' + day + '.' + EXT[lang]);
       await expect(page.locator('#langName')).toHaveText(NAME[lang]);
-      if((p.format || 'output') !== 'order') await expect(page.locator('#flag')).toHaveCount(1);
+      // Order the lines has no flag until it's solved; a code challenge has none at all.
+      const flagged = !['order', 'pass'].includes(p.format || 'output');
+      if(flagged) await expect(page.locator('#flag')).toHaveCount(1);
       await miss(page, day);
       await expect(page.locator('#feedback')).toHaveClass(/wrong/);
       await solve(page, day);
       await expect(page.locator('#feedback'), `day ${day}: ${p.display}`).toHaveClass(/correct/);
-      await expect(page.locator('#flag')).toHaveCount(1);
+      if(p.format !== 'pass') await expect(page.locator('#flag')).toHaveCount(1);
       await expect(page.locator('#takeawayOut')).not.toBeEmpty();
     }
     expect(seen.size, 'every puzzle comes up in the schedule').toBe(count);
@@ -535,14 +537,14 @@ test('after the game, Step through it plays the code back line by line, as real 
   await expect(page.locator('#traceNext')).toBeDisabled();
   await page.click('#traceClose');
   await expect(page.locator('#trace')).toBeHidden();
-  // Every Python puzzle has a trace.
-  expect(await page.evaluate(() => Debugg.puzzlesFor('python').every(p => DebuggTrace.stepsFor(p)))).toBe(true);
+  // Every Python puzzle has a trace, except the code challenges, which run the player's own code.
+  expect(await page.evaluate(() => Debugg.puzzlesFor('python').filter(p => p.format !== 'pass').every(p => DebuggTrace.stepsFor(p)))).toBe(true);
 });
 
 test('from Day 1 the weekdays take turns with the puzzle formats', async ({ page }) => {
   await openAt(page, 'index.html', 1, { formats: true });
   const formats = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 8, 9, 10, 15, 17].map(d => (Debugg.puzzleFor(d).format || 'output') + '/' + Debugg.formatFor(d)));
-  expect(formats).toEqual(['choice/choice', 'output/output', 'error/error', 'bug/bug', 'output/output', 'output/output',
+  expect(formats).toEqual(['choice/choice', 'output/output', 'error/error', 'bug/bug', 'output/output', 'pass/pass',
     'output/output', 'count/count', 'output/output', 'value/value', 'order/order']);
   // Preview days stay "what does this print?", so nothing already played changes.
   expect(await page.evaluate(() => [0, -1, -2, -3, -4, -5].every(d => !Debugg.puzzleFor(d).format))).toBe(true);
@@ -662,6 +664,84 @@ test('order the lines: tap to move or use the arrows, with 3 checks', async ({ p
 });
 
 // Phones zoom in on a text box under 16px when it gets the focus, so on touch screens they're 16px.
+test('the weekend is a code challenge: make it pass, with hidden tests and 4 submissions', async ({ page }) => {
+  // Real Python (Pyodide), from the CDN or PYODIDE_DIR; it loads twice, as the runaway loop throws it away.
+  test.setTimeout(240000);
+  const T = { timeout: 90000 };
+  await openAt(page, 'index.html', 6, { formats: true });
+  await fresh(page);
+  const p = await puzzleFor(page, 6);
+  expect(p.format).toBe('pass');
+  await expect(page.locator('#title')).toHaveText('Make it pass');
+  await expect(page.locator('#ask')).toContainText('add_tag(tag, tags)');
+  await expect(page.locator('#tiles .tile')).toHaveCount(4);
+  await expect(page.locator('#guessRow')).toBeHidden();
+  await expect(page.locator('#code')).toBeHidden();
+  await expect(page.locator('#challengeSrc')).toHaveValue(p.code);
+  await expect(page.locator('#tests tbody tr')).toHaveCount(p.tests.length + 1);
+  await expect(page.locator('#tests .hidden-row')).toHaveText(p.hidden.length + ' hidden testschecked when you submit');
+
+  // Running the visible tests is free, as often as you like.
+  await page.click('#runTests');
+  await expect(page.locator('#challengeStatus')).toHaveText('2 of 3 tests pass.', T);
+  await expect(page.locator('#tests tbody tr').nth(1)).toHaveClass('bad');
+  await expect(page.locator('#tests tbody tr').nth(1)).toContainText("✕ gave ['python', 'debug']");
+  await expect(page.locator('#tiles .tile.wrong')).toHaveCount(0);
+
+  // Hard-coding the visible tests passes them, but the hidden tests catch it, and it uses a submission.
+  await page.fill('#challengeSrc', p.wrong[2]);
+  await page.click('#submitCode');
+  await expect(page.locator('#challengeStatus')).toHaveText(/^3 of 3 tests pass, and [0-4] of 5 hidden ones\.$/, T);
+  await expect(page.locator('#tiles .tile.wrong')).toHaveCount(1);
+  await expect(page.locator('#feedback')).toHaveText(p.nudge);
+  await expect(page.locator('#tests .hidden-row')).toHaveClass(/bad/);
+
+  // An error in the code shows, and what the code prints shows too.
+  await page.fill('#challengeSrc', 'print("hi")\ndef add_tag(:\n');
+  await page.click('#runTests');
+  await expect(page.locator('#challengeStatus')).toHaveText('Your code stops with an error before the tests can run.', T);
+  await expect(page.locator('#challengePrinted')).toContainText('SyntaxError');
+
+  // A runaway loop is stopped, and doesn't use a submission.
+  await page.fill('#challengeSrc', 'while True:\n    pass\n');
+  await page.click('#submitCode');
+  await expect(page.locator('#challengeStatus')).toHaveText(/Is there an infinite loop\? That didn’t use a submission\.$/, { timeout: 30000 });
+  await expect(page.locator('#tiles .tile.wrong')).toHaveCount(1);
+
+  // The code is kept on a reload. Solved on the second submission: 200 XP × 75%.
+  await page.fill('#challengeSrc', p.solution);
+  await page.reload();
+  await expect(page.locator('#challengeSrc')).toHaveValue(p.solution);
+  await page.click('#submitCode');
+  await expect(page.locator('#feedback')).toHaveText(/^Correct: every test passes\. \+150 XP\./, T);
+  await expect(page.locator('#tests .hidden-row')).toContainText('5 of 5 pass');
+  await expect(page.locator('#challengeSrc')).toHaveJSProperty('readOnly', true);
+  await expect(page.locator('#challengeActions')).toBeHidden();
+  await expect(page.locator('#answerOut')).toContainText('One way to pass every test');
+  await expect(page.locator('#kiwiLine')).toHaveText('Debugged it in 2 submissions.');
+  await expect(page.locator('#tryLink')).toBeHidden();
+
+  // Sunday is the same challenge, still solved.
+  await page.clock.setFixedTime(dayDate(7));
+  await page.reload();
+  await expect(page.locator('#feedback')).toHaveText(/^Solved: every test passes\./);
+  await expect(page.locator('#challengeSrc')).toHaveValue(p.solution);
+});
+
+test('weekend code challenges stay out of Debuggit Ltd’s desk jobs', async ({ page }) => {
+  await openAt(page, 'index.html?ltd', 8, { formats: true });
+  const r = await page.evaluate(() => new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'ltd/desk.js';
+    s.onload = () => resolve({ challenge: Debugg.puzzleFor(6).format,
+      ids: [...DebuggDesk.all(8).keys()], id: 'd:' + Debugg.codeId(Debugg.puzzleFor(6).code) });
+    if(window.DebuggDesk) s.onload(); else document.head.appendChild(s);
+  }));
+  expect(r.challenge).toBe('pass');
+  expect(r.ids.length).toBeGreaterThan(0);
+  expect(r.ids).not.toContain(r.id);
+});
+
 test.describe('on a touch screen', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   test('text boxes are 16px, so tapping into one doesn\'t zoom the page', async ({ page }) => {
