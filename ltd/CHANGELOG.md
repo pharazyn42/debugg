@@ -10,6 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- A desk job's long lines of code scroll sideways right to the end, and a line you pick is outlined to its end, not just to the edge of the box.
 - Desk jobs leave out the daily's new weekend code challenges, which need an editor rather than a single answer.
 
 ## 0.0.15 — 2 October 2026
