@@ -380,7 +380,7 @@ window.Debugg = (function(){
 
   // --- The wordmark ---------------------------------------------------------------
   // The game is called Debuggit, and its wordmark is a line of code: "debug it" written in the day's
-  // puzzle language, which starts the share text and picture. The sandbox's heading is `debuggit.run()`;
+  // puzzle language. (The share text and picture start with `debuggit.daily()`, the daily's button.) The sandbox's heading is `debuggit.run()`;
   // the other pages are named by the buttons at the top, so they have no wordmark of their own.
   // It's coloured by the same highlighter as the puzzles.
   const NAME = 'Debuggit';
@@ -392,7 +392,7 @@ window.Debugg = (function(){
     sandbox:    { code: 'debuggit.run()', lang: 'javascript', label: NAME + ' Sandbox' }
   };
   // The wordmark's text for a language or page ('python', 'sandbox'; anything else gets the default,
-  // debugg.it()), for the share card (no page element needed).
+  // debugg.it()), with no page element needed.
   function wordmarkFor(which){ return (WORDMARKS[which] || WORDMARKS.javascript).code; }
   // Fills `el` with the wordmark for a language or page. Screen readers hear the plain name.
   function renderWordmark(el, which){

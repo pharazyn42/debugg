@@ -199,6 +199,8 @@
   .order-move:hover:not(:disabled){ color: var(--text); border-color: var(--text-faint); }
   .order-move:disabled{ opacity: 0.3; cursor: default; }
   /* The code's lines, and Step through it (daily/trace.js) */
+  /* The code is as wide as its longest line, so a long line scrolls sideways with its marks reaching the end of it. */
+  #code{ display: block; min-width: max-content; }
   #code .cl{ display: block; margin: 0 -18px; padding: 0 18px; border-left: 3px solid transparent; }
   #code .cl.now{ background: var(--amber-dim); border-left-color: var(--amber); }
   .trace{ background: var(--panel); border: 1px solid var(--amber-dim); border-radius: 12px; padding: 14px 16px; margin: -8px 0 18px; }
@@ -864,9 +866,9 @@
     a.textContent = puzzle.learn ? 'Brush up on this in Debuggit Learn →' : 'Learn ' + course.name + ' from the start in Debuggit Learn →';
   }
 
-  // The spoiler-free result, Wordle-style: the wordmark, the day and language, a square per
-  // guess (green right, red wrong, black unused), hints, and a link.
-  let shareMark = 'debugg.it()';  // today's language's wordmark
+  // The spoiler-free result, Wordle-style: the daily's name as its button at the top shows it, the day
+  // and language, a square per guess (green right, red wrong, black unused), hints, and a link.
+  const shareMark = 'debuggit.daily()';
   const shareSite = () => location.href.split(/[?#]/)[0].replace(/index\.html$/, '');
   function shareResult(){
     const n = state.attempts.length, h = state.hintLevel || 0;
@@ -1201,8 +1203,6 @@
   });
 
   window.Debugg.renderVersion(document.getElementById('appVersion'));
-  // The share text and picture start with "debug it" in today's language (see WORDMARKS in shared.js).
-  shareMark = window.Debugg.wordmarkFor(lang);
   kickerEl.textContent = (PRACTICE ? 'Practice · ' : '') + (window.Debugg.isPreview(DAY)
     ? 'Preview'
     : window.Debugg.dayLabel(DAY) + ' · ' + window.Debugg.dayTitle(DAY) + ' · ' + LANG.name);

@@ -149,8 +149,10 @@
     padding: 1px 5px;
     font-size: 0.9em;
   }
-  .step .editor{ margin: 0 0 14px; white-space: pre; }
-  .step .editor code{ display: block; }
+  /* Long lines scroll sideways (.editor's overflow: hidden would cut them off), and the code is as
+     wide as its longest line, so a picked line's border reaches the end of it. */
+  .step .editor{ margin: 0 0 14px; white-space: pre; overflow-x: auto; }
+  .step .editor code{ display: block; min-width: max-content; }
   .output{ background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; }
   .output-label{ font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
   .output pre{ margin: 6px 0 0; font-family: var(--mono); font-size: 14px; color: var(--green); }

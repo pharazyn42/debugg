@@ -576,6 +576,8 @@
 .ltd .desk-prompt{ font-size: 14.5px; font-weight: 600; line-height: 1.5; margin: 0 0 10px; }
 .ltd .desk-prompt code, .ltd .desk-feedback code{ background: var(--panel-2); border-radius: 4px; padding: 1px 5px; font-size: 0.9em; }
 .ltd .desk-code{ background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; font-size: 13px; }
+/* Long lines scroll sideways, and the code is as wide as its longest line so a picked line's border reaches the end. */
+.ltd .desk-code code{ display: block; min-width: max-content; }
 .ltd .desk-row{ display: block; }
 .ltd .desk-line{ display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 6px;
   padding: 0 6px; font: inherit; color: inherit; white-space: pre; cursor: pointer; }

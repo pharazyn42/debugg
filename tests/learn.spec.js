@@ -242,6 +242,17 @@ test('steps with code link to the sandbox to run it yourself, in a new tab', asy
   await expect(page.locator('#stepFeedback .run-link')).toHaveAttribute('href', /^sandbox\.html\?lang=python&code=/);
 });
 
+test('a long line of code scrolls sideways instead of being cut off', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.locator('#continue button').click();
+  const pre = page.locator('#step pre.editor');
+  await expect(pre).toBeVisible();
+  await pre.locator('code').evaluate(c => c.lastChild.after('  # ' + 'a long comment that runs well past the edge '.repeat(3) + 'END'));
+  const box = await pre.evaluate(p => ({ overflow: getComputedStyle(p).overflowX, scroll: p.scrollWidth, client: p.clientWidth }));
+  expect(box.overflow).toBe('auto');
+  expect(box.scroll).toBeGreaterThan(box.client);
+});
+
 test('C is a coming-soon tab with its planned units', async ({ page }) => {
   const tabs = page.locator('#langs .lang-tab');
   await expect(tabs).toHaveCount(2);

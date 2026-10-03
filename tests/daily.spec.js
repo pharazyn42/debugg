@@ -98,7 +98,7 @@ test("a C day has no run link, since C doesn't run in the browser yet", async ({
   await expect(page.locator('#sandboxLink')).toHaveAttribute('href', 'learn/sandbox.html');
 });
 
-test('the wordmark is "debug it" in the day\'s language (for sharing), and only the sandbox shows one', async ({ page }) => {
+test('the wordmark is "debug it" in the day\'s language, and only the sandbox shows one', async ({ page }) => {
   const expected = { python: 'debugg(it)', javascript: 'debugg.it()', c: 'debugg(&it);', rust: 'debugg!(it)' };
   for(const [lang, code] of Object.entries(expected)){
     await openAt(page, 'index.html', 1, { rotation: [{ lang }] });
@@ -362,7 +362,7 @@ test('sharing copies a spoiler-free result', async ({ page, context }) => {
   await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');
   const text = await page.evaluate(() => navigator.clipboard.readText());
   const site = new URL('.', page.url()).href;
-  expect(text).toBe('debugg(it) Day 3 · Python\n🟥🟩⬛⬛ · 1 hint\nDebugged it in 2\n' + site);
+  expect(text).toBe('debuggit.daily() Day 3 · Python\n🟥🟩⬛⬛ · 1 hint\nDebugged it in 2\n' + site);
   expect(text).not.toContain(p.display);
 
   // A revealed puzzle shares too.
@@ -371,7 +371,7 @@ test('sharing copies a spoiler-free result', async ({ page, context }) => {
   await page.click('#revealBtn');
   await page.click('#shareBtn');
   await expect(page.locator('#shareNote')).toHaveText('Copied. Paste it anywhere.');
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^debugg\(it\) Day 4 · Python\n🟥🟥🟥🟥\nNot this time 🥝\n/);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^debuggit\.daily\(\) Day 4 · Python\n🟥🟥🟥🟥\nNot this time 🥝\n/);
 });
 
 test('a missed puzzle links to Debuggit Learn: the unit it names, or the course', async ({ page }) => {
@@ -452,7 +452,7 @@ test('the result can be shared as a picture, with no spoilers', async ({ page })
   await expect(page.locator('#shareNote')).toHaveText('Saved the picture. Post it anywhere.');
   // The squares: red then green, the rest empty.
   const colours = await page.evaluate(async () => {
-    const c = await DebuggShareCard.draw({ wordmark: 'debugg(it)', title: 'Day 3 · Python', attempts: ['wrong', 'correct'], max: 4,
+    const c = await DebuggShareCard.draw({ wordmark: 'debuggit.daily()', title: 'Day 3 · Python', attempts: ['wrong', 'correct'], max: 4,
       hints: 0, solved: true, result: 'Debugged it in 2', site: 'x', mascot: 'img/kiwi.svg' });
     const g = c.getContext('2d');
     return [0, 1, 2].map(i => Array.from(g.getImageData(92 + i * 140 + 10, 260, 1, 1).data.slice(0, 3)));
