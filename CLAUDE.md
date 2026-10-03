@@ -3,8 +3,9 @@
 The game is called **Debuggit** (September 2026; see item 2c). The code, the repository, the
 `debugg-*` save keys and `window.Debugg` keep the old spelling, and "Debugg" below means the
 same game. Its wordmark is "debug it" as a line of code in the day's puzzle language
-(`wordmarkFor()` in `shared.js`), used by the share text and picture; the pages show no wordmark of
-their own, since the top buttons name them, except the sandbox, whose heading is `debuggit.run()`.
+(`wordmarkFor()` in `shared.js`). The pages show no wordmark of their own, since the top buttons name
+them, except the sandbox, whose heading is `debuggit.run()`. The share text and picture start with
+`debuggit.daily()`, the daily's button, so a shared result matches the page (October 2026, the player-owner's call).
 
 Context for continuing work on this repo. **Debugg** is the daily puzzle game:
 read a short Python or JavaScript snippet and guess what it prints. **Debugg

@@ -9,6 +9,8 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **Your shared result now starts with `debuggit.daily()`**, the name on the button at the top of the page, in the text and the picture. It used to start with the older `debugg(it)`.
+- A long line of code scrolls sideways with its marks (the line you tapped, the bug, the line Step through it is on) reaching the end of it, not stopping at the edge of the box.
 - **The weekend is a code challenge now.** In place of the hard "what does this print?" stand-in, the weekend puzzle is **Make it pass**: a short Python function with a bug or two, and tests it should pass. Edit the code, run the tests as often as you like, and submit when you think it's right. You've got 4 submissions, and hidden tests check it too, so hard-coding the answers won't work. Python loads in your browser the first time (about 13 MB).
 
 ## 0.0.10 — 2 October 2026

@@ -7,6 +7,7 @@ one for fixes.
 
 ## Unreleased
 
+- A long line of code in a lesson no longer gets cut off at the edge of the box: swipe or scroll it sideways to see the rest. A line you pick is outlined to its end.
 - The sandbox's list of past puzzles leaves out the daily's new weekend code challenges, which it can't open yet.
 
 ## 0.0.16 — 2 October 2026
