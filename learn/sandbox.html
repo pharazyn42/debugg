@@ -549,7 +549,7 @@ def _debugg_run(src):
       seenDays.add(slot);
       if(slot === today && !D.isFinished(slot)) continue;
       const puzzle = D.puzzleFor(slot);
-      if(puzzle.lang !== l) continue;
+      if(puzzle.lang !== l || D.formatOf(puzzle) === 'pass') continue;  // code challenges don't open here yet
       if(seenPuzzles.has(puzzle)) continue;
       seenPuzzles.add(puzzle);
       res.push({ day: slot, puzzle });

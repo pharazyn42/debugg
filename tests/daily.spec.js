@@ -23,12 +23,14 @@ for(const lang of Object.keys(EXT)){
       await expect(page.locator('#kicker')).toHaveText(info.label + ' · ' + info.title + ' · ' + NAME[lang]);
       await expect(page.locator('#filename')).toHaveText('day' + day + '.' + EXT[lang]);
       await expect(page.locator('#langName')).toHaveText(NAME[lang]);
-      if((p.format || 'output') !== 'order') await expect(page.locator('#flag')).toHaveCount(1);
+      // Order the lines has no flag until it's solved; a code challenge has none at all.
+      const flagged = !['order', 'pass'].includes(p.format || 'output');
+      if(flagged) await expect(page.locator('#flag')).toHaveCount(1);
       await miss(page, day);
       await expect(page.locator('#feedback')).toHaveClass(/wrong/);
       await solve(page, day);
       await expect(page.locator('#feedback'), `day ${day}: ${p.display}`).toHaveClass(/correct/);
-      await expect(page.locator('#flag')).toHaveCount(1);
+      if(p.format !== 'pass') await expect(page.locator('#flag')).toHaveCount(1);
       await expect(page.locator('#takeawayOut')).not.toBeEmpty();
     }
     expect(seen.size, 'every puzzle comes up in the schedule').toBe(count);
@@ -535,8 +537,8 @@ test('after the game, Step through it plays the code back line by line, as real 
   await expect(page.locator('#traceNext')).toBeDisabled();
   await page.click('#traceClose');
   await expect(page.locator('#trace')).toBeHidden();
-  // Every Python puzzle has a trace.
-  expect(await page.evaluate(() => Debugg.puzzlesFor('python').every(p => DebuggTrace.stepsFor(p)))).toBe(true);
+  // Every Python puzzle has a trace, except the code challenges, which run the player's own code.
+  expect(await page.evaluate(() => Debugg.puzzlesFor('python').filter(p => p.format !== 'pass').every(p => DebuggTrace.stepsFor(p)))).toBe(true);
 });
 
 test('from Day 1 the weekdays take turns with the puzzle formats', async ({ page }) => {
