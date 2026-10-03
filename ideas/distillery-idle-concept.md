@@ -39,6 +39,23 @@ cask and come back to it.
   costs.
 - A news feed (planned for Ltd's AI models) could announce shifts in public taste ahead of time.
 
+## A standalone daily game
+
+Andrew's picks (3 October 2026) for a daily game in the distillery's world: one puzzle a day, the
+same for everyone, playable on its own without the idle game.
+
+- **Fill the warehouse:** today's warehouse floor is an odd shape, and there's a mix of casks to
+  store: barrels, hogsheads, butts and puncheons, each its own size. Fit every one in exactly,
+  like a daily packing puzzle. Harder days get awkward shapes, pillars, or casks that must sit
+  by the door because they're ready soonest.
+- **Make the cut:** spirit runs off the still, and you tap to make the two cuts, from heads to
+  hearts and from hearts to tails. Cut too early and you waste good spirit; too late and the
+  off-notes get in. The day's run is seeded, so everyone gets the same one, and the score is how
+  pure and how big your hearts are.
+- **Find the distillery:** name a mystery distillery from clues that get easier one at a time
+  (region, founding year, still shape, a signature dram). Each wrong guess shows on a map with
+  its distance and direction from the answer, Worldle-style.
+
 ## Open questions
 
 - How fast does time run? Real years are too slow, so a whisky year needs to be minutes or

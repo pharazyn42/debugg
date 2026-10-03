@@ -91,6 +91,36 @@ calls feel disconnected from the cooks. So: the idle cooks run on game time (§4
 calls are standalone scenarios, not a live view of a real cook. Simpler, and the same shape as
 desk jobs.
 
+## 3b. A daily game and a mini game
+
+Andrew's picks (3 October 2026) from a brainstorm of daily games for the smokehouse.
+
+### Dinner at 6 (the daily)
+
+One puzzle a day, the same for everyone, like Debuggit's daily.
+
+- **The setup:** today's menu (e.g. brisket, ribs, wings, corn), each with its cook time and
+  rest time, the pits you have (two, say, with their loads and temperatures), and a serve time:
+  everything comes off rested and hot at **6pm**.
+- **The puzzle:** schedule what goes on which pit when. Things can't share a pit at different
+  temperatures, a pit holds so much, and food held too long past resting dries out. Each day has
+  one right plan, like a logic grid, and harder days (Friday, the weekend) add a third pit,
+  a fussy guest's dish or a pit that runs hot.
+- **The result:** right first time, or how many tries it took, shared as a little timeline of
+  the day's cook.
+
+### Hold the pit (a mini game)
+
+A short hands-on game inside the idle game, for the Pitmaster between pit calls.
+
+- **The game:** keep a smoker at its target (say 110°C) through a 12-hour cook, compressed to a
+  minute or two, using only the vents and adding fuel. The fire drifts, and fuel takes a while
+  to catch, so the skill is moving early and gently.
+- **Weather:** a seeded weather pattern (wind, rain, a cold snap) pushes the pit about, so each
+  run is different.
+- **The score:** time spent in the target band, shown as the temperature graph. A good run
+  could raise the quality of the next cook of that cut, or count toward a competition (§9).
+
 ## 4. Orders, cooks and bookings
 
 ### 4.1 The board
