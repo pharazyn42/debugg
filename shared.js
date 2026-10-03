@@ -163,14 +163,16 @@ window.Debugg = (function(){
     count:  { name: 'how many times?', guesses: 4, hints: 2 },
     error:  { name: 'will it error?', guesses: 2, hints: 1 },
     order:  { name: 'order the lines', guesses: 3, hints: 1 },
-    bug:    { name: 'spot the bug', guesses: 4, hints: 2 }
+    bug:    { name: 'spot the bug', guesses: 4, hints: 2 },
+    // The weekend code challenge: fix a function until its tests pass. Runs are unlimited; guesses are submissions.
+    pass:   { name: 'make it pass', guesses: 4, hints: 2 }
   };
   function formatOf(p){ return (p && FORMATS[p.format]) ? p.format : 'output'; }
-  // Which formats each weekday takes turns with, a week at a time, from Day 1 (the weekend and
-  // Friday stay "what does this print?" until the code challenges exist). A day whose format has no
+  // Which formats each weekday takes turns with, a week at a time, from Day 1 (Friday stays "what does
+  // this print?"; the weekend is a code challenge). A day whose format has no
   // puzzle left falls back to 'output'. window.DEBUGG_WEEK_FORMATS overrides it for tests.
   const WEEK_FORMATS = window.DEBUGG_WEEK_FORMATS || { 1: ['choice', 'output', 'value'], 2: ['output', 'count'], 3: ['error', 'output', 'order'],
-                         4: ['bug', 'output'], 5: ['output'], weekend: ['output'] };
+                         4: ['bug', 'output'], 5: ['output'], weekend: ['pass'] };
   function formatFor(day){
     const slot = slotDay(day);
     if(slot < 1) return 'output';

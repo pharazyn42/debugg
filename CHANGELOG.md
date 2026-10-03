@@ -9,7 +9,7 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- **The weekend is a code challenge now.** In place of the hard "what does this print?" stand-in, the weekend puzzle is **Make it pass**: a short Python function with a bug or two, and tests it should pass. Edit the code, run the tests as often as you like, and submit when you think it's right. You've got 4 submissions, and hidden tests check it too, so hard-coding the answers won't work. Python loads in your browser the first time (about 13 MB).
 
 ## 0.0.10 — 2 October 2026
 

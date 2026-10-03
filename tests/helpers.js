@@ -58,6 +58,11 @@ async function solve(page, day = 3){
   const f = p.format || 'output';
   if(f === 'choice' || f === 'error') await page.click('#choices .choice[data-text="' + p.display.replace(/"/g, '\\"') + '"]');
   else if(f === 'bug') await page.click('#code .cl[data-line="' + p.bugLine + '"]');
+  else if(f === 'pass'){
+    await page.fill('#challengeSrc', p.solution);
+    await page.click('#submitCode');
+    await require('@playwright/test').expect(page.locator('#tiles .tile.correct')).toHaveCount(1, { timeout: 90000 });
+  }
   else if(f === 'order'){
     // Move each line into place with its arrows.
     const n = p.code.split('\n').length;
@@ -84,6 +89,11 @@ async function miss(page, day = 3){
     await page.click('#choices .choice[data-text="' + wrong.replace(/"/g, '\\"') + '"]');
   }else if(f === 'bug') await page.click('#code .cl[data-line="' + (p.bugLine === 1 ? 2 : 1) + '"]');
   else if(f === 'order') await page.click('#checkOrder');
+  else if(f === 'pass'){
+    const wrong = await page.locator('#tiles .tile.wrong').count();
+    await page.click('#submitCode');  // the starter code fails a test
+    await require('@playwright/test').expect(page.locator('#tiles .tile.wrong')).toHaveCount(wrong + 1, { timeout: 90000 });
+  }
   else await guess(page, 'definitely not the answer');
   return p;
 }

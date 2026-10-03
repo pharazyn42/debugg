@@ -162,6 +162,29 @@
   #code.tappable .cl:hover, #code.tappable .cl:focus-visible{ background: var(--panel-2); outline: none; border-left-color: var(--text-faint); }
   #code .cl.wrong{ background: var(--red-dim); border-left-color: var(--red); }
   #code .cl.right{ background: var(--green-dim); border-left-color: var(--green); }
+  /* Make it pass: the weekend code challenge. */
+  .challenge-src{ display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 16px 18px; border: 0; resize: vertical;
+    background: var(--panel); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.65; tab-size: 4;
+    white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+  .challenge-src:focus{ outline: 2px solid var(--amber-dim); outline-offset: -2px; }
+  .challenge-src[readonly]{ color: var(--text-dim); }
+  .challenge{ display: grid; gap: 12px; }
+  .challenge[hidden]{ display: none; }
+  .tests-wrap{ overflow-x: auto; }
+  .tests{ width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tests th{ text-align: left; font-weight: 600; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); padding: 0 10px 6px 0; }
+  .tests td{ padding: 6px 10px 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  .tests code{ font-family: var(--mono); font-size: 13px; white-space: pre-wrap; }
+  .tests tr.ok td:last-child{ color: var(--green); }
+  .tests tr.bad td:last-child{ color: var(--red); }
+  .tests .hidden-row td{ color: var(--text-dim); }
+  .challenge-actions{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .challenge-actions[hidden]{ display: none; }
+  .challenge-status{ margin: 0; font-size: 13.5px; color: var(--text-dim); min-height: 1.2em; }
+  .challenge-printed{ background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; white-space: pre-wrap; max-height: 12em; overflow: auto; }
+  .challenge-printed[hidden]{ display: none; }
+  .challenge-printed.err{ color: var(--red); }
+  .ask-out.solution{ color: var(--text); white-space: pre; overflow-x: auto; }
   .bug-help{ font-size: 13.5px; color: var(--text-dim); margin: 0; }
   .bug-help[hidden], .order-actions[hidden]{ display: none; }
   .order-actions{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -377,6 +400,7 @@
       <span class="lang-name" id="langName"></span>
     </div>
     <pre><code id="code"></code></pre>
+    <textarea class="challenge-src" id="challengeSrc" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Your code (Tab indents, Escape leaves the editor)" hidden></textarea>
   </div>
   <section class="trace" id="trace" hidden tabindex="-1" aria-label="Step through the code"></section>
 
@@ -390,6 +414,16 @@
     <div class="order-actions" id="orderActions" hidden><button class="btn-primary" id="checkOrder" type="button">Check the order</button>
       <span class="order-help">Tap a line, then tap where it goes, or use its arrows.</span></div>
     <p class="bug-help" id="bugHelp" hidden>Tap the line with the bug in the code above.</p>
+    <div class="challenge" id="challenge" hidden>
+      <div class="tests-wrap"><table class="tests" id="tests"></table></div>
+      <div class="challenge-actions" id="challengeActions">
+        <button class="btn-ghost" id="runTests" type="button">Run the tests</button>
+        <button class="btn-primary" id="submitCode" type="button">Submit</button>
+        <button class="btn-ghost" id="startOver" type="button">Start over</button>
+      </div>
+      <p class="challenge-status" id="challengeStatus" role="status"></p>
+      <pre class="challenge-printed" id="challengePrinted" hidden></pre>
+    </div>
     <div class="actions">
       <button class="btn-ghost" id="hintBtn">Show hint</button>
       <button class="btn-ghost" id="hint2Btn" hidden>Show another hint</button>
@@ -459,6 +493,7 @@
 <script src="daily/sharecard.js"></script>
 <script src="daily/archive.js"></script>
 <script src="daily/formats.js"></script>
+<script src="daily/runner.js"></script>
 <script src="puzzles/traces-python.js"></script>
 <script src="daily/trace.js"></script>
 <script src="learn/courses.js"></script>
@@ -507,6 +542,8 @@
   const MAX_GUESSES = window.Debugg.FORMATS[FORMAT].guesses;
   const MAX_HINTS = window.Debugg.FORMATS[FORMAT].hints;
   const TYPED = ['output', 'value', 'count'].includes(FORMAT);
+  // The weekend code challenge: the player edits the code and runs it against tests (daily/runner.js).
+  const CHALLENGE = FORMAT === 'pass';
 
   // picks: the options or lines tried, in order; order: the lines' current order (order the lines).
   let state = { attempts: [], solved: false, revealed: false, hintLevel: 0, picks: [] };
@@ -627,6 +664,7 @@
   function highlight(text){ return highlightIn(text, lang); }
 
   function renderCode(){
+    if(CHALLENGE) return renderChallenge();
     if(FORMAT === 'order' && !state.solved && !state.revealed) return renderOrder();
     codeEl.classList.remove('ordering');
     const lines = puzzle.code.split('\n');
@@ -702,7 +740,7 @@
     const firstLine = puzzle.code.split('\n').find(l => l.trim()) || '';
     const body = '**What’s wrong?** (e.g. my answer should have counted, the explanation is wrong, a typo)\n\n\n' +
       '**What did you answer?**\n\n\n' +
-      '---\nPuzzle: ' + which + '\nFirst line: `' + firstLine + '`\nExpected answer: `' + puzzle.display + '`\n';
+      '---\nPuzzle: ' + which + '\nFirst line: `' + firstLine + '`\nExpected answer: `' + (puzzle.display || F.answerShort(puzzle)) + '`\n';
     return 'https://github.com/pharazyn42/debugg/issues/new?title=' + encodeURIComponent('Puzzle problem: ' + which) +
       '&body=' + encodeURIComponent(body);
   }
@@ -715,8 +753,8 @@
     // Only shown once the game is over, and the sandbox only loads finished puzzles, so it can't spoil anything.
     // Languages the sandbox can't run link to a playground site instead, where there is one.
     const tryLink = document.getElementById('tryLink');
-    if(PRACTICE && !window.Debugg.isFinished(SLOT)){
-      tryLink.parentElement.hidden = true;  // the sandbox only opens puzzles finished on the day
+    if((PRACTICE && !window.Debugg.isFinished(SLOT)) || CHALLENGE){
+      tryLink.parentElement.hidden = true;  // the sandbox only opens puzzles finished on the day, and not code challenges yet
     }else if(LANG.runnable){
       tryLink.href = 'learn/sandbox.html?lang=' + lang + '&day=' + SLOT;
     }else if(LANG.playground){
@@ -796,6 +834,7 @@
     });
     document.getElementById('orderActions').hidden = true;
     document.getElementById('bugHelp').hidden = true;
+    document.getElementById('challengeActions').hidden = true;
     hintBtn.hidden = true;
     hint2Btn.hidden = true;
     revealBtn.hidden = true;
@@ -885,7 +924,7 @@
     const n = state.attempts.length, h = state.hintLevel || 0;
     let line;
     if(state.solved && n === 1 && !h) line = 'First try, no hints.';
-    else if(state.solved) line = 'Debugged it in ' + n + (n === 1 ? ' guess' : ' guesses') +
+    else if(state.solved) line = 'Debugged it in ' + n + (CHALLENGE ? (n === 1 ? ' submission' : ' submissions') : (n === 1 ? ' guess' : ' guesses')) +
       (h ? ', with ' + h + (h === 1 ? ' hint' : ' hints') : '') + '.';
     else line = 'Even the kiwi misses a bug sometimes. Talk it through with the explanation below.';
     document.getElementById('kiwiLine').textContent = line;
@@ -1019,6 +1058,104 @@
     announceFinish();
   });
 
+  // --- Make it pass: the weekend code challenge --------------------------------
+  // The code is an editor. "Run the tests" runs the visible tests as often as the player likes;
+  // "Submit" also runs the hidden ones, and uses up one of the guesses. A run that has to be
+  // stopped (an infinite loop) or can't load Python doesn't use one.
+  const srcEl = document.getElementById('challengeSrc');
+  const testsEl = document.getElementById('tests');
+  const chStatus = document.getElementById('challengeStatus');
+  const chPrinted = document.getElementById('challengePrinted');
+  let testing = false;
+
+  function renderChallenge(){
+    srcEl.readOnly = state.solved || state.revealed;
+    srcEl.rows = Math.max(6, srcEl.value.split('\n').length + 2);
+  }
+  // The visible tests with their last results, and a row for the hidden ones.
+  function renderTests(){
+    const esc = window.Debugg.escapeHtml;
+    const run = state.lastRun || {};
+    const results = run.results || [];
+    const h = run.hidden;
+    testsEl.innerHTML = '<thead><tr><th>Test</th><th>Should give</th><th>Result</th></tr></thead><tbody>' +
+      puzzle.tests.map((t, i) => {
+        const r = results[i];
+        return '<tr class="' + (r ? (r.ok ? 'ok' : 'bad') : '') + '"><td><code>' + esc(t[0]) + '</code></td><td><code>' + esc(t[1]) + '</code></td><td>' +
+          (r ? (r.ok ? '✓ passes' : '✕ gave <code>' + esc(r.got) + '</code>') : '') + '</td></tr>';
+      }).join('') +
+      '<tr class="hidden-row' + (h ? (h.passed === h.total ? ' ok' : ' bad') : '') + '"><td colspan="2">' + puzzle.hidden.length + ' hidden tests</td><td>' +
+        (h ? h.passed + ' of ' + h.total + ' pass' : 'checked when you submit') + '</td></tr></tbody>';
+  }
+  function setTesting(on){
+    testing = on;
+    ['runTests', 'submitCode', 'startOver'].forEach(id => { document.getElementById(id).disabled = on; });
+  }
+  async function runChallenge(submit){
+    if(testing || state.solved || state.revealed) return;
+    state.src = srcEl.value;
+    save();
+    setTesting(true);
+    chStatus.textContent = submit ? 'Checking every test…' : 'Running the tests…';
+    const n = puzzle.tests.length;
+    const r = await window.DebuggRunner.runTests(srcEl.value, submit ? puzzle.tests.concat(puzzle.hidden) : puzzle.tests, {
+      onLoading: () => { chStatus.textContent = 'Loading Python… the first run downloads about 13 MB.'; }
+    });
+    setTesting(false);
+    if(r.fatal){ chStatus.textContent = 'Couldn’t load Python. Check your connection and try again.'; return; }
+    if(r.timedOut){
+      chStatus.textContent = 'Stopped: still running after ' + window.DebuggRunner.TIME_LIMIT / 1000 + ' seconds. Is there an infinite loop?' + (submit ? ' That didn’t use a submission.' : '');
+      return;
+    }
+    const hidden = submit && !r.error ? { passed: r.results.slice(n).filter(x => x.ok).length, total: puzzle.hidden.length } : null;
+    state.lastRun = { results: r.error ? [] : r.results.slice(0, n), hidden };
+    save();
+    renderTests();
+    const shown = (r.printed || '') + (r.error ? (r.printed ? '\n' : '') + r.error : '');
+    chPrinted.hidden = !shown;
+    chPrinted.textContent = shown;
+    chPrinted.classList.toggle('err', !!r.error);
+    if(r.error) chStatus.textContent = 'Your code stops with an error before the tests can run.';
+    else{
+      const passed = state.lastRun.results.filter(x => x.ok).length;
+      chStatus.textContent = passed + ' of ' + n + ' tests pass' + (hidden ? ', and ' + hidden.passed + ' of ' + hidden.total + ' hidden ones.' : '.') +
+        (r.printed ? ' Your code printed:' : '');
+    }
+    if(submit) answer(!r.error && r.results.every(x => x.ok));
+  }
+  document.getElementById('runTests').addEventListener('click', () => runChallenge(false));
+  document.getElementById('submitCode').addEventListener('click', () => runChallenge(true));
+  document.getElementById('startOver').addEventListener('click', () => {
+    if(testing || state.solved || state.revealed || !confirm('Start over from the original code? Your changes will be lost.')) return;
+    srcEl.value = puzzle.code;
+    state.src = puzzle.code;
+    save();
+    renderChallenge();
+  });
+  srcEl.addEventListener('input', () => {
+    state.src = srcEl.value;
+    save();
+    renderChallenge();
+  });
+  // Tab indents (four spaces), Enter keeps the indent (one more after a colon), Escape leaves the
+  // editor, and Ctrl/⌘+Enter runs the tests.
+  srcEl.addEventListener('keydown', e => {
+    if(srcEl.readOnly) return;
+    const insert = text => {
+      e.preventDefault();
+      srcEl.setRangeText(text, srcEl.selectionStart, srcEl.selectionEnd, 'end');
+      srcEl.dispatchEvent(new Event('input'));
+    };
+    if(e.key === 'Escape'){ srcEl.blur(); return; }
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); runChallenge(false); return; }
+    if(e.key === 'Tab' && !e.shiftKey){ insert('    '); return; }
+    if(e.key === 'Enter' && !e.shiftKey){
+      const before = srcEl.value.slice(0, srcEl.selectionStart);
+      const line = before.slice(before.lastIndexOf('\n') + 1);
+      insert('\n' + /^ */.exec(line)[0] + (/:\s*$/.test(line) ? '    ' : ''));
+    }
+  });
+
   // The question and the way to answer, by format (daily/formats.js).
   function setUpFormat(){
     const q = F.question(puzzle);
@@ -1042,6 +1179,14 @@
     }
     document.getElementById('orderActions').hidden = FORMAT !== 'order';
     document.getElementById('bugHelp').hidden = FORMAT !== 'bug';
+    document.getElementById('challenge').hidden = !CHALLENGE;
+    if(CHALLENGE){
+      codeEl.parentElement.hidden = true;
+      srcEl.hidden = false;
+      srcEl.value = typeof state.src === 'string' ? state.src : puzzle.code;
+      renderTests();
+      if(!state.solved && !state.revealed) window.DebuggRunner.warm();
+    }
   }
 
   // Clears every saved day, XP, the streak and sandbox drafts. A Debuggit Ltd company is kept (it has

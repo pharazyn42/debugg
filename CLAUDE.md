@@ -47,7 +47,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `tools/release.js`, `tools/check-scope.js` | Cuts a release of the daily, Ltd or Learn (`[ltd|learn] bump|notes|check|tag|name <version>`), and the CI check that keeps each PR to one of them. See "Releases" below. |
 | `fonts/` | Self-hosted Sora and JetBrains Mono (OFL), declared in `base.css`. |
 | `img/` | The Debuggit kiwi: `kiwi.svg` (logo and favicon), `kiwi-180.png` (home-screen icon) and `share.png` (the 1200×630 link-preview card, the kiwi beside the wordmark and the tagline; `index.html` asks for it as `share.png?v=2`, because apps cache link previews by URL, so bump the number when the card changes). The PNGs are rendered from the SVG and the page fonts; redo them if the kiwi changes. |
-| `daily/` | The daily page's parts: `formats.js` (each puzzle format's question and answer text), `stats.js` (the stats panel), `sharecard.js` (the share picture), `archive.js` (past puzzles, played as practice at `index.html?day=N`) and `trace.js` (Step through it). |
+| `daily/` | The daily page's parts: `formats.js` (each puzzle format's question and answer text), `stats.js` (the stats panel), `sharecard.js` (the share picture), `archive.js` (past puzzles, played as practice at `index.html?day=N`), `trace.js` (Step through it) and `runner.js` (runs the weekend code challenges' tests on Pyodide). |
 | `tools/trace-puzzles.js`, `tools/trace.py`, `tools/probe.py` | `npm run traces` records every Python puzzle's step-by-step trace with real Python into `puzzles/traces-python.js`; `probe.py` counts line runs and tries line orders for the checker. |
 | `tools/sim-ltd.js` | `npm run sim`: the Debuggit Ltd pacing simulator. Plays the real `ltd/ltd.js` headless (fake clock, seeded randomness, a stand-in page) as a keen, casual or always-open player, and prints when the milestones in `ideas/ltd-pacing-targets.md` happen. `--ltd` plays a modified copy, to try a balance change. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
@@ -209,8 +209,8 @@ streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
 drafts.
 
 **The weekly rotation.** Each weekday has a difficulty (Monday 1 to Friday
-5), and Saturday and Sunday share one weekend puzzle (a stand-in 5 until
-the code challenges exist), saved under Saturday's day number: its
+5), and Saturday and Sunday share one weekend puzzle (a **Make it pass** code
+challenge, its tests run on Pyodide by `daily/runner.js`; a hard 5 when none is left), saved under Saturday's day number: its
 *slot* (`slotDay()`). The schedule is computed from Day 1 in every
 browser: each slot's language (from the rotation) takes its first unused
 puzzle of that difficulty, in its file's order, else the nearest difficulty

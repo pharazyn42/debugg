@@ -2,7 +2,7 @@
 //
 // Desk jobs (see "The desk" in ltd.js) are bundles of 1 to 3 questions drawn from two places:
 //   - past daily puzzles (never today's), asked in their own format; "order the lines" puzzles are
-//     asked as "what does this print?", with the lines in order;
+//     asked as "what does this print?", with the lines in order, and weekend code challenges are left out;
 //   - Debuggit Learn's questions, from any written unit (their unit files are loaded on demand).
 // Each question gets one answer. Ids are stable across visits: 'd:<codeId>' for a daily puzzle,
 // 'l:<lang>/<unit>:<codeId of question + code>' for a Learn question.
@@ -89,7 +89,8 @@ window.DebuggDesk = (function(){
     const slot = D.slotDay(today);
     for(let d = D.previousSlot(today), n = 0; n < PAST_SLOTS; d = D.previousSlot(d), n++){
       const p = D.puzzleFor(d);
-      if(p && p !== D.puzzleFor(slot)){  // never today's puzzle
+      // Never today's puzzle, and never a weekend code challenge (it needs an editor, not one answer).
+      if(p && p !== D.puzzleFor(slot) && D.formatOf(p) !== 'pass'){
         const q = fromDaily(p);
         out.set(q.id, q);
       }

@@ -401,8 +401,15 @@ for its contracts; they no longer name puzzles.
 ### 3f. Daily puzzle: next features (on the roadmap, September 2026)
 After the formats, stats, share picture, past puzzles and Step through it (3b), the player-owner
 put these on the roadmap, in this order:
-- **Weekend code challenges** (next): the weekend becomes a coding challenge, replacing the hard
-  stand-in. **Fix it** (edit the code until it prints the target; locked lines or an edit limit
+- **Weekend code challenges** (started October 2026): the weekend becomes a coding challenge, replacing the hard
+  stand-in. **Built so far:** the **Make it pass** format (`pass`; see `puzzles/README.md`), its editor and
+  test table on the daily page, `daily/runner.js` (Pyodide in a worker, the same harness the checker runs),
+  and two challenges, enough for the first two weekends (after that the weekend falls back to a hard
+  output puzzle until more are written). Defaults picked for now: the weekend stays 200 XP, scored like any
+  puzzle by submissions and hints; a stopped run doesn't use a submission. Still to do: more challenges,
+  **Fix it** and **Write it**, a highlighted editor, opening finished challenges in the sandbox (which would
+  also move the sandbox onto the shared runner, a Learn change), and the open questions below.
+  The plan: **Fix it** (edit the code until it prints the target; locked lines or an edit limit
   stop `print("target")`), **Make it pass** (fix a function until its tests pass, with hidden
   tests too) and **Write it** (from scratch, against hidden tests). Python runs in the browser on
   Pyodide, loaded only when a challenge opens (about 13 MB the first time), by pulling the
