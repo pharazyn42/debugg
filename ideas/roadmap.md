@@ -1369,6 +1369,7 @@ Big systems that depend on the earlier phases.
     size, price and running cost. That's for the balance pass.
   - How the picker shows it, e.g. "AI model 3 (acts as 4) · supervised by Grace (principal) ·
     −8% success".
+  - How they look: the agent office (21b) could give them their own floor.
 
 ### 18. Multiple sites, rooms and buildings
 - Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and premises in more than
@@ -1400,6 +1401,43 @@ Big systems that depend on the earlier phases.
   rooms/buildings, grouped by team or level. It could show who's working
   on what and empty desks. It would pair naturally with the office-space
   mechanic.
+- A worked-out version of this is the agent office (21b).
+
+### 21b. The agent office (the player-owner's idea, October 2026; not started)
+- **Where it comes from.** The player-owner's "Agent HQ" (claude-pet, in the `pharazyn42/claude`
+  repository, on its `claude/creature-animation-ideas-o53x86` branch): a side-on office building
+  drawn on a canvas, with no dependencies, showing real Claude Code agents at work. One floor per
+  team, an elevator on the left, one desk per agent and a break room on the right. Each agent is
+  a small creature with a name and its team's colour; its monitor shows what it's doing (code
+  typing in, a terminal scrolling, a test bar filling, a big ✓ or ✗); idle ones go for coffee or
+  nap on the couch; new ones arrive by elevator and finished ones leave the same way; one that
+  needs you flashes its screen; helpers it spawns sit beside it; tap one to see who it is. It
+  already runs as a single HTML file that works on a phone.
+- **Two ways it could come to Debuggit Ltd** (not chosen yet):
+  - **As the better graphics version of the studio** (this item and 21): the office drawn the
+    same way, with the studio's people instead of agents. A floor per team or per premises
+    (15e: the spare room, the co-working desks, a business unit, office floors; 18: a building
+    per site), a desk per desk the company has, so empty desks show. Each person's monitor shows
+    their contract: SLOC typing in (item 20's animation), a ✓ or ✗ when it ends. The bench and
+    absences (15c) go to the break room; hires and leavers use the elevator; a notice or a stuck
+    intern (4c) flashes like an agent that needs you. Tapping a person opens their panel.
+  - **As the late-game AI addition** (with 17f): the office's own subject, AI agents, joins the
+    game when the studio buys its first licence. The agents get their own floor (the server
+    room, or an "AI floor"), since they need no desks; each sits beside the dev supervising it,
+    the way spawned helpers sit beside their agent. A model's look improves with each new model
+    (17f's news items could show the next one), early models' monitors show more ✗s, and
+    "the AI service is down" (17d) sends them all to sleep.
+  - The two fit together: the graphics version first, and the AI floor added when 17f is built.
+- **What to keep from Agent HQ:** the canvas renderer and creature drawing (`web/office.js`,
+  `web/creature.js`), redrawn in the kiwi's style (10b) and the site's theme, scoped under
+  `.ltd`. Not its hooks, server or Claude Code plumbing: the studio's own state drives it.
+- **Rules for the site:** optional and off the main path (a view on the Ltd tab, beside the text
+  panels, never replacing them, so the studio still plays on a phone and with a screen reader);
+  cheap when idle (no drawing while the tab is hidden; offline progress just redraws the end
+  state); works in light and dark themes.
+- **Still open:** which way first; whether it's always shown or a toggle; how a big studio fits
+  (scroll the building, or one floor at a time); and whether a demo-sized office (the spare room
+  and co-working desks) is worth showing in the demo.
 
 ### 22. Skill gain through supervision
 - XP is currently a flat rate per contract minute. The design intent is
