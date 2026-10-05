@@ -9,6 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.11 — 5 October 2026
+
 - **The title is back at the top of the page**: `debuggit.daily()`, beside the kiwi, the same as the button above it.
 - **Your shared result now starts with `debuggit.daily()`**, the name on the button at the top of the page, in the text and the picture. It used to start with the older `debugg(it)`.
 - A long line of code scrolls sideways with its marks (the line you tapped, the bug, the line Step through it is on) reaching the end of it, not stopping at the edge of the box.
