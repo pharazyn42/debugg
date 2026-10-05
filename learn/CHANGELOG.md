@@ -7,6 +7,7 @@ one for fixes.
 
 ## Unreleased
 
+- **The title is back at the top of the page**: `debuggit.learn()`, beside the kiwi, the same as the button above it.
 - A long line of code in a lesson no longer gets cut off at the edge of the box: swipe or scroll it sideways to see the rest. A line you pick is outlined to its end.
 - The sandbox's list of past puzzles leaves out the daily's new weekend code challenges, which it can't open yet.
 
