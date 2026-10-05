@@ -363,7 +363,7 @@
 <div class="wrap">
   <header>
     <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="learn/" id="learnTab" title="Learn to code">debuggit.learn()</a><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page" title="The daily puzzle">debuggit.daily() <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="index.html?ltd" id="ltdTab" title="The studio game">debuggit.ltd() <span class="demo-tag">(demo)</span></a></nav>
-    <div class="brand"><img class="mascot-logo" src="img/kiwi.svg" alt="" width="34" height="34"></div>
+    <div class="brand"><img class="mascot-logo" src="img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debuggit.daily()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1 id="title">What does this print?</h1>
     <p class="sub" id="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
@@ -1202,6 +1202,7 @@
     location.reload();
   });
 
+  window.Debugg.renderWordmark(document.getElementById('wordmark'), 'daily');
   window.Debugg.renderVersion(document.getElementById('appVersion'));
   kickerEl.textContent = (PRACTICE ? 'Practice · ' : '') + (window.Debugg.isPreview(DAY)
     ? 'Preview'
@@ -1272,6 +1273,8 @@
     if(ltdView){
       if(!new URLSearchParams(location.search).has('ltd'))
         history.replaceState(null, '', location.pathname + (location.search ? location.search + '&ltd' : '?ltd') + location.hash);
+      window.Debugg.renderWordmark($('wordmark'), 'ltd');
+      $('wordmark').href = 'index.html?ltd';
       $('title').textContent = 'Debuggit Ltd';
       $('sub').textContent = 'Your software studio. Hire developers and put them on contracts that keep running while you’re away, ' +
         'and take the desk jobs that turn up for you, the Director.';

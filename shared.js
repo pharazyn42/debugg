@@ -380,18 +380,21 @@ window.Debugg = (function(){
 
   // --- The wordmark ---------------------------------------------------------------
   // The game is called Debuggit, and its wordmark is a line of code: "debug it" written in the day's
-  // puzzle language. (The share text and picture start with `debuggit.daily()`, the daily's button.) The sandbox's heading is `debuggit.run()`;
-  // the other pages are named by the buttons at the top, so they have no wordmark of their own.
-  // It's coloured by the same highlighter as the puzzles.
+  // puzzle language. Each app's header has its own title, the same as its button at the top:
+  // `debuggit.daily()` (which also starts the share text and picture), `debuggit.learn()`,
+  // `debuggit.ltd()`, and the sandbox's `debuggit.run()`. It's coloured by the same highlighter as the puzzles.
   const NAME = 'Debuggit';
   const WORDMARKS = {
     python:     { code: 'debugg(it)',   lang: 'python' },
     javascript: { code: 'debugg.it()',  lang: 'javascript' },
     c:          { code: 'debugg(&it);', lang: 'c' },
     rust:       { code: 'debugg!(it)',  lang: 'rust' },
-    sandbox:    { code: 'debuggit.run()', lang: 'javascript', label: NAME + ' Sandbox' }
+    daily:      { code: 'debuggit.daily()', lang: 'javascript', label: NAME },
+    learn:      { code: 'debuggit.learn()', lang: 'javascript', label: NAME + ' Learn' },
+    ltd:        { code: 'debuggit.ltd()',   lang: 'javascript', label: NAME + ' Ltd' },
+    sandbox:    { code: 'debuggit.run()',   lang: 'javascript', label: NAME + ' Sandbox' }
   };
-  // The wordmark's text for a language or page ('python', 'sandbox'; anything else gets the default,
+  // The wordmark's text for a language or page ('python', 'learn'; anything else gets the default,
   // debugg.it()), with no page element needed.
   function wordmarkFor(which){ return (WORDMARKS[which] || WORDMARKS.javascript).code; }
   // Fills `el` with the wordmark for a language or page. Screen readers hear the plain name.

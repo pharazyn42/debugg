@@ -82,8 +82,9 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   // Starting it here moves to the Ltd tab.
   await expect(page).toHaveURL(/index\.html\?ltd#python$/);
   await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
-  // The top button names the studio, so the header has no wordmark of its own.
-  await expect(page.locator('#wordmark')).toHaveCount(0);
+  // The header's title is the studio's, the same as its button at the top.
+  await expect(page.locator('#wordmark')).toHaveText('debuggit.ltd()');
+  await expect(page.locator('#wordmark')).toHaveAttribute('href', 'index.html?ltd');
   await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
 });
 
