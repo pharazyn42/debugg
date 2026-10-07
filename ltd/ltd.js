@@ -61,6 +61,7 @@ window.DebuggLtd = (function(){
       '<div class="stage-bar" id="stageBar"></div>' +
       '<div class="stat-bar">' +
         '<div class="stat"><div class="label">Cash</div><div class="value money" id="statMoney">¤0</div></div>' +
+        '<div class="stat"><div class="label">SLOC/min</div><div class="value rate" id="statSloc">0</div></div>' +
         '<div class="stat"><div class="label">Reputation</div><div class="value rep" id="statRep">0</div></div>' +
         '<div class="stat"><div class="label" id="statPayrollLabel">Payroll</div><div class="value rate" id="statPayroll">¤0/min</div></div>' +
         '<div class="stat"><div class="label">Headcount</div><div class="value" id="statHeads">1</div></div>' +
@@ -101,7 +102,7 @@ window.DebuggLtd = (function(){
     document.body.appendChild(modals);
 
     const $ = id => document.getElementById(id);
-    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel');
+    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel'), statSloc = $('statSloc');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
     const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
@@ -1294,6 +1295,13 @@ window.DebuggLtd = (function(){
       const busy = busyIds(), now = Date.now();
       return state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + benchPerMinute(p), 0);
     }
+    // Everyone's code per minute right now: contracts running (half speed while snagged, none
+    // while stuck or failed) plus everyday work.
+    function totalSlocPerMinute(){
+      const busy = busyIds(), now = Date.now();
+      const jobs = state.jobs.reduce((s, j) => s + (j.status === 'running' ? (j.teamSloc || 0) * (j.slow ? 0.5 : 1) : 0), 0);
+      return jobs + state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + everydaySloc(p), 0);
+    }
     function paySalaries(seconds){
       if(seconds > 0) state.money -= (payrollPerMinute() + rentPerMinute() - benchIncomePerMinute()) * seconds / 60;
     }
@@ -1763,6 +1771,9 @@ window.DebuggLtd = (function(){
       statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min ' + rentWord : 'Salaries';
       statPayrollLabel.textContent = rent ? 'Payroll + ' + rentWord : 'Payroll';
       statHeads.textContent = headcount();
+      const sloc = totalSlocPerMinute();
+      statSloc.textContent = (Math.round(sloc * 10) / 10).toLocaleString('en-GB');
+      statSloc.title = 'Lines of code written per minute, on contracts and everyday work';
     }
 
     // ---------------------------------------------------------------------

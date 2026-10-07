@@ -10,6 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **SLOC/min in the stats bar.** A new cell between Cash and Reputation shows how many lines of code your company writes per minute, on contracts and everyday work together.
 - **Screens pause on a break.** In the office view, when someone heads off for a break their monitor freezes (the code stops typing, the ticket queue stops ticking) until they're back at their desk.
 - **More room to squeeze people in.** Once every desk is taken, an office takes up to half as many people again without desks (2 in the spare room, 5 in a small business unit). A full office no longer slows anyone down; each person squeezed in makes everyone 6% slower. In the office you'll see them sharing the end of someone's desk, at the meeting-room table, on the kitchen couch, on the stairs or on the floor with a laptop.
 - **Working from home.** In the spare room you can hire an applicant to work from home: they need no desk, but are 80% as productive, on contracts and everyday work alike. Once you've moved out, they come into the office as desks free up. In the office view they're video-call tiles: their face from their webcam, or an empty chair while they're on a break. Now and then they're working from somewhere nicer: a beach, the ski slopes, a city at sunset, a lake or a tropical island.

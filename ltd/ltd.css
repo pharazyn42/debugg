@@ -77,9 +77,9 @@
 .ltd .stage-text{ grid-area: text; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .ltd .stage-next{ color: var(--text-faint); }
 
-/* Phones: the four stats in one row. */
+/* Phones: the five stats in one row. */
 @media (max-width: 560px){
-  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
+  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
   .ltd .stat{ min-width: 0; padding: 7px 4px; }
   .ltd .stat .label{ font-size: 8.5px; letter-spacing: 0.04em; }
   .ltd .stat .value{ font-size: 14px; }
