@@ -1124,8 +1124,8 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   await expect(officeLabel(page)).toBeVisible();
   await expect(officeLabel(page)).toHaveAttribute('role', 'img');
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
-    'Your office, the spare room: 1 of 4 desks taken, 0 on contracts, 0 on the bench, 0 applicants waiting.');
-  // Two grads (one on a hotfix, one on the bench) and two applicants.
+    'Your office, the spare room: 1 of 4 desks taken, 0 on contracts, 1 on everyday work, 0 applicants waiting.');
+  // Two grads (one on a contract, one on everyday work, with the intern) and two applicants.
   await editCompany(page, s => {
     const grad = (id, name) => ({ id, name, role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 } });
     s.roster.push(grad('g1', 'Ben'), grad('g2', 'Mei'));
@@ -1134,7 +1134,7 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
     s.applicants = ['a1', 'a2'].map(id => ({ id, role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000, person: grad(id, 'Applicant ' + id) }));
   });
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
-    'Your office, the spare room: 3 of 4 desks taken, 1 on contracts, 1 on the bench, 2 applicants waiting.');
+    'Your office, the spare room: 3 of 4 desks taken, 1 on contracts, 2 on everyday work, 2 applicants waiting.');
   const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
   expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'person:g1', 'person:g2',
                          'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
@@ -1212,7 +1212,7 @@ test('a small business unit has two floors, each with a meeting room and a kitch
   const where = () => page.evaluate(() => Object.fromEntries(DebuggOffice.targets().map(t => [t.id, t])));
   // In the spare room the manager on a contract stays at their desk, left of Mei in the kitchen.
   await seed('spare-room');
-  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, the spare room: 4 of 4 desks taken, 3 on contracts, 0 on the bench, 1 on a break, /);
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, the spare room: 4 of 4 desks taken, 3 on contracts, 1 on everyday work, 1 on a break, /);
   await expect.poll(async () => { const t = await where(); return t.m1 && t.g1 && t.g2 && t.m1.x < t.g1.x && t.g1.x < t.g2.x; }).toBe(true);
   // In the unit: the manager is in the meeting room, between the desks and the kitchen; you're at
   // the first desk on the ground floor.

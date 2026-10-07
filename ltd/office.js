@@ -241,7 +241,9 @@ window.DebuggOffice = (function(){
     }
     lastKind = L.kind;
     // Everyone but the intern has a desk, the Director the first one.
-    const staff = snap.people.filter(p => p.role !== 'Intern').sort((a, b) => (b.role === 'Director') - (a.role === 'Director'));
+    // People working from home aren't in the building (they're counted in the summary).
+    const inOffice = snap.people.filter(p => !p.wfh);
+    const staff = inOffice.filter(p => p.role !== 'Intern').sort((a, b) => (b.role === 'Director') - (a.role === 'Director'));
     assignDesks(staff, L.desksN + L.stools);
     breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
     const director = snap.people.find(p => p.role === 'Director');
@@ -250,7 +252,7 @@ window.DebuggOffice = (function(){
     const seen = new Set();
     const inBreakRoom = new Map(), inMeeting = new Map();
     const next = (m, i) => { const k = m.get(i) || 0; m.set(i, k + 1); return k; };
-    snap.people.forEach(p => {
+    inOffice.forEach(p => {
       const sp = spriteFor(p.id, p.role, p.name, L);
       seen.add(p.id);
       sp.p = p;
@@ -485,7 +487,7 @@ window.DebuggOffice = (function(){
     const c = counts(snap, f.i);
     font(600, 9.5 * s); ctx.fillStyle = th.dim;
     const txt = c.taken + '/' + L.pf + ' desks' + (c.squeezed ? ' + ' + c.squeezed + ' squeezed in' : '') + ' · ' + c.working + ' on contracts · ' +
-      c.bench + ' on the bench' + (c.breaks ? ' · ' + c.breaks + ' on a break' : '') + (c.away ? ' · ' + c.away + ' away' : '');
+      c.bench + ' on everyday work' + (c.breaks ? ' · ' + c.breaks + ' on a break' : '') + (c.away ? ' · ' + c.away + ' away' : '') + (c.wfh ? ' · +' + c.wfh + ' from home' : '');
     ctx.fillText(txt, x + w + 8 * s, y + 9.5 * s);
     if(c.stuck){
       const lx = x + w + 8 * s + ctx.measureText(txt).width + 14 * s;
@@ -957,8 +959,8 @@ window.DebuggOffice = (function(){
   // desk, even while they're on a break.
   function counts(snap, fi){
     const here = p => fi == null || ((sprites.get(p.id) || {}).home || 0) === fi;
-    const staff = snap.people.filter(p => p.role !== 'Intern' && here(p));
-    const team = snap.people.filter(p => p.role !== 'Director' && here(p));
+    const staff = snap.people.filter(p => p.role !== 'Intern' && !p.wfh && here(p));
+    const team = snap.people.filter(p => p.role !== 'Director' && (fi == null || !p.wfh) && here(p));
     const squeezed = fi == null || fi === 0 ? snap.premises.squeezed : 0;
     return {
       taken: staff.length - squeezed,
@@ -969,6 +971,7 @@ window.DebuggOffice = (function(){
       breaks: team.filter(p => breaks.has(p.id)).length,
       away: team.filter(p => p.state === 'away').length,
       stuck: team.filter(p => p.state === 'stuck').length,
+      wfh: fi == null || fi === 0 ? snap.people.filter(p => p.wfh).length : 0,
       applicants: snap.applicants.length
     };
   }
@@ -979,8 +982,8 @@ window.DebuggOffice = (function(){
     const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
     const where = L.house ? 'the spare room' : (L.owned ? 'an owned ' : 'a rented ') + L.name + ' on ' + L.floors.length + ' floors';
     const text = 'Your office, ' + where + ': ' + c.taken + ' of ' + c.desks + ' desks taken' +
-      (c.squeezed ? ' and ' + c.squeezed + ' squeezed in' : '') + ', ' +
-      c.working + ' on contracts, ' + c.bench + ' on the bench' +
+      (c.squeezed ? ' and ' + c.squeezed + ' squeezed in' : '') + (c.wfh ? ', ' + c.wfh + ' working from home' : '') + ', ' +
+      c.working + ' on contracts, ' + c.bench + ' on everyday work' +
       (c.breaks ? ', ' + c.breaks + ' on a break' : '') + (c.away ? ', ' + c.away + ' away' : '') + (c.stuck ? ', ' + c.stuck + ' stuck' : '') + ', ' +
       plural(c.applicants, 'applicant', 'applicants') + ' waiting.';
     if(text !== lastLabel){ canvas.setAttribute('aria-label', text); lastLabel = text; }

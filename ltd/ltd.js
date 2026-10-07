@@ -762,7 +762,22 @@ window.DebuggLtd = (function(){
     function prevPremises(){ return PREMISES_ORDER[PREMISES_ORDER.indexOf(premisesKey()) - 1] || null; }
     function desksIn(key){ return PREMISES[key].floors * PREMISES[key].perFloor; }
     function deskCount(){ return desksIn(premisesKey()); }
-    function desksUsed(){ return state.roster.filter(p => !isIntern(p)).length; }
+    function desksUsed(){ return state.roster.filter(p => !isIntern(p) && !p.wfh).length; }
+    // Working from home (the player-owner's call, October 2026): in the spare room, a developer
+    // can be hired to work from home (`p.wfh`). They need no desk, and write WFH_EFFICIENCY of the
+    // code, on contracts and everyday work alike. Once the company has left the spare room, they
+    // come into the office as desks free up (moveWfh()).
+    const WFH_EFFICIENCY = 0.8;
+    function wfhFactor(p){ return p.wfh ? WFH_EFFICIENCY : 1; }
+    function canHireWfh(role){ return premisesKey() === 'spare-room' && APPLICANT_ROLES.includes(role); }
+    function moveWfh(){
+      if(premisesKey() === 'spare-room') return;
+      state.roster.filter(p => p.wfh).forEach(p => {
+        if(desksUsed() >= deskCount()) return;
+        delete p.wfh;
+        addLog('info', p.name + ' has come into the office, now there’s a desk for them.');
+      });
+    }
     function companyName(){ return state.companyName || 'Debuggit Ltd'; }
     function owned(){ return !!(state.office && state.office.owned) && premisesKey() !== 'spare-room'; }
     // Rent, or upkeep for a place the company owns.
@@ -875,9 +890,12 @@ window.DebuggLtd = (function(){
         '<button class="btn-small btn-promote" data-action="keep" data-id="' + p.id + '">Keep: +' + fmtRate(n.ask) + '/min</button></div>';
     }
 
-    function hireProblem(role){
+    // `wfh`: hiring them to work from home, so no desk is needed.
+    function hireProblem(role, wfh){
       if(DEMO && DEMO_LOCKED_ROLES.includes(role)) return COMING;
-      return problemWith({ [role]: 1 }) || deskProblem();
+      // Managers come once the company has left the spare room (the player-owner's call, October 2026).
+      if(role === 'Manager' && premisesKey() === 'spare-room') return 'managers need an office: move out of the spare room first';
+      return problemWith({ [role]: 1 }) || (wfh ? null : deskProblem());
     }
     function releaseProblem(p){
       if(jobFor(p.id)) return 'on a contract';
@@ -946,7 +964,7 @@ window.DebuggLtd = (function(){
       return 1 + SKILL_SPEED * Math.min(level, SKILL_FULL) / SKILL_FULL + SKILL_SPEED_BEYOND * Math.max(0, level - SKILL_FULL);
     }
     function devSlocOn(d, offer){
-      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang])) * (1 - crampedPenalty());
+      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang])) * (1 - crampedPenalty()) * wfhFactor(d);
     }
 
     // A dev "knows the stack" for a contract if they have at least level 1 in
@@ -1260,7 +1278,7 @@ window.DebuggLtd = (function(){
     const EVERYDAY_RATE = 0.54;
     const PACE = [0.9, 1.1];
     function paceOf(p){ return p.pace || 1; }
-    function everydaySloc(p){ return (isDev(p) || isIntern(p)) ? ROLES[p.role].sloc * paceOf(p) : 0; }
+    function everydaySloc(p){ return (isDev(p) || isIntern(p)) ? ROLES[p.role].sloc * paceOf(p) * wfhFactor(p) : 0; }
     function benchPerMinute(p){ return everydaySloc(p) * EVERYDAY_RATE; }
     // Doing everyday work ("on the bench" in the code) = someone who writes code doing nothing
     // else: not on a contract (including a failed one waiting for Retry or Drop), and not away.
@@ -1956,6 +1974,9 @@ window.DebuggLtd = (function(){
             'Hire for ' + fmt(a.cost) + '</button></div>' +
           (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
             : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
+          (canHireWfh(a.role) ? '<div class="card-foot"><span class="promo">Or from home: no desk, ' + Math.round(WFH_EFFICIENCY * 100) + '% as productive</span>' +
+            '<button class="btn-small btn-ghost" data-action="hire-applicant" data-wfh="1" data-id="' + a.id + '"' +
+              (hireProblem(a.role, true) || broke ? ' disabled' : '') + '>Hire to work from home</button></div>' : '') +
           '</div>';
       }).join('');
       if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
@@ -2005,7 +2026,8 @@ window.DebuggLtd = (function(){
                       (releaseWhy ? ' disabled title="Can’t let go: ' + esc(releaseWhy) + '"' : '') + '>Let go</button>';
 
       return '<div class="card" data-action="inspect" data-id="' + p.id + '">' +
-        '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span>' +
+        '<div class="card-top"><span class="card-name">' + esc(p.name) + (p.wfh ? ' <span class="repeat-tag" title="Works from home: no desk, ' +
+          Math.round(WFH_EFFICIENCY * 100) + '% as productive">WFH</span>' : '') + '</span>' +
         '<span class="card-level ' + p.role + '">' + p.role + '</span></div>' +
         '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p)
           : isIntern(p) ? role.sloc + ' SLOC/min · works with you · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
@@ -2246,7 +2268,7 @@ window.DebuggLtd = (function(){
             : isAway(p, now) ? 'away'
             : job ? (isStuck(job) || isSlow(job) ? 'stuck' : isRunning(job) ? 'working' : 'failed')
             : onBench(p, busy, now) ? 'bench' : 'idle';
-          return { id: p.id, name: p.name, role: p.role, look: p.look || null, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
+          return { id: p.id, name: p.name, role: p.role, look: p.look || null, wfh: !!p.wfh, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
         }),
         applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
       };
@@ -2528,6 +2550,7 @@ window.DebuggLtd = (function(){
         if(buy) state.money -= pr.price;
         state.office.premises = key;
         state.office.owned = buy;
+        moveWfh();
         addLog('info', key === 'spare-room' ? 'Moved back into your spare room: ' + desksIn(key) + ' desks, free.'
           : buy ? 'Bought a ' + pr.name + ' for ' + fmt(pr.price) + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.upkeep) + '/min upkeep.'
           : 'Moved into a rented ' + pr.name + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.rent) + '/min rent.');
@@ -2559,12 +2582,14 @@ window.DebuggLtd = (function(){
         state.guideDone = true;
       }else if(action === 'hire-applicant'){
         const a = (state.applicants || []).find(x => x.id === btn.dataset.id);
-        if(!a || state.money < a.cost || hireProblem(a.role)) return;
+        const wfh = !!btn.dataset.wfh;
+        if(!a || state.money < a.cost || hireProblem(a.role, wfh) || (wfh && !canHireWfh(a.role))) return;
         state.money -= a.cost;
         state.applicants = state.applicants.filter(x => x !== a);
         a.person.since = Date.now();
+        if(wfh) a.person.wfh = true;
         state.roster.push(a.person);
-        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + '.');
+        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + (wfh ? ', working from home.' : '.'));
         track('hired/' + a.role.toLowerCase());
       }else if(action === 'promote'){
         const p = person(btn.dataset.id);
@@ -2735,6 +2760,7 @@ window.DebuggLtd = (function(){
       moveNotices(t);
       moveInterns(t);
       moveDesk(t);
+      moveWfh();
       checkStage();
       managersStaff();
       renderAll();

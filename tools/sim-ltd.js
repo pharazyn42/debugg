@@ -244,7 +244,7 @@ function play(page, log, now, opts){
   // Hiring. Room for one more on-site person, moving from the spare room into the small business
   // unit when it's full (and staying there). Returns 'free' or null (no room).
   const deskFor = () => {
-    const used = s.roster.filter(p => p.role !== 'Intern').length;   // the Director takes a desk too
+    const used = s.roster.filter(p => p.role !== 'Intern' && !p.wfh).length;   // the Director takes a desk too
     if(used < premisesOf(s).desks) return 'free';
     if(premisesOf(s) !== PREMISES['spare-room']) return null;
     act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' });
@@ -254,7 +254,10 @@ function play(page, log, now, opts){
   };
   const hire = (role, dataset, cost) => {
     if(spendable() < cost) return false;
-    const desk = deskFor();
+    // In the spare room with every desk taken, a developer is hired to work from home.
+    const used = s.roster.filter(p => p.role !== 'Intern' && !p.wfh).length;
+    if(role !== 'Manager' && premisesOf(s) === PREMISES['spare-room'] && used >= premisesOf(s).desks) dataset = Object.assign({ wfh: '1' }, dataset);
+    const desk = dataset.wfh ? 'free' : deskFor();
     if(!desk) return false;
     const n = s.roster.length;
     act(page.click, dataset);
@@ -264,9 +267,13 @@ function play(page, log, now, opts){
   // Applicants first: they're the only way to hire above graduate.
   for(const a of (s.applicants || []).slice().sort((x, y) => DEV_ROLES.indexOf(y.role) - DEV_ROLES.indexOf(x.role)))
     hire(a.role, { action: 'hire-applicant', id: a.id }, a.cost);
-  // A manager when the developers are at the Director's and managers' span.
+  // A manager when the developers are at the Director's and managers' span. Managers need an office,
+  // so the player rents the unit first.
   const managers = s.roster.filter(p => p.role === 'Manager').length;
-  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers) hire('Manager', { action: 'hire', role: 'Manager' }, priceOf(s, 'Manager'));
+  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers && spendable() >= priceOf(s, 'Manager')){
+    if(premisesOf(s) === PREMISES['spare-room']){ act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' }); if(premisesOf(s) !== PREMISES['spare-room']) log('moved/unit-s'); }
+    hire('Manager', { action: 'hire', role: 'Manager' }, priceOf(s, 'Manager'));
+  }
 
   // The intern: a free Python hotfix with the Director alongside whenever they're idle, helped with
   // a puzzle (answered right at the desk's hit rate) when they're stuck.

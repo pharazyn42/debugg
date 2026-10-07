@@ -1002,7 +1002,8 @@ here means commercial premises, a small office unit like one on a business park 
 player-owner's meaning), not a division of the company.
 - **Desks** cap on-site headcount alongside supervision ("Devs 5/16 · Desks 5/8"); an Office
   line in the Studio panel.
-- **Working from home** (the player-owner's idea): about 1 in 4 applicants are **WFH** and need
+- **Working from home** (the player-owner's idea; a first version built October 2026: in the spare room any
+  applicant can be hired to work from home, at 80% productivity, coming in once there are desks): about 1 in 4 applicants are **WFH** and need
   no desk ("Desks 5/8 · +2 WFH"); they keep working when the office is closed, but, decided,
   they learn a little slower (−25% XP) and can't be learners, so WFH stays a trade-off. They still count towards supervision. They
   replace item 15's separate contractors.

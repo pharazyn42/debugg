@@ -412,6 +412,16 @@ state = {
   - **The guide**: the intern's hotfix, a desk job, filling the spare room, your first client,
     and helping a stuck team. The old "on the bench" warning went with odd jobs.
 
+- **Working from home, and managers out of the spare room** (the player-owner's calls, October
+  2026; `p.wfh`, `WFH_EFFICIENCY`, `canHireWfh()`, `moveWfh()`): in the spare room an applicant can
+  be hired to work from home (a second button on their card): no desk (`desksUsed()` leaves them
+  out, so they don't fill the spare room for contracts either), and 80% of the code on contracts
+  (`devSlocOn()`) and everyday work. Cards say "WFH"; the office leaves them out of the building
+  and counts them in its summary. Once the company is out of the spare room, they come in as
+  desks free up. **Managers can't be hired in the spare room** (`hireProblem()`), so the Director's
+  span (4 devs: 3 at desks and one from home) is the spare room's limit, and a small business needs
+  the unit.
+
 ## Known gaps — not wired in yet
 
 - **Reputation only decides which applicants turn up** (roadmap item 12 has more for it).
