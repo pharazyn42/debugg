@@ -879,6 +879,41 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
     first impression and share card could come first; Debugg Ltd can
     follow.
 
+### 10c. The studio panel, notifications and the job board (the player-owner's brief, October 2026; not started)
+The Studio box is named for the company, and the office view carries the people. Decided with the
+player-owner:
+- **The Studio panel** is titled with the company's name (`state.companyName`, "Debuggit Ltd" if
+  none) and keeps the next-step guide and the headcount overview by type (Managers, Principals…
+  Devs, Desks). It gains a **Premises** list: every premises as a row (the current one marked "You
+  are here") saying what it is, its desks and floors, what it adds (kitchens, meeting rooms, a
+  server room, room for managers), and its rent and buy prices with upkeep, or why it can't be
+  taken yet (cash, who won't fit, "coming in v0.1"). Moving back is a button on the smaller one.
+  The Director card and the roster tree go.
+- **People are reached through the office view**, which is always shown (the hide option goes).
+  Clicking someone, the Director included, opens their panel, which takes over everything the cards
+  held: skills, assignment, the promotion checklist, Keep and the raise, and for the Director the
+  languages and Edit (name and look).
+- **Notices**: a **notifications bar**, separate from the contract board's "Recent" log, takes the
+  "handed in their notice" alerts (the reason, the hours left, a **Keep** button, the name opening
+  their panel) and unresolved ones stay pinned at the top. The person also gets a **speech bubble
+  above their head** in the office view with the same message, until they leave or are kept.
+  The bar could carry other alerts later (cash below zero, a stuck contract).
+- **Hiring is done in the interview room**: clicking an applicant opens a candidate card (level,
+  skills, asking price, time left, Hire, with the desk or squeezed-in warning). The Applicants list
+  and the hire buttons leave the Studio panel.
+- **The job board**, a job-posting site for the people who don't turn up in the interview room:
+  **managers** and **work-from-home applicants** (WFH people no longer come to the interview room),
+  and **specialists** once item 16 brings them (none yet; leave room). Opened from a monitor in the
+  interview room and from a button in the Studio panel. You choose a role, pay a **posting fee**, and
+  after a delay candidates turn up on the board, each with a price and an expiry; you pick one.
+  - **Posting fee, to decide**: options are (a) a fixed fee per role, (b) a share of the role's
+    hire cost (say 10%), which keeps up with inflation and competition, (c) a fee that grows
+    with how many postings are open. Leaning to (b) and a delay of an hour or so, so a posting is a
+    deliberate spend; test with the sim.
+  - Managers can't be hired in the spare room (`hireProblem()`), so the board says so there.
+- **Build in steps**: (1) the panel, premises and people panels; (2) the notifications bar and
+  bubbles; (3) interview-room hiring; (4) the job board.
+
 ## Phase 3 — Retention and mid-game growth
 
 The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)

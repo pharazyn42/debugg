@@ -276,6 +276,7 @@ new ideas there. Index (status in brackets):
 - 9 Show what the desk pays
 - 10 Balance pass (first pass done)
 - 10b Look and feel (a kiwi mascot idea, light theme, accessibility)
+- 10c The studio panel, notifications bar and the job board (planned)
 
 **Phase 3, retention and mid-game**
 - 11 (Moved into 3b)
