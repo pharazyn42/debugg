@@ -724,6 +724,22 @@ window.DebuggOffice = (function(){
           ctx.fillRect(x + 3 * s + c * 12 * s, y + 3 * s + r * 7 * s, 9 * s, 5 * s);
         }
       }
+    }else if(st === 'bench' && p.role !== 'Director'){
+      // Everyday work: a queue of support tickets and bug fixes, the top one being worked on and
+      // ticked off now and then.
+      bg('#16181c');
+      const KINDS = [['#5aa9e6', 'support'], ['#ef6a6a', 'bug'], ['#f2b84b', 'fix'], ['#4fd18b', 'docs']];
+      const cycle = reduceMotion ? 0 : (motion / 6 + seed) % 1, n = Math.floor(motion / 6 + seed);
+      const rowH = Math.max(4 * s, h / 4.2);
+      for(let i = 0; i < 4; i++){
+        const k = KINDS[Math.floor(hashRnd(n + i + seed) * KINDS.length)];
+        const y0 = y + 2 * s + i * rowH;
+        ctx.fillStyle = i === 0 && cycle > 0.8 ? '#1f3b2a' : '#20232a';
+        ctx.fillRect(x + 2 * s, y0, w - 4 * s, rowH - 1.5 * s);
+        ctx.fillStyle = k[0]; ctx.fillRect(x + 3 * s, y0 + 1 * s, 2.5 * s, rowH - 3.5 * s);
+        ctx.fillStyle = '#5f6470'; ctx.fillRect(x + 8 * s, y0 + rowH / 2 - 1.5 * s, (w - 18 * s) * (0.4 + hashRnd(n + i * 3) * 0.5), 1.5 * s);
+        if(i === 0 && cycle > 0.8){ ctx.strokeStyle = '#4fd18b'; ctx.lineWidth = 1.2 * s; ctx.beginPath(); ctx.moveTo(x + w - 9 * s, y0 + rowH / 2); ctx.lineTo(x + w - 7 * s, y0 + rowH / 2 + 1.5 * s); ctx.lineTo(x + w - 4 * s, y0 + rowH / 2 - 2 * s); ctx.stroke(); }
+      }
     }else if(st === 'bench' || st === 'idle'){
       bg('#121317');
       const px = x + 4 * s + Math.abs(((motion * 9 * s + seed * 7) % (2 * (w - 14 * s))) - (w - 14 * s));

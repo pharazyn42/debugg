@@ -66,6 +66,8 @@ state = {
   market: { prices: { Graduate: 1.08, … }, nextAt }, // hire-cost multipliers, and when the market next moves
   office: { premises, owned },                    // 'spare-room' | 'unit-s'; owned = bought rather than rented
   showOffice,                                     // false once the player hides the office view
+  contractsOpen, firstClient, nextFeatureAt,      // features: open once the spare room is full; the first client offered; the next arrival
+  companyName,                                    // the founding step's name (null: "Debuggit Ltd")
   nextNoticeAt                                    // when the next hourly notice roll is due
 }
 ```
@@ -161,7 +163,7 @@ state = {
     there about when the contract time is up (Lv 3 after about 7 hours on hotfixes, Lv 5 about 3
     days later, Lv 8 after about 14 days on patches); spreading across languages takes longer.
   - **A free slot** at the next level.
-- **Contract board**: shown as a tree like the roster, one foldable group
+- **Contract board** (since October 2026 hotfixes are the intern's and features come first; see "Everyday work and contracts as events" below): shown as a tree like the roster, one foldable group
   per contract type (Hotfixes, Patches, Minor releases, Major releases),
   each header showing how many offers and how many are running. Folded
   groups are remembered (`collapsedTiers`). There's **always a hotfix in
@@ -262,7 +264,7 @@ state = {
   success (`SKILL_FULL`).
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
-- **Odd jobs** (the player-owner's call, September 2026): developers on no contract earn their
+- **Odd jobs** (replaced in October 2026 by everyday work, below; the player-owner's call, September 2026): developers on no contract earn their
   salary plus `BENCH_MARGIN` (5%), netted against payroll every second (and offline, by who was
   busy at the start), so a benched team grows the company slowly: a grad ¤2.10 vs ¤2/min, a
   senior ¤12.60 vs ¤12. No XP or promotion time, so contracts stay far better. Managers earn
@@ -386,6 +388,29 @@ state = {
   company (not a paused one or an import), and tests skip it (`window.DEBUGG_FOUNDING = false`,
   set by `openAt()` unless `{ founding: true }`); a company started without it (or by the
   simulator) gets the defaults.
+
+- **Everyday work and contracts as events** (the player-owner's brief, October 2026;
+  `ideas/ltd-early-game-plan.md`):
+  - **Everyday work** (`EVERYDAY_RATE`, `PACE`, `p.pace`, `benchPerMinute()`): anyone who writes
+    code and isn't on a contract or away earns their level's SLOC/min × their pace (0.9–1.1, set
+    at hire; older staff get one on load) at ¤0.54 a line, about 1.35× salary; the intern their
+    tiny share. Replaced odd jobs (salary + 5%). Cards read "Everyday work · support tickets";
+    the office draws a ticket queue on their monitor.
+  - **Features** (tier `feature`, index 1, `TIERS_VERSION` 4 moved patches and up along): 1–3
+    devs, any level, ~600 SLOC, pay ×1.5. None until the spare room is full (`state.contractsOpen`,
+    set once by `moveFeatures()`); then **your first client** (`offer.first`: Python, the whole team
+    `FIRST_CLIENT_TEAM`, ×`FIRST_CLIENT_PAY`, open a day, sticking points `FIRST_CLIENT_SNAGS`), and
+    before managers up to `FEATURES_MAX` arriving every `FEATURE_EVERY_H` hours (offline too),
+    each open 6 hours and not replaced; with managers the board always has `FEATURES_MAX`.
+  - **Before managers** (`managed()`): no repeats, no retries (a failed contract is lost), and a
+    team contract in a language with puzzles gets up to `SNAG_MAX` sticking points (`job.snags`,
+    `SNAG_CHANCE` each): stuck, it runs at half speed (`job.slow`) until you help with a puzzle
+    (`finishSlowHelp()`): back to full speed, `INTERN_NUDGE` on (paying like a desk question and
+    reputation) or back. Ignored, it just finishes later. With managers: repeats, retries, no snags.
+  - **Hotfixes are the intern's**, with you, as before; developers can't take them, even with
+    managers (decided), and the board only has them while there's an intern. No expert hotfixes.
+  - **The guide**: the intern's hotfix, a desk job, filling the spare room, your first client,
+    and helping a stuck team. The old "on the bench" warning went with odd jobs.
 
 ## Known gaps — not wired in yet
 

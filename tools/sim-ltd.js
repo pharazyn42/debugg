@@ -271,7 +271,8 @@ function play(page, log, now, opts){
   // The intern: a free Python hotfix with the Director alongside whenever they're idle, helped with
   // a puzzle (answered right at the desk's hit rate) when they're stuck.
   const intern = s.roster.find(p => p.role === 'Intern');
-  for(const j of s.jobs.filter(j => j.status === 'stuck')) act(page.click, { action: 'intern-help', job: j.id });
+  // Stuck: the intern's hotfix (stalled), or a start-up team's contract (at half speed).
+  for(const j of s.jobs.filter(j => j.status === 'stuck' || j.slow)) act(page.click, { action: 'intern-help', job: j.id });
   if(intern && !s.jobs.some(j => j.team.includes(intern.id))){
     const offer = s.board.find(o => o.tier === 0 && o.lang === 'Python' && (o.risk || 'standard') === 'standard' && !o.expert);
     if(offer){
@@ -283,16 +284,16 @@ function play(page, log, now, opts){
       if(s.jobs.length === n) act(page.picker, { action: 'pick-cancel' });
     }
   }
-  // Staffing: in a start-up the player puts each idle developer on a hotfix they know, on repeat
-  // (from a small business on, the managers do it every tick).
+  // Staffing: in a start-up the player puts idle developers on features as they turn up (first
+  // client first; no repeats before managers, so each one is a fresh decision). From a small
+  // business on, the managers do it every tick. Idle developers do everyday work meanwhile.
   if(!s.roster.some(p => p.role === 'Manager')){
     for(let k = 0; k < 10; k++){
       const busy = new Set(s.jobs.flatMap(j => j.team));
       const idle = devs(s).filter(p => !busy.has(p.id));
-      // A repeat keeps its contract's risk for good, so a steady player takes standard offers.
-      const offer = s.board.filter(o => o.tier === 0 && (o.risk || 'standard') === 'standard' &&
+      const offer = s.board.filter(o => TIER_KEYS[o.tier] === 'feature' && (o.risk || 'standard') !== 'high' &&
                                         idle.some(d => skillLevel(d.lang[o.lang]) > 0 && skillLevel(d.lang[o.lang]) >= (o.expert || 0)))
-        .sort((a, b) => (b.expert || 0) - (a.expert || 0))[0];
+        .sort((a, b) => (b.first ? 1 : 0) - (a.first ? 1 : 0) || (a.expert || 0) - (b.expert || 0))[0];
       if(!offer) break;
       const n = s.jobs.length;
       act(page.click, { action: 'staff', offer: offer.id });
@@ -336,6 +337,8 @@ function nextHour(t, hour){
 
 const MILESTONES = [
   ['hired/graduate', 'First grad hired'],
+  ['devs/3', 'Spare room full: contracts open'],
+  ['job/feature', 'First contract (your first client)'],
   ['devs/4', "Director's span full: 4 devs"],
   ['hired/junior', 'First junior hired (applicant)'],
   ['stage/small', 'First manager: Small business'],
@@ -355,7 +358,7 @@ const MILESTONES = [
   ['stage/multinational', 'Multinational: 12 managers, 150 staff']
 ];
 const STAGE_KEYS = ['startup', 'small', 'midsize', 'large', 'multinational'];
-const TIER_KEYS = ['hotfix', 'patch', 'minor', 'major'];
+const TIER_KEYS = ['hotfix', 'feature', 'patch', 'minor', 'major'];
 
 async function run(opts, seed){
   loadLtd(opts.ltd ? path.resolve(opts.ltd) : path.join(ROOT, 'ltd/ltd.js'));
@@ -375,6 +378,7 @@ async function run(opts, seed){
   const end = START + opts.days * DAY;
   const schedule = PROFILES[opts.profile](playerRng);
   const note = s => {
+    if(devs(s).length >= 3) log('devs/3');
     if(devs(s).length >= 4) log('devs/4');
     if(heads(s) > 10) log('heads/11');
     if(s.stage && s.stage !== 'startup') STAGE_KEYS.slice(1, STAGE_KEYS.indexOf(s.stage) + 1).forEach(k => log('stage/' + k));
