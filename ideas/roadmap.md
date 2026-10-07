@@ -1403,7 +1403,7 @@ Big systems that depend on the earlier phases.
   mechanic.
 - A worked-out version of this is the agent office (21b).
 
-### 21b. The agent office (the player-owner's idea, October 2026; not started)
+### 21b. The agent office (the player-owner's idea, October 2026; step 1, the spare room, built)
 - **Chosen (October 2026): the graphics version, from the start of the game.** The plan to build
   it is `ideas/ltd-office-view-plan.md`, with a working prototype in `ideas/ltd-office-demo.html`:
   a building per premises (the spare room is one floor; bigger premises add floors and desks per

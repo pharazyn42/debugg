@@ -6,8 +6,10 @@ builds roadmap item 21b (the agent office) as the graphics version of the studio
 grows with the premises of item 15e. Written October 2026 so another chat can pick it up; read
 `ltd/CLAUDE.md` first for how the studio works now.
 
-**Status:** agreed with the player-owner in outline (floors, an interview room, breaks); not
-started. Decisions still to take are under "Decide first" and "Open questions".
+**Status:** agreed with the player-owner in outline (floors, an interview room, breaks). **Step 1
+(the spare room, drawn) is built** (October 2026: `ltd/office.js`), with "Decide first" 2 and 4 taken
+as proposed (the Director's own table by the front door; shown, with a hide button). Steps 2–5 are
+to do; "Decide first" 1 and 3 and the "Open questions" are still open.
 
 ## Where it comes from
 
@@ -91,7 +93,6 @@ except through the actions the panels already have.
 | `state.applicants` | The interview room's chairs |
 | A hire, a leaver | Walks in by the door, stairs or lift, or out the same way |
 | Managers on a contract | The meeting room (upper floors) or their desk |
-| Paused (`pausedAt`) | The lights are off and nobody moves |
 | Cash, rent | Not drawn: the stats bar already has them |
 
 **Who sits where.** The game has no desk numbers, so the view assigns them: staff (everyone but
@@ -144,15 +145,18 @@ unless a later feature needs it).
 ### The api ltd.js passes in
 
 ```js
+// As built in step 1 (officeSnapshot() and officeApi in ltd.js):
 api = {
-  snapshot(),        // { now, paused, premises: { kind, floors, perFloor, cowork, cramped },
-                     //   director, intern, staff: [{ id, name, role, state, job, notice, away }],
-                     //   applicants: [{ id, role, expiresAt }] }, built from `state` each call
-  onTap(kind, id),   // 'applicant' → scroll to and highlight its card in the Studio panel (hiring
+  snapshot(),        // { premises: { kind: 'spare-room', perFloor, cowork, squeezed, maxApplicants },
+                     //   people: [{ id, name, role, state, job, notice }],   // the whole roster
+                     //   applicants: [{ id, name, role }] }, built from `state` each call
+                     // state: director | working | stuck | failed | bench | away | idle
+  onTap(kind, id),   // 'applicant' → scroll to and flash its card in the Studio panel (hiring
                      // costs money, so the existing hire-applicant button stays the way to hire);
-                     // 'stuck' → startHelp(jobId); 'person' → open the employee panel
+                     // 'stuck' → startHelp(jobId); 'person' → open the employee panel;
+                     // 'director' → scroll to the desk
 }
-// ltd.js tells the view what just happened, beside the addLog() calls that already exist:
+// Step 2: ltd.js tells the view what just happened, beside the addLog() calls that already exist:
 DebuggOffice.event({ kind: 'delivered' | 'failed' | 'hired' | 'left', ids, pay })
 ```
 
@@ -163,8 +167,8 @@ DebuggOffice.event({ kind: 'delivered' | 'failed' | 'hired' | 'left', ids, pay }
 
 - Its own `requestAnimationFrame` loop, reading `api.snapshot()` each frame (cheap: the roster is
   small). The game's 1-second `setInterval` keeps re-rendering the HTML panels as now.
-- Stop drawing when the tab is hidden (`document.hidden`), the view is toggled off, or the company
-  is paused (draw one still frame).
+- Stop drawing when the tab is hidden (`document.hidden`) or the view is toggled off. (A paused
+  company isn't loaded at all, so there's nothing to draw then.)
 - Coming back from offline time: draw the end state, no catch-up animation. Events only animate
   while the page is open.
 - Theme: read colours from CSS custom properties, as the prototype does (`readTheme()`), with
@@ -213,6 +217,13 @@ Each PR adds a line for players under `## Unreleased` in `ltd/CHANGELOG.md`, upd
 Written after checking this plan against the code (October 2026). It breaks step 1 above into
 pieces small enough to review one at a time, all on one Ltd branch and one PR. Line numbers drift,
 so the function names are what to search for.
+
+**Built (October 2026).** Where the build differs from the notes below: the snapshot is the shape
+in "The api ltd.js passes in" above; there's no pause handling or `DebuggOffice.poke()` (a paused
+company isn't loaded); the canvas reads its box's width each frame rather than using a
+`ResizeObserver`; and because people are sprites that walk to wherever the snapshot puts them,
+hires already walk from the interview chairs to their desk, and leavers and anyone away walk out
+of the front door. Step 2 adds the events (✓, confetti, smoke, the pay), bubbles and the rest.
 
 ### 1. The slot and the loader (`index.html`)
 

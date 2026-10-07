@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- **Your studio is drawn as an office**, above your desk: the spare room, with everyone at their desk and their monitor showing what they're on (code typing in with the contract's progress, a flashing "?" when your intern is stuck, ✗ for a failed contract, a screensaver on the bench), the co-working desks in their own corner, stools when it's cramped, and applicants waiting in the interview room. Tap someone to see their details, an applicant to find their card, or a stuck intern to help them. **Hide the office** tucks it away, and it stays hidden until you show it again. Everything it shows is still in the panels.
 
 ## 0.0.16 — 5 October 2026
 

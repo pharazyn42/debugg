@@ -33,12 +33,20 @@ window.DebuggLtd = (function(){
 
   function start(slots){
     const statsSlot = slots.stats, studioSlot = slots.studio, boardSlot = slots.board, deskSlot = slots.desk;
+    // The office view (ltd/office.js) is optional: without its slot or its script the studio plays the same.
+    const officeSlot = slots.office && window.DebuggOffice ? slots.office : null;
 
     // ---------------------------------------------------------------------
     // Markup
     // ---------------------------------------------------------------------
 
-    [statsSlot, studioSlot, boardSlot, deskSlot].forEach(el => { el.classList.add('ltd'); el.hidden = false; });
+    [statsSlot, studioSlot, boardSlot, deskSlot, officeSlot].forEach(el => { if(el){ el.classList.add('ltd'); el.hidden = false; } });
+    if(officeSlot) officeSlot.innerHTML =
+      '<div class="panel office-view">' +
+        '<h2>Office <span class="tag">your spare room</span>' +
+          '<button type="button" class="btn-small btn-ghost office-toggle" data-action="office-toggle" id="officeToggle" aria-controls="officeBox"></button></h2>' +
+        '<div class="office-box" id="officeBox"></div>' +
+      '</div>';
     deskSlot.innerHTML =
       '<div class="panel desk-panel">' +
         '<h2>Your desk <span class="tag" id="deskCount"></span></h2>' +
@@ -102,7 +110,7 @@ window.DebuggLtd = (function(){
     let tickTimer = null;
     let stopped = false;
     // Stops the clock and all saving, e.g. before a backup is restored over this company.
-    stopGame = () => { stopped = true; clearInterval(tickTimer); };
+    stopGame = () => { stopped = true; clearInterval(tickTimer); if(officeSlot) window.DebuggOffice.unmount(); };
 
     // ---------------------------------------------------------------------
     // Studio model
@@ -2004,7 +2012,76 @@ window.DebuggLtd = (function(){
       renderBoard();
       renderJobs(now);
       renderDesk();
+      renderOffice();
     }
+
+    // ---------------------------------------------------------------------
+    // The office view (ltd/office.js): a picture of the studio, drawn from officeSnapshot().
+    // It changes nothing itself; a tap does what a button in the panels does.
+    // ---------------------------------------------------------------------
+
+    let officeShown = null;
+    function renderOffice(){
+      if(!officeSlot) return;
+      const show = state.showOffice !== false;
+      if(show === officeShown) return;
+      officeShown = show;
+      const toggle = $('officeToggle'), box = $('officeBox');
+      toggle.textContent = show ? 'Hide the office' : 'Show the office';
+      toggle.setAttribute('aria-expanded', String(show));
+      box.hidden = !show;
+      if(show) window.DebuggOffice.mount(box, officeApi);
+      else window.DebuggOffice.unmount();
+    }
+    function officeJob(job, now){
+      const length = Math.max(1, job.endsAt - job.startedAt);
+      const progress = isStuck(job) ? 1 - (job.left || 0) / length : isRunning(job) ? (now - job.startedAt) / length : 1;
+      return { id: job.id, tier: job.tier, lang: job.lang, status: job.status || 'running', progress: Math.max(0, Math.min(1, progress)) };
+    }
+    // Everything the office draws, from the save. state: director, working, stuck, failed, bench,
+    // away, or idle (a manager or the intern with nothing on).
+    function officeSnapshot(){
+      const now = Date.now(), busy = busyIds();
+      return {
+        premises: { kind: 'spare-room', perFloor: SPARE_ROOM_DESKS, cowork: coworkDesks(),
+                    squeezed: Math.max(0, desksUsed() - deskCount()), maxApplicants: MAX_APPLICANTS },
+        people: state.roster.map(p => {
+          const job = jobFor(p.id);
+          const st = p.role === 'Director' ? 'director'
+            : isAway(p, now) ? 'away'
+            : job ? (isStuck(job) ? 'stuck' : isRunning(job) ? 'working' : 'failed')
+            : onBench(p, busy, now) ? 'bench' : 'idle';
+          return { id: p.id, name: p.name, role: p.role, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
+        }),
+        applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
+      };
+    }
+    const officeApi = {
+      snapshot: officeSnapshot,
+      onTap(kind, id){
+        if(kind === 'person'){
+          if(person(id)) openPersonModal(id);
+        }else if(kind === 'stuck'){
+          startHelp(id);
+        }else if(kind === 'director'){
+          if(deskSlot.scrollIntoView) deskSlot.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }else if(kind === 'applicant'){
+          // Hiring costs money, so it stays a button: the tap shows you their card.
+          const card = [...applicantsEl.querySelectorAll('.applicant')].find(el => el.dataset.applicant === id);
+          if(!card) return;
+          card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          card.classList.remove('office-picked');
+          void card.offsetWidth;
+          card.classList.add('office-picked');
+        }
+      }
+    };
+    if(officeSlot) officeSlot.addEventListener('click', (e) => {
+      if(!e.target.closest('[data-action=office-toggle]')) return;
+      state.showOffice = state.showOffice === false;
+      save();
+      renderOffice();
+    });
 
     // ---------------------------------------------------------------------
     // Team picker

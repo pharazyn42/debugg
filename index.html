@@ -291,7 +291,7 @@
     body.ltd-view .sub{ display: none; }
     body.ltd-view h1{ font-size: 26px; margin-bottom: 4px; }
   }
-  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk{ display: none !important; }
+  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk, body:not(.ltd-on) #ltdOffice{ display: none !important; }
   .ltd-intro{
     background: var(--panel);
     border: 1px solid var(--line);
@@ -380,6 +380,7 @@
   <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). On the
        Daily tab a running company is loaded but hidden, so the puzzle still pays it. -->
   <div id="ltdStats" hidden></div>
+  <div id="ltdOffice" hidden></div>
 
   <div class="columns">
   <main class="desk">
@@ -1300,17 +1301,21 @@
     css.rel = 'stylesheet';
     css.href = 'ltd/ltd.css';
     document.head.appendChild(css);
-    // The desk's questions (ltd/desk.js) first, then, once they're in, the studio.
+    // The desk's questions (ltd/desk.js) and the office view (ltd/office.js) first, then, once
+    // they're in, the studio. The office is only a picture: if it fails to load, the studio starts without it.
     const deskJs = document.createElement('script');
     deskJs.src = 'ltd/desk.js';
+    const officeJs = document.createElement('script');
+    officeJs.src = 'ltd/office.js';
     const js = document.createElement('script');
     js.src = 'ltd/ltd.js';
     js.onload = () => {
       document.body.classList.add('ltd-on');
-      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk') });
+      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk'), office: $('ltdOffice') });
     };
     js.onerror = deskJs.onerror = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
-    deskJs.onload = () => document.body.appendChild(js);
+    officeJs.onload = officeJs.onerror = () => document.body.appendChild(js);
+    deskJs.onload = () => document.body.appendChild(officeJs);
     document.body.appendChild(deskJs);
   }
 

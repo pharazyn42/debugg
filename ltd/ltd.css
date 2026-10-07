@@ -601,3 +601,28 @@
 .ltd .desk-done img.hop{ animation: desk-hop 0.55s ease 2; }
 @keyframes desk-hop{ 50%{ transform: translateY(-6px) rotate(-6deg); } }
 @media (prefers-reduced-motion: reduce){ .ltd .desk-done img.hop{ animation: none; } }
+
+/* The office view (ltd/office.js): the studio drawn as a building, above the desk and the studio.
+   Its colours are here so a light theme (roadmap item 10b) only has to override them. */
+.ltd .office-view{
+  --office-sky-top: #1c2540;
+  --office-sky-bottom: #33456b;
+  --office-ground: #24302a;
+  --office-wall-top: #24262c;
+  --office-wall-bottom: #2b2e35;
+  --office-slab: #3a3d46;
+  --office-slab-text: #c9ccd4;
+  --office-brick: #6b4436;
+  --office-roof: #2c2f37;
+  margin-bottom: 18px;
+}
+.ltd .office-view h2{ margin-bottom: 10px; }
+.ltd .office-toggle{ margin-left: auto; }
+/* On a phone the building scales down to a point, then scrolls sideways inside its box. */
+.ltd .office-box{ overflow-x: auto; border-radius: 8px; border: 1px solid var(--line); }
+.ltd .office-box[hidden]{ display: none; }
+.ltd .office-canvas{ display: block; }
+/* An applicant tapped in the office: their card flashes. */
+.ltd .applicant.office-picked{ animation: office-pick 1.6s ease-out; }
+@keyframes office-pick{ 0%, 40%{ outline: 2px solid var(--amber); outline-offset: 2px; } 100%{ outline: 2px solid transparent; outline-offset: 2px; } }
+@media (prefers-reduced-motion: reduce){ .ltd .applicant.office-picked{ animation: none; outline: 2px solid var(--amber); outline-offset: 2px; } }
