@@ -416,7 +416,9 @@ state = {
   2026; `p.wfh`, `WFH_EFFICIENCY`, `canHireWfh()`, `moveWfh()`): in the spare room an applicant can
   be hired to work from home (a second button on their card): no desk (`desksUsed()` leaves them
   out, so they don't fill the spare room for contracts either), and 80% of the code on contracts
-  (`devSlocOn()`) and everyday work. Cards say "WFH"; the office leaves them out of the building
+  (`devSlocOn()`) and everyday work. Cards say "WFH"; the office draws them as video-call tiles in the sky
+  by the building (`drawRemote()`, `face()`: a front-on face from their webcam, or an empty chair while
+  they're on a break, as often as anyone in the office, or away; tapping one opens their panel)
   and counts them in its summary. Once the company is out of the spare room, they come in as
   desks free up. **Managers can't be hired in the spare room** (`hireProblem()`), so the Director's
   span (4 devs: 3 at desks and one from home) is the spare room's limit, and a small business needs

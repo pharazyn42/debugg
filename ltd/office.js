@@ -150,6 +150,7 @@ window.DebuggOffice = (function(){
       targets = [];
       L.floors.forEach(f => drawFloor(L, f, snap, t));
       drawBubbles(L, snap);
+      drawRemote(L, snap, t);
       if(t < movingUntil) banner(L, 'Moving day · ' + L.name.charAt(0).toUpperCase() + L.name.slice(1));
       updateLabel(snap, L);
     }
@@ -867,6 +868,70 @@ window.DebuggOffice = (function(){
     drawPerson({ id: 'portrait', role: 'Director', look: Object.assign({}, DEFAULT_LOOK, look), x: w / 2, alpha: 1, facing: 1,
                  walking: false, spot: 'exit', seed: 0, p: null }, h - 4 * s, s, 0);
     ctx = saved;
+  }
+
+  // People working from home: a video-call tile each, up in the sky by the building, showing them
+  // from their own webcam: their face over their desk at home, or an empty chair while they're
+  // on a break (as often as anyone in the office) or away. Tapping a tile opens their panel.
+  const HOME_WALLS = ['#3b4a5a', '#4a3f52', '#3f5247', '#56483a', '#38404f'];
+  function drawRemote(L, snap, t){
+    const remote = snap.people.filter(p => p.wfh);
+    if(!remote.length) return;
+    const s = L.s, w = 50 * s, h = 40 * s, gap = 6 * s, y = 22 * s;
+    const total = remote.length * (w + gap) - gap;
+    const x0 = L.house ? L.x0 : L.x1 - total;
+    font(700, 7.5 * s, true); ctx.fillStyle = th.slabText; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('WORKING FROM HOME', x0, y - 3 * s);
+    remote.forEach((p, i) => {
+      const x = x0 + i * (w + gap), h0 = hashStr(p.id);
+      const away = breaks.has(p.id) || p.state === 'away';
+      ctx.save();
+      rrect(x, y, w, h, 5 * s); ctx.clip();
+      ctx.fillStyle = HOME_WALLS[h0 % HOME_WALLS.length]; ctx.fillRect(x, y, w, h);
+      // A shelf or a picture behind them.
+      ctx.fillStyle = tint('#000000', 0.18);
+      if(h0 % 2){ ctx.fillRect(x + 4 * s, y + 9 * s, 16 * s, 2 * s); ctx.fillStyle = '#c0392b'; ctx.fillRect(x + 6 * s, y + 4 * s, 3 * s, 5 * s); ctx.fillStyle = '#e0a12c'; ctx.fillRect(x + 10 * s, y + 5 * s, 3 * s, 4 * s); }
+      else{ ctx.fillRect(x + w - 16 * s, y + 4 * s, 11 * s, 9 * s); ctx.fillStyle = tint('#ffffff', 0.25); ctx.fillRect(x + w - 15 * s, y + 5 * s, 9 * s, 7 * s); }
+      // The chair back, then them (or not).
+      ctx.fillStyle = '#2a2d33'; rrect(x + w / 2 - 13 * s, y + 16 * s, 26 * s, 30 * s, 6 * s); ctx.fill();
+      if(!away) face(lookFor({ id: p.id, role: p.role, applicant: false }, p), x + w / 2, y + 17 * s, s, !reduceMotion && Math.sin(t * 0.9 + h0) > 0.985);
+      ctx.restore();
+      ctx.strokeStyle = p.state === 'stuck' ? '#f2b84b' : th.line; ctx.lineWidth = 1.2 * s;
+      rrect(x, y, w, h, 5 * s); ctx.stroke();
+      // Their name, and a status dot: green working, amber away.
+      ctx.fillStyle = tint('#131417', 0.7); ctx.fillRect(x, y + h - 9 * s, w, 9 * s);
+      ctx.fillStyle = away ? '#f2b84b' : '#4fd18b'; ell(x + 5 * s, y + h - 4.5 * s, 2 * s, 2 * s); ctx.fill();
+      font(600, 6.5 * s); ctx.fillStyle = '#e8e9ec'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      let n = away ? p.name.split(' ')[0] + ' · away' : p.name;
+      while(n.length > 2 && ctx.measureText(n).width > w - 11 * s) n = n.slice(0, -2) + '…';
+      ctx.fillText(n, x + 9 * s, y + h - 4.5 * s);
+      targets.push({ kind: p.state === 'stuck' && p.job ? 'stuck' : 'person', id: p.state === 'stuck' && p.job ? p.job.id : p.id, x, y, w, h, cx: x + w / 2 });
+    });
+  }
+
+  // A face seen front-on, from a webcam: shoulders in their clothes, then head, hair, eyes, glasses
+  // and facial hair.
+  function face(look, cx, cy, s, blink){
+    ctx.fillStyle = look.shirt; rrect(cx - 15 * s, cy + 10 * s, 30 * s, 20 * s, 8 * s); ctx.fill();
+    ctx.fillStyle = look.skin; ctx.fillRect(cx - 3 * s, cy + 7 * s, 6 * s, 5 * s);
+    if(look.hairStyle === 1){ ctx.fillStyle = look.hair; rrect(cx - 10.5 * s, cy - 7 * s, 21 * s, 20 * s, 7 * s); ctx.fill(); }
+    ctx.fillStyle = look.skin; ell(cx, cy, 8.5 * s, 9.5 * s); ctx.fill();
+    ctx.fillStyle = look.hair;
+    if(look.hairStyle === 0 || look.hairStyle === 1){ ctx.beginPath(); ctx.ellipse(cx, cy - 4 * s, 9 * s, 6.5 * s, 0, Math.PI, 2 * Math.PI); ctx.fill(); }
+    else if(look.hairStyle === 2){ ctx.beginPath(); ctx.ellipse(cx, cy - 4 * s, 9 * s, 6 * s, 0, Math.PI, 2 * Math.PI); ctx.fill(); ell(cx, cy - 12 * s, 4.5 * s, 4 * s); ctx.fill(); }
+    else if(look.hairStyle === 3){ ell(cx - 8.5 * s, cy - 1 * s, 1.8 * s, 3.5 * s); ctx.fill(); ell(cx + 8.5 * s, cy - 1 * s, 1.8 * s, 3.5 * s); ctx.fill(); }
+    else{ for(let i = 0; i < 7; i++){ ell(cx - 8 * s + i * 2.7 * s, cy - 7 * s - Math.sin(i * 1.9) * 1.5 * s, 3.3 * s, 3.3 * s); ctx.fill(); } }
+    if(look.beard === 1){ ctx.fillStyle = tint(look.hair, 0.35); ctx.beginPath(); ctx.ellipse(cx, cy + 3 * s, 7.5 * s, 6 * s, 0, 0, Math.PI); ctx.fill(); }
+    else if(look.beard === 3){ ctx.fillStyle = look.hair; ctx.beginPath(); ctx.ellipse(cx, cy + 3 * s, 8 * s, 7 * s, 0, 0, Math.PI); ctx.fill(); }
+    if(look.beard === 2 || look.beard === 3){ ctx.fillStyle = look.hair; rrect(cx - 4 * s, cy + 3 * s, 8 * s, 2 * s, 1 * s); ctx.fill(); }
+    ctx.fillStyle = '#131417';
+    [-3.2, 3.2].forEach(dx => { if(blink) ctx.fillRect(cx + dx * s - 1.3 * s, cy - 0.5 * s, 2.6 * s, 0.7 * s); else{ ell(cx + dx * s, cy - 0.5 * s, 1.1 * s, 1.4 * s); ctx.fill(); } });
+    if(look.glasses){
+      ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.8 * s;
+      [-3.2, 3.2].forEach(dx => { if(look.glasses === 1){ ctx.beginPath(); ctx.arc(cx + dx * s, cy - 0.5 * s, 2.5 * s, 0, Math.PI * 2); ctx.stroke(); } else ctx.strokeRect(cx + dx * s - 2.4 * s, cy - 2.4 * s, 4.8 * s, 3.8 * s); });
+      ctx.beginPath(); ctx.moveTo(cx - 0.8 * s, cy - 0.7 * s); ctx.lineTo(cx + 0.8 * s, cy - 0.7 * s); ctx.stroke();
+    }
+    if(look.beard !== 3){ ctx.strokeStyle = '#7a3b2e'; ctx.lineWidth = 0.8 * s; ctx.beginPath(); ctx.arc(cx, cy + 3.5 * s, 2 * s, 0.25, Math.PI - 0.25); ctx.stroke(); }
   }
 
   // A stuck intern says so over their head.
