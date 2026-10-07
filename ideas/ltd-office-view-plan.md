@@ -86,7 +86,7 @@ except through the actions the panels already have.
 | A failed job waiting for Retry or Drop | The monitor shows ✗ until it's resolved |
 | A delivered job | ✓ and confetti, a bubble with the pay (only when it happens while watching) |
 | On the bench (`onBench()`) | At their desk, screensaver; the bubble says "odd jobs" |
-| Away (`p.away`: training, holiday, sick) | Their desk empty, with a note on the chair ("on holiday") |
+| Away (`isAway(p, now)`: training, holiday, sick) | Their desk empty, with a note on the chair ("on holiday"). Nothing sets `p.away` yet (it waits for items 14 and 15c), so draw it from `isAway()` and test it with a seeded save |
 | On notice (`p.notice`) | A packing box on their desk |
 | `state.applicants` | The interview room's chairs |
 | A hire, a leaver | Walks in by the door, stairs or lift, or out the same way |
@@ -134,8 +134,10 @@ unless a later feature needs it).
   call is guarded.
 - **`ltd/ltd.css`**: the view's box, its toggle and the text summary, scoped under `.ltd` like the
   rest.
-- **`index.html`**: a new slot, `<div id="ltdOffice" hidden></div>`, above `#ltdStudio`, hidden
-  unless `body.ltd-on` (like the other four slots); the loader loads `ltd/office.js` with
+- **`index.html`**: a new slot, `<div id="ltdOffice" hidden></div>`, between `#ltdStats` and
+  `<div class="columns">`, so it spans the page's full width (inside `.columns` it would become a
+  third grid cell and break the two-column layout). Add it to the
+  `body:not(.ltd-on) … { display: none !important }` rule beside the other four slots; the loader loads `ltd/office.js` with
   `ltd/desk.js` and passes `office: $('ltdOffice')` to `DebuggLtd.start()`. On a branch whose
   other files are all Ltd's, `index.html` counts as Ltd's, so the scope check passes.
 
@@ -205,6 +207,107 @@ Each PR adds a line for players under `## Unreleased` in `ltd/CHANGELOG.md`, upd
    rooftop signs. The prototype has all of it.
 5. **Later:** a floor per team once managers lead teams; an AI floor with no desks (item 17f); a
    campus of buildings (item 18).
+
+## Building step 1: the work in order
+
+Written after checking this plan against the code (October 2026). It breaks step 1 above into
+pieces small enough to review one at a time, all on one Ltd branch and one PR. Line numbers drift,
+so the function names are what to search for.
+
+### 1. The slot and the loader (`index.html`)
+
+- Add `<div id="ltdOffice" hidden></div>` after `#ltdStats`, and add `#ltdOffice` to the hide
+  rule (see "Files" above).
+- In the loader, load `ltd/office.js` after `ltd/desk.js` and before `ltd/ltd.js`, only on the
+  paths that already load the studio, and pass `office: $('ltdOffice')` to `DebuggLtd.start()`.
+- If `office.js` fails to load, the studio still starts (pass the slot anyway; `ltd.js` checks for
+  `window.DebuggOffice`).
+
+### 2. The read-only api (`ltd/ltd.js`)
+
+- In `start(slots)`, take `slots.office` (it may be missing: old tests and `tools/sim-ltd.js`
+  pass only four slots) and leave it hidden and empty when it is missing or
+  `window.DebuggOffice` isn't loaded.
+- `officeSnapshot(now)`, built from the helpers that already exist:
+  - premises: `{ kind: 'spare-room', floors: 1, perFloor: SPARE_ROOM_DESKS, cowork: coworkDesks(),
+    cramped: cramLevel() }`. `kind` is the hook for 15e phase 2.
+  - people: `state.roster` mapped to `{ id, name, role, state, job, notice: !!p.notice }`, where
+    `state` is one of `director`, `intern`, `working`, `stuck`, `failed`, `bench`, `away`,
+    `manager` (a manager on no contract): the job from `busyIds()` and `state.jobs` (`isRunning`,
+    `isStuck`, `status === 'failed'`), `onBench()`, `isAway()`.
+  - job: `{ id, tier, lang, status, progress }`, progress `(now − startedAt) / (endsAt − startedAt)`
+    clamped to 0–1, or `1 − job.left / (endsAt − startedAt)` while stuck. Everyone on a team
+    gets the same job.
+  - applicants: `state.applicants` mapped to `{ id, role, expiresAt }`.
+  - `paused: !!state.pausedAt`.
+- `onTap(kind, id)`: `'person'` → `openPersonModal(id)`; `'stuck'` → `startHelp(jobId)` (the same
+  call the job card's Help button makes); `'applicant'` → scroll its card in `renderApplicants()`
+  into view and flash it with the existing `.guide-target` highlight (hiring stays a button press
+  in the panel, since it costs money).
+- The toggle: `state.showOffice` (missing means shown, so old saves need no guard), a small
+  "Hide the office" / "Show the office" button in the slot's header, saved with `save()`.
+- `DebuggLtd.stop()` (used by tests) also calls `DebuggOffice.unmount()`.
+
+### 3. The renderer (`ltd/office.js`, new)
+
+Port from `ideas/ltd-office-demo.html`, which mixes a fake game with the drawing. Keep only the
+drawing and the view's own movement:
+
+| Keep (move into `office.js`) | Drop (the game does it) |
+|---|---|
+| `readTheme`, `rrect`, `ell`, `tint`, `font` | `makePerson`, `hire`, `addApplicant`, `hireApplicant`, `nextRole`, `letGo`, `move` |
+| `layout`, `fit`, `frame`, `placeOf`, `steer` | `startJob`, `tick` (the fake contracts), `unstick` |
+| `drawSky`, `drawShell`, `sign`, `drawFloor`, `drawFloorSign`, `drawSide`, `door` | `capacity`, `perFloorOf` (from the snapshot's premises instead) |
+| `drawKitchen`, `drawLeftRoom`, `drawDesk`, `screen`, `drawPerson`, `kiwi`, `drawFront` | `renderLadder`, `renderTable`, `updateStats`, `renderLadderState`, `poke`, the controls |
+| `bubble`, `drawBubbles`, `burst`, `drawParticles`, `banner` | `say` (the game's log does it) |
+
+- Step 1 draws the spare room only; keep the multi-floor code paths but feed them one floor, so
+  step 4 is a data change. Delete what step 4 won't use rather than carrying dead branches.
+- The view keeps its own state between frames: desk assignments (`Map` of id → desk, lowest free
+  desk for a newcomer, kept while the page is open) and each sprite's position, so people walk
+  to their spot instead of jumping when the snapshot changes.
+- Desk layout for the spare room: the 4 home desks, then `cowork` co-working desks in their tinted
+  corner, then up to `CRAM_MAX` stools at the last desk. The Director's spot is the kitchen table
+  by the front door, never a counted desk ("Decide first" 2); the intern sits beside the Director.
+- Hit testing: keep a list of `{ x, y, w, h, kind, id }` rectangles built while drawing, read on
+  `pointerup`, and call `api.onTap`. Give the canvas `cursor: pointer` over a target.
+- The loop: `requestAnimationFrame`, stopped when `document.hidden`, when the view is hidden, or
+  when unmounted; when paused, draw one dark still frame and stop until the snapshot unpauses (check
+  it on the game's 1-second tick through a cheap `DebuggOffice.poke()`).
+- Size: a `ResizeObserver` on the slot sets the canvas's CSS width and its pixel size
+  (`devicePixelRatio`, capped at 2); below the building's minimum width the box scrolls sideways.
+- The `aria-label` summary is rebuilt only when its text changes, so screen readers aren't spammed.
+
+### 4. Styles (`ltd/ltd.css`)
+
+The slot's panel (same `.panel` look as the others), the toggle button, the scroll box, and a
+reduced-motion rule. Colours come from the existing custom properties; `readTheme()` reads them,
+so the light theme (10b) works by adding its values to `base.css`.
+
+### 5. Tests (`tests/ltd.spec.js`) and the simulator
+
+- The office appears on the Ltd tab with a running company, and not on the Daily tab.
+- With a seeded save (2 staff on a job, 1 on the bench, 2 applicants, 2 co-working desks), the
+  canvas's `aria-label` reads the right counts.
+- A stuck intern job: clicking the intern's spot (from coordinates the view exposes for tests,
+  e.g. `DebuggOffice.targets()`) opens the help, the same as the job card's button.
+- The toggle hides it and the choice survives a reload.
+- No errors in the console with `office.js` blocked (`page.route` it to a 404): the studio still
+  plays.
+- `npm run sim` runs unchanged (it passes no office slot) and prints the same milestones.
+- Run `npm test` and `npm run sim` before pushing.
+
+### 6. Docs and changelog
+
+A player-facing line under `## Unreleased` in `ltd/CHANGELOG.md` ("Your studio is drawn as an
+office: …"), the new file and slot in `ltd/CLAUDE.md` ("What's implemented") and the file table in
+`CLAUDE.md`, and this plan's status line.
+
+### Before starting
+
+The answers to "Decide first" 2 (the Director's spot) and 4 (shown by default) shape step 1;
+1 (breaks) and 3 (meeting room) can wait for steps 3 and 4. Ask the player-owner for 2 and 4, or
+build with the proposals above and say so in the PR.
 
 ## Open questions
 
