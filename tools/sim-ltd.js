@@ -205,7 +205,7 @@ const premisesOf = s => PREMISES[(s.office && s.office.premises) || 'spare-room'
 // The strategy rents; buying (¤60,000, then ¤1/min upkeep) isn't modelled yet.
 const DEV_ROLES = ['Graduate', 'Junior', 'Senior', 'Principal'];
 const SALARY = { Manager: 8, Graduate: 2, Junior: 5, Senior: 12, Principal: 28 };
-const COST = { Manager: 900, Graduate: 180 };
+const COST = { Manager: 900, Graduate: 180 };   // hire costs; a job-board posting is a tenth of one
 const skillLevel = xp => { const t = [10, 50, 150, 400, 1000]; let lv = 0;
   while((xp || 0) >= (lv < 5 ? t[lv] : 1000 + 400 * (lv - 4) * (lv - 3))) lv++; return lv; };
 
@@ -252,27 +252,39 @@ function play(page, log, now, opts){
     log('moved/unit-s');
     return 'free';
   };
-  const hire = (role, dataset, cost) => {
+  // `wfh`: a work-from-home hire needs no desk.
+  const hire = (role, dataset, cost, wfh) => {
     if(spendable() < cost) return false;
-    // In the spare room with every desk taken, a developer is hired to work from home.
-    const used = s.roster.filter(p => p.role !== 'Intern' && !p.wfh).length;
-    if(role !== 'Manager' && premisesOf(s) === PREMISES['spare-room'] && used >= premisesOf(s).desks) dataset = Object.assign({ wfh: '1' }, dataset);
-    const desk = dataset.wfh ? 'free' : deskFor();
+    const desk = wfh ? 'free' : deskFor();
     if(!desk) return false;
     const n = s.roster.length;
     act(page.click, dataset);
     if(s.roster.length > n){ log('hired/' + role.toLowerCase()); return true; }
     return false;
   };
-  // Applicants first: they're the only way to hire above graduate.
+  // Applicants first: they're the only way to hire above graduate (hired at a desk).
   for(const a of (s.applicants || []).slice().sort((x, y) => DEV_ROLES.indexOf(y.role) - DEV_ROLES.indexOf(x.role)))
     hire(a.role, { action: 'hire-applicant', id: a.id }, a.cost);
+  // The job board: whoever has replied is hired (managers, and in a full spare room people who work
+  // from home); a job is posted when none is out, and its candidate comes at a later check-in.
+  const spare = () => premisesOf(s) === PREMISES['spare-room'];
+  for(const c of (s.candidates || []).slice()) hire(c.role, { action: 'hire-candidate', id: c.id }, c.cost, c.wfh && spare());
+  const post = (role, wfh) => {
+    if((s.postings || []).some(p => p.role === role && !!p.wfh === !!wfh) || (s.candidates || []).some(c => c.role === role && !!c.wfh === !!wfh)) return;
+    const fee = Math.max(5, Math.round(priceOf(s, role) * 0.1 / 5) * 5);
+    if(spendable() < fee) return;
+    act(page.click, wfh ? { action: 'post-job', role, wfh: '1' } : { action: 'post-job', role });
+    log('posted/' + role.toLowerCase() + (wfh ? '/wfh' : ''));
+  };
+  // A full spare room: more people can only come from home (graduates, the cheap way).
+  if(spare() && s.roster.filter(p => p.role !== 'Intern' && !p.wfh).length >= premisesOf(s).desks && (s.reputation || 0) >= 5) post('Graduate', true);
   // A manager when the developers are at the Director's and managers' span. Managers need an office,
   // so the player rents the unit first.
   const managers = s.roster.filter(p => p.role === 'Manager').length;
-  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers && spendable() >= priceOf(s, 'Manager')){
-    if(premisesOf(s) === PREMISES['spare-room']){ act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' }); if(premisesOf(s) !== PREMISES['spare-room']) log('moved/unit-s'); }
-    hire('Manager', { action: 'hire', role: 'Manager' }, priceOf(s, 'Manager'));
+  // The player posts when they're about half way to the price, so the reply is waiting when they can pay.
+  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers && spendable() >= priceOf(s, 'Manager') * 0.5){
+    if(spare()){ act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' }); if(!spare()) log('moved/unit-s'); }
+    if(!spare()) post('Manager', false);
   }
 
   // The intern: a free Python hotfix with the Director alongside whenever they're idle, helped with

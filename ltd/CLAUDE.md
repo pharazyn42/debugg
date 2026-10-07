@@ -253,15 +253,19 @@ state = {
   picks up from it; until October 2026 a repeat finished before the cap stopped, so an overnight
   company paid 4 hours' salary for no work), and stop if the team no longer meets the
   requirements.
-- **Roster UI**: the Director card, then a collapsible tree grouped by
-  level. Each group header shows its headcount, how many are busy, SLOC/min
-  and salary/min. Collapse state persists. Clicking a card opens the
-  employee panel: every language as a level ("Lv 6", with no top; the best in amber) and a bar
-  of XP towards the next level ("2600/3400 xp"), current assignment, and a promotion checklist.
-  Roster cards show a dev's two best languages ("Python Lv 6 · Rust Lv 2"). Skill levels were
-  five pips until September 2026 (the player-owner's call); levels 1–5 need the same XP as the
-  five pips did, so nothing changed for existing staff, and levels above 5 don't yet add speed or
-  success (`SKILL_FULL`).
+- **Roster UI** (changed October 2026, item 10c step 1): there is no roster tree or Director card.
+  Everyone, the Director included, is opened by clicking them in the office view (or from the
+  names-only "Everyone in the studio" list, `.person-link`, for keyboards and screen readers). The
+  panel (`renderPersonModal()`) shows every language as a level ("Lv 6", with no top; the best in
+  amber) and a bar of XP towards the next level ("2600/3400 xp"), what they're doing, their notice and
+  **Keep**, the promotion checklist and **Promote**, and **Let go** (`personActionsHTML()`); its buttons
+  go through `onAction()` too. The Director's panel shows their languages (with `a.learn-lang` links),
+  "Go to your desk" and "Edit name and look". Skill levels were five pips until September 2026 (the
+  player-owner's call); levels 1–5 need the same XP as the five pips did, and levels above 5 don't
+  yet add speed or success (`SKILL_FULL`). The headcount chips above the office stay.
+- **The Studio box** is titled with the company's name, and a **Premises** list (`PREMISES`,
+  with a `blurb` each) shows every place with its desks, floors, price and buttons (rent, buy, buy
+  the one you rent, move back and sell), the current one marked "You are here".
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
 - **Odd jobs** (replaced in October 2026 by everyday work, below; the player-owner's call, September 2026): developers on no contract earn their
@@ -299,8 +303,8 @@ state = {
 - **The board folds offers nobody can take**: offers in languages nobody on staff knows sit
   behind a "Show 3 in languages nobody on staff knows" toggle (`state.showUnknownOffers`), unless
   nobody's been hired yet.
-- **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): only
-  managers have a hire button. Developers *apply*, graduates included since item 4d: one
+- **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): managers
+  are hired on the job board. Developers *apply* (hired from their card in the interview room), graduates included since item 4d: one
   every 8–24 hours, at most 3 waiting, each asking the
   market price × 0.9–1.2, with the offer open for 12 hours ("took a job elsewhere" after).
   Reputation decides who applies (`APPLICANT_REP`): nobody below 5 (`nextApplicantAt` is 0
@@ -345,6 +349,9 @@ state = {
   office view, squeezed-in people take a stool after the last desk, then share the end of someone's
   desk, the meeting-room table, the kitchen couch and counter, the stairs and the floor
   (`squeezeSpots()`, `squeezeProp()`).
+- **The job board** (October 2026, item 10c step 4; `state.postings`, `state.candidates`, `JOB_FEE`, `JOB_DELAY_H`, `JOB_OPEN_H`, `JOB_BOARD_MAX`, `postProblem()`, `moveJobBoard()`, `#jobsModal`): the way to hire **managers** and **work-from-home developers** (`wfh`, spare room only, at the applicant reputation for their level). `post-job` costs `postFee(role)` (10% of the hire cost, to ¤5); `moveJobBoard()` turns a due posting into a candidate (`{ id, role, wfh, person, cost, expiresAt }`, asking the market price × `APPLICANT_ASK`, open 24 h; one that would already have expired while the page was closed is dropped), and `hire-candidate` hires them (a WFH candidate hired after leaving the spare room takes a desk). At most 4 postings and candidates at once. Opened from the JOBS monitor in the interview room (a `jobs` tap target, with a badge counting replies) or the Studio box's button. Postings and candidates shift with the clocks on resume. The simulator posts a manager job once the Director's span is full and it has half the price, and a work-from-home graduate job when the spare room is full.
+- **Hiring in the interview room** (October 2026, item 10c step 3; `openCandidateModal()`, `#candidateModal`): clicking an applicant in the picture (or `.applicant-link` in the names list) opens their card with `hire-applicant` and, in the spare room, the work-from-home hire. The Studio box keeps only notes about who applies (`#applicants`). Managers and work-from-home hires are on the job board (step 4).
+- **Notifications bar and bubbles** (October 2026, item 10c step 2; `renderNotifications()`, `#notifications` at the top of the contract board, apart from the Recent log): one line per notice (the name opens their panel, a **Keep** button) and the debt warning. The office draws a speech bubble over anyone with a notice (`noticeBubble()`, from `notice: { reason, until }` in the snapshot), and its aria-label counts them. The guide stays in the Studio box.
 - **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
   until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their
   notice with `NOTICE_PER_DAY` (1.5%) / 24 chance, × `NOTICE_CRAMPED` (1, 3, 5, 7 by cramp
@@ -373,14 +380,13 @@ state = {
   only a picture** (also theirs): the view picks who's on one from a hash of their id and the
   10-minute window of game time (`BREAK_ODDS`, `BREAK_MS`: about 12% of the time; contract and
   bench only), so nothing in `ltd.js` or the save changes and nobody's work slows; their monitor
-  shows the work carrying on. Tests fix the list with `window.DEBUGG_OFFICE_BREAKS`. Monitors show the job: code in its language's colours with its progress, a
+  is paused (frozen code, a still ticket queue; the contract's progress bar carries on). Tests fix the list with `window.DEBUGG_OFFICE_BREAKS`. Monitors show the job: code in its language's colours with its progress, a
   flashing "?" when stuck, ✗ when failed, a manager's board of cards, a screensaver on the bench; a
   note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
   page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do
   what a panel button does: a person opens their panel, an applicant's card scrolls into view and
-  flashes (hiring stays a button), a stuck intern opens Help, the Director scrolls to the desk. The
-  canvas is `role="img"` with an `aria-label` summary. Shown by default; **Hide the office** sets
-  `state.showOffice = false`. Nothing is drawn while the tab is hidden; reduced motion stops the
+  flashes (hiring stays a button), a stuck intern opens Help, the Director opens their panel. The
+  canvas is `role="img"` with an `aria-label` summary. Always shown (the hide option went in October 2026; `state.showOffice` is no longer used). Nothing is drawn while the tab is hidden; reduced motion stops the
   walking and flashing. `ltd.js` works without the script or the slot (the simulator has neither).
 
 - **Founding a company** (the player-owner's idea, October 2026; `ltd/founding.js`,

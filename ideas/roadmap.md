@@ -879,6 +879,49 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
     first impression and share card could come first; Debugg Ltd can
     follow.
 
+### 10c. The studio panel, notifications and the job board (the player-owner's brief, October 2026; all four steps built)
+The Studio box is named for the company, and the office view carries the people. Decided with the
+player-owner:
+- **The Studio panel** is titled with the company's name (`state.companyName`, "Debuggit Ltd" if
+  none) and keeps the next-step guide and the headcount overview by type (Managers, Principals…
+  Devs, Desks). It gains a **Premises** list: every premises as a row (the current one marked "You
+  are here") saying what it is, its desks and floors, what it adds (kitchens, meeting rooms, a
+  server room, room for managers), and its rent and buy prices with upkeep, or why it can't be
+  taken yet (cash, who won't fit, "coming in v0.1"). Moving back is a button on the smaller one.
+  The Director card and the roster tree go.
+- **People are reached through the office view**, which is always shown (the hide option goes).
+  Clicking someone, the Director included, opens their panel, which takes over everything the cards
+  held: skills, assignment, the promotion checklist, Keep and the raise, and for the Director the
+  languages and Edit (name and look).
+- **Notices**: a **notifications bar**, separate from the contract board's "Recent" log, takes the
+  "handed in their notice" alerts (the reason, the hours left, a **Keep** button, the name opening
+  their panel) and unresolved ones stay pinned at the top. The person also gets a **speech bubble
+  above their head** in the office view with the same message, until they leave or are kept.
+  The bar could carry other alerts later (cash below zero, a stuck contract).
+- **Hiring is done in the interview room**: clicking an applicant opens a candidate card (level,
+  skills, asking price, time left, Hire, with the desk or squeezed-in warning). The Applicants list
+  and the hire buttons leave the Studio panel.
+- **The job board**, a job-posting site for the people who don't turn up in the interview room:
+  **managers** and **work-from-home applicants** (WFH people no longer come to the interview room),
+  and **specialists** once item 16 brings them (none yet; leave room). Opened from a monitor in the
+  interview room and from a button in the Studio panel. You choose a role, pay a **posting fee**, and
+  after a delay candidates turn up on the board, each with a price and an expiry; you pick one.
+  - **Posting fee, to decide**: options are (a) a fixed fee per role, (b) a share of the role's
+    hire cost (say 10%), which keeps up with inflation and competition, (c) a fee that grows
+    with how many postings are open. Leaning to (b) and a delay of an hour or so, so a posting is a
+    deliberate spend; test with the sim.
+  - Managers can't be hired in the spare room (`hireProblem()`), so the board says so there.
+- **Build in steps** (all done, October 2026): (1) the panel, premises and people panels; (2) the notifications bar and
+  bubbles; (3) interview-room hiring; (4) the job board (posting fee 10% of the hire cost, replies in an hour, offers open a day).
+  **Sim pass (October 2026, `npm run sim`, 5 seeds):** the milestones up to the first manager
+  barely moved against the interview-room-only version. The fee is small next to a manager (¤90 of
+  ¤900; ¤20 for a work-from-home graduate). The hour's wait costs a keen player about 4 hours, a
+  casual one about a check-in (12 hours), and an always-open one about an hour: with a 6-minute
+  wait the keen and casual players gain only 4 and 12 hours, because they still hire at their next
+  visit, so the wait isn't what holds them back and the 1 hour, 10% and 24 hours stay. The sim's
+  player posts the manager job once it has half the price, so the reply is waiting when it can
+  pay; a player who waits until they can pay in full hires a check-in later.
+
 ## Phase 3 — Retention and mid-game growth
 
 The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)
@@ -1142,6 +1185,47 @@ roster.
     with others, or a leaderboard?
   - Does "Close company" keep a summary of past companies (a hall of
     fame), which prestige (item 19) could build on?
+
+### 15f. Perks and the kitchen: buy efficiency and happiness (the player-owner's idea, October 2026; not started)
+- A way to spend money to make the whole company write more code. Three kinds:
+  - **Boosts (temporary, with a cooldown).** Buy one, the whole company writes more SLOC/min for a
+    limited time, then it can't be bought again until its cooldown ends. Ice creams on a hot day,
+    better-quality coffee beans for the week, pizza at lunch.
+  - **Morale treats (temporary, a trade-off).** They cost efficiency for a while but keep happiness
+    up, e.g. **bring your dog to work day**, a team lunch, an early finish. Needs a happiness
+    stat to exist (nothing has one yet; it could also feed notices, item 15c's sick days and
+    the "better offer" resignations, so a happy office keeps its people).
+  - **Permanent upgrades, in stages.** Each stage replaces the last, **costs more to run** (a
+    running cost per minute, drawn with payroll) and gives **a higher SLOC/min to everyone**. The
+    coffee ladder: instant coffee, then a filter machine, a pod machine, a bean-to-cup machine and
+    a barista station. Other ladders to try: chairs and desks, monitors, snacks.
+- **Where it shows.** The kitchen in the office view (`ltd/office.js`) already has a coffee machine
+  and a couch, so the current stage should be visible there (a different machine at each stage, the
+  dog in the office, ice-cream tubs); the new **SLOC/min** stat in the stats bar shows the effect.
+  A "Perks" card in the Studio panel lists what's on offer, its price, effect, time left and
+  cooldown.
+- **Decided with the player-owner (October 2026).**
+  - **Boosts speed up contracts by the same amount as the SLOC/min boost, but only for the part
+    of the contract done while the boost is on.** A contract that runs 10 minutes of its 30 under
+    a +20% boost does that stretch 20% faster, so it finishes 1 min 40 s sooner, not 20% sooner
+    overall. Work is the SLOC written, so each contract's finish time follows from its progress at the
+    boost's start and end (as `job.slow` already does for a snagged contract), and stacked boosts
+    add their rates over the time they overlap.
+  - **Boosts stack** (several at once, each with its own timer and cooldown).
+  - **Some upgrades need bigger premises.** A barista station needs the space, and a barista, so it
+    can't go in the spare room; the Perks card says why ("no room in the spare room"), as hiring
+    does for a full office. Which stage needs which premises is open.
+- **Design questions.**
+  - Size of the boosts (+10–30%?), durations (minutes to hours), cooldowns (hours). Price them
+    against the extra code they bring, so that using a boost is a good deal but not a no-brainer,
+    and the permanent stages are worth their running cost (target: each stage pays for its
+    running cost with the SLOC it adds at a company of the size that can afford it, and a bit more).
+  - How far should stacked boosts go (a cap, or diminishing returns)? Do they run while the page is closed (within the 4-hour
+    offline cap)? Does pausing stop them? (Pausing shifts every clock, so the same rule as jobs.)
+  - Tie into the events system (item 15b): a hot day makes ice cream worth more.
+  - Which upgrades need which premises or business stage (the unit has more kitchens than the spare
+    room).
+  - Balance with the sim (`npm run sim`), and the pacing targets in `ideas/ltd-pacing-targets.md`.
 
 ## Phase 4 — Late game
 

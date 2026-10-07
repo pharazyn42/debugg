@@ -77,9 +77,9 @@
 .ltd .stage-text{ grid-area: text; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .ltd .stage-next{ color: var(--text-faint); }
 
-/* Phones: the four stats in one row. */
+/* Phones: the five stats in one row. */
 @media (max-width: 560px){
-  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
+  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
   .ltd .stat{ min-width: 0; padding: 7px 4px; }
   .ltd .stat .label{ font-size: 8.5px; letter-spacing: 0.04em; }
   .ltd .stat .value{ font-size: 14px; }
@@ -159,6 +159,23 @@
 .ltd .office .cramped{ color: var(--amber); margin-top: 3px; }
 .ltd .card-foot.notice{ margin-top: 6px; gap: 8px; }
 .ltd .office-actions{ display: flex; gap: 6px; flex-wrap: wrap; }
+.ltd .premises{ margin-bottom: 12px; }
+.ltd .premises-title{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-bottom: 6px; }
+.ltd .premises-row{ border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; color: var(--text-dim); }
+.ltd .premises-row.here{ border-color: var(--text-faint); }
+.ltd .premises-row b{ color: var(--text); font-weight: 600; }
+.ltd .premises-top{ display: flex; gap: 8px; align-items: center; }
+.ltd .premises-facts{ margin-top: 2px; }
+.ltd .premises-facts .full{ color: var(--amber); }
+.ltd .premises-blurb{ margin: 3px 0 6px; color: var(--text-faint); }
+.ltd .premises-row .cramped{ color: var(--amber); margin-bottom: 6px; }
+.ltd .premises-row .office-actions{ margin-top: 4px; }
+.ltd .people-list{ margin-bottom: 14px; font-size: 12.5px; }
+.ltd .people-list summary{ cursor: pointer; color: var(--text-dim); }
+.ltd .people-list .roster{ margin: 8px 0 0; max-height: 220px; }
+.ltd .person-link{ display: flex; justify-content: space-between; gap: 8px; text-align: left; background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; }
+.ltd .person-actions{ margin: 8px 0 4px; }
 
 .ltd .roster{
   display: flex;
@@ -657,3 +674,17 @@
 .ltd .found-actions{ display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
 .ltd .found-spacer{ flex: 1; }
 .ltd .card.director .card-level .btn-small{ margin-left: 6px; padding: 2px 7px; font-size: 10.5px; }
+
+/* Notifications bar, at the top of the contract board */
+.ltd .notifications{ margin-bottom: 12px; }
+.ltd .notifications .alert{ display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.ltd .link-btn{ background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* Job board */
+.ltd .job-entry{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.ltd .job-entry .why{ font-size: 12px; color: var(--text-faint); }
+.ltd .modal.jobs{ max-width: 460px; }
+.ltd .job-post{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ltd .job-post .why{ font-size: 12px; color: var(--amber); }
+.ltd .job-wait{ font-size: 12.5px; color: var(--text-dim); margin-bottom: 4px; }
+.ltd .candidate{ border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
