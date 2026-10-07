@@ -423,7 +423,9 @@ state = {
   out, so they don't fill the spare room for contracts either), and 80% of the code on contracts
   (`devSlocOn()`) and everyday work. Cards say "WFH"; the office draws them as video-call tiles in the sky
   by the building (`drawRemote()`, `face()`: a front-on face from their webcam, or an empty chair while
-  they're on a break, as often as anyone in the office, or away; tapping one opens their panel)
+  they're on a break, as often as anyone in the office, or away; tapping one opens their panel; now and
+  then, `holidayFor()`, 15% of 4-hour stretches, a holiday spot behind them: beach, ski slopes, city,
+  lake or island, only a picture; tests can fix it with `window.DEBUGG_OFFICE_HOLIDAY`)
   and counts them in its summary. Once the company is out of the spare room, they come in as
   desks free up. **Managers can't be hired in the spare room** (`hireProblem()`), so the Director's
   span (4 devs: 3 at desks and one from home) is the spare room's limit, and a small business needs

@@ -933,11 +933,15 @@ window.DebuggOffice = (function(){
       const away = breaks.has(p.id) || p.state === 'away';
       ctx.save();
       rrect(x, y, w, h, 5 * s); ctx.clip();
-      ctx.fillStyle = HOME_WALLS[h0 % HOME_WALLS.length]; ctx.fillRect(x, y, w, h);
-      // A shelf or a picture behind them.
-      ctx.fillStyle = tint('#000000', 0.18);
-      if(h0 % 2){ ctx.fillRect(x + 4 * s, y + 9 * s, 16 * s, 2 * s); ctx.fillStyle = '#c0392b'; ctx.fillRect(x + 6 * s, y + 4 * s, 3 * s, 5 * s); ctx.fillStyle = '#e0a12c'; ctx.fillRect(x + 10 * s, y + 5 * s, 3 * s, 4 * s); }
-      else{ ctx.fillRect(x + w - 16 * s, y + 4 * s, 11 * s, 9 * s); ctx.fillStyle = tint('#ffffff', 0.25); ctx.fillRect(x + w - 15 * s, y + 5 * s, 9 * s, 7 * s); }
+      const trip = holidayFor(p.id, snap.now);
+      if(trip) holiday(trip, x, y, w, h, s, t);
+      else{
+        ctx.fillStyle = HOME_WALLS[h0 % HOME_WALLS.length]; ctx.fillRect(x, y, w, h);
+        // A shelf or a picture behind them.
+        ctx.fillStyle = tint('#000000', 0.18);
+        if(h0 % 2){ ctx.fillRect(x + 4 * s, y + 9 * s, 16 * s, 2 * s); ctx.fillStyle = '#c0392b'; ctx.fillRect(x + 6 * s, y + 4 * s, 3 * s, 5 * s); ctx.fillStyle = '#e0a12c'; ctx.fillRect(x + 10 * s, y + 5 * s, 3 * s, 4 * s); }
+        else{ ctx.fillRect(x + w - 16 * s, y + 4 * s, 11 * s, 9 * s); ctx.fillStyle = tint('#ffffff', 0.25); ctx.fillRect(x + w - 15 * s, y + 5 * s, 9 * s, 7 * s); }
+      }
       // The chair back, then them (or not).
       ctx.fillStyle = '#2a2d33'; rrect(x + w / 2 - 13 * s, y + 16 * s, 26 * s, 30 * s, 6 * s); ctx.fill();
       if(!away) face(lookFor({ id: p.id, role: p.role, applicant: false }, p), x + w / 2, y + 17 * s, s, !reduceMotion && Math.sin(t * 0.9 + h0) > 0.985);
@@ -953,6 +957,62 @@ window.DebuggOffice = (function(){
       ctx.fillText(n, x + 9 * s, y + h - 4.5 * s);
       targets.push({ kind: p.state === 'stuck' && p.job ? 'stuck' : 'person', id: p.state === 'stuck' && p.job ? p.job.id : p.id, x, y, w, h, cx: x + w / 2 });
     });
+  }
+
+  // Now and then someone working from home is working from somewhere nicer: in HOLIDAY_ODDS of
+  // HOLIDAY_WINDOW-long stretches of game time (by a hash of their id, so it's the same after a
+  // reload), their webcam shows a holiday spot behind them. Only a picture: they're working as usual.
+  // Tests can fix it with window.DEBUGG_OFFICE_HOLIDAY (a spot's name, or 'none').
+  const HOLIDAY_WINDOW = 4 * 3600000, HOLIDAY_ODDS = 0.15;
+  const HOLIDAYS = ['beach', 'ski', 'city', 'lake', 'island'];
+  function holidayFor(id, now){
+    const fixed = window.DEBUGG_OFFICE_HOLIDAY;
+    if(fixed) return HOLIDAYS.includes(fixed) ? fixed : null;
+    const win = Math.floor(now / HOLIDAY_WINDOW) % 9973, h = hashStr(id);
+    if(hashRnd(h * 0.37 + win * 2.11) >= HOLIDAY_ODDS) return null;
+    return HOLIDAYS[Math.floor(hashRnd(h + win * 0.53) * HOLIDAYS.length)];
+  }
+  function holiday(kind, x, y, w, h, s, t){
+    const sky = (a, b) => { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, a); g.addColorStop(1, b); ctx.fillStyle = g; ctx.fillRect(x, y, w, h); };
+    const tri = (ax, ay, bx, by, cx, cy, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx, cy); ctx.closePath(); ctx.fill(); };
+    const sun = (cx, cy, r, c) => { ctx.fillStyle = c; ell(cx, cy, r, r); ctx.fill(); };
+    if(kind === 'beach'){
+      sky('#6fc3ef', '#bde6f7'); sun(x + w - 9 * s, y + 7 * s, 4 * s, '#ffe27a');
+      ctx.fillStyle = '#2e8bc9'; ctx.fillRect(x, y + 17 * s, w, 7 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(x, y + 23 * s, w, 1 * s);
+      ctx.fillStyle = '#f1d9a0'; ctx.fillRect(x, y + 24 * s, w, h - 24 * s);
+      ctx.strokeStyle = '#7a5530'; ctx.lineWidth = 1.6 * s; ctx.beginPath(); ctx.moveTo(x + 7 * s, y + 30 * s); ctx.quadraticCurveTo(x + 9 * s, y + 18 * s, x + 6 * s, y + 9 * s); ctx.stroke();
+      ctx.fillStyle = '#2f8f4a'; [-1, 1, 0].forEach(d => { ell(x + 6 * s + d * 4 * s, y + 9 * s + Math.abs(d) * 1.5 * s, 4.5 * s, 1.6 * s); ctx.fill(); });
+    }else if(kind === 'ski'){
+      sky('#7fb6e6', '#d9ecf7');
+      tri(x - 4 * s, y + 30 * s, x + 14 * s, y + 6 * s, x + 32 * s, y + 30 * s, '#8796a8');
+      tri(x + 18 * s, y + 30 * s, x + 36 * s, y + 9 * s, x + w + 6 * s, y + 30 * s, '#9aa8b8');
+      tri(x + 9 * s, y + 13 * s, x + 14 * s, y + 6 * s, x + 19 * s, y + 13 * s, '#ffffff');
+      tri(x + 31 * s, y + 15 * s, x + 36 * s, y + 9 * s, x + 41 * s, y + 15 * s, '#ffffff');
+      ctx.fillStyle = '#f4f8fb'; ctx.fillRect(x, y + 28 * s, w, h - 28 * s);
+      ctx.fillStyle = '#2f5f3f'; tri(x + w - 8 * s, y + 29 * s, x + w - 5 * s, y + 20 * s, x + w - 2 * s, y + 29 * s, '#2f5f3f');
+      if(!reduceMotion){ ctx.fillStyle = 'rgba(255,255,255,0.85)'; for(let i = 0; i < 6; i++){ ell(x + ((hashRnd(i) * w + t * 6 * s) % w), y + ((hashRnd(i + 7) * h + t * 9 * s) % h), 0.8 * s, 0.8 * s); ctx.fill(); } }
+    }else if(kind === 'city'){
+      sky('#f39c6b', '#6b4a8a'); sun(x + 12 * s, y + 20 * s, 5 * s, '#ffd27a');
+      ctx.fillStyle = '#2b2440';
+      [[2, 18], [9, 12], [15, 22], [22, 8], [28, 16], [36, 11], [43, 19]].forEach(([dx, top]) => ctx.fillRect(x + dx * s, y + top * s, 6 * s, h));
+      tri(x + 24 * s, y + 8 * s, x + 25 * s, y + 2 * s, x + 26 * s, y + 8 * s, '#2b2440');
+      ctx.fillStyle = '#ffd27a'; for(let i = 0; i < 8; i++) ctx.fillRect(x + (4 + hashRnd(i) * 42) * s, y + (20 + hashRnd(i + 3) * 12) * s, 1 * s, 1 * s);
+    }else if(kind === 'lake'){
+      sky('#a7d3f2', '#e3f1f9');
+      tri(x - 6 * s, y + 24 * s, x + 16 * s, y + 8 * s, x + 38 * s, y + 24 * s, '#5d7a6a');
+      tri(x + 20 * s, y + 24 * s, x + 40 * s, y + 12 * s, x + w + 8 * s, y + 24 * s, '#6f8f7c');
+      ctx.fillStyle = '#4f8fb5'; ctx.fillRect(x, y + 24 * s, w, 8 * s);
+      ctx.fillStyle = '#5c8a4a'; ctx.fillRect(x, y + 32 * s, w, h - 32 * s);
+      tri(x + w - 15 * s, y + 33 * s, x + w - 9 * s, y + 25 * s, x + w - 3 * s, y + 33 * s, '#e0a12c');
+    }else{
+      sky('#ff9a76', '#ffd3a5'); sun(x + w / 2 + 8 * s, y + 18 * s, 6 * s, '#ffe9a8');
+      ctx.fillStyle = '#3aa6b9'; ctx.fillRect(x, y + 20 * s, w, h - 20 * s);
+      ctx.fillStyle = 'rgba(255,233,168,0.6)'; ctx.fillRect(x + w / 2 + 3 * s, y + 21 * s, 10 * s, 1 * s); ctx.fillRect(x + w / 2 + 5 * s, y + 24 * s, 6 * s, 1 * s);
+      ctx.fillStyle = '#e8cf92'; ell(x + 9 * s, y + 21 * s, 10 * s, 3 * s); ctx.fill();
+      ctx.strokeStyle = '#5a3d22'; ctx.lineWidth = 1.2 * s; ctx.beginPath(); ctx.moveTo(x + 9 * s, y + 20 * s); ctx.lineTo(x + 11 * s, y + 10 * s); ctx.stroke();
+      ctx.fillStyle = '#245c33'; [-1, 1].forEach(d => { ell(x + 11 * s + d * 3.5 * s, y + 10 * s, 4 * s, 1.4 * s); ctx.fill(); });
+    }
   }
 
   // A face seen front-on, from a webcam: shoulders in their clothes, then head, hair, eyes, glasses
