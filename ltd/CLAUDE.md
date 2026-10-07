@@ -65,6 +65,7 @@ state = {
   stage,                                          // the business stage last announced ('startup', 'small', …)
   market: { prices: { Graduate: 1.08, … }, nextAt }, // hire-cost multipliers, and when the market next moves
   office: { cowork },                             // co-working desks rented beyond the spare room's 4
+  showOffice,                                     // false once the player hides the office view
   nextNoticeAt                                    // when the next hourly notice roll is due
 }
 ```
@@ -342,6 +343,26 @@ state = {
   "handed in their notice" alert shows in the Studio panel. Only the last 4 hours roll while the
   page is closed; paused time doesn't count. Leaving can break the supervision structure, which
   then blocks hiring until it's fixed.
+- **The office view** (item 21b, step 1 of `ideas/ltd-office-view-plan.md`, October 2026;
+  `ltd/office.js`, `officeSnapshot()`, `officeApi`, `renderOffice()`): the studio drawn on a canvas
+  in its own slot above the desk and the studio (`#ltdOffice`), as the spare room: a house with the
+  front door, the interview room (a chair per `MAX_APPLICANTS`, applicants in grey holding a CV in
+  their level's colour), the Director's own table (the kiwi, with the intern beside it; not a
+  counted desk), the 4 desks, the co-working desks in a tinted corner, stools for anyone squeezed
+  in, the meeting room (managers on a contract stand there) and the kitchen, the break room. Every
+  floor gets a meeting room and a break room (the player-owner's call, October 2026). **Breaks are
+  only a picture** (also theirs): the view picks who's on one from a hash of their id and the
+  10-minute window of game time (`BREAK_ODDS`, `BREAK_MS`: about 12% of the time; contract and
+  bench only), so nothing in `ltd.js` or the save changes and nobody's work slows; their monitor
+  shows the work carrying on. Tests fix the list with `window.DEBUGG_OFFICE_BREAKS`. Monitors show the job: code in its language's colours with its progress, a
+  flashing "?" when stuck, ✗ when failed, a manager's board of cards, a screensaver on the bench; a
+  note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
+  page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do
+  what a panel button does: a person opens their panel, an applicant's card scrolls into view and
+  flashes (hiring stays a button), a stuck intern opens Help, the kiwi scrolls to the desk. The
+  canvas is `role="img"` with an `aria-label` summary. Shown by default; **Hide the office** sets
+  `state.showOffice = false`. Nothing is drawn while the tab is hidden; reduced motion stops the
+  walking and flashing. `ltd.js` works without the script or the slot (the simulator has neither).
 
 ## Known gaps — not wired in yet
 

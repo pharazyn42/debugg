@@ -1059,3 +1059,112 @@ test('works at phone width with the studio on', async ({ page }) => {
   await expect(page.locator('.desk-q')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 });
+
+// The office view (ltd/office.js): the studio drawn as a building above the desk and the studio.
+const officeLabel = page => page.locator('.office-canvas');
+// Breaks come from the game time; these fix who's on one (none, unless given).
+const officeBreaks = (page, ids = []) => page.addInitScript(ids => { window.DEBUGG_OFFICE_BREAKS = ids; }, ids);
+// Clicks the office where a tap target is (its kind and id, from DebuggOffice.targets()).
+async function tapOffice(page, kind, id){
+  await expect.poll(() => page.evaluate(([k, i]) => DebuggOffice.targets().some(t => t.kind === k && t.id === i), [kind, id])).toBe(true);
+  const t = await page.evaluate(([k, i]) => DebuggOffice.targets().find(t => t.kind === k && t.id === i), [kind, id]);
+  await officeLabel(page).click({ position: { x: t.x, y: t.y } });
+}
+
+test('the office is drawn on the Ltd tab, summed up for screen readers, and not on the Daily tab', async ({ page }) => {
+  await officeBreaks(page);
+  await found(page);
+  await expect(officeLabel(page)).toBeVisible();
+  await expect(officeLabel(page)).toHaveAttribute('role', 'img');
+  await expect(officeLabel(page)).toHaveAttribute('aria-label',
+    'Your office, the spare room: 0 of 4 desks taken, 0 on contracts, 0 on the bench, 0 applicants waiting.');
+  // Two grads (one on a hotfix, one on the bench), two co-working desks and two applicants.
+  await editCompany(page, s => {
+    const grad = (id, name) => ({ id, name, role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 } });
+    s.roster.push(grad('g1', 'Ben'), grad('g2', 'Mei'));
+    s.office = { cowork: 2 };
+    s.jobs = [{ id: 'h1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 5, team: ['g1'],
+                startedAt: Date.now(), endsAt: Date.now() + 3600000, chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 }];
+    s.applicants = ['a1', 'a2'].map(id => ({ id, role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000, person: grad(id, 'Applicant ' + id) }));
+  });
+  await expect(officeLabel(page)).toHaveAttribute('aria-label',
+    'Your office, the spare room: 2 of 6 desks taken, 1 on contracts, 1 on the bench, 2 applicants waiting.');
+  const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
+  expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'person:g1', 'person:g2',
+                         'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
+  // The Daily tab doesn't load the company, so there's no office there.
+  await page.click('#dailyTab');
+  await expect(page.locator('#ltdNote')).toBeVisible();
+  await expect(page.locator('.office-canvas')).toHaveCount(0);
+  await expect(page.locator('#ltdOffice')).toBeHidden();
+});
+
+test('tapping the office: a person opens their panel, an applicant shows their card, a stuck intern asks for help', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await officeBreaks(page);
+  await found(page);
+  await editCompany(page, s => {
+    const grad = (id, name) => ({ id, name, role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 } });
+    s.roster.push(grad('g1', 'Ben'));
+    s.applicants = [{ id: 'a1', role: 'Junior', cost: 700, expiresAt: Date.now() + 3600000, person: grad('a1', 'Kiri') }];
+  });
+  await tapOffice(page, 'person', 'g1');
+  await expect(page.locator('#personModal')).toBeVisible();
+  await expect(page.locator('#personModalBody')).toContainText('Ben');
+  await page.click('[data-action=close-person]');
+  await tapOffice(page, 'applicant', 'a1');
+  await expect(page.locator('.applicant[data-applicant=a1]')).toHaveClass(/office-picked/);
+  expect((await ltd(page)).roster.some(p => p.id === 'a1')).toBe(false);   // hiring stays a button
+  await stuckHotfix(page);
+  await expect(page.locator('.job.stuck')).toBeVisible();
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /, 1 stuck, /);
+  await tapOffice(page, 'stuck', 'ij1');
+  await expect(page.locator('.desk-q')).toBeVisible();
+  expect((await ltd(page)).jobs[0].question).toBeTruthy();
+});
+
+test('the office can be hidden, and stays hidden after a reload', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('#officeToggle')).toHaveText('Hide the office');
+  await page.click('#officeToggle');
+  await expect(page.locator('.office-canvas')).toHaveCount(0);
+  await expect(page.locator('#officeBox')).toBeHidden();
+  await expect(page.locator('#officeToggle')).toHaveText('Show the office');
+  expect((await ltd(page)).showOffice).toBe(false);
+  await page.reload();
+  await expect(page.locator('#statMoney')).toBeVisible();
+  await expect(page.locator('#officeToggle')).toHaveText('Show the office');
+  await expect(page.locator('.office-canvas')).toHaveCount(0);
+  await page.click('#officeToggle');
+  await expect(officeLabel(page)).toBeVisible();
+  expect((await ltd(page)).showOffice).toBe(true);
+});
+
+test('the studio still plays when the office view fails to load', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  await page.route('**/ltd/office.js', r => r.abort());
+  await found(page);
+  await expect(page.locator('#ltdOffice')).toBeHidden();
+  await page.click('[data-action=desk-start]');
+  await expect(page.locator('.desk-q')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('the office has a meeting room and a break room: managers on a contract meet, and people on a break go to the kitchen', async ({ page }) => {
+  await officeBreaks(page, ['g2']);
+  await found(page);
+  await editCompany(page, s => {
+    const hire = (id, name, role) => ({ id, name, role, since: Date.now(), worked: 0, lang: { Python: 10 } });
+    s.roster.push(hire('m1', 'Aroha', 'Manager'), hire('g1', 'Ben', 'Graduate'), hire('g2', 'Mei', 'Graduate'));
+    const job = (id, team) => ({ id, tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 5, team,
+      startedAt: Date.now(), endsAt: Date.now() + 3600000, chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 });
+    s.jobs = [job('h1', ['g1']), job('h2', ['g2']), job('h3', ['m1'])];
+  });
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /3 on contracts, 0 on the bench, 1 on a break, /);
+  // Left to right: the desks, then the manager in the meeting room, then Mei in the break room.
+  await expect.poll(async () => {
+    const x = Object.fromEntries((await page.evaluate(() => DebuggOffice.targets())).map(t => [t.id, t.x]));
+    return x.g1 < x.m1 && x.m1 < x.g2;
+  }).toBe(true);
+});
