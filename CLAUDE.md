@@ -287,6 +287,7 @@ new ideas there. Index (status in brackets):
 - 15c Absences: sick days and holidays
 - 15d Company stats and records
 - 15e Business units, property and rentals (phase 1 built; detail in `ideas/company-growth-roadmap.md`)
+- 15f Perks and the kitchen: boosts with cooldowns, morale treats, permanent coffee-style upgrades (idea)
 
 **Phase 4, late game**
 - 16 Domains return with specialist hires

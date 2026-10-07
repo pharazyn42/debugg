@@ -1143,6 +1143,39 @@ roster.
   - Does "Close company" keep a summary of past companies (a hall of
     fame), which prestige (item 19) could build on?
 
+### 15f. Perks and the kitchen: buy efficiency and happiness (the player-owner's idea, October 2026; not started)
+- A way to spend money to make the whole company write more code. Three kinds:
+  - **Boosts (temporary, with a cooldown).** Buy one, the whole company writes more SLOC/min for a
+    limited time, then it can't be bought again until its cooldown ends. Ice creams on a hot day,
+    better-quality coffee beans for the week, pizza at lunch.
+  - **Morale treats (temporary, a trade-off).** They cost efficiency for a while but keep happiness
+    up, e.g. **bring your dog to work day**, a team lunch, an early finish. Needs a happiness
+    stat to exist (nothing has one yet; it could also feed notices, item 15c's sick days and
+    the "better offer" resignations, so a happy office keeps its people).
+  - **Permanent upgrades, in stages.** Each stage replaces the last, **costs more to run** (a
+    running cost per minute, drawn with payroll) and gives **a higher SLOC/min to everyone**. The
+    coffee ladder: instant coffee, then a filter machine, a pod machine, a bean-to-cup machine and
+    a barista station. Other ladders to try: chairs and desks, monitors, snacks.
+- **Where it shows.** The kitchen in the office view (`ltd/office.js`) already has a coffee machine
+  and a couch, so the current stage should be visible there (a different machine at each stage, the
+  dog in the office, ice-cream tubs); the new **SLOC/min** stat in the stats bar shows the effect.
+  A "Perks" card in the Studio panel lists what's on offer, its price, effect, time left and
+  cooldown.
+- **Design questions.**
+  - Boosts apply to everyday work and contracts alike, or only one? (Contracts already have fixed
+    durations, so a boost would need to shorten `endsAt` of running jobs, or apply to jobs when
+    they start.)
+  - Size of the boosts (+10–30%?), durations (minutes to hours), cooldowns (hours). Price them
+    against the extra code they bring, so that using a boost is a good deal but not a no-brainer,
+    and the permanent stages are worth their running cost (target: each stage pays for its
+    running cost with the SLOC it adds at a company of the size that can afford it, and a bit more).
+  - Do boosts stack, or one at a time? Do they run while the page is closed (within the 4-hour
+    offline cap)? Does pausing stop them? (Pausing shifts every clock, so the same rule as jobs.)
+  - Tie into the events system (item 15b): a hot day makes ice cream worth more.
+  - Upgrades might need a business stage or premises (a barista station wants a kitchen), and the
+    unit has more kitchens than the spare room.
+  - Balance with the sim (`npm run sim`), and the pacing targets in `ideas/ltd-pacing-targets.md`.
+
 ## Phase 4 — Late game
 
 Big systems that depend on the earlier phases.
