@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.17 — 7 October 2026
+
 - **A job board.** The interview room has a JOBS screen (and the Studio box a "Job board" button). **Managers and people who work from home are hired there**, not in the interview room: post a job for a fee (a tenth of the hire cost), and a candidate replies about an hour later, asking around the market price, with their offer open for a day. Work-from-home hires are for the spare room only, and need the same reputation as applicants of their level. The Studio box's manager hire button is gone, and applicants in the interview room are always hired for a desk.
 - **Hire people in the interview room.** Click an applicant waiting in the interview room to see their card: their level, languages, what they're asking, how long the offer stays open, and the Hire button (or hiring them to work from home, in the spare room). The Applicants list is gone from the Studio box. (Managers still have their button for now; they'll move to a job board.)
 - **A notifications bar and speech bubbles.** When someone hands in their notice, a bar at the top of the contract board says who, why and how long they have left, with a **Keep** button and their name opening their panel. In the office they get a speech bubble over their head saying the same ("I've had a better offer…", "Too cramped here…"). The company being in debt shows in the bar too. The bar sits apart from the Recent list of results.
