@@ -1162,9 +1162,12 @@ roster.
   A "Perks" card in the Studio panel lists what's on offer, its price, effect, time left and
   cooldown.
 - **Decided with the player-owner (October 2026).**
-  - **Boosts speed up contracts by the same amount as the SLOC/min boost**: +20% SLOC/min means a
-    running contract finishes 20% sooner. Running jobs need their `endsAt` brought in (and put back
-    as the boost ends), the way a snagged contract's `job.slow` already changes pace.
+  - **Boosts speed up contracts by the same amount as the SLOC/min boost, but only for the part
+    of the contract done while the boost is on.** A contract that runs 10 minutes of its 30 under
+    a +20% boost does that stretch 20% faster, so it finishes 1 min 40 s sooner, not 20% sooner
+    overall. Work is the SLOC written, so each contract's finish time follows from its progress at the
+    boost's start and end (as `job.slow` already does for a snagged contract), and stacked boosts
+    add their rates over the time they overlap.
   - **Boosts stack** (several at once, each with its own timer and cooldown).
   - **Some upgrades need bigger premises.** A barista station needs the space, and a barista, so it
     can't go in the spare room; the Perks card says why ("no room in the spare room"), as hiring
