@@ -10,6 +10,10 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.0.18 — 7 October 2026
+
 - **Click someone to see what they could work on.** Their panel now lists the contracts on the board they could take (ones they know the language for first), each with a **Staff…** button that opens the team picker with them already ticked; for your intern and you it's the intern's hotfixes with both of you ticked. While they're on a contract it just shows what they're on.
 - **See who's on a contract at a glance.** In the office, everyone gets a small badge over their head: a green briefcase when they're on a contract, a grey ticket when they're on everyday work.
 
