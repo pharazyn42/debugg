@@ -349,7 +349,12 @@ state = {
   front door, the interview room (a chair per `MAX_APPLICANTS`, applicants in grey holding a CV in
   their level's colour), the Director's own table (the kiwi, with the intern beside it; not a
   counted desk), the 4 desks, the co-working desks in a tinted corner, stools for anyone squeezed
-  in, and the kitchen. Monitors show the job: code in its language's colours with its progress, a
+  in, the meeting room (managers on a contract stand there) and the kitchen, the break room. Every
+  floor gets a meeting room and a break room (the player-owner's call, October 2026). **Breaks are
+  only a picture** (also theirs): the view picks who's on one from a hash of their id and the
+  10-minute window of game time (`BREAK_ODDS`, `BREAK_MS`: about 12% of the time; contract and
+  bench only), so nothing in `ltd.js` or the save changes and nobody's work slows; their monitor
+  shows the work carrying on. Tests fix the list with `window.DEBUGG_OFFICE_BREAKS`. Monitors show the job: code in its language's colours with its progress, a
   flashing "?" when stuck, ✗ when failed, a manager's board of cards, a screensaver on the bench; a
   note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
   page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do

@@ -2043,6 +2043,7 @@ window.DebuggLtd = (function(){
     function officeSnapshot(){
       const now = Date.now(), busy = busyIds();
       return {
+        now,
         premises: { kind: 'spare-room', perFloor: SPARE_ROOM_DESKS, cowork: coworkDesks(),
                     squeezed: Math.max(0, desksUsed() - deskCount()), maxApplicants: MAX_APPLICANTS },
         people: state.roster.map(p => {

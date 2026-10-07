@@ -9,7 +9,9 @@ grows with the premises of item 15e. Written October 2026 so another chat can pi
 **Status:** agreed with the player-owner in outline (floors, an interview room, breaks). **Step 1
 (the spare room, drawn) is built** (October 2026: `ltd/office.js`), with "Decide first" 2 and 4 taken
 as proposed (the Director's own table by the front door; shown, with a hide button). Steps 2–5 are
-to do; "Decide first" 1 and 3 and the "Open questions" are still open.
+to do. "Decide first" 1 and 3 were settled by the player-owner in October 2026 (breaks are only a
+picture; every floor has a break room and a meeting room) and built with step 1, ahead of step 3.
+The "Open questions" are still open.
 
 ## Where it comes from
 
@@ -58,8 +60,10 @@ grow, so every move reads as a bigger building):
 
 ## The rooms on each floor
 
-Left to right on every floor: the way in (front door, stairs or lift), a side room, the desks,
-then the break room. None of the rooms take desks.
+Left to right on every floor: the way in (front door, stairs or lift), a side room on the ground
+floor (the interview room), the desks, the meeting room, then the break room. Every floor has a
+break room and a meeting room, the spare room's one floor included (the player-owner's call,
+October 2026). None of the rooms take desks.
 
 - **Interview room** (ground floor, by the way in): a row of waiting chairs, one per applicant
   slot (`MAX_APPLICANTS` = 3 in the game), a plant and a framed kiwi. Each of
@@ -68,8 +72,10 @@ then the break room. None of the rooms take desks.
   stairs or lift if it's upstairs).
 - **Break room** (every floor; the spare room's is its kitchen): a coffee machine, a window and a
   couch. People on a break go there (the couch first, then the coffee machine, then standing).
-- **Meeting room** (every floor above the ground; Claude's addition, not asked for, so confirm or
-  drop): a whiteboard and a table. Managers on a contract stand there, since they write no code.
+  **Breaks are only a picture** (the player-owner's call, October 2026): they cost no work, so the
+  game's numbers, offline progress and the simulator are untouched.
+- **Meeting room** (every floor, beside the break room): a whiteboard and a table. Managers on a
+  contract stand there, since they write no code.
 - **The bench is not a room.** Someone with no contract (on the bench, doing odd jobs) sits at
   their own desk with a screensaver.
 
@@ -103,7 +109,8 @@ unless a later feature needs it).
 
 ## Decide first (with the player-owner)
 
-1. **How breaks cost work.** The player-owner wants a break to stop a person's work. The game
+1. **How breaks cost work. Decided (October 2026): they don't.** Breaks are only a picture; the
+   rest of this item is kept for the record. The player-owner first wanted a break to stop a person's work. The game
    works out a contract's end time when it starts (SLOC target ÷ the team's SLOC/min), and
    simulates offline time, so per-person breaks that move `endsAt` would make offline progress and
    the drawing disagree. Two ways:
@@ -120,7 +127,8 @@ unless a later feature needs it).
    takes no staff desk. Proposed: in the spare room (which is home) the kiwi has the kitchen table,
    an extra desk by the front door that isn't counted; in bigger premises, a corner office on the
    top floor. The prototype gives the Director desk 0, which the game must not do.
-3. **The meeting room** (keep or drop), and **the desk numbers** in the table above.
+3. **The meeting room. Decided (October 2026): one on every floor**, the ground floor included.
+   The desk numbers in the premises table are still to confirm.
 4. **Shown by default, or a toggle.** Proposed: shown, with a "Hide the office" button whose
    setting goes in the save (`state.showOffice`).
 
@@ -202,12 +210,16 @@ Each PR adds a line for players under `## Unreleased` in `ltd/CHANGELOG.md`, upd
    to their desk, leavers walk out, applicants leave when their offer expires, ✓ and confetti with
    the pay on delivery, smoke on failure, floating SLOC while writing (item 20), the packing box on
    notice, the empty chair when away.
-3. **Breaks**, once "Decide first" 1 is settled: `BREAK_SHARE` in `devSlocOn()` (if chosen), the
-   deterministic who-is-on-a-break, people walking to and from the break room, the paused
-   monitor, "on a break" in the summary. Rerun `npm run sim` and note the change in
-   `ideas/ltd-pacing-targets.md` terms.
+3. **Breaks** (built with step 1, October 2026): only a picture, so nothing in `ltd.js`. The view
+   picks who is on a break from a hash of their id and the 10-minute window of game time
+   (`BREAK_ODDS` 40% of windows, `BREAK_MS` 3 minutes of it: about 12% of the time), so the same
+   people are on a break after a reload. They walk to the break room (couch, coffee machine, then
+   standing); their monitor shows the work carrying on without them; "on a break" is in the
+   summary. People on a contract or the bench take breaks; the Director, a stuck or failed job, a
+   manager in the meeting room and anyone away don't. Tests fix who's on a break with
+   `window.DEBUGG_OFFICE_BREAKS` (an array of ids).
 4. **Bigger buildings**, with 15e phase 2 (business units) and after: floors, the stairs and the
-   lift, meeting rooms, moving day (everyone walks out of the old building and into the new one),
+   lift, a meeting room and a break room on each floor, moving day (everyone walks out of the old building and into the new one),
    rooftop signs. The prototype has all of it.
 5. **Later:** a floor per team once managers lead teams; an AI floor with no desks (item 17f); a
    campus of buildings (item 18).

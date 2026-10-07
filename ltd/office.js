@@ -2,8 +2,11 @@
 //
 // Draws the studio as a building on a canvas: the spare room (a house with one floor), its desks
 // and co-working desks, stools when it's cramped, the Director's own table, the interview room
-// with the applicants waiting in it, and the kitchen. The drawing is ported from the prototype,
-// ideas/ltd-office-demo.html.
+// with the applicants waiting in it, the meeting room and the kitchen (the break room). The
+// drawing is ported from the prototype, ideas/ltd-office-demo.html.
+//
+// Breaks are only a picture (the player-owner's call): who is on one comes from a hash of their
+// id and the game time, so the same people are on a break after a reload, and nobody's work slows.
 //
 // It holds no game rules: ltd/ltd.js mounts it with a read-only api,
 //   DebuggOffice.mount(box, { snapshot(), onTap(kind, id) })
@@ -14,8 +17,11 @@ window.DebuggOffice = (function(){
   'use strict';
 
   // Layout in unscaled units; everything is multiplied by s. Left to right: the front door, the
-  // interview room, the Director's table, the desks, any stools, the kitchen.
-  const U = { margin: 18, side: 62, room: 124, own: 140, desk: 88, stool: 50, kitchen: 152, floor: 132, slab: 14, ground: 36, roof: 96 };
+  // interview room, the Director's table, the desks, any stools, the meeting room, the kitchen.
+  const U = { margin: 18, side: 62, room: 124, own: 140, desk: 88, stool: 50, meeting: 116, kitchen: 152, floor: 132, slab: 14, ground: 36, roof: 96 };
+  // Breaks: in BREAK_ODDS of each BREAK_WINDOW of game time, a person takes a BREAK_MS break
+  // (about 12% of the time).
+  const BREAK_WINDOW = 10 * 60000, BREAK_MS = 3 * 60000, BREAK_ODDS = 0.4;
   const ROLE_COLOR = {
     Director: '#9a6a43', Intern: '#5cc8c8', Graduate: '#4fd18b', Junior: '#5aa9e6',
     Senior: '#a57be0', Principal: '#f2b84b', Manager: '#8a93a3'
@@ -39,6 +45,7 @@ window.DebuggOffice = (function(){
   let placed = false;        // after the first frame, newcomers walk in rather than appear
   let targets = [];          // what a tap can hit, rebuilt every frame
   let lastLabel = '';
+  let breaks = new Set();    // ids on a break this frame
 
   const now = () => performance.now() / 1000;
   const hashRnd = i => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
@@ -129,7 +136,7 @@ window.DebuggOffice = (function(){
     const pr = snap.premises;
     const desksN = pr.perFloor + pr.cowork;
     const stools = pr.squeezed;
-    const need = U.margin * 2 + U.side + U.room + U.own + desksN * U.desk + stools * U.stool + U.kitchen + 20;
+    const need = U.margin * 2 + U.side + U.room + U.own + desksN * U.desk + stools * U.stool + U.meeting + U.kitchen + 20;
     const s = Math.max(0.56, Math.min(1.1, viewW / need));
     const W = Math.max(viewW, Math.ceil(need * s));
     const H = Math.round((U.roof + U.ground + U.floor) * s);
@@ -137,14 +144,15 @@ window.DebuggOffice = (function(){
     const top = H - (U.ground + U.floor) * s;
     const floorY = top + (U.floor - U.slab) * s;
     const kx0 = x1 - U.kitchen * s;
+    const mx0 = kx0 - U.meeting * s;
     const rx0 = x0 + U.side * s + 6 * s;
     const rx1 = rx0 + U.room * s;
     const ox0 = rx1 + 6 * s;
     const dz0 = ox0 + U.own * s;
     const stoolW = U.stool * s;
-    const slotW = (kx0 - 12 * s - stools * stoolW - dz0) / Math.max(1, desksN);
+    const slotW = (mx0 - 12 * s - stools * stoolW - dz0) / Math.max(1, desksN);
     const f = {
-      top, floorY, kx0, rx0, rx1, ox0, dz0, slotW, sideX: x0 + (U.side * s) / 2,
+      top, floorY, kx0, mx0, rx0, rx1, ox0, dz0, slotW, sideX: x0 + (U.side * s) / 2,
       deskX: j => dz0 + slotW * (j + 0.5),
       stoolX: k => dz0 + slotW * desksN + stoolW * (k + 0.5)
     };
@@ -196,7 +204,9 @@ window.DebuggOffice = (function(){
     const s = L.s, f = L.f;
     const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern');
     assignDesks(staff, L.desksN + L.stools);
+    breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
     const seen = new Set();
+    let inBreakRoom = 0, inMeeting = 0;
     snap.people.forEach(p => {
       const sp = spriteFor(p.id, p.role, p.name, L);
       seen.add(p.id);
@@ -211,13 +221,26 @@ window.DebuggOffice = (function(){
         sp.spot = d < L.desksN ? 'desk' : 'stool';
         sp.tx = d < L.desksN ? f.deskX(d) + 20 * s : f.stoolX(d - L.desksN) + 10 * s;
       }
+      sp.onBreak = breaks.has(p.id);
       if(sp.gone){ sp.spot = 'exit'; sp.tx = f.sideX; }
+      else if(sp.onBreak){
+        // The couch first, then the coffee machine, then standing by the window.
+        const k = inBreakRoom++;
+        if(k < 3){ sp.spot = 'couch'; sp.tx = f.kx0 + (82 + k * 26) * s; }
+        else if(k < 5){ sp.spot = 'coffee'; sp.tx = f.kx0 + (30 + (k - 3) * 22) * s; }
+        else{ sp.spot = 'stand'; sp.tx = f.kx0 + (60 + ((k - 5) % 4) * 13) * s; }
+      }else if(p.role === 'Manager' && p.state === 'working'){
+        // Managers write no code: on a contract, they're in the meeting room.
+        const k = inMeeting++;
+        sp.spot = 'meeting'; sp.tx = f.mx0 + (26 + (k % 4) * 22) * s;
+      }
     });
     snap.applicants.forEach((a, k) => {
       const sp = spriteFor(a.id, a.role, a.name, L);
       seen.add(a.id);
       sp.p = null;
       sp.applicant = true;
+      sp.onBreak = false;
       sp.gone = false;
       sp.spot = 'chair';
       sp.tx = f.rx0 + (22 + k * 27) * s;
@@ -236,7 +259,7 @@ window.DebuggOffice = (function(){
       const dx = sp.tx - sp.x;
       sp.walking = Math.abs(dx) > 1.5;
       if(sp.walking){ sp.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt); sp.facing = Math.sign(dx); }
-      else sp.facing = sp.spot === 'chair' ? 1 : -1;
+      else sp.facing = sp.spot === 'chair' || sp.spot === 'meeting' ? 1 : sp.spot === 'couch' ? (sp.seed % 2 ? -1 : 1) : -1;
       const out = sp.gone && !sp.walking;
       sp.alpha += ((out ? 0 : 1) - sp.alpha) * (reduceMotion ? 1 : Math.min(1, dt * (out ? 2 : 3)));
       if(out && sp.alpha < 0.03){
@@ -346,7 +369,8 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = th.slab;
     ctx.fillRect(x0 - 8 * s, floorY, x1 - x0 + 16 * s, U.slab * s);
     drawDoor(L);
-    drawKitchen(L);
+    drawMeeting(L);
+    drawKitchen(L, t);
     drawInterviews(L, snap);
     drawFloorSign(L, snap, t);
 
@@ -400,7 +424,7 @@ window.DebuggOffice = (function(){
     ctx.fillText(label, x + 8 * s, y + 9.5 * s);
     const c = counts(snap);
     font(600, 9.5 * s); ctx.fillStyle = th.dim;
-    const txt = c.taken + '/' + c.desks + ' desks' + (c.squeezed ? ' + ' + c.squeezed + ' squeezed in' : '') + ' · ' + c.working + ' on contracts · ' + c.bench + ' on the bench' + (c.away ? ' · ' + c.away + ' away' : '');
+    const txt = c.taken + '/' + c.desks + ' desks' + (c.squeezed ? ' + ' + c.squeezed + ' squeezed in' : '') + ' · ' + c.working + ' on contracts · ' + c.bench + ' on the bench' + (c.breaks ? ' · ' + c.breaks + ' on a break' : '') + (c.away ? ' · ' + c.away + ' away' : '');
     ctx.fillText(txt, x + w + 8 * s, y + 9.5 * s);
     if(c.stuck){
       const lx = x + w + 8 * s + ctx.measureText(txt).width + 14 * s;
@@ -425,13 +449,14 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = 'rgba(190,220,240,0.5)'; ctx.fillRect(x - w / 2 + 5 * s, fy - h + 6 * s, Math.max(0, dw - 10 * s), 14 * s);
   }
 
-  // The kitchen: where breaks will go (step 3 of the plan).
-  function drawKitchen(L){
+  // The kitchen, the spare room's break room: a coffee machine (steaming while someone's at it), a
+  // window and a couch.
+  function drawKitchen(L, t){
     const s = L.s, f = L.f, k = f.kx0, fy = f.floorY, x1 = L.x1;
     ctx.fillStyle = tint('#f2b84b', 0.07);
     ctx.fillRect(k, f.top, x1 - k, fy - f.top);
     font(700, 8 * s); ctx.fillStyle = th.dim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('KITCHEN', k + 76 * s, f.top + 8 * s);
+    ctx.fillText('KITCHEN · BREAKS', k + 76 * s, f.top + 8 * s);
     const wx = k + 96 * s, wy = f.top + 26 * s;
     ctx.fillStyle = '#8a6141'; ctx.fillRect(wx - 26 * s, wy - 3 * s, 52 * s, 40 * s);
     const g = ctx.createLinearGradient(0, wy, 0, wy + 34 * s); g.addColorStop(0, th.skyTop); g.addColorStop(1, th.skyBottom);
@@ -442,12 +467,38 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = '#131417'; rrect(k + 14 * s, fy - 60 * s, 18 * s, 24 * s, 3 * s); ctx.fill();
     ctx.fillStyle = '#ef6a6a'; ell(k + 28 * s, fy - 55 * s, 1.5 * s, 1.5 * s); ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.fillRect(k + 19 * s, fy - 45 * s, 8 * s, 8 * s);
+    if(!reduceMotion && [...sprites.values()].some(sp => sp.spot === 'coffee' && !sp.walking && !sp.gone)){
+      ctx.strokeStyle = 'rgba(180,180,190,0.6)'; ctx.lineWidth = 1.2 * s;
+      for(let i = 0; i < 2; i++){
+        const p = (t * 0.8 + i * 0.5) % 1;
+        ctx.globalAlpha = 1 - p;
+        ctx.beginPath(); ctx.moveTo(k + (21 + i * 4) * s, fy - 46 * s - p * 14 * s);
+        ctx.quadraticCurveTo(k + (24 + i * 4) * s, fy - 50 * s - p * 14 * s, k + (21 + i * 4) * s, fy - 54 * s - p * 14 * s);
+        ctx.stroke(); ctx.globalAlpha = 1;
+      }
+    }
     const cx0 = k + 66 * s, cw = 80 * s, col = '#4a6fa5';
     ctx.fillStyle = tint(col, 0.85); rrect(cx0, fy - 36 * s, cw, 22 * s, 6 * s); ctx.fill();
     ctx.fillStyle = col; rrect(cx0 - 4 * s, fy - 22 * s, cw + 8 * s, 14 * s, 4 * s); ctx.fill();
     rrect(cx0 - 6 * s, fy - 28 * s, 9 * s, 20 * s, 4 * s); ctx.fill();
     rrect(cx0 + cw - 3 * s, fy - 28 * s, 9 * s, 20 * s, 4 * s); ctx.fill();
     ctx.fillStyle = '#3a2a1e'; ctx.fillRect(cx0 + 2 * s, fy - 8 * s, 4 * s, 8 * s); ctx.fillRect(cx0 + cw - 6 * s, fy - 8 * s, 4 * s, 8 * s);
+  }
+
+  // The meeting room, on every floor: a whiteboard of cards and a table.
+  function drawMeeting(L){
+    const s = L.s, f = L.f, a = f.mx0, b = f.kx0, fy = f.floorY;
+    ctx.fillStyle = tint('#a57be0', 0.07);
+    ctx.fillRect(a, f.top, b - a, fy - f.top);
+    ctx.fillStyle = th.slab;
+    ctx.fillRect(a - 2 * s, f.top, 4 * s, fy - f.top - 62 * s);
+    font(700, 8 * s); ctx.fillStyle = th.dim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('MEETING ROOM', (a + b) / 2, f.top + 8 * s);
+    ctx.fillStyle = '#e8e2d6'; ctx.fillRect(a + 22 * s, f.top + 30 * s, 56 * s, 32 * s);
+    ctx.strokeStyle = '#8a93a3'; ctx.lineWidth = 1 * s; ctx.strokeRect(a + 22 * s, f.top + 30 * s, 56 * s, 32 * s);
+    ['#5aa9e6', '#f2b84b', '#4fd18b'].forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(a + 28 * s + i * 17 * s, f.top + 36 * s, 11 * s, 7 * s); ctx.fillRect(a + 28 * s + i * 17 * s, f.top + 47 * s, 11 * s, 7 * s); });
+    ctx.fillStyle = '#a87b54'; ctx.fillRect(a + 20 * s, fy - 34 * s, 76 * s, 5 * s);
+    ctx.fillStyle = '#8a6141'; ctx.fillRect(a + 55 * s, fy - 29 * s, 5 * s, 29 * s);
   }
 
   // The interview room, by the front door: a chair per applicant slot, a plant and a framed kiwi.
@@ -540,8 +591,14 @@ window.DebuggOffice = (function(){
     ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
     const bg = c => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
     const seed = owner ? owner.seed : 0;
-    const p = seated && seated.p;
-    const st = !p ? 'off' : p.role === 'Manager' ? 'board' : p.state;
+    const p = owner && !owner.gone ? owner.p : null;
+    // Someone on a break or in the meeting room has left their work running.
+    const st = !p ? 'off'
+      : seated ? (p.role === 'Manager' ? 'board' : p.state)
+      : owner.walking ? 'off'
+      : p.role === 'Manager' && owner.spot === 'meeting' ? 'board'
+      : owner.onBreak ? (p.job ? 'break' : 'bench')
+      : 'off';
     const motion = reduceMotion ? 0 : t;
     if(st === 'working' || st === 'director'){
       const cols = p.job ? (LANG_COLS[p.job.lang] || DIRECTOR_COLS) : DIRECTOR_COLS;
@@ -559,6 +616,15 @@ window.DebuggOffice = (function(){
         ctx.fillStyle = '#2c2f37'; ctx.fillRect(x, y + h - 3 * s, w, 3 * s);
         ctx.fillStyle = '#4fd18b'; ctx.fillRect(x, y + h - 3 * s, w * Math.min(1, p.job.progress), 3 * s);
       }
+    }else if(st === 'break'){
+      // The code sits still while they're away, the progress bar carries on, and a mug waits.
+      bg('#16181c');
+      ctx.fillStyle = '#5f6470';
+      for(let i = 0; i < 4; i++) ctx.fillRect(x + 3 * s, y + 3 * s + i * Math.max(3 * s, h / 7) * 0.75, (w - 8 * s) * (0.3 + hashRnd(i + seed) * 0.6), 2 * s);
+      ctx.fillStyle = '#e8e2d6'; rrect(x + w - 11 * s, y + h - 13 * s, 6 * s, 7 * s, 1.5 * s); ctx.fill();
+      ctx.strokeStyle = '#e8e2d6'; ctx.lineWidth = 1 * s; ctx.beginPath(); ctx.arc(x + w - 4.5 * s, y + h - 9.5 * s, 2 * s, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+      ctx.fillStyle = '#2c2f37'; ctx.fillRect(x, y + h - 3 * s, w, 3 * s);
+      ctx.fillStyle = '#4fd18b'; ctx.fillRect(x, y + h - 3 * s, w * Math.min(1, p.job.progress), 3 * s);
     }else if(st === 'stuck'){
       bg(reduceMotion || Math.sin(t * 6) > 0 ? '#f2b84b' : '#a67a1e');
       ctx.fillStyle = '#131417'; font(900, Math.min(16 * s, h * 0.8)); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -597,7 +663,7 @@ window.DebuggOffice = (function(){
 
   function drawPerson(sp, fy, s, t){
     const p = sp.p;
-    const pose = sp.walking ? 'walk' : sp.spot === 'exit' ? 'stand' : 'sit';
+    const pose = sp.walking ? 'walk' : sp.spot === 'couch' ? 'couch' : ['exit', 'coffee', 'stand', 'meeting'].indexOf(sp.spot) >= 0 ? 'stand' : 'sit';
     const motion = reduceMotion ? 0 : t;
     ctx.save();
     ctx.globalAlpha = sp.alpha;
@@ -605,7 +671,7 @@ window.DebuggOffice = (function(){
     if(sp.role === 'Director'){ kiwi(sp, s, motion, pose); ctx.restore(); return; }
     const f = sp.facing || 1;
     const shirt = sp.applicant ? '#d9d4cc' : ROLE_COLOR[sp.role] || '#8a93a3';
-    const seat = pose === 'sit' ? (sp.spot === 'stool' ? 20 : 18) * s : 0;
+    const seat = pose === 'sit' ? (sp.spot === 'stool' ? 20 : 18) * s : pose === 'couch' ? 22 * s : 0;
     const step = pose === 'walk' ? Math.sin(motion * 12 + sp.seed) : 0;
     const bob = pose === 'walk' ? Math.abs(step) * 2 * s : 0;
     const legH = 15 * s;
@@ -640,6 +706,9 @@ window.DebuggOffice = (function(){
     }else if(pose === 'sit' && state === 'working' && sp.role !== 'Manager'){
       const tap = Math.sin(motion * 18 + sp.seed) * 1.2 * s;
       ctx.beginPath(); ctx.moveTo(f * 4 * s, sh); ctx.lineTo(f * 14 * s, sh + 8 * s + tap); ctx.lineTo(f * 22 * s, sh + 6 * s - tap); ctx.stroke();
+    }else if(pose === 'stand' && sp.spot === 'coffee'){
+      ctx.beginPath(); ctx.moveTo(f * 4 * s, sh); ctx.lineTo(f * 9 * s, sh + 8 * s); ctx.lineTo(f * 13 * s, sh + 2 * s); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(f * 13 * s - 3 * s, sh - 3 * s, 6 * s, 7 * s);
     }else if(sp.applicant && !sp.walking){
       ctx.beginPath(); ctx.moveTo(f * 4 * s, sh); ctx.lineTo(f * 7 * s, sh + 10 * s); ctx.stroke();
     }else{
@@ -657,6 +726,7 @@ window.DebuggOffice = (function(){
     const blink = !reduceMotion && Math.sin(t * 0.9 + sp.seed * 3) > 0.985;
     if(blink) ctx.fillRect(f * 4 * s - 1.5 * s, hy, 3 * s, 0.8 * s); else{ ell(f * 4.2 * s, hy, 1.2 * s, 1.5 * s); ctx.fill(); }
     if(sp.role === 'Principal'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.strokeRect(f * 4.2 * s - 2.6 * s, hy - 2.2 * s, 5.2 * s, 4.2 * s); }
+    if(pose === 'couch'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.beginPath(); ctx.arc(f * 4 * s, hy + 3 * s, 2 * s, 0.2, Math.PI - 0.2); ctx.stroke(); }
     ctx.restore();
   }
 
@@ -741,6 +811,20 @@ window.DebuggOffice = (function(){
   }
   function onHover(ev){ canvas.style.cursor = targetAt(ev) ? 'pointer' : ''; }
 
+  // Whether someone is on a break now. People on a contract or the bench take them; the Director,
+  // a stuck or failed job, a manager in the meeting room and anyone away don't. Tests can fix the
+  // list with window.DEBUGG_OFFICE_BREAKS (an array of ids).
+  function onBreak(p, now){
+    const fixed = window.DEBUGG_OFFICE_BREAKS;
+    if(Array.isArray(fixed)) return fixed.indexOf(p.id) >= 0;
+    if(p.role === 'Director' || !(p.state === 'bench' || (p.state === 'working' && p.role !== 'Manager'))) return false;
+    const win = Math.floor(now / BREAK_WINDOW), h = hashStr(p.id);
+    if(hashRnd(h + (win % 9973) * 1.37) >= BREAK_ODDS) return false;
+    const start = hashRnd(h * 0.71 + (win % 9973)) * (BREAK_WINDOW - BREAK_MS);
+    const into = now - win * BREAK_WINDOW;
+    return into >= start && into < start + BREAK_MS;
+  }
+
   function counts(snap){
     const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern');
     const team = snap.people.filter(p => p.role !== 'Director');
@@ -750,6 +834,7 @@ window.DebuggOffice = (function(){
       squeezed: snap.premises.squeezed,
       working: team.filter(p => ON_CONTRACT.indexOf(p.state) >= 0).length,
       bench: team.filter(p => p.state === 'bench').length,
+      breaks: team.filter(p => breaks.has(p.id)).length,
       away: team.filter(p => p.state === 'away').length,
       stuck: team.filter(p => p.state === 'stuck').length,
       applicants: snap.applicants.length
@@ -763,7 +848,7 @@ window.DebuggOffice = (function(){
     const text = 'Your office, the spare room: ' + c.taken + ' of ' + c.desks + ' desks taken' +
       (c.squeezed ? ' and ' + c.squeezed + ' squeezed in' : '') + ', ' +
       c.working + ' on contracts, ' + c.bench + ' on the bench' +
-      (c.away ? ', ' + c.away + ' away' : '') + (c.stuck ? ', ' + c.stuck + ' stuck' : '') + ', ' +
+      (c.breaks ? ', ' + c.breaks + ' on a break' : '') + (c.away ? ', ' + c.away + ' away' : '') + (c.stuck ? ', ' + c.stuck + ' stuck' : '') + ', ' +
       plural(c.applicants, 'applicant', 'applicants') + ' waiting.';
     if(text !== lastLabel){ canvas.setAttribute('aria-label', text); lastLabel = text; }
   }

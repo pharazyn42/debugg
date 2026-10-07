@@ -1062,6 +1062,8 @@ test('works at phone width with the studio on', async ({ page }) => {
 
 // The office view (ltd/office.js): the studio drawn as a building above the desk and the studio.
 const officeLabel = page => page.locator('.office-canvas');
+// Breaks come from the game time; these fix who's on one (none, unless given).
+const officeBreaks = (page, ids = []) => page.addInitScript(ids => { window.DEBUGG_OFFICE_BREAKS = ids; }, ids);
 // Clicks the office where a tap target is (its kind and id, from DebuggOffice.targets()).
 async function tapOffice(page, kind, id){
   await expect.poll(() => page.evaluate(([k, i]) => DebuggOffice.targets().some(t => t.kind === k && t.id === i), [kind, id])).toBe(true);
@@ -1070,6 +1072,7 @@ async function tapOffice(page, kind, id){
 }
 
 test('the office is drawn on the Ltd tab, summed up for screen readers, and not on the Daily tab', async ({ page }) => {
+  await officeBreaks(page);
   await found(page);
   await expect(officeLabel(page)).toBeVisible();
   await expect(officeLabel(page)).toHaveAttribute('role', 'img');
@@ -1098,6 +1101,7 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
 
 test('tapping the office: a person opens their panel, an applicant shows their card, a stuck intern asks for help', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
+  await officeBreaks(page);
   await found(page);
   await editCompany(page, s => {
     const grad = (id, name) => ({ id, name, role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 } });
@@ -1145,4 +1149,22 @@ test('the studio still plays when the office view fails to load', async ({ page 
   await page.click('[data-action=desk-start]');
   await expect(page.locator('.desk-q')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('the office has a meeting room and a break room: managers on a contract meet, and people on a break go to the kitchen', async ({ page }) => {
+  await officeBreaks(page, ['g2']);
+  await found(page);
+  await editCompany(page, s => {
+    const hire = (id, name, role) => ({ id, name, role, since: Date.now(), worked: 0, lang: { Python: 10 } });
+    s.roster.push(hire('m1', 'Aroha', 'Manager'), hire('g1', 'Ben', 'Graduate'), hire('g2', 'Mei', 'Graduate'));
+    const job = (id, team) => ({ id, tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 5, team,
+      startedAt: Date.now(), endsAt: Date.now() + 3600000, chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 });
+    s.jobs = [job('h1', ['g1']), job('h2', ['g2']), job('h3', ['m1'])];
+  });
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /3 on contracts, 0 on the bench, 1 on a break, /);
+  // Left to right: the desks, then the manager in the meeting room, then Mei in the break room.
+  await expect.poll(async () => {
+    const x = Object.fromEntries((await page.evaluate(() => DebuggOffice.targets())).map(t => [t.id, t.x]));
+    return x.g1 < x.m1 && x.m1 < x.g2;
+  }).toBe(true);
 });
