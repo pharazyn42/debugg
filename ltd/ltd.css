@@ -56,6 +56,8 @@
 .ltd .stat .value.money.neg{ color: var(--red); }
 .ltd .stat .value.rep{ color: var(--blue); }
 .ltd .stat .value.rate{ color: var(--red); font-size: 14px; }
+.ltd .stat .sub{ font-family: var(--mono); font-size: 11px; color: var(--green); margin-top: 1px; }
+.ltd #statSloc{ color: var(--text); }
 /* The business's stage: a step track, its name, what it means and what's next. */
 .ltd .stage-bar{
   display: grid;

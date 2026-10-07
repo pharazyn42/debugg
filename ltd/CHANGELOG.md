@@ -10,7 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- **SLOC/min is now an income figure too.** Under the SLOC/min number in the stats bar is what that code earns per minute (for example "+¤14/min"): everyday work paid per line as it's written, plus your running contracts' payouts spread over their length (counted at their success chance). Hover it for the breakdown and what's left after payroll and rent.
 
 ## 0.0.18 — 7 October 2026
 

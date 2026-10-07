@@ -1475,3 +1475,17 @@ test('clicking someone lists the contracts they could take, and Staff… opens t
   await openPerson(page, 'g1');
   await expect(page.locator('#personModalBody .contract-row')).toHaveCount(0);
 });
+
+test('the SLOC/min cell shows what the code earns per minute, and the tooltip nets it against payroll', async ({ page }) => {
+  await found(page);
+  await expect(page.locator('#statIncome')).toHaveText('+¤0.1/min');   // just the intern's tiny share
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.roster.find(p => p.role === 'Intern').pace = 1;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, pace: 1 });
+  });
+  // 5 SLOC/min of everyday work at ¤0.54 a line is ¤2.7, plus the intern's tiny share.
+  await expect(page.locator('#statIncome')).toContainText('+¤2.8/min');
+  await expect(page.locator('#statSloc')).toHaveText('5.2');
+  await expect(page.locator('#statIncome')).toHaveAttribute('title', /everyday work \(0\.54 a line\).*against ¤2\/min payroll and rent: \+¤0\.8\/min net/);
+});

@@ -60,7 +60,7 @@ window.DebuggLtd = (function(){
       '<div class="stage-bar" id="stageBar"></div>' +
       '<div class="stat-bar">' +
         '<div class="stat"><div class="label">Cash</div><div class="value money" id="statMoney">¤0</div></div>' +
-        '<div class="stat"><div class="label">SLOC/min</div><div class="value rate" id="statSloc">0</div></div>' +
+        '<div class="stat"><div class="label">SLOC/min</div><div class="value rate" id="statSloc">0</div><div class="sub" id="statIncome">+¤0/min</div></div>' +
         '<div class="stat"><div class="label">Reputation</div><div class="value rep" id="statRep">0</div></div>' +
         '<div class="stat"><div class="label" id="statPayrollLabel">Payroll</div><div class="value rate" id="statPayroll">¤0/min</div></div>' +
         '<div class="stat"><div class="label">Headcount</div><div class="value" id="statHeads">1</div></div>' +
@@ -107,7 +107,7 @@ window.DebuggLtd = (function(){
     document.body.appendChild(modals);
 
     const $ = id => document.getElementById(id);
-    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel'), statSloc = $('statSloc');
+    const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel'), statSloc = $('statSloc'), statIncome = $('statIncome');
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), studioName = $('studioName'), jobEntry = $('jobEntry'), applicantsEl = $('applicants');
     const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
@@ -1351,6 +1351,17 @@ window.DebuggLtd = (function(){
       const jobs = state.jobs.reduce((s, j) => s + (j.status === 'running' ? (j.teamSloc || 0) * (j.slow ? 0.5 : 1) : 0), 0);
       return jobs + state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + everydaySloc(p), 0);
     }
+    // What the code earns per minute right now: everyday work, which pays per line as it's written,
+    // plus each running contract's payout spread over its length (at its success chance; the
+    // intern's hotfixes are always delivered, and a snagged contract earns at half rate).
+    function contractIncomePerMinute(){
+      return state.jobs.reduce((n, j) => {
+        if(j.status !== 'running') return n;
+        const minutes = Math.max(1 / 60, (j.endsAt - j.startedAt) / 60000);
+        const sure = j.team.some(id => isIntern(person(id)));
+        return n + j.payout * (sure ? 1 : j.chance) / minutes * (j.slow ? 0.5 : 1);
+      }, 0);
+    }
     function paySalaries(seconds){
       if(seconds > 0) state.money -= (payrollPerMinute() + rentPerMinute() - benchIncomePerMinute()) * seconds / 60;
     }
@@ -1835,7 +1846,12 @@ window.DebuggLtd = (function(){
       statHeads.textContent = headcount();
       const sloc = totalSlocPerMinute();
       statSloc.textContent = (Math.round(sloc * 10) / 10).toLocaleString('en-GB');
-      statSloc.title = 'Lines of code written per minute, on contracts and everyday work';
+      const everyday = benchIncomePerMinute(), contracts = contractIncomePerMinute(), income = everyday + contracts;
+      const cost = payrollPerMinute() + rentPerMinute();
+      statIncome.textContent = '+' + fmtRate(income) + '/min';
+      statSloc.title = statIncome.title = 'Lines of code written per minute, on contracts and everyday work. They earn about ' + fmtRate(income) +
+        '/min: ' + fmtRate(everyday) + ' from everyday work (' + EVERYDAY_RATE.toFixed(2) + ' a line) and about ' + fmtRate(contracts) + ' from contracts, ' +
+        'against ' + fmtRate(cost) + '/min payroll and rent: ' + (income - cost >= 0 ? '+' : '−') + fmtRate(Math.abs(income - cost)) + '/min net.';
     }
 
     // ---------------------------------------------------------------------
