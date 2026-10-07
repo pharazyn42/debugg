@@ -63,7 +63,8 @@ window.DebuggOffice = (function(){
   let targets = [];          // what a tap can hit, rebuilt every frame
   let lastLabel = '';
   let breaks = new Set();    // ids on a break this frame
-  let lastKind = null;       // the premises last drawn, to notice moving day
+  let lastKind = null;
+  let desksN = 0;            // how many desks the building has (desk numbers past it are squeezed in)       // the premises last drawn, to notice moving day
   let movingUntil = 0;       // the moving-day banner shows until then
 
   const now = () => performance.now() / 1000;
@@ -160,7 +161,7 @@ window.DebuggOffice = (function(){
   function layout(viewW, snap){
     const pr = snap.premises;
     const house = pr.kind === 'spare-room';
-    const pf = pr.perFloor, nf = pr.floors, stools = pr.squeezed;
+    const pf = pr.perFloor, nf = pr.floors, stools = pr.squeezed ? 1 : 0;   // one stool after the desks; the rest squeeze in elsewhere
     const meetW = house ? 0 : U.meeting;
     const need = U.margin * 2 + U.side + U.room + U.pair + pf * U.desk + stools * U.stool + meetW + U.kitchen + 20;
     const s = Math.max(0.56, Math.min(1.1, viewW / need));
@@ -185,8 +186,35 @@ window.DebuggOffice = (function(){
         stoolX: k => dz0 + slotW * pf + pairW + stoolW * (k + 0.5)
       });
     }
-    return { s, W, H, x0, x1, floors, house, pf, desksN: nf * pf, stools, seats: pr.maxApplicants, kind: pr.kind, name: pr.name, owned: !!pr.owned,
-             company: snap.company || 'Debuggit Ltd' };
+    const L = { s, W, H, x0, x1, floors, house, pf, desksN: nf * pf, stools, squeezed: pr.squeezed, seats: pr.maxApplicants, kind: pr.kind,
+                name: pr.name, owned: !!pr.owned, company: snap.company || 'Debuggit Ltd' };
+    L.squeeze = squeezeSpots(L);
+    return L;
+  }
+
+  // Where people squeezed in without a desk end up, in order: a stool after the last desk, then
+  // sharing someone's desk, the meeting-room table, the kitchen couch, the stairs or the floor by
+  // the door, the kitchen counter… spread over the floors. Each is { fi, x, kind }: x is where they
+  // sit or stand; kind decides their pose and the laptop's place (squeezeProp()).
+  function squeezeSpots(L){
+    const s = L.s, g = L.floors[0], up = L.floors[L.floors.length - 1], spots = [];
+    const add = (f, x, kind) => { if(f) spots.push({ fi: f.i, x, kind }); };
+    add(g, g.stoolX(0) + 10 * s, 'stool');
+    add(g, g.deskX(1) + 46 * s, 'share');
+    if(!L.house) add(g, g.mx0 + 34 * s, 'meeting');
+    if(!L.house) add(up, up.deskX(1) + 46 * s, 'share');
+    add(g, g.kx0 + 112 * s, 'couch');
+    if(!L.house) add(up, up.sideX + 2 * s, 'stairs'); else add(g, g.sideX + 22 * s, 'floor');
+    if(!L.house) add(up, up.mx0 + 34 * s, 'meeting');
+    if(L.pf > 3) add(g, g.deskX(3) + 46 * s, 'share');
+    add(g, g.kx0 + 30 * s, 'counter');
+    if(!L.house) add(g, g.sideX + 22 * s, 'floor');
+    if(!L.house) add(up, up.kx0 + 112 * s, 'couch');
+    if(!L.house && L.pf > 3) add(up, up.deskX(3) + 46 * s, 'share');
+    add(g, g.mx0 - 22 * s, 'floor');
+    // Past these, everyone else sits on the floor in a row along the ground floor's back wall.
+    for(let k = 0; spots.length < 40; k++) add(g, g.dz0 + 14 * s + k * 26 * s, 'floor');
+    return spots;
   }
 
   function fit(L){
@@ -245,7 +273,8 @@ window.DebuggOffice = (function(){
     // People working from home aren't in the building (they're counted in the summary).
     const inOffice = snap.people.filter(p => !p.wfh);
     const staff = inOffice.filter(p => p.role !== 'Intern').sort((a, b) => (b.role === 'Director') - (a.role === 'Director'));
-    assignDesks(staff, L.desksN + L.stools);
+    desksN = L.desksN;
+    assignDesks(staff, L.desksN + L.squeezed);
     breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
     const director = snap.people.find(p => p.role === 'Director');
     const dDesk = director ? desks.get(director.id) : 0;
@@ -266,7 +295,7 @@ window.DebuggOffice = (function(){
         const d = desks.get(p.id);
         sp.desk = d;
         if(d < L.desksN){ f = L.floors[Math.floor(d / L.pf)]; sp.spot = 'desk'; sp.tx = f.deskX(d % L.pf) + 20 * s; }
-        else{ f = L.floors[0]; sp.spot = 'stool'; sp.tx = f.stoolX(d - L.desksN) + 10 * s; }
+        else{ const q = L.squeeze[Math.min(d - L.desksN, L.squeeze.length - 1)]; f = L.floors[q.fi]; sp.spot = 'squeeze'; sp.squeeze = q.kind; sp.tx = q.x; }
       }
       sp.home = f.i;
       sp.tfi = f.i;
@@ -447,9 +476,11 @@ window.DebuggOffice = (function(){
       const owner = owners.get(f.i * L.pf + j);
       drawDesk(f.deskX(j), floorY, s, owner && at(owner), owner, t, false);
     }
-    if(f.i === 0) for(let k = 0; k < L.stools; k++){
+    for(let k = 0; k < L.squeezed; k++){
+      const q = L.squeeze[Math.min(k, L.squeeze.length - 1)];
+      if(q.fi !== f.i) continue;
       const owner = owners.get(L.desksN + k);
-      drawStool(f.stoolX(k), floorY, s, owner && at(owner), owner, t);
+      squeezeProp(q, floorY, s, owner && at(owner), owner, t);
     }
     const people = [...sprites.values()].filter(sp => sp.fi === f.i && sp.alpha > 0.01).sort((a, b) => a.x - b.x);
     people.forEach(sp => drawPerson(sp, floorY, s, t));
@@ -653,6 +684,19 @@ window.DebuggOffice = (function(){
     screen(x - 30 * s, fy - 74 * s, 38 * s, 26 * s, seated, owner, t, s);
   }
 
+  // What someone squeezed in sits on, and where their laptop goes, by the kind of spot.
+  function squeezeProp(q, fy, s, seated, owner, t){
+    const x = q.x;
+    if(q.kind === 'stool'){ drawStool(x - 10 * s, fy, s, seated, owner, t); return; }
+    const stool = () => { ctx.fillStyle = '#4a4f57'; ctx.fillRect(x - 9 * s, fy - 18 * s, 18 * s, 4 * s); ctx.fillRect(x - 7 * s, fy - 14 * s, 2.5 * s, 14 * s); ctx.fillRect(x + 4.5 * s, fy - 14 * s, 2.5 * s, 14 * s); };
+    const small = (cx, y) => { ctx.save(); ctx.translate(cx, y); ctx.scale(0.75, 0.75); ctx.translate(-cx, -y); laptop(cx, y, s, seated, owner, t); ctx.restore(); };
+    if(q.kind === 'share'){ stool(); small(x - 18 * s, fy - 40 * s); }                // elbows in, at the end of someone's desk
+    else if(q.kind === 'meeting'){ stool(); small(x + 20 * s, fy - 34 * s); }         // on the meeting-room table
+    else if(q.kind === 'counter') small(x - 14 * s, fy - 36 * s);                     // standing at the kitchen counter
+    else if(q.kind === 'couch' || q.kind === 'stairs') small(x - 12 * s, fy - (q.kind === 'couch' ? 26 : 12) * s);   // on their lap
+    else small(x - 16 * s, fy);                                                       // on the floor
+  }
+
   // Squeezed in without a desk: a stool, and a laptop on a crate.
   function drawStool(x, fy, s, seated, owner, t){
     ctx.fillStyle = '#8a6141';
@@ -761,7 +805,9 @@ window.DebuggOffice = (function(){
 
   function drawPerson(sp, fy, s, t){
     const p = sp.p;
-    const pose = sp.walking ? 'walk' : sp.spot === 'couch' ? 'couch' : ['exit', 'coffee', 'stand', 'meeting'].indexOf(sp.spot) >= 0 ? 'stand' : 'sit';
+    const sq = sp.spot === 'squeeze' && !sp.walking ? sp.squeeze : '';
+    const pose = sp.walking ? 'walk' : sp.spot === 'couch' || sq === 'couch' ? 'couch' : sq === 'counter' ? 'stand'
+      : ['exit', 'coffee', 'stand', 'meeting'].indexOf(sp.spot) >= 0 ? 'stand' : 'sit';
     const motion = reduceMotion ? 0 : t;
     ctx.save();
     ctx.globalAlpha = sp.alpha;
@@ -769,7 +815,7 @@ window.DebuggOffice = (function(){
     const f = sp.facing || 1;
     const look = sp.look || DEFAULT_LOOK;
     const shirt = look.shirt;
-    const seat = pose === 'sit' ? (sp.spot === 'stool' ? 20 : 18) * s : pose === 'couch' ? 22 * s : 0;
+    const seat = pose === 'sit' ? (sq === 'floor' ? 5 : sq === 'stairs' ? 12 : sp.spot === 'stool' || sq ? 20 : 18) * s : pose === 'couch' ? 22 * s : 0;
     const step = pose === 'walk' ? Math.sin(motion * 12 + sp.seed) : 0;
     const bob = pose === 'walk' ? Math.abs(step) * 2 * s : 0;
     const legH = 15 * s;
@@ -1026,7 +1072,8 @@ window.DebuggOffice = (function(){
     const here = p => fi == null || ((sprites.get(p.id) || {}).home || 0) === fi;
     const staff = snap.people.filter(p => p.role !== 'Intern' && !p.wfh && here(p));
     const team = snap.people.filter(p => p.role !== 'Director' && (fi == null || !p.wfh) && here(p));
-    const squeezed = fi == null || fi === 0 ? snap.premises.squeezed : 0;
+    const isSqueezed = p => { const sp = sprites.get(p.id); return !!sp && sp.desk != null && sp.desk >= desksN; };
+    const squeezed = fi == null ? snap.premises.squeezed : staff.filter(isSqueezed).length;
     return {
       taken: staff.length - squeezed,
       desks: snap.premises.floors * snap.premises.perFloor,

@@ -740,10 +740,10 @@ test('everyone needs a desk: the spare room has 4, then a small business unit fo
     s.roster.push({ id: 'j0', name: 'Jun 0', role: 'Junior', since: Date.now(), lang: { Python: 150 } });
     for(let i = 0; i < 2; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
   });
-  // The spare room is full, so it's cramped, and a manager would have to be squeezed in.
+  // The spare room is full, but nobody's squeezed in, so it isn't cramped. Managers need an office.
   await expect(page.locator('.slot', { hasText: 'Desks' })).toHaveText('Desks 4/4');
-  await expect(page.locator('.office .cramped')).toHaveText('Every desk is taken: cramped, so everyone is 5% slower on new contracts, and likelier to hand in their notice.');
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no desk: squeezed in, everyone −15% speed');
+  await expect(page.locator('.office .cramped')).toHaveCount(0);
+  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('managers need an office: move out of the spare room first');
   // The next premises can be rented or bought outright; ¤5,000 isn't enough to buy.
   await expect(page.locator('[data-action=move][data-tenure=rent]')).toHaveText('Rent a small business unit · 10 desks · ¤4/min');
   await expect(page.locator('[data-action=move][data-tenure=buy]')).toHaveText('Buy one · ¤60,000, then ¤1/min upkeep');
@@ -799,29 +799,37 @@ test('premises can be bought outright: the price up front, then upkeep, and movi
   await expect(page.locator('#log')).toContainText('Bought the small business unit you rent for ¤60,000: ¤1/min upkeep instead of ¤4/min rent.');
 });
 
-test('a full office is cramped: up to 2 more can be squeezed in, each slowing everyone more', async ({ page }) => {
+test('a full office is fine; each person squeezed in, up to half the desks, slows everyone 6%', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
     s.money = 5000; s.guideDone = true;
     s.roster.push({ id: 'j0', name: 'Jun 0', role: 'Junior', since: Date.now(), lang: { Python: 150 } });
     for(let i = 0; i < 2; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
-    s.board.find(o => o.tier === 0 && o.lang === 'Python' && !o.expert).id = 'py1';
   });
-  // Every desk taken: 5% slower. A junior at Lv 3 writes 12 × 1.6 = 19.2 SLOC/min; 5% less is 18.2.
-  await expect(page.locator('.office .cramped')).toContainText('Every desk is taken: cramped, so everyone is 5% slower');
-  await page.click('[data-action=staff][data-offer=py1]');
-  await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('18.2 SLOC/min');
+  // Every desk taken, nobody squeezed in: full speed. A junior at Lv 3 writes 12 × 1.6 = 19.2 SLOC/min.
+  // (A full spare room opens contracts, starting with your first client.)
+  await expect(page.locator('.office .cramped')).toHaveCount(0);
+  const first = (await ltd(page)).board.find(o => o.first).id;
+  await page.click('[data-action=staff][data-offer="' + first + '"]');
+  await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('19.2 SLOC/min');
   await page.keyboard.press('Escape');
-  // Two managers squeezed in: 30% slower, and nobody else fits.
+  // Two managers squeezed in (the spare room takes half its 4 desks): 12% slower, and nobody else fits.
   await editCompany(page, s => {
     for(let i = 0; i < 2; i++) s.roster.push({ id: 'm' + i, name: 'Manager ' + i, role: 'Manager', since: Date.now(), lang: {} });
+    s.applicants = [{ id: 'ga1', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
+                      person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
   });
-  await expect(page.locator('.office .cramped')).toContainText('2 squeezed in without a desk: cramped, so everyone is 30% slower');
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no room to squeeze anyone else in — rent or buy a small business unit');
+  await expect(page.locator('.office .cramped')).toContainText('2 squeezed in without a desk: cramped, so everyone is 12% slower');
+  await expect(page.locator('.applicant[data-applicant=ga1] .blocked')).toHaveText('no room to squeeze anyone else in — rent or buy a small business unit');
+  await page.click('[data-action=staff][data-offer="' + first + '"]');
+  await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('16.9 SLOC/min');   // 19.2 × 0.88
+  await page.keyboard.press('Escape');
   // A small business unit has a desk for everyone. Moving back would squeeze in 2 again, which is allowed.
   await page.click('[data-action=move][data-tenure=rent]');
   await expect(page.locator('.office .cramped')).toHaveCount(0);
   await expect(page.locator('[data-action=move][data-premises=spare-room]')).toBeEnabled();
+  // The unit takes 5 squeezed in (half its 10 desks).
+  await expect(page.locator('.applicant[data-applicant=ga1] .blocked')).toHaveCount(0);
   // One more and the spare room can't hold them.
   await editCompany(page, s => {
     s.roster.push({ id: 'g9', name: 'Grad 9', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
@@ -899,7 +907,7 @@ test('a company from before desks starts in the spare room; co-working desks are
   expect((await ltd(page)).office).toEqual({ premises: 'spare-room', owned: false });
   expect((await ltd(page)).roster.filter(p => p.role === 'Graduate')).toHaveLength(7);
   await expect(page.locator('.office')).toContainText('8/4 desks used');
-  await expect(page.locator('.office .cramped')).toContainText('4 squeezed in without a desk: cramped, so everyone is 30% slower');
+  await expect(page.locator('.office .cramped')).toContainText('4 squeezed in without a desk: cramped, so everyone is 24% slower');
   await expect(page.locator('#log')).toContainText('Co-working desks are gone: everyone who sat at one is squeezed into your spare room.');
   await expect(page.locator('[data-action=move][data-tenure=rent]')).toBeEnabled();
 });

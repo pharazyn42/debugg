@@ -333,13 +333,18 @@ state = {
   in past `CRAM_MAX` if need be (hiring then waits for a move), with a log line. Prices are
   placeholders. Leases, deposits, moving time, listings, the large unit and WFH applicants are
   still to come.
-- **A cramped office** (the player-owner's call, September 2026; `CRAM_MAX`, `CRAMPED`,
-  `cramLevel()`): a full office is cramped, and up to 2 more people can be squeezed in without
-  desks. Everyone writes 5% less code with every desk taken, 15% with one squeezed in and 30% with
-  two (applied in `devSlocOn()`, so to contracts started while it's cramped), and notices are
-  likelier. Past that, `deskProblem()` blocks hiring ("no room to squeeze anyone else in"); hire
-  buttons and applicants warn first ("no desk: squeezed in, everyone −15% speed"), and the Office
-  line says how cramped it is.
+- **A cramped office** (the player-owner's calls, September and October 2026; `cramMax()`,
+  `CRAM_STEP`, `cramLevel()` = how many are squeezed in): past its desks, an office takes up to half
+  as many people again squeezed in (the spare room 2, the unit 5). A full office with nobody
+  squeezed in is fine; each person squeezed in makes everyone write `CRAM_STEP` (6%) less code
+  (applied in `devSlocOn()`, so to contracts started while it's cramped) and adds
+  `NOTICE_CRAMPED_STEP` to the notice rate (×3 with one, ×5 with two…). Past `cramMax()`,
+  `deskProblem()` blocks hiring ("no room to squeeze anyone else in"); hire buttons and applicants
+  warn first ("no desk: squeezed in, everyone −6% speed"), and the Office line says how cramped it
+  is. Until October 2026: at most 2 squeezed in, and 5% / 15% / 30% slower from a full office. In the
+  office view, squeezed-in people take a stool after the last desk, then share the end of someone's
+  desk, the meeting-room table, the kitchen couch and counter, the stairs and the floor
+  (`squeezeSpots()`, `squeezeProp()`).
 - **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
   until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their
   notice with `NOTICE_PER_DAY` (1.5%) / 24 chance, × `NOTICE_CRAMPED` (1, 3, 5, 7 by cramp

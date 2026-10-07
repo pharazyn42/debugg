@@ -746,7 +746,7 @@ window.DebuggLtd = (function(){
     // up front, then a smaller upkeep per minute). Rent and upkeep are charged like payroll (offline
     // too, not while paused). A rented place can be bought later without moving; moving out of a
     // bought one sells it for SELL_BACK of its price. Moving is instant, as long as everyone fits
-    // (desks plus CRAM_MAX squeezed in). Co-working desks were the way past the spare room until
+    // (desks plus cramMax() squeezed in). Co-working desks were the way past the spare room until
     // October 2026, when the unit replaced them (phase 2 of ideas/company-growth-roadmap.md,
     // without leases yet). Prices are placeholders for the balance pass.
     const PREMISES = {
@@ -784,40 +784,44 @@ window.DebuggLtd = (function(){
     function rentPerMinute(){ return owned() ? premises().upkeep : premises().rent; }
     function sellPrice(key){ return Math.round(PREMISES[key].price * SELL_BACK); }
     // Why the company can't move somewhere smaller ('' if it can).
-    function moveProblem(key){ return desksUsed() > desksIn(key) + CRAM_MAX ? 'too many people to fit' : ''; }
-    // A full office is cramped, and up to CRAM_MAX more people can be squeezed in without desks,
-    // each making it worse. Everyone writes CRAMPED[level] less code on contracts started while
-    // it's cramped (level 1 = every desk taken, 2 = one squeezed in, 3 = two), and people are
-    // likelier to hand in their notice (see "Notice" below). The player-owner's call.
-    const CRAM_MAX = 2;
-    const CRAMPED = [0, 0.05, 0.15, 0.30];
-    function cramLevel(extra){
-      const over = desksUsed() + (extra || 0) - deskCount();
-      return over < 0 ? 0 : Math.min(CRAMPED.length - 1, over + 1);
-    }
-    function crampedPenalty(){ return CRAMPED[cramLevel()]; }
+    function moveProblem(key){ return desksUsed() > desksIn(key) + cramMax(key) ? 'too many people to fit' : ''; }
+    // Up to half as many people as an office has desks (cramMax(): the spare room 2, the unit 5) can
+    // be squeezed in without desks, and with anyone squeezed in it's cramped: everyone writes
+    // CRAM_STEP less code for each person squeezed in (6%, 12%, 18%…) on contracts started meanwhile,
+    // and people are likelier to hand in their notice (noticeCramped()). A full office with nobody
+    // squeezed in is fine. The player-owner's calls (September 2026; October 2026 for half the desks,
+    // the flat step, and no slowdown until someone's squeezed in, which replaced at most 2 squeezed in
+    // and 5% / 15% / 30% from a full office).
+    const CRAM_STEP = 0.06;
+    function cramMax(key){ return Math.floor(desksIn(key || premisesKey()) / 2); }
+    // How many are squeezed in (with `extra` more people): 0 while there's a desk for everyone.
+    function cramLevel(extra){ return Math.max(0, desksUsed() + (extra || 0) - deskCount()); }
+    function crampAt(n){ return Math.min(0.9, CRAM_STEP * n); }
+    function crampedPenalty(){ return crampAt(cramLevel()); }
     function deskProblem(){
-      if(desksUsed() < deskCount() + CRAM_MAX) return null;
+      if(desksUsed() < deskCount() + cramMax()) return null;
       return 'no room to squeeze anyone else in' + (nextPremises() ? ' — rent or buy a ' + PREMISES[nextPremises()].name : ' — bigger premises are coming in v0.1');
     }
     // What hiring one more would do to the office, for the hire buttons: '' when there's a free desk.
     function deskNote(){
       if(desksUsed() < deskCount()) return '';
-      return 'no desk: squeezed in, everyone −' + Math.round(CRAMPED[cramLevel(1)] * 100) + '% speed';
+      return 'no desk: squeezed in, everyone −' + Math.round(crampAt(cramLevel(1)) * 100) + '% speed';
     }
 
     // ---------------------------------------------------------------------
     // Notice: people sometimes hand in their notice
     // ---------------------------------------------------------------------
     // Checked every hour (state.nextNoticeAt): each person but the Director hands in their notice
-    // with NOTICE_PER_DAY / 24 chance, times NOTICE_CRAMPED[cramLevel()]. A notice
+    // with NOTICE_PER_DAY / 24 chance, times noticeCramped(): 1, plus NOTICE_CRAMPED_STEP for each
+    // person squeezed in (×3 with one, ×5 with two…). A notice
     // (p.notice = { reason, until, ask }) runs NOTICE_H hours, then they leave, once they're off
     // any running contract (a repeat stops for them). It can be turned around: a cramped one is
     // withdrawn once there's a free desk again, and any can be settled by agreeing a pay rise of
     // `ask` ¤/min, a random 15–35% of their level's salary (p.raise). The player-owner's idea.
     // While the page is closed, only the last OFFLINE_CAP hours roll, like repeats.
     const NOTICE_PER_DAY = 0.015;
-    const NOTICE_CRAMPED = [1, 3, 5, 7];
+    const NOTICE_CRAMPED_STEP = 2;
+    function noticeCramped(){ return 1 + NOTICE_CRAMPED_STEP * cramLevel(); }
     const NOTICE_H = 24;
     const RAISE = [0.15, 0.35];
     function giveNotice(p, at, reason){
@@ -833,7 +837,7 @@ window.DebuggLtd = (function(){
       for(let i = 0; state.nextNoticeAt <= now && i < 400; i++){
         const at = state.nextNoticeAt;
         if(at >= from){
-          const perHour = NOTICE_PER_DAY * NOTICE_CRAMPED[cramLevel()] / 24;
+          const perHour = NOTICE_PER_DAY * noticeCramped() / 24;
           state.roster.forEach(p => {
             if(p.role !== 'Director' && !isIntern(p) && !p.notice && Math.random() < perHour) giveNotice(p, at, cramLevel() ? 'cramped' : 'offer');
           });
@@ -1866,7 +1870,7 @@ window.DebuggLtd = (function(){
           (pr.floors > 1 ? ' on ' + pr.floors + ' floors' : '') +
           (owned() ? ', owned (' + fmtRate(pr.upkeep) + '/min upkeep)' : pr.rent ? ', rented (' + fmtRate(pr.rent) + '/min)' : '') +
           ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span>' +
-          (cramLevel() ? '<div class="cramped">' + (desksUsed() > deskCount() ? (desksUsed() - deskCount()) + ' squeezed in without a desk' : 'Every desk is taken') +
+          (cramLevel() ? '<div class="cramped">' + cramLevel() + ' squeezed in without a desk' +
             ': cramped, so everyone is ' + Math.round(crampedPenalty() * 100) + '% slower on new contracts, and likelier to hand in their notice.</div>' : '') +
           '</div>' +
         '<div class="office-actions">' +
@@ -2650,7 +2654,7 @@ window.DebuggLtd = (function(){
     if(!state.collapsedLevels) state.collapsedLevels = [];
     if(!state.collapsedTiers) state.collapsedTiers = [];
     // Saves from before desks start in the spare room. Co-working desks are gone (the player-owner's
-    // call, October 2026): anyone who sat at one is squeezed in, and past CRAM_MAX hiring waits
+    // call, October 2026): anyone who sat at one is squeezed in, and past cramMax() hiring waits
     // until the company moves into a business unit. Nobody is let go.
     if(!state.office) state.office = { premises: 'spare-room' };
     if('cowork' in state.office){
