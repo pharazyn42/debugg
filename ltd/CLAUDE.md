@@ -373,7 +373,7 @@ state = {
   only a picture** (also theirs): the view picks who's on one from a hash of their id and the
   10-minute window of game time (`BREAK_ODDS`, `BREAK_MS`: about 12% of the time; contract and
   bench only), so nothing in `ltd.js` or the save changes and nobody's work slows; their monitor
-  shows the work carrying on. Tests fix the list with `window.DEBUGG_OFFICE_BREAKS`. Monitors show the job: code in its language's colours with its progress, a
+  is paused (frozen code, a still ticket queue; the contract's progress bar carries on). Tests fix the list with `window.DEBUGG_OFFICE_BREAKS`. Monitors show the job: code in its language's colours with its progress, a
   flashing "?" when stuck, ✗ when failed, a manager's board of cards, a screensaver on the bench; a
   note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
   page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do

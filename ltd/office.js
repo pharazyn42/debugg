@@ -719,13 +719,15 @@ window.DebuggOffice = (function(){
     const seed = owner ? owner.seed : 0;
     const p = owner && !owner.gone ? owner.p : null;
     // Someone on a break or in the meeting room has left their work running.
+    // On a break (walking there too) the screen is paused, not animated.
+    const paused = !!(owner && owner.onBreak);
     const st = !p ? 'off'
+      : paused ? (p.role === 'Manager' ? 'board' : p.job ? 'break' : 'bench')
       : seated ? (p.role === 'Manager' ? 'board' : p.state)
       : owner.walking ? 'off'
       : p.role === 'Manager' && owner.spot === 'meeting' ? 'board'
-      : owner.onBreak ? (p.job ? 'break' : 'bench')
       : 'off';
-    const motion = reduceMotion ? 0 : t;
+    const motion = reduceMotion || paused ? 0 : t;
     if(st === 'working' || st === 'director'){
       const cols = p.job ? (LANG_COLS[p.job.lang] || DIRECTOR_COLS) : DIRECTOR_COLS;
       bg('#16181c');
