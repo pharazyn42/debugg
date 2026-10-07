@@ -74,7 +74,7 @@ window.DebuggLtd = (function(){
         '<p class="structure-note" id="structureNote"></p>' +
         '<div class="premises" id="office"></div>' +
         '<details class="people-list"><summary>Everyone in the studio</summary><div class="roster" id="roster"></div></details>' +
-        '<div class="hire-grid" id="hireGrid"></div>' +
+        '<div class="job-entry" id="jobEntry"></div>' +
         '<div class="applicants" id="applicants"></div>' +
       '</div>';
     boardSlot.innerHTML =
@@ -95,6 +95,9 @@ window.DebuggLtd = (function(){
     modals.className = 'ltd';
     modals.innerHTML =
       '<div class="modal-back" id="teamModal" hidden><div class="modal" id="teamModalBody"></div></div>' +
+      '<div class="modal-back" id="jobsModal" hidden><div class="modal jobs">' +
+        '<button class="modal-close" data-action="close-jobs" aria-label="Close" style="float:right;">✕</button>' +
+        '<div id="jobsModalBody"></div></div></div>' +
       '<div class="modal-back" id="candidateModal" hidden><div class="modal person">' +
         '<button class="modal-close" data-action="close-candidate" aria-label="Close" style="float:right;">✕</button>' +
         '<div id="candidateModalBody"></div></div></div>' +
@@ -105,13 +108,14 @@ window.DebuggLtd = (function(){
 
     const $ = id => document.getElementById(id);
     const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel'), statSloc = $('statSloc');
-    const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), studioName = $('studioName'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
+    const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), studioName = $('studioName'), jobEntry = $('jobEntry'), applicantsEl = $('applicants');
     const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log'), notifEl = $('notifications');
     const welcomeToast = $('welcomeToast');
     const teamModal = $('teamModal'), teamModalBody = $('teamModalBody');
     const personModal = $('personModal'), personModalBody = $('personModalBody');
+    const jobsModal = $('jobsModal'), jobsModalBody = $('jobsModalBody');
     const candidateModal = $('candidateModal'), candidateModalBody = $('candidateModalBody');
     let tickTimer = null;
     let stopped = false;
@@ -171,9 +175,13 @@ window.DebuggLtd = (function(){
     const HIRE_ORDER = ['Manager', 'Graduate', 'Junior', 'Senior', 'Principal'];
     // Developers can't be hired at will: they apply now and then (see "Applicants" below), graduates
     // included since September 2026 (the player-owner's call), so an early company gets by on its
-    // intern and the puzzles until it has some reputation. Only managers have a hire button.
+    // intern and the puzzles until it has some reputation. Managers and people who work from home
+    // are found on the job board (October 2026).
     const APPLICANT_ROLES = ['Graduate', 'Junior', 'Senior', 'Principal'];
-    const HIRE_BUTTONS = HIRE_ORDER.filter(r => !APPLICANT_ROLES.includes(r));
+    // The job board (item 10c step 4): post a job for a fee (JOB_FEE of the hire cost), and a
+    // candidate replies JOB_DELAY_H later, their offer open for JOB_OPEN_H hours. At most JOB_BOARD_MAX
+    // postings and candidates at once.
+    const JOB_FEE = 0.10, JOB_DELAY_H = 1, JOB_OPEN_H = 24, JOB_BOARD_MAX = 4;
     const ROSTER_GROUPS = ['Manager', 'Principal', 'Senior', 'Junior', 'Graduate', 'Intern'];
 
     // To be promoted INTO a level: minutes spent working on contracts at the
@@ -689,6 +697,42 @@ window.DebuggLtd = (function(){
       if(state.nextApplicantAt <= now) state.nextApplicantAt = nextApplicantTime(now);
     }
 
+    function jobLabel(role, wfh){ return wfh ? 'work-from-home ' + role.toLowerCase() : role.toLowerCase(); }
+    function postFee(role){ return Math.max(5, Math.round(hireCost(role) * JOB_FEE / 5) * 5); }
+    // Why a job can't be posted now ('' if it can).
+    function postProblem(role, wfh){
+      if(DEMO && DEMO_LOCKED_ROLES.includes(role)) return COMING;
+      if(role === 'Manager' && premisesKey() === 'spare-room') return 'managers need an office: move out of the spare room first';
+      if(wfh && !canHireWfh(role)) return 'working from home is only for the spare room';
+      if(wfh && (state.reputation || 0) < APPLICANT_REP[role]) return 'needs ' + APPLICANT_REP[role].toLocaleString('en-GB') + ' reputation (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + ')';
+      if((state.postings || []).length + (state.candidates || []).length >= JOB_BOARD_MAX) return 'the board is full';
+      if(state.money < postFee(role)) return 'not enough cash';
+      return '';
+    }
+    // Candidates whose offers have run out go; postings that are due bring one in (unless the
+    // offer would already have run out while the page was closed).
+    function moveJobBoard(now){
+      if(!state.postings) state.postings = [];
+      if(!state.candidates) state.candidates = [];
+      state.candidates = state.candidates.filter(c => {
+        if(c.expiresAt > now) return true;
+        addLog('info', c.person.name + ' (' + jobLabel(c.role, c.wfh) + ') took a job elsewhere.');
+        return false;
+      });
+      state.postings = state.postings.filter(p => {
+        if(p.readyAt > now) return true;
+        const expiresAt = p.readyAt + JOB_OPEN_H * 3600000;
+        if(expiresAt > now){
+          const person = makeHire(p.role);
+          const c = { id: person.id, role: p.role, wfh: !!p.wfh, person, expiresAt,
+                      cost: Math.round(hireCost(p.role) * between(APPLICANT_ASK) / 5) * 5 };
+          state.candidates.push(c);
+          addLog('info', person.name + ' replied to your ' + jobLabel(p.role, p.wfh) + ' posting, asking ' + fmt(c.cost) + '.');
+        }
+        return false;
+      });
+    }
+
     function addLog(kind, text){
       state.log.unshift({ kind, text });
       state.log.length = Math.min(state.log.length, LOG_LENGTH);
@@ -723,7 +767,7 @@ window.DebuggLtd = (function(){
       const cap = capacity(c);
       if(c.devs > cap.devs){
         return c.Manager ? 'managers are at capacity — hire another manager'
-                         : 'you can only look after ' + DIRECTOR_SPAN + ' devs — hire a manager';
+                         : 'you can only look after ' + DIRECTOR_SPAN + ' devs — hire a manager (on the job board)';
       }
       if(c.Principal > cap.Principal) return 'principals full — a manager makes room for more';
       if(c.Senior > cap.Senior) return 'seniors full — a principal makes room for 3 more';
@@ -1344,6 +1388,8 @@ window.DebuggLtd = (function(){
       if(state.nextNoticeAt) state.nextNoticeAt += ms;
       state.roster.forEach(p => { if(p.notice) p.notice.until += ms; });
       (state.applicants || []).forEach(a => { a.expiresAt += ms; });
+      (state.postings || []).forEach(p => { p.readyAt += ms; });
+      (state.candidates || []).forEach(c => { c.expiresAt += ms; });
       state.roster.forEach(p => { p.since += ms; });
       if(state.desk){
         state.desk.nextAt += ms;
@@ -1976,22 +2022,12 @@ window.DebuggLtd = (function(){
       setHTML(rosterEl, html);
       renderPersonModal(now);
 
-      let hire = '';
-      HIRE_BUTTONS.forEach(role => {
-        const why = hireProblem(role);
-        const cost = hireCost(role);
-        const broke = state.money < cost;
-        const rise = Math.round((cost / ROLES[role].cost - 1) * 100);
-        hire += '<button class="hire-btn' + (role === 'Manager' ? ' mgr' : '') +
-                '" data-action="hire" data-role="' + role + '"' +
-                (why || broke ? ' disabled' : '') + '>' +
-                '<span class="role">Hire ' + role.toLowerCase() + '</span> <span class="cost"' +
-                  (rise > 0 ? ' title="Up ' + rise + '% since the company started, from inflation and competition"' : '') + '>' + fmt(cost) +
-                  (rise > 0 ? ' <span class="rise">↑' + rise + '%</span>' : '') + '</span>' +
-                '<span class="why">' + (why ? esc(why) : broke ? 'not enough cash' : deskNote() || ROLES[role].salary + '/min salary') + '</span>' +
-                '</button>';
-      });
-      setHTML(hireGrid, hire);
+      const ready = (state.candidates || []).length, pending = (state.postings || []).length;
+      setHTML(jobEntry,
+        '<button class="btn-small btn-ghost" data-action="open-jobs">Job board' + (ready ? ' · ' + ready + ' replied' : '') +
+        (pending ? ' · ' + pending + ' waiting for replies' : '') + '</button>' +
+        '<span class="why">Managers' + (premisesKey() === 'spare-room' ? ' and people who work from home' : '') + ' are found here, or tap the JOBS screen in the interview room.</span>');
+      renderJobBoardModal(now);
       renderApplicants(now);
     }
 
@@ -2039,10 +2075,60 @@ window.DebuggLtd = (function(){
             '" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>Hire for ' + fmt(a.cost) + '</button></div>' +
         (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
           : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
-        (canHireWfh(a.role) ? '<div class="card-foot"><span class="promo">Or from home: no desk, ' + Math.round(WFH_EFFICIENCY * 100) + '% as productive</span>' +
-          '<button class="btn-small btn-ghost" data-action="hire-applicant" data-wfh="1" data-id="' + a.id + '"' +
-            (hireProblem(a.role, true) || broke ? ' disabled' : '') + '>Hire to work from home</button></div>' : ''));
+''); 
     }
+    // The job board: post a job for a fee, and read the replies. Managers and people who work from
+    // home are found here and nowhere else.
+    let jobsOpen = false;
+    function renderJobBoardModal(now){
+      if(!jobsOpen) return;
+      const spare = premisesKey() === 'spare-room';
+      const options = [{ role: 'Manager', wfh: false }].concat(spare ? APPLICANT_ROLES.map(r => ({ role: r, wfh: true })) : []);
+      const post = options.map(o => {
+        const why = postProblem(o.role, o.wfh);
+        return '<div class="job-post"><button class="btn-small btn-ghost" data-action="post-job" data-role="' + o.role + '"' + (o.wfh ? ' data-wfh="1"' : '') +
+          (why ? ' disabled' : '') + '>Post a ' + jobLabel(o.role, o.wfh) + ' job · ' + fmt(postFee(o.role)) + '</button>' +
+          (why ? '<span class="why">' + esc(why) + '</span>' : '') + '</div>';
+      }).join('');
+      const waiting = (state.postings || []).map(p =>
+        '<div class="job-wait">' + esc(jobLabel(p.role, p.wfh).replace(/^./, c => c.toUpperCase())) + ' · replies in ' + fmtDuration(Math.max(0, p.readyAt - now)) + '</div>').join('');
+      const cands = (state.candidates || []).map(c => {
+        const wfh = c.wfh && canHireWfh(c.role);
+        const why = hireProblem(c.role, wfh), broke = state.money < c.cost;
+        return '<div class="candidate" data-candidate="' + c.id + '">' +
+          '<div class="card-top"><span class="card-name">' + esc(c.person.name) + (wfh ? ' <span class="repeat-tag">WFH</span>' : '') + '</span>' +
+          '<span class="card-level ' + c.role + '">' + c.role + '</span></div>' +
+          '<div class="card-stats"><span>' + (isDev(c.person) ? ROLES[c.role].sloc + ' SLOC/min · ' + topSkillsText(c.person) : 'Looks after the team') + '</span>' +
+          '<span>−' + fmtRate(ROLES[c.role].salary) + '/min</span></div>' +
+          '<div class="card-foot"><span class="promo">Offer open ' + fmtDuration(c.expiresAt - now) + (wfh ? ' · no desk, ' + Math.round(WFH_EFFICIENCY * 100) + '% as productive' : '') + '</span>' +
+          '<button class="btn-small btn-promote" data-action="hire-candidate" data-id="' + c.id + '"' + (why || broke ? ' disabled' : '') + '>Hire for ' + fmt(c.cost) + '</button></div>' +
+          (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
+            : !wfh && deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
+          '</div>';
+      }).join('');
+      setHTML(jobsModalBody,
+        '<h2>Job board</h2>' +
+        '<p class="applicants-note">Post a job and a candidate replies in about ' + JOB_DELAY_H + ' hour' + (JOB_DELAY_H === 1 ? '' : 's') + '. A posting costs ' + Math.round(JOB_FEE * 100) +
+        '% of the hire cost, and it’s yours whether or not you hire them. Managers' + (spare ? ' and people who work from home' : '') + ' are only found here.</p>' +
+        '<div class="skill-section-title">Post a job</div>' + post +
+        '<div class="skill-section-title">Waiting for replies</div>' + (waiting || '<p class="applicants-note">No postings out.</p>') +
+        '<div class="skill-section-title">Candidates</div>' + (cands || '<p class="applicants-note">Nobody has replied yet.</p>'));
+    }
+    function openJobBoard(){
+      jobsOpen = true;
+      jobsModal.hidden = false;
+      renderJobBoardModal(Date.now());
+    }
+    function closeJobBoard(){
+      jobsOpen = false;
+      jobsModal.hidden = true;
+      setHTML(jobsModalBody, '');
+    }
+    jobsModal.addEventListener('click', (e) => {
+      if(e.target === jobsModal || e.target.closest('[data-action=close-jobs]')) closeJobBoard();
+      else onAction(e);
+    });
+
     function openCandidateModal(id){
       if(!state.applicants.some(a => a.id === id)) return;
       candidateId = id;
@@ -2322,6 +2408,7 @@ window.DebuggLtd = (function(){
             : onBench(p, busy, now) ? 'bench' : 'idle';
           return { id: p.id, name: p.name, role: p.role, look: p.look || null, wfh: !!p.wfh, state: st, notice: p.notice ? { reason: p.notice.reason, until: p.notice.until } : null, job: job ? officeJob(job, now) : null };
         }),
+        jobBoard: { ready: (state.candidates || []).length, pending: (state.postings || []).length },
         applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
       };
     }
@@ -2335,6 +2422,8 @@ window.DebuggLtd = (function(){
         }else if(kind === 'director'){
           const d = state.roster.find(p => p.role === 'Director');
           if(d) openPersonModal(d.id);
+        }else if(kind === 'jobs'){
+          openJobBoard();
         }else if(kind === 'applicant'){
           // Hiring costs money, so it stays a button: the tap shows you their card.
           openCandidateModal(id);
@@ -2550,6 +2639,7 @@ window.DebuggLtd = (function(){
       if(picker) closePicker();
       if(inspectId) closePersonModal();
       if(candidateId) closeCandidateModal();
+      if(jobsOpen) closeJobBoard();
     });
 
     // ---------------------------------------------------------------------
@@ -2561,15 +2651,28 @@ window.DebuggLtd = (function(){
       if(!btn || btn.disabled) return;
       const action = btn.dataset.action;
 
-      if(action === 'hire'){
-        const role = btn.dataset.role;
-        const cost = hireCost(role);
-        if(!HIRE_BUTTONS.includes(role) || state.money < cost || hireProblem(role)) return;
-        state.money -= cost;
-        const hire = makeHire(role);
-        state.roster.push(hire);
-        addLog('info', 'Hired ' + hire.name + ' as ' + role.toLowerCase() + '.');
-        track('hired/' + role.toLowerCase());
+      if(action === 'open-jobs'){
+        openJobBoard();
+        return;
+      }else if(action === 'post-job'){
+        const role = btn.dataset.role, wfh = !!btn.dataset.wfh;
+        if(!HIRE_ORDER.includes(role) || (wfh ? !APPLICANT_ROLES.includes(role) : role !== 'Manager') || postProblem(role, wfh)) return;
+        state.money -= postFee(role);
+        state.postings.push({ id: uid('p'), role, wfh, readyAt: Date.now() + JOB_DELAY_H * 3600000 });
+        addLog('info', 'Posted a ' + jobLabel(role, wfh) + ' job for ' + fmt(postFee(role)) + '. Replies in about ' + JOB_DELAY_H + ' hour' + (JOB_DELAY_H === 1 ? '' : 's') + '.');
+        track('post/' + role.toLowerCase() + (wfh ? '/wfh' : ''));
+      }else if(action === 'hire-candidate'){
+        const c = (state.candidates || []).find(x => x.id === btn.dataset.id);
+        if(!c) return;
+        const wfh = c.wfh && canHireWfh(c.role);
+        if(state.money < c.cost || hireProblem(c.role, wfh)) return;
+        state.money -= c.cost;
+        state.candidates = state.candidates.filter(x => x !== c);
+        c.person.since = Date.now();
+        if(wfh) c.person.wfh = true;
+        state.roster.push(c.person);
+        addLog('info', 'Hired ' + c.person.name + ' as ' + c.role.toLowerCase() + (wfh ? ', working from home.' : '.'));
+        track('hired/' + c.role.toLowerCase());
       }else if(action === 'keep'){
         const p = person(btn.dataset.id);
         if(!p || !p.notice) return;
@@ -2629,14 +2732,12 @@ window.DebuggLtd = (function(){
         state.guideDone = true;
       }else if(action === 'hire-applicant'){
         const a = (state.applicants || []).find(x => x.id === btn.dataset.id);
-        const wfh = !!btn.dataset.wfh;
-        if(!a || state.money < a.cost || hireProblem(a.role, wfh) || (wfh && !canHireWfh(a.role))) return;
+        if(!a || state.money < a.cost || hireProblem(a.role)) return;
         state.money -= a.cost;
         state.applicants = state.applicants.filter(x => x !== a);
         a.person.since = Date.now();
-        if(wfh) a.person.wfh = true;
         state.roster.push(a.person);
-        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + (wfh ? ', working from home.' : '.'));
+        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + '.');
         track('hired/' + a.role.toLowerCase());
       }else if(action === 'promote'){
         const p = person(btn.dataset.id);
@@ -2769,6 +2870,7 @@ window.DebuggLtd = (function(){
     refreshBoard(Date.now());
     moveMarket(Date.now());
     moveApplicants(Date.now());
+    moveJobBoard(Date.now());
     checkStage();
 
     const now = Date.now();
@@ -2803,6 +2905,7 @@ window.DebuggLtd = (function(){
       refreshBoard(t);
       moveMarket(t);
       moveApplicants(t);
+      moveJobBoard(t);
       moveNotices(t);
       moveInterns(t);
       moveDesk(t);

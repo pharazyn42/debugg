@@ -633,6 +633,21 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = '#8a6141'; ctx.fillRect(a + 34 * s, f.top + 34 * s, 30 * s, 22 * s);
     ctx.fillStyle = '#e8e2d6'; ctx.fillRect(a + 36 * s, f.top + 36 * s, 26 * s, 18 * s);
     ctx.fillStyle = '#9a6a43'; ell(a + 47 * s, f.top + 47 * s, 7 * s, 5 * s); ctx.fill(); ell(a + 53 * s, f.top + 43 * s, 3 * s, 3 * s); ctx.fill();
+    // The job board: a monitor on the wall showing the posting site. Tap it to open the board; a
+    // green badge counts the candidates who have replied.
+    const jb = snap.jobBoard || { ready: 0, pending: 0 };
+    const mx = a + 72 * s, my = f.top + 34 * s, mw = 40 * s, mh = 26 * s;
+    ctx.fillStyle = '#2a2d33'; rrect(mx, my, mw, mh, 3 * s); ctx.fill();
+    ctx.fillStyle = '#16181c'; ctx.fillRect(mx + 2 * s, my + 2 * s, mw - 4 * s, mh - 4 * s);
+    font(800, 7 * s, true); ctx.fillStyle = '#5aa9e6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('JOBS', mx + mw / 2, my + mh / 2 - 2 * s);
+    ctx.fillStyle = jb.pending ? '#f2b84b' : '#5f6470';
+    for(let k = 0; k < 3; k++) ctx.fillRect(mx + 8 * s + k * 9 * s, my + mh - 8 * s, 6 * s, 1.5 * s);
+    if(jb.ready){
+      ctx.fillStyle = '#4fd18b'; ell(mx + mw - 1 * s, my + 1 * s, 5.5 * s, 5.5 * s); ctx.fill();
+      font(800, 7 * s, true); ctx.fillStyle = '#0d0e10'; ctx.fillText(String(jb.ready), mx + mw - 1 * s, my + 1.4 * s);
+    }
+    targets.push({ kind: 'jobs', id: 'jobs', x: mx, y: my, w: mw, h: mh, cx: mx + mw / 2 });
   }
 
   // Upstairs in a unit, above the interview room: a server room, racks of blinking lights.

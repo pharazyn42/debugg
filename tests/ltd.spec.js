@@ -229,16 +229,20 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
 test('hiring costs only go up, with inflation and competition', async ({ page }) => {
   await withStorage(page, { 'debugg-xp': { python: 300 } });
   await found(page);
-  const mgr = page.locator('[data-action=hire][data-role=Manager] .cost');
-  await expect(mgr).toHaveText('¤900');
+  await page.click('[data-action=open-jobs]');
+  const post = page.locator('[data-action=post-job][data-role=Manager]');
+  await expect(post).toContainText('¤90');     // a tenth of the ¤900 hire cost
+  await page.keyboard.press('Escape');
   const nextAt = (await ltd(page)).market.nextAt - await page.evaluate(() => Date.now());
   expect(nextAt).toBeGreaterThanOrEqual(12 * 3600000 - 60000);
   expect(nextAt).toBeLessThanOrEqual(36 * 3600000);
   // A rival hiring managers has pushed their price up by half.
   await editCompany(page, s => { s.market.prices.Manager = 1.5; s.money = 2000; s.office = { premises: 'unit-s', owned: true }; });
-  await expect(mgr).toHaveText('¤1,350 ↑50%');
-  await page.click('[data-action=hire][data-role=Manager]');
-  await expect(page.locator('#statMoney')).toHaveText('¤650');
+  await page.click('[data-action=open-jobs]');
+  await expect(post).toContainText('¤135');    // a tenth of ¤1,350
+  await post.click();
+  await expect(page.locator('#statMoney')).toHaveText('¤1,865');
+  await page.keyboard.press('Escape');
   // A move that's due happens on load, and is logged; prices never fall.
   await editCompany(page, s => { s.market.nextAt = Date.now() - 1000; });
   await expect(page.locator('#log')).toContainText(/Inflation: every hire costs|Competition: a rival studio is hiring/);
@@ -248,10 +252,10 @@ test('hiring costs only go up, with inflation and competition', async ({ page })
   expect(prices.Manager).toBeGreaterThanOrEqual(1.5);
 });
 
-test('developers apply now and then, graduates too, once the studio has some reputation; only managers have a hire button', async ({ page }) => {
+test('developers apply now and then, graduates too, once the studio has some reputation; there are no hire buttons in the Studio box', async ({ page }) => {
   await found(page);
-  await expect(page.locator('[data-action=hire]')).toHaveCount(1);
-  await expect(page.locator('[data-action=hire][data-role=Graduate]')).toHaveCount(0);
+  await expect(page.locator('[data-action=hire]')).toHaveCount(0);
+  await expect(page.locator('[data-action=open-jobs]')).toHaveCount(1);
   await expect(page.locator('#applicants')).toContainText('Nobody’s applied yet');
   await expect(page.locator('#applicants')).toContainText('Graduates and juniors apply once the studio has 5 reputation; ' +
     'seniors apply once the studio has 500 reputation; principals apply once the studio has 5,000 reputation (you have 0)');
@@ -280,7 +284,7 @@ test('developers apply now and then, graduates too, once the studio has some rep
   await expect(page.locator('#log')).toContainText('applied to join as a ' + a.role.toLowerCase());
   await openCandidate(page, a.id);
   await expect(page.locator('#candidateModalBody')).toContainText('Offer open 12h');
-  await page.locator('#candidateModalBody [data-action=hire-applicant]:not([data-wfh])').click();
+  await page.locator('#candidateModalBody [data-action=hire-applicant]').click();
   await expect(page.locator('.applicant-link')).toHaveCount(0);
   const after = await ltd(page);
   expect(after.money).toBeCloseTo(5000 - a.cost, 0);
@@ -745,9 +749,13 @@ test('the demo runs hotfixes and patches, with managers', async ({ page }) => {
   await expect(page.locator('#welcomeToast')).toContainText('In the demo it runs hotfixes, and patches once you have more than 10 staff');
   await expect(page.locator('#welcomeToast')).toContainText('reset when v0.1 comes out');
   // Managers can be hired once the company has left the spare room.
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('managers need an office: move out of the spare room first');
-  await editCompany(page, s => { s.office = { premises: 'unit-s', owned: true }; });
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('not enough cash');
+  await page.click('[data-action=open-jobs]');
+  await expect(page.locator('.job-post', { has: page.locator('[data-role=Manager]') }).locator('.why')).toHaveText('managers need an office: move out of the spare room first');
+  await page.keyboard.press('Escape');
+  await editCompany(page, s => { s.office = { premises: 'unit-s', owned: true }; s.money = 50; });
+  await page.click('[data-action=open-jobs]');
+  await expect(page.locator('.job-post', { has: page.locator('[data-role=Manager]') }).locator('.why')).toHaveText('not enough cash');
+  await page.keyboard.press('Escape');
   // Patches open above 10 staff.
   await editCompany(page, staffUpTo(11));
   await expect(page.locator('.board-group[data-tier=patch] .offer')).toHaveCount(2);
@@ -798,7 +806,9 @@ test('everyone needs a desk: the spare room has 4, then a small business unit fo
   // The spare room is full, but nobody's squeezed in, so it isn't cramped. Managers need an office.
   await expect(page.locator('.slot', { hasText: 'Desks' })).toHaveText('Desks 4/4');
   await expect(page.locator('.premises .cramped')).toHaveCount(0);
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('managers need an office: move out of the spare room first');
+  await page.click('[data-action=open-jobs]');
+  await expect(page.locator('.job-post', { has: page.locator('[data-role=Manager]') }).locator('.why')).toHaveText('managers need an office: move out of the spare room first');
+  await page.keyboard.press('Escape');
   // The next premises can be rented or bought outright; ¤5,000 isn't enough to buy.
   await expect(page.locator('[data-action=move][data-tenure=rent]')).toHaveText('Rent a small business unit · 10 desks · ¤4/min');
   await expect(page.locator('[data-action=move][data-tenure=buy]')).toHaveText('Buy one · ¤60,000, then ¤1/min upkeep');
@@ -810,7 +820,7 @@ test('everyone needs a desk: the spare room has 4, then a small business unit fo
   await expect(page.locator('#log')).toContainText('Moved into a rented small business unit: 10 desks, ¤4/min rent.');
   await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + rent');
   await expect(page.locator('#statPayroll')).toHaveText('−¤13/min');  // ¤9 salaries + ¤4 rent
-  await page.click('[data-action=hire][data-role=Manager]');
+  await hireManager(page);
   await expect(page.locator('.premises')).toContainText('5/10 desks used');
   expect((await ltd(page)).office).toEqual({ premises: 'unit-s', owned: false });
   // Nothing bigger in the demo yet.
@@ -1189,6 +1199,16 @@ test('works at phone width with the studio on', async ({ page }) => {
 // The office view (ltd/office.js): the studio drawn as a building above the desk and the studio.
 const officeLabel = page => page.locator('.office-canvas');
 // Open someone's panel from the names-only list (the keyboard way in; the picture's taps do the same).
+// Posts a manager job, lets the candidate reply, and hires them (they cost around the market price).
+async function hireManager(page){
+  await page.click('[data-action=open-jobs]');
+  await page.click('[data-action=post-job][data-role=Manager]');
+  await page.keyboard.press('Escape');
+  await editCompany(page, s => { s.postings.forEach(p => { p.readyAt = Date.now() - 1000; }); });
+  await page.click('[data-action=open-jobs]');
+  await page.click('#jobsModalBody [data-action=hire-candidate]');
+  await page.keyboard.press('Escape');
+}
 async function openCandidate(page, id){
   await page.evaluate(() => { document.querySelector('.people-list').open = true; });
   await page.click('.applicant-link[data-id="' + id + '"]');
@@ -1226,7 +1246,7 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
     'Your office, the spare room: 3 of 4 desks taken, 1 on contracts, 2 on everyday work, 2 applicants waiting.');
   const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
-  expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'person:g1', 'person:g2',
+  expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'jobs:jobs', 'person:g1', 'person:g2',
                          'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
   // The Daily tab doesn't load the company, so there's no office there.
   await page.click('#dailyTab');
@@ -1362,7 +1382,7 @@ test('someone who has handed in their notice gets a speech bubble in the office,
   await expect(officeLabel(page)).toHaveAttribute('aria-label', /, 1 handed in their notice, /);
 });
 
-test('hiring is done from the applicant’s card in the interview room, at a desk or from home', async ({ page }) => {
+test('hiring is done from the applicant’s card in the interview room', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
     s.money = 5000; s.guideDone = true;
@@ -1376,9 +1396,10 @@ test('hiring is done from the applicant’s card in the interview room, at a des
   await expect(page.locator('#candidateModalBody')).toContainText('Kiri T.');
   await expect(page.locator('#candidateModalBody')).toContainText('asking ¤180');
   await expect(page.locator('#candidateModalBody')).toContainText('Python');
-  await page.click('#candidateModalBody [data-wfh="1"]');
+  await expect(page.locator('#candidateModalBody [data-wfh]')).toHaveCount(0);   // working from home is the job board's
+  await page.click('#candidateModalBody [data-action=hire-applicant]');
   await expect(page.locator('#candidateModal')).toBeHidden();
-  expect((await ltd(page)).roster.find(p => p.id === 'a1')).toMatchObject({ role: 'Graduate', wfh: true });
+  expect((await ltd(page)).roster.find(p => p.id === 'a1')).toMatchObject({ role: 'Graduate' });
   // An offer that runs out while its card is open closes it.
   await editCompany(page, s => {
     s.applicants = [{ id: 'a2', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
@@ -1387,4 +1408,45 @@ test('hiring is done from the applicant’s card in the interview room, at a des
   await openCandidate(page, 'a2');
   await page.keyboard.press('Escape');
   await expect(page.locator('#candidateModal')).toBeHidden();
+});
+
+test('the job board: post a job for a fee, a candidate replies later, managers and work-from-home people are hired there', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await officeBreaks(page);
+  await found(page);
+  await editCompany(page, s => { s.money = 5000; s.guideDone = true; s.reputation = 10; });
+  // The JOBS screen in the interview room opens it.
+  await tapOffice(page, 'jobs', 'jobs');
+  await expect(page.locator('#jobsModal')).toBeVisible();
+  // In the spare room a manager can't be hired, but work-from-home people can.
+  await expect(page.locator('.job-post', { has: page.locator('[data-role=Manager]') }).locator('.why')).toHaveText('managers need an office: move out of the spare room first');
+  await expect(page.locator('[data-action=post-job][data-wfh="1"]')).toHaveCount(4);
+  await expect(page.locator('[data-action=post-job][data-role=Senior]')).toBeDisabled();   // needs 500 reputation
+  await page.click('[data-action=post-job][data-role=Graduate]');
+  expect(Math.round((await ltd(page)).money)).toBe(4980);   // a tenth of ¤180 is ¤18, to the nearest ¤5 ¤20
+  await expect(page.locator('#jobsModalBody')).toContainText('Work-from-home graduate · replies in');
+  await expect(page.locator('#jobsModalBody')).toContainText('Nobody has replied yet');
+  await page.keyboard.press('Escape');
+  // An hour later: they reply, asking around the market price.
+  await editCompany(page, s => { s.postings.forEach(p => { p.readyAt = Date.now() - 1000; }); });
+  await expect(page.locator('#log')).toContainText('replied to your work-from-home graduate posting');
+  await page.click('[data-action=open-jobs]');
+  const c = (await ltd(page)).candidates[0];
+  expect(c).toMatchObject({ role: 'Graduate', wfh: true });
+  await expect(page.locator('.candidate')).toContainText('WFH');
+  await page.click('[data-action=hire-candidate]');
+  expect((await ltd(page)).roster.find(p => p.id === c.id)).toMatchObject({ role: 'Graduate', wfh: true });
+  expect((await ltd(page)).candidates).toHaveLength(0);
+  // A reply nobody picked up goes after a day.
+  await page.keyboard.press('Escape');
+  await editCompany(page, s => { s.candidates = [{ id: 'x1', role: 'Graduate', wfh: true, cost: 180, expiresAt: Date.now() - 1000,
+    person: { id: 'x1', name: 'Zed Q.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }]; });
+  await expect(page.locator('#log')).toContainText('Zed Q. (work-from-home graduate) took a job elsewhere.');
+  // A reply takes an hour.
+  await page.click('[data-action=open-jobs]');
+  await page.click('[data-action=post-job][data-role=Graduate]');
+  await page.keyboard.press('Escape');
+  const posting = (await ltd(page)).postings[0];
+  expect(posting.readyAt - at(12).getTime()).toBeGreaterThanOrEqual(3600000 - 1000);
+  expect(posting.readyAt - at(12).getTime()).toBeLessThanOrEqual(3600000 + 60000);
 });

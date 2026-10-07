@@ -303,8 +303,8 @@ state = {
 - **The board folds offers nobody can take**: offers in languages nobody on staff knows sit
   behind a "Show 3 in languages nobody on staff knows" toggle (`state.showUnknownOffers`), unless
   nobody's been hired yet.
-- **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): only
-  managers have a hire button. Developers *apply*, graduates included since item 4d: one
+- **Applicants** (`moveApplicants()`, `state.applicants`, `state.nextApplicantAt`): managers
+  are hired on the job board. Developers *apply* (hired from their card in the interview room), graduates included since item 4d: one
   every 8–24 hours, at most 3 waiting, each asking the
   market price × 0.9–1.2, with the offer open for 12 hours ("took a job elsewhere" after).
   Reputation decides who applies (`APPLICANT_REP`): nobody below 5 (`nextApplicantAt` is 0
@@ -349,7 +349,8 @@ state = {
   office view, squeezed-in people take a stool after the last desk, then share the end of someone's
   desk, the meeting-room table, the kitchen couch and counter, the stairs and the floor
   (`squeezeSpots()`, `squeezeProp()`).
-- **Hiring in the interview room** (October 2026, item 10c step 3; `openCandidateModal()`, `#candidateModal`): clicking an applicant in the picture (or `.applicant-link` in the names list) opens their card with `hire-applicant` and, in the spare room, the work-from-home hire. The Studio box keeps only notes about who applies (`#applicants`). The manager hire button stays in the Studio box until the job board (step 4).
+- **The job board** (October 2026, item 10c step 4; `state.postings`, `state.candidates`, `JOB_FEE`, `JOB_DELAY_H`, `JOB_OPEN_H`, `JOB_BOARD_MAX`, `postProblem()`, `moveJobBoard()`, `#jobsModal`): the way to hire **managers** and **work-from-home developers** (`wfh`, spare room only, at the applicant reputation for their level). `post-job` costs `postFee(role)` (10% of the hire cost, to ¤5); `moveJobBoard()` turns a due posting into a candidate (`{ id, role, wfh, person, cost, expiresAt }`, asking the market price × `APPLICANT_ASK`, open 24 h; one that would already have expired while the page was closed is dropped), and `hire-candidate` hires them (a WFH candidate hired after leaving the spare room takes a desk). At most 4 postings and candidates at once. Opened from the JOBS monitor in the interview room (a `jobs` tap target, with a badge counting replies) or the Studio box's button. Postings and candidates shift with the clocks on resume. The simulator posts a manager job once the Director's span is full, and a work-from-home graduate job when the spare room is full.
+- **Hiring in the interview room** (October 2026, item 10c step 3; `openCandidateModal()`, `#candidateModal`): clicking an applicant in the picture (or `.applicant-link` in the names list) opens their card with `hire-applicant` and, in the spare room, the work-from-home hire. The Studio box keeps only notes about who applies (`#applicants`). Managers and work-from-home hires are on the job board (step 4).
 - **Notifications bar and bubbles** (October 2026, item 10c step 2; `renderNotifications()`, `#notifications` at the top of the contract board, apart from the Recent log): one line per notice (the name opens their panel, a **Keep** button) and the debt warning. The office draws a speech bubble over anyone with a notice (`noticeBubble()`, from `notice: { reason, until }` in the snapshot), and its aria-label counts them. The guide stays in the Studio box.
 - **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
   until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their

@@ -879,7 +879,7 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
     first impression and share card could come first; Debugg Ltd can
     follow.
 
-### 10c. The studio panel, notifications and the job board (the player-owner's brief, October 2026; not started)
+### 10c. The studio panel, notifications and the job board (the player-owner's brief, October 2026; all four steps built)
 The Studio box is named for the company, and the office view carries the people. Decided with the
 player-owner:
 - **The Studio panel** is titled with the company's name (`state.companyName`, "Debuggit Ltd" if
@@ -911,8 +911,8 @@ player-owner:
     with how many postings are open. Leaning to (b) and a delay of an hour or so, so a posting is a
     deliberate spend; test with the sim.
   - Managers can't be hired in the spare room (`hireProblem()`), so the board says so there.
-- **Build in steps**: (1) the panel, premises and people panels; (2) the notifications bar and
-  bubbles; (3) interview-room hiring; (4) the job board.
+- **Build in steps** (all done, October 2026): (1) the panel, premises and people panels; (2) the notifications bar and
+  bubbles; (3) interview-room hiring; (4) the job board (posting fee 10% of the hire cost, replies in an hour, offers open a day; to tune with the sim).
 
 ## Phase 3 — Retention and mid-game growth
 
