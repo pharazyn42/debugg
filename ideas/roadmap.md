@@ -1017,7 +1017,10 @@ player-owner's meaning), not a division of the company.
   tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
   tenant events via 15b.
 - **Phase 1 is built** (September 2026): desks, co-working and managers in the demo (see "The
-  office" above). Decided then: the Director takes no desk; a full office is cramped (slower,
+  office" above). **October 2026, the player-owner's calls:** co-working desks are gone, and each
+  premises after the spare room is a choice of **renting or buying outright**. The small business
+  unit is built (2 floors × 5 desks; rent ¤4/min, or buy for ¤60,000 then ¤1/min upkeep, selling
+  for 90% on moving out); leases, deposits, moving time, listings and the large unit are to do. Decided then: the Director takes no desk; a full office is cramped (slower,
   and people hand in their notice) and takes up to 2 more squeezed in, rather than blocking
   hiring. WFH applicants weren't in it and are still to come.
 - **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;

@@ -43,7 +43,7 @@ window.DebuggLtd = (function(){
     [statsSlot, studioSlot, boardSlot, deskSlot, officeSlot].forEach(el => { if(el){ el.classList.add('ltd'); el.hidden = false; } });
     if(officeSlot) officeSlot.innerHTML =
       '<div class="panel office-view">' +
-        '<h2>Office <span class="tag">your spare room</span>' +
+        '<h2>Office <span class="tag" id="officeTag"></span>' +
           '<button type="button" class="btn-small btn-ghost office-toggle" data-action="office-toggle" id="officeToggle" aria-controls="officeBox"></button></h2>' +
         '<div class="office-box" id="officeBox"></div>' +
       '</div>';
@@ -321,7 +321,7 @@ window.DebuggLtd = (function(){
     // replacement hotfix keeps its language.
 
     // The demo is the start-up slice: hotfixes and patches only (patches need more than
-    // PATCH_HEADCOUNT staff, so managers and co-working desks). Managers were locked in the demo
+    // PATCH_HEADCOUNT staff, so managers and the small business unit). Managers were locked in the demo
     // until September 2026, when they came in with desks as the demo's money sink. The rest is
     // shown as coming in v0.1. Old saves keep what they have; they just get no more of it.
     const DEMO = !!D.DEMO;
@@ -435,7 +435,7 @@ window.DebuggLtd = (function(){
         boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
-        office: { cowork: 0 },// co-working desks rented beyond the spare room
+        office: { premises: 'spare-room', owned: false },  // where the company works (PREMISES), and whether it's bought
         desk: freshDesk(now)  // desk jobs (see "The desk")
       };
     }
@@ -669,17 +669,35 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // The office: desks (phase 1 of ideas/company-growth-roadmap.md)
     // ---------------------------------------------------------------------
-    // Everyone on staff needs a desk; the Director works from home, at their own desk. The
-    // spare room has SPARE_ROOM_DESKS, free. Past that, co-working desks: rented one at a time
-    // (up to COWORK_MAX), COWORK_RATE per desk per minute, charged like payroll (offline too,
-    // not while paused), and given up any time a desk is free. Business units come next.
-    const SPARE_ROOM_DESKS = 4;
-    const COWORK_RATE = 1;
-    const COWORK_MAX = 8;
-    function coworkDesks(){ return (state.office && state.office.cowork) || 0; }
-    function deskCount(){ return SPARE_ROOM_DESKS + coworkDesks(); }
+    // Everyone on staff needs a desk; the Director works from home, at their own desk. The company
+    // starts in the spare room (4 desks, free). Each premises after it is a choice (the
+    // player-owner's call, October 2026): rent it (rent per minute) or buy it outright (its price
+    // up front, then a smaller upkeep per minute). Rent and upkeep are charged like payroll (offline
+    // too, not while paused). A rented place can be bought later without moving; moving out of a
+    // bought one sells it for SELL_BACK of its price. Moving is instant, as long as everyone fits
+    // (desks plus CRAM_MAX squeezed in). Co-working desks were the way past the spare room until
+    // October 2026, when the unit replaced them (phase 2 of ideas/company-growth-roadmap.md,
+    // without leases yet). Prices are placeholders for the balance pass.
+    const PREMISES = {
+      'spare-room': { name: 'spare room', floors: 1, perFloor: 4, rent: 0 },
+      'unit-s': { name: 'small business unit', floors: 2, perFloor: 5, rent: 4, price: 60000, upkeep: 1 }
+    };
+    const SELL_BACK = 0.9;
+    const PREMISES_ORDER = ['spare-room', 'unit-s'];
+    const SPARE_ROOM_DESKS = PREMISES['spare-room'].perFloor;
+    function premisesKey(){ return (state.office && PREMISES[state.office.premises]) ? state.office.premises : 'spare-room'; }
+    function premises(){ return PREMISES[premisesKey()]; }
+    function nextPremises(){ return PREMISES_ORDER[PREMISES_ORDER.indexOf(premisesKey()) + 1] || null; }
+    function prevPremises(){ return PREMISES_ORDER[PREMISES_ORDER.indexOf(premisesKey()) - 1] || null; }
+    function desksIn(key){ return PREMISES[key].floors * PREMISES[key].perFloor; }
+    function deskCount(){ return desksIn(premisesKey()); }
     function desksUsed(){ return state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length; }
-    function rentPerMinute(){ return coworkDesks() * COWORK_RATE; }
+    function owned(){ return !!(state.office && state.office.owned) && premisesKey() !== 'spare-room'; }
+    // Rent, or upkeep for a place the company owns.
+    function rentPerMinute(){ return owned() ? premises().upkeep : premises().rent; }
+    function sellPrice(key){ return Math.round(PREMISES[key].price * SELL_BACK); }
+    // Why the company can't move somewhere smaller ('' if it can).
+    function moveProblem(key){ return desksUsed() > desksIn(key) + CRAM_MAX ? 'too many people to fit' : ''; }
     // A full office is cramped, and up to CRAM_MAX more people can be squeezed in without desks,
     // each making it worse. Everyone writes CRAMPED[level] less code on contracts started while
     // it's cramped (level 1 = every desk taken, 2 = one squeezed in, 3 = two), and people are
@@ -693,7 +711,7 @@ window.DebuggLtd = (function(){
     function crampedPenalty(){ return CRAMPED[cramLevel()]; }
     function deskProblem(){
       if(desksUsed() < deskCount() + CRAM_MAX) return null;
-      return 'no room to squeeze anyone else in' + (coworkDesks() < COWORK_MAX ? ' — rent a co-working desk' : ' — bigger premises are coming in v0.1');
+      return 'no room to squeeze anyone else in' + (nextPremises() ? ' — rent or buy a ' + PREMISES[nextPremises()].name : ' — bigger premises are coming in v0.1');
     }
     // What hiring one more would do to the office, for the hire buttons: '' when there's a free desk.
     function deskNote(){
@@ -1574,8 +1592,9 @@ window.DebuggLtd = (function(){
       statRep.textContent = Math.floor(state.reputation).toLocaleString('en-GB');
       const rent = rentPerMinute();
       statPayroll.textContent = '−' + fmtRate(payrollPerMinute() + rent) + '/min';
-      statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min rent' : 'Salaries';
-      statPayrollLabel.textContent = rent ? 'Payroll + rent' : 'Payroll';
+      const rentWord = owned() ? 'upkeep' : 'rent';
+      statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min ' + rentWord : 'Salaries';
+      statPayrollLabel.textContent = rent ? 'Payroll + ' + rentWord : 'Payroll';
       statHeads.textContent = headcount();
     }
 
@@ -1678,17 +1697,28 @@ window.DebuggLtd = (function(){
         slot('Grads', c.Graduate, cap.Graduate) +
         slot('Devs', c.devs, cap.devs) +
         slot('Desks', desksUsed(), deskCount()));
-      const cowork = coworkDesks();
+      const pr = premises(), up = nextPremises(), down = prevPremises();
       setHTML(officeEl,
-        '<div class="office-text"><b>Office</b> · your spare room, ' + SPARE_ROOM_DESKS + ' desks' +
-          (cowork ? ' + ' + cowork + ' co-working desk' + (cowork === 1 ? '' : 's') + ' (' + fmtRate(rentPerMinute()) + '/min)' : '') +
+        '<div class="office-text"><b>Office</b> · ' + (premisesKey() === 'spare-room' ? 'your' : 'a') + ' ' + pr.name + ', ' + deskCount() + ' desks' +
+          (pr.floors > 1 ? ' on ' + pr.floors + ' floors' : '') +
+          (owned() ? ', owned (' + fmtRate(pr.upkeep) + '/min upkeep)' : pr.rent ? ', rented (' + fmtRate(pr.rent) + '/min)' : '') +
           ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span>' +
           (cramLevel() ? '<div class="cramped">' + (desksUsed() > deskCount() ? (desksUsed() - deskCount()) + ' squeezed in without a desk' : 'Every desk is taken') +
             ': cramped, so everyone is ' + Math.round(crampedPenalty() * 100) + '% slower on new contracts, and likelier to hand in their notice.</div>' : '') +
           '</div>' +
         '<div class="office-actions">' +
-          '<button class="btn-small btn-ghost" data-action="cowork-add"' + (cowork >= COWORK_MAX ? ' disabled title="Bigger premises are coming in v0.1"' : '') + '>+ Co-working desk · ' + fmtRate(COWORK_RATE) + '/min</button>' +
-          (cowork ? '<button class="btn-small btn-ghost" data-action="cowork-drop"' + (desksUsed() > deskCount() - 1 + CRAM_MAX ? ' disabled title="Nobody else can be squeezed in"' : '') + '>− Give one up</button>' : '') +
+          (up ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + up + '" data-tenure="rent">Rent a ' + PREMISES[up].name +
+              ' · ' + desksIn(up) + ' desks · ' + fmtRate(PREMISES[up].rent) + '/min</button>' +
+            '<button class="btn-small btn-ghost" data-action="move" data-premises="' + up + '" data-tenure="buy"' +
+              (state.money < PREMISES[up].price ? ' disabled title="Not enough cash"' : '') + '>Buy one · ' + fmt(PREMISES[up].price) +
+              ', then ' + fmtRate(PREMISES[up].upkeep) + '/min upkeep</button>'
+            : '<button class="btn-small btn-ghost" disabled title="Bigger premises are coming in v0.1">Bigger premises · coming in v0.1</button>') +
+          (premisesKey() !== 'spare-room' && !owned() ? '<button class="btn-small btn-ghost" data-action="buy-premises"' +
+            (state.money < pr.price ? ' disabled title="Not enough cash"' : '') + '>Buy this ' + pr.name + ' · ' + fmt(pr.price) +
+            ', then ' + fmtRate(pr.upkeep) + '/min upkeep</button>' : '') +
+          (down ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + down + '"' +
+            (moveProblem(down) ? ' disabled title="Can’t move back: ' + moveProblem(down) + '"' : '') + '>' +
+            (owned() ? 'Sell for ' + fmt(sellPrice(premisesKey())) + ' and move back to the ' : 'Move back to the ') + PREMISES[down].name + '</button>' : '') +
         '</div>');
       // Why a level is full while there's still room for devs overall: every level needs
       // someone at the level above (or you) to look after it.
@@ -2023,6 +2053,7 @@ window.DebuggLtd = (function(){
     let officeShown = null;
     function renderOffice(){
       if(!officeSlot) return;
+      $('officeTag').textContent = (premisesKey() === 'spare-room' ? 'your ' : 'a ') + premises().name;
       const show = state.showOffice !== false;
       if(show === officeShown) return;
       officeShown = show;
@@ -2044,7 +2075,7 @@ window.DebuggLtd = (function(){
       const now = Date.now(), busy = busyIds();
       return {
         now,
-        premises: { kind: 'spare-room', perFloor: SPARE_ROOM_DESKS, cowork: coworkDesks(),
+        premises: { kind: premisesKey(), name: premises().name, owned: owned(), floors: premises().floors, perFloor: premises().perFloor,
                     squeezed: Math.max(0, desksUsed() - deskCount()), maxApplicants: MAX_APPLICANTS },
         people: state.roster.map(p => {
           const job = jobFor(p.id);
@@ -2316,15 +2347,32 @@ window.DebuggLtd = (function(){
         addLog('ok', '✓ ' + p.name + ' is staying, for a ' + fmtRate(p.notice.ask) + '/min pay rise.');
         delete p.notice;
         track('kept/' + p.role.toLowerCase());
-      }else if(action === 'cowork-add'){
-        if(coworkDesks() >= COWORK_MAX) return;
-        state.office.cowork = coworkDesks() + 1;
-        addLog('info', 'Rented a co-working desk (' + fmtRate(COWORK_RATE) + '/min).');
-        track('office/cowork');
-      }else if(action === 'cowork-drop'){
-        if(!coworkDesks() || desksUsed() > deskCount() - 1 + CRAM_MAX) return;
-        state.office.cowork = coworkDesks() - 1;
-        addLog('info', 'Gave up a co-working desk.');
+      }else if(action === 'move'){
+        const key = btn.dataset.premises, buy = btn.dataset.tenure === 'buy';
+        if(!PREMISES[key] || key === premisesKey() || (key !== nextPremises() && key !== prevPremises()) || moveProblem(key)) return;
+        const pr = PREMISES[key];
+        if(buy && (key === 'spare-room' || state.money < pr.price)) return;
+        // Leaving a place the company owns sells it.
+        if(owned()){
+          const from = premisesKey(), cash = sellPrice(from);
+          state.money += cash;
+          addLog('info', 'Sold your ' + PREMISES[from].name + ' for ' + fmt(cash) + '.');
+          track('office/sell/' + from);
+        }
+        if(buy) state.money -= pr.price;
+        state.office.premises = key;
+        state.office.owned = buy;
+        addLog('info', key === 'spare-room' ? 'Moved back into your spare room: ' + desksIn(key) + ' desks, free.'
+          : buy ? 'Bought a ' + pr.name + ' for ' + fmt(pr.price) + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.upkeep) + '/min upkeep.'
+          : 'Moved into a rented ' + pr.name + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.rent) + '/min rent.');
+        track('office/' + (key === 'spare-room' ? 'move' : buy ? 'buy' : 'rent') + '/' + key);
+      }else if(action === 'buy-premises'){
+        const pr = premises();
+        if(premisesKey() === 'spare-room' || owned() || state.money < pr.price) return;
+        state.money -= pr.price;
+        state.office.owned = true;
+        addLog('info', 'Bought the ' + pr.name + ' you rent for ' + fmt(pr.price) + ': ' + fmtRate(pr.upkeep) + '/min upkeep instead of ' + fmtRate(pr.rent) + '/min rent.');
+        track('office/buy/' + premisesKey());
       }else if(action === 'toggle-unknown'){
         state.showUnknownOffers = !state.showUnknownOffers;
       }else if(action === 'skip-guide'){
@@ -2395,8 +2443,17 @@ window.DebuggLtd = (function(){
 
     if(!state.collapsedLevels) state.collapsedLevels = [];
     if(!state.collapsedTiers) state.collapsedTiers = [];
-    // Saves from before desks: enough co-working desks for everyone already on staff.
-    if(!state.office) state.office = { cowork: Math.max(0, state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length - SPARE_ROOM_DESKS) };
+    // Saves from before desks start in the spare room. Co-working desks are gone (the player-owner's
+    // call, October 2026): anyone who sat at one is squeezed in, and past CRAM_MAX hiring waits
+    // until the company moves into a business unit. Nobody is let go.
+    if(!state.office) state.office = { premises: 'spare-room' };
+    if('cowork' in state.office){
+      if(state.office.cowork > 0) addLog('info', 'Co-working desks are gone: everyone who sat at one is squeezed into your spare room. ' +
+        'A small business unit (' + desksIn('unit-s') + ' desks) is the way to grow now.');
+      delete state.office.cowork;
+    }
+    if(!state.office.premises) state.office.premises = 'spare-room';
+    if(!('owned' in state.office)) state.office.owned = false;
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.

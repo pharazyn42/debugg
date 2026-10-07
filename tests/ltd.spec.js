@@ -730,10 +730,10 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
   await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×5 · 1 running');
 });
 
-test('everyone needs a desk: the spare room has 4, then co-working desks for rent', async ({ page }) => {
+test('everyone needs a desk: the spare room has 4, then a small business unit for rent', async ({ page }) => {
   await found(page);
   await expect(page.locator('.office')).toContainText('your spare room, 4 desks · 0/4 desks used');
-  await expect(page.locator('[data-action=cowork-drop]')).toHaveCount(0);
+  await expect(page.locator('[data-action=move][data-premises=spare-room]')).toHaveCount(0);
   await editCompany(page, s => {
     s.money = 5000;
     s.roster.push({ id: 'j0', name: 'Jun 0', role: 'Junior', since: Date.now(), lang: { Python: 150 } });
@@ -743,25 +743,59 @@ test('everyone needs a desk: the spare room has 4, then co-working desks for ren
   await expect(page.locator('.slot', { hasText: 'Desks' })).toHaveText('Desks 4/4');
   await expect(page.locator('.office .cramped')).toHaveText('Every desk is taken: cramped, so everyone is 5% slower on new contracts, and likelier to hand in their notice.');
   await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no desk: squeezed in, everyone −15% speed');
-  await page.click('[data-action=cowork-add]');
+  // The next premises can be rented or bought outright; ¤5,000 isn't enough to buy.
+  await expect(page.locator('[data-action=move][data-tenure=rent]')).toHaveText('Rent a small business unit · 10 desks · ¤4/min');
+  await expect(page.locator('[data-action=move][data-tenure=buy]')).toHaveText('Buy one · ¤60,000, then ¤1/min upkeep');
+  await expect(page.locator('[data-action=move][data-tenure=buy]')).toBeDisabled();
+  await page.click('[data-action=move][data-tenure=rent]');
   await expect(page.locator('.office .cramped')).toHaveCount(0);
-  await expect(page.locator('.office')).toContainText('+ 1 co-working desk (¤1/min) · 4/5 desks used');
+  await expect(page.locator('.office')).toContainText('a small business unit, 10 desks on 2 floors, rented (¤4/min) · 4/10 desks used');
+  await expect(page.locator('#log')).toContainText('Moved into a rented small business unit: 10 desks, ¤4/min rent.');
   await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + rent');
-  await expect(page.locator('#statPayroll')).toHaveText('−¤12/min');  // ¤11 salaries + ¤1 rent
+  await expect(page.locator('#statPayroll')).toHaveText('−¤15/min');  // ¤11 salaries + ¤4 rent
   await page.click('[data-action=hire][data-role=Manager]');
-  await expect(page.locator('.office')).toContainText('5/5 desks used');
-  expect((await ltd(page)).office).toEqual({ cowork: 1 });
+  await expect(page.locator('.office')).toContainText('5/10 desks used');
+  expect((await ltd(page)).office).toEqual({ premises: 'unit-s', owned: false });
+  // Nothing bigger in the demo yet.
+  await expect(page.locator('.office-actions button', { hasText: 'Bigger premises' })).toBeDisabled();
 
-  // Rent is paid every second, like salaries, while away too: 10 minutes of ¤1/min.
+  // Rent is paid every second, like salaries, while away too: 10 minutes of ¤4/min.
   await editCompany(page, s => {
     s.roster = s.roster.filter(p => p.role === 'Director');
     s.money = 100;
     s.lastTick = Date.now() - 10 * 60000;
   });
-  expect(Math.round((await ltd(page)).money)).toBe(90);
-  await page.click('[data-action=cowork-drop]');
-  expect((await ltd(page)).office).toEqual({ cowork: 0 });
+  expect(Math.round((await ltd(page)).money)).toBe(60);
+  await page.click('[data-action=move][data-premises=spare-room]');
+  expect((await ltd(page)).office).toEqual({ premises: 'spare-room', owned: false });
   await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll');
+});
+
+test('premises can be bought outright: the price up front, then upkeep, and moving out sells it', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => { s.money = 70000; });
+  await page.click('[data-action=move][data-tenure=buy]');
+  let s = await ltd(page);
+  expect(s.office).toEqual({ premises: 'unit-s', owned: true });
+  expect(Math.round(s.money)).toBe(10000);
+  await expect(page.locator('.office')).toContainText('a small business unit, 10 desks on 2 floors, owned (¤1/min upkeep)');
+  await expect(page.locator('#log')).toContainText('Bought a small business unit for ¤60,000: 10 desks, ¤1/min upkeep.');
+  await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + upkeep');
+  await expect(page.locator('[data-action=buy-premises]')).toHaveCount(0);
+  // Moving back sells it for 90% of the price.
+  await expect(page.locator('[data-action=move][data-premises=spare-room]')).toHaveText('Sell for ¤54,000 and move back to the spare room');
+  await page.click('[data-action=move][data-premises=spare-room]');
+  s = await ltd(page);
+  expect(s.office).toEqual({ premises: 'spare-room', owned: false });
+  expect(Math.round(s.money)).toBe(64000);
+  await expect(page.locator('#log')).toContainText('Sold your small business unit for ¤54,000.');
+  // Renting first, then buying the unit you're in, without moving.
+  await page.click('[data-action=move][data-tenure=rent]');
+  await page.click('[data-action=buy-premises]');
+  s = await ltd(page);
+  expect(s.office).toEqual({ premises: 'unit-s', owned: true });
+  expect(Math.round(s.money)).toBe(4000);
+  await expect(page.locator('#log')).toContainText('Bought the small business unit you rent for ¤60,000: ¤1/min upkeep instead of ¤4/min rent.');
 });
 
 test('a full office is cramped: up to 2 more can be squeezed in, each slowing everyone more', async ({ page }) => {
@@ -782,11 +816,17 @@ test('a full office is cramped: up to 2 more can be squeezed in, each slowing ev
     for(let i = 0; i < 2; i++) s.roster.push({ id: 'm' + i, name: 'Manager ' + i, role: 'Manager', since: Date.now(), lang: {} });
   });
   await expect(page.locator('.office .cramped')).toContainText('2 squeezed in without a desk: cramped, so everyone is 30% slower');
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no room to squeeze anyone else in — rent a co-working desk');
-  // A desk for one of them: one squeezed in, 15% slower, and room to squeeze in one more.
-  await page.click('[data-action=cowork-add]');
-  await expect(page.locator('.office .cramped')).toContainText('1 squeezed in without a desk: cramped, so everyone is 15% slower');
-  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no desk: squeezed in, everyone −30% speed');
+  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('no room to squeeze anyone else in — rent or buy a small business unit');
+  // A small business unit has a desk for everyone. Moving back would squeeze in 2 again, which is allowed.
+  await page.click('[data-action=move][data-tenure=rent]');
+  await expect(page.locator('.office .cramped')).toHaveCount(0);
+  await expect(page.locator('[data-action=move][data-premises=spare-room]')).toBeEnabled();
+  // One more and the spare room can't hold them.
+  await editCompany(page, s => {
+    s.roster.push({ id: 'g9', name: 'Grad 9', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+  });
+  await expect(page.locator('[data-action=move][data-premises=spare-room]')).toBeDisabled();
+  await expect(page.locator('[data-action=move][data-premises=spare-room]')).toHaveAttribute('title', 'Can’t move back: too many people to fit');
 });
 
 test('someone who hands in their notice can be kept with a pay rise, or leaves after a day', async ({ page }) => {
@@ -840,21 +880,27 @@ test('a notice over a cramped office is withdrawn once there’s a free desk', a
   });
   await expect(page.locator('.card[data-id=j0] .notice')).toContainText('the office is too cramped');
   await expect(page.locator('.alert[data-alert=notice]')).toContainText('or free up a desk');
-  await page.click('[data-action=cowork-add]');
+  await page.click('[data-action=move][data-tenure=rent]');
   await expect(page.locator('.card[data-id=j0] .notice')).toHaveCount(0);
   await expect(page.locator('#log')).toContainText('Jun 0 is staying, now there’s room in the office.');
 });
 
-test('a company from before desks gets co-working desks for everyone it has', async ({ page }) => {
+test('a company from before desks starts in the spare room; co-working desks are gone, squeezing everyone in', async ({ page }) => {
   await found(page);
   await editCompany(page, s => { delete s.office; });
-  expect((await ltd(page)).office).toEqual({ cowork: 0 });
+  expect((await ltd(page)).office).toEqual({ premises: 'spare-room', owned: false });
+  // A company with 3 co-working desks and 7 staff: they all stay, 3 of them without a desk, and
+  // nobody else fits until it moves.
   await editCompany(page, s => {
-    delete s.office;
-    for(let i = 0; i < 6; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.office = { cowork: 3 };
+    for(let i = 0; i < 7; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
   });
-  expect((await ltd(page)).office).toEqual({ cowork: 2 });
-  await expect(page.locator('.office')).toContainText('6/6 desks used');
+  expect((await ltd(page)).office).toEqual({ premises: 'spare-room', owned: false });
+  expect((await ltd(page)).roster.filter(p => p.role === 'Graduate')).toHaveLength(7);
+  await expect(page.locator('.office')).toContainText('7/4 desks used');
+  await expect(page.locator('.office .cramped')).toContainText('3 squeezed in without a desk: cramped, so everyone is 30% slower');
+  await expect(page.locator('#log')).toContainText('Co-working desks are gone: everyone who sat at one is squeezed into your spare room.');
+  await expect(page.locator('[data-action=move][data-tenure=rent]')).toBeEnabled();
 });
 
 test('expert contracts need someone at a skill level, and pay more', async ({ page }) => {
@@ -1078,17 +1124,16 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   await expect(officeLabel(page)).toHaveAttribute('role', 'img');
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
     'Your office, the spare room: 0 of 4 desks taken, 0 on contracts, 0 on the bench, 0 applicants waiting.');
-  // Two grads (one on a hotfix, one on the bench), two co-working desks and two applicants.
+  // Two grads (one on a hotfix, one on the bench) and two applicants.
   await editCompany(page, s => {
     const grad = (id, name) => ({ id, name, role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 } });
     s.roster.push(grad('g1', 'Ben'), grad('g2', 'Mei'));
-    s.office = { cowork: 2 };
     s.jobs = [{ id: 'h1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 5, team: ['g1'],
                 startedAt: Date.now(), endsAt: Date.now() + 3600000, chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 }];
     s.applicants = ['a1', 'a2'].map(id => ({ id, role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000, person: grad(id, 'Applicant ' + id) }));
   });
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
-    'Your office, the spare room: 2 of 6 desks taken, 1 on contracts, 1 on the bench, 2 applicants waiting.');
+    'Your office, the spare room: 2 of 4 desks taken, 1 on contracts, 1 on the bench, 2 applicants waiting.');
   const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
   expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'person:g1', 'person:g2',
                          'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
@@ -1151,20 +1196,29 @@ test('the studio still plays when the office view fails to load', async ({ page 
   expect(errors).toEqual([]);
 });
 
-test('the office has a meeting room and a break room: managers on a contract meet, and people on a break go to the kitchen', async ({ page }) => {
+test('a small business unit has two floors, each with a meeting room and a break room; the spare room has no meeting room', async ({ page }) => {
   await officeBreaks(page, ['g2']);
   await found(page);
-  await editCompany(page, s => {
+  const seed = premises => editCompany(page, (s, premises) => {
+    s.office = { premises, owned: false };
+    s.roster = s.roster.filter(p => p.role === 'Director' || p.role === 'Intern');
     const hire = (id, name, role) => ({ id, name, role, since: Date.now(), worked: 0, lang: { Python: 10 } });
     s.roster.push(hire('m1', 'Aroha', 'Manager'), hire('g1', 'Ben', 'Graduate'), hire('g2', 'Mei', 'Graduate'));
     const job = (id, team) => ({ id, tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 5, team,
       startedAt: Date.now(), endsAt: Date.now() + 3600000, chance: 0.7, payout: 5, repeat: false, status: 'running', attempt: 1 });
     s.jobs = [job('h1', ['g1']), job('h2', ['g2']), job('h3', ['m1'])];
-  });
-  await expect(officeLabel(page)).toHaveAttribute('aria-label', /3 on contracts, 0 on the bench, 1 on a break, /);
-  // Left to right: the desks, then the manager in the meeting room, then Mei in the break room.
+  }, premises);
+  const where = () => page.evaluate(() => Object.fromEntries(DebuggOffice.targets().map(t => [t.id, t])));
+  // In the spare room the manager on a contract stays at their desk, left of Mei in the kitchen.
+  await seed('spare-room');
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, the spare room: 3 of 4 desks taken, 3 on contracts, 0 on the bench, 1 on a break, /);
+  await expect.poll(async () => { const t = await where(); return t.m1 && t.g1 && t.g2 && t.m1.x < t.g1.x && t.g1.x < t.g2.x; }).toBe(true);
+  // In the unit: the manager is in the meeting room, between the desks and the break room; the
+  // Director's office is on the top floor and the interview room on the ground floor.
+  await seed('unit-s');
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, a rented small business unit on 2 floors: 3 of 10 desks taken, /);
   await expect.poll(async () => {
-    const x = Object.fromEntries((await page.evaluate(() => DebuggOffice.targets())).map(t => [t.id, t.x]));
-    return x.g1 < x.m1 && x.m1 < x.g2;
+    const t = await where();
+    return !!(t.m1 && t.g1 && t.g2 && t.director) && t.g1.x < t.m1.x && t.m1.x < t.g2.x && t.director.y < t.g1.y;
   }).toBe(true);
 });

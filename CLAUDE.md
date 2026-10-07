@@ -121,8 +121,8 @@ visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
 since managers came to the demo in September 2026, with desks, as its money sink). The locked
-types, and premises beyond co-working desks, show as "coming in v0.1". Patches need more than
-10 staff (see the contract board), so a manager and co-working desks. Old saves keep any staff
+types, and premises beyond the small business unit, show as "coming in v0.1". Patches need more than
+10 staff (see the contract board), so a manager and the unit. Old saves keep any staff
 and running jobs they have, but their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with

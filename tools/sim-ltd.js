@@ -200,14 +200,16 @@ async function openPage(world){
 
 // Numbers the strategy needs, mirrored from ltd/ltd.js (the game still enforces its own rules:
 // a click the game refuses does nothing).
-const SPARE_ROOM_DESKS = 4, COWORK_MAX = 8, DIRECTOR_SPAN = 4, MANAGER_SPAN = 12;
+const PREMISES = { 'spare-room': { desks: 4, rent: 0 }, 'unit-s': { desks: 10, rent: 4 } }, DIRECTOR_SPAN = 4, MANAGER_SPAN = 12;
+const premisesOf = s => PREMISES[(s.office && s.office.premises) || 'spare-room'] || PREMISES['spare-room'];
+// The strategy rents; buying (¤60,000, then ¤1/min upkeep) isn't modelled yet.
 const DEV_ROLES = ['Graduate', 'Junior', 'Senior', 'Principal'];
 const SALARY = { Manager: 8, Graduate: 2, Junior: 5, Senior: 12, Principal: 28 };
 const COST = { Manager: 900, Graduate: 180 };
 const skillLevel = xp => { const t = [10, 50, 150, 400, 1000]; let lv = 0;
   while((xp || 0) >= (lv < 5 ? t[lv] : 1000 + 400 * (lv - 4) * (lv - 3))) lv++; return lv; };
 
-function payroll(s){ return s.roster.reduce((n, p) => n + (SALARY[p.role] || 0) + (p.raise || 0), 0) + ((s.office && s.office.cowork) || 0); }
+function payroll(s){ return s.roster.reduce((n, p) => n + (SALARY[p.role] || 0) + (p.raise || 0), 0) + (s.office && s.office.owned ? 1 : premisesOf(s).rent); }
 function priceOf(s, role){ return Math.round(COST[role] * ((s.market && s.market.prices[role]) || 1) / 5) * 5; }
 function devs(s){ return s.roster.filter(p => DEV_ROLES.includes(p.role)); }
 // Headcount as the game counts it: the intern isn't in it.
@@ -239,15 +241,16 @@ function play(page, log, now, opts){
     }
   }
 
-  // Hiring. Room for one more on-site person, renting a co-working desk if needed.
-  // Returns 'free', 'rented' (a co-working desk just now) or null (no room).
+  // Hiring. Room for one more on-site person, moving from the spare room into the small business
+  // unit when it's full (and staying there). Returns 'free' or null (no room).
   const deskFor = () => {
     const used = s.roster.filter(p => p.role !== 'Director' && p.role !== 'Intern').length;
-    const cowork = (s.office && s.office.cowork) || 0;
-    if(used < SPARE_ROOM_DESKS + cowork) return 'free';
-    if(cowork >= COWORK_MAX) return null;
-    act(page.click, { action: 'cowork-add' });
-    return 'rented';
+    if(used < premisesOf(s).desks) return 'free';
+    if(premisesOf(s) !== PREMISES['spare-room']) return null;
+    act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' });
+    if(premisesOf(s) === PREMISES['spare-room']) return null;
+    log('moved/unit-s');
+    return 'free';
   };
   const hire = (role, dataset, cost) => {
     if(spendable() < cost) return false;
@@ -256,7 +259,6 @@ function play(page, log, now, opts){
     const n = s.roster.length;
     act(page.click, dataset);
     if(s.roster.length > n){ log('hired/' + role.toLowerCase()); return true; }
-    if(desk === 'rented') act(page.click, { action: 'cowork-drop' });   // the game refused the hire
     return false;
   };
   // Applicants first: they're the only way to hire above graduate.

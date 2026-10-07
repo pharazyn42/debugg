@@ -1,9 +1,11 @@
 // Debuggit Ltd: the office view (roadmap item 21b, ideas/ltd-office-view-plan.md).
 //
-// Draws the studio as a building on a canvas: the spare room (a house with one floor), its desks
-// and co-working desks, stools when it's cramped, the Director's own table, the interview room
-// with the applicants waiting in it, the meeting room and the kitchen (the break room). The
-// drawing is ported from the prototype, ideas/ltd-office-demo.html.
+// Draws the studio's premises as a building on a canvas, one floor per storey. The spare room is a
+// house with one floor: the front door, the interview room, the Director's own table, 4 desks,
+// stools when it's cramped, and the kitchen. A small business unit is a clad unit with stairs and
+// two floors of 5 desks: the interview room on the ground floor, the Director's office on the top
+// one, and a meeting room and a break room on every floor. The drawing is ported from the
+// prototype, ideas/ltd-office-demo.html.
 //
 // Breaks are only a picture (the player-owner's call): who is on one comes from a hash of their
 // id and the game time, so the same people are on a break after a reload, and nobody's work slows.
@@ -16,9 +18,11 @@
 window.DebuggOffice = (function(){
   'use strict';
 
-  // Layout in unscaled units; everything is multiplied by s. Left to right: the front door, the
-  // interview room, the Director's table, the desks, any stools, the meeting room, the kitchen.
-  const U = { margin: 18, side: 62, room: 124, own: 140, desk: 88, stool: 50, meeting: 116, kitchen: 152, floor: 132, slab: 14, ground: 36, roof: 96 };
+  // Layout in unscaled units; everything is multiplied by s. Left to right on a floor: the way in
+  // (door or stairs), the side room (interviews, or the Director's office), the Director's table in
+  // the spare room, the desks, any stools, the meeting room (not in the spare room), the break room.
+  const U = { margin: 18, side: 62, room: 124, own: 140, desk: 88, stool: 50, meeting: 116, kitchen: 152, floor: 132, slab: 14, ground: 36,
+              roof: { house: 96, unit: 64 } };
   // Breaks: in BREAK_ODDS of each BREAK_WINDOW of game time, a person takes a BREAK_MS break
   // (about 12% of the time).
   const BREAK_WINDOW = 10 * 60000, BREAK_MS = 3 * 60000, BREAK_ODDS = 0.4;
@@ -46,6 +50,8 @@ window.DebuggOffice = (function(){
   let targets = [];          // what a tap can hit, rebuilt every frame
   let lastLabel = '';
   let breaks = new Set();    // ids on a break this frame
+  let lastKind = null;       // the premises last drawn, to notice moving day
+  let movingUntil = 0;       // the moving-day banner shows until then
 
   const now = () => performance.now() / 1000;
   const hashRnd = i => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
@@ -69,6 +75,8 @@ window.DebuggOffice = (function(){
     th = readTheme();
     placed = false;
     lastLabel = '';
+    lastKind = null;
+    movingUntil = 0;
     canvas.addEventListener('click', onClick);
     canvas.addEventListener('mousemove', onHover);
     document.addEventListener('visibilitychange', wake);
@@ -100,9 +108,10 @@ window.DebuggOffice = (function(){
       text: v('--text', '#e8e9ec'), dim: v('--text-dim', '#9498a3'), faint: v('--text-faint', '#5f6470'),
       panel: v('--panel', '#1b1d22'), line: v('--line', '#2c2f37'), amber: v('--amber', '#f2b84b'),
       skyTop: v('--office-sky-top', '#1c2540'), skyBottom: v('--office-sky-bottom', '#33456b'),
-      ground: v('--office-ground', '#24302a'), wallTop: v('--office-wall-top', '#24262c'),
+      ground: v('--office-ground', '#24302a'), street: v('--office-street', '#2a2d33'), wallTop: v('--office-wall-top', '#24262c'),
       wallBottom: v('--office-wall-bottom', '#2b2e35'), slab: v('--office-slab', '#3a3d46'),
-      slabText: v('--office-slab-text', '#c9ccd4'), brick: v('--office-brick', '#6b4436'), roof: v('--office-roof', '#2c2f37')
+      slabText: v('--office-slab-text', '#c9ccd4'), brick: v('--office-brick', '#6b4436'), cladding: v('--office-cladding', '#4a5566'),
+      roof: v('--office-roof', '#2c2f37')
     };
   }
 
@@ -121,42 +130,51 @@ window.DebuggOffice = (function(){
       const snap = api.snapshot();
       const L = layout(viewW, snap);
       fit(L);
-      sync(snap, L);
+      sync(snap, L, t);
       steer(L, dt);
       drawSky(L, t);
       drawShell(L, t);
-      drawFloor(L, snap, t);
+      targets = [];
+      L.floors.forEach(f => drawFloor(L, f, snap, t));
       drawBubbles(L, snap);
-      updateLabel(snap);
+      if(t < movingUntil) banner(L, 'Moving day · ' + L.name.charAt(0).toUpperCase() + L.name.slice(1));
+      updateLabel(snap, L);
     }
     raf = requestAnimationFrame(frame);
   }
 
   function layout(viewW, snap){
     const pr = snap.premises;
-    const desksN = pr.perFloor + pr.cowork;
-    const stools = pr.squeezed;
-    const need = U.margin * 2 + U.side + U.room + U.own + desksN * U.desk + stools * U.stool + U.meeting + U.kitchen + 20;
+    const house = pr.kind === 'spare-room';
+    const pf = pr.perFloor, nf = pr.floors, stools = pr.squeezed;
+    const leftW = house ? U.room : U.own;      // in a unit, the Director's office is as wide as their table
+    const ownW = house ? U.own : 0;            // the spare room's table has its own space
+    const meetW = house ? 0 : U.meeting;
+    const need = U.margin * 2 + U.side + leftW + ownW + pf * U.desk + stools * U.stool + meetW + U.kitchen + 20;
     const s = Math.max(0.56, Math.min(1.1, viewW / need));
     const W = Math.max(viewW, Math.ceil(need * s));
-    const H = Math.round((U.roof + U.ground + U.floor) * s);
+    const roof = house ? U.roof.house : U.roof.unit;
+    const H = Math.round((roof + U.ground + nf * U.floor) * s);
     const x0 = U.margin * s, x1 = W - U.margin * s;
-    const top = H - (U.ground + U.floor) * s;
-    const floorY = top + (U.floor - U.slab) * s;
     const kx0 = x1 - U.kitchen * s;
-    const mx0 = kx0 - U.meeting * s;
+    const mx0 = kx0 - meetW * s;
     const rx0 = x0 + U.side * s + 6 * s;
-    const rx1 = rx0 + U.room * s;
-    const ox0 = rx1 + 6 * s;
-    const dz0 = ox0 + U.own * s;
+    const rx1 = rx0 + leftW * s;
+    const ox0 = house ? rx1 + 6 * s : rx0;
+    const dz0 = house ? ox0 + U.own * s : rx1 + 6 * s;
     const stoolW = U.stool * s;
-    const slotW = (mx0 - 12 * s - stools * stoolW - dz0) / Math.max(1, desksN);
-    const f = {
-      top, floorY, kx0, mx0, rx0, rx1, ox0, dz0, slotW, sideX: x0 + (U.side * s) / 2,
-      deskX: j => dz0 + slotW * (j + 0.5),
-      stoolX: k => dz0 + slotW * desksN + stoolW * (k + 0.5)
-    };
-    return { s, W, H, x0, x1, f, desksN, stools, home: pr.perFloor, seats: pr.maxApplicants };
+    const slotW = (mx0 - 12 * s - stools * stoolW - dz0) / Math.max(1, pf);
+    const floors = [];
+    for(let i = 0; i < nf; i++){
+      const top = H - (U.ground + (i + 1) * U.floor) * s;
+      floors.push({
+        i, top, floorY: top + (U.floor - U.slab) * s, kx0, mx0, rx0, rx1, ox0, dz0, slotW, sideX: x0 + (U.side * s) / 2,
+        table: i === (house ? 0 : nf - 1),
+        deskX: j => dz0 + slotW * (j + 0.5),
+        stoolX: k => dz0 + slotW * pf + stoolW * (k + 0.5)
+      });
+    }
+    return { s, W, H, x0, x1, floors, house, pf, desksN: nf * pf, stools, seats: pr.maxApplicants, kind: pr.kind, name: pr.name, owned: !!pr.owned };
   }
 
   function fit(L){
@@ -192,7 +210,7 @@ window.DebuggOffice = (function(){
     if(!sp){
       const h = hashStr(id);
       sp = { id, seed: h % 97, skin: SKIN[h % SKIN.length], hair: HAIR[(h >> 3) % HAIR.length], hairStyle: (h >> 5) % 3,
-             x: L.f.sideX, alpha: 0, facing: 1, walking: false, tx: 0, spot: 'desk', gone: false };
+             x: L.floors[0].sideX, fi: 0, tfi: 0, home: 0, alpha: 0, facing: 1, walking: false, tx: 0, spot: 'desk', gone: false };
       sprites.set(id, sp);
     }
     sp.role = role;
@@ -200,38 +218,53 @@ window.DebuggOffice = (function(){
     return sp;
   }
 
-  function sync(snap, L){
-    const s = L.s, f = L.f;
+  // Where everyone should be: a floor (tfi) and a spot on it (tx).
+  function sync(snap, L, t){
+    const s = L.s;
+    // Moving day: a new building, so everyone starts again at their new place.
+    if(lastKind && lastKind !== L.kind){
+      sprites = new Map();
+      desks = new Map();
+      placed = false;
+      movingUntil = t + 2.6;
+    }
+    lastKind = L.kind;
     const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern');
     assignDesks(staff, L.desksN + L.stools);
     breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
+    const tableFloor = L.floors.find(f => f.table);
     const seen = new Set();
-    let inBreakRoom = 0, inMeeting = 0;
+    const inBreakRoom = new Map(), inMeeting = new Map();
+    const next = (m, i) => { const k = m.get(i) || 0; m.set(i, k + 1); return k; };
     snap.people.forEach(p => {
       const sp = spriteFor(p.id, p.role, p.name, L);
       seen.add(p.id);
       sp.p = p;
       sp.applicant = false;
       sp.gone = p.state === 'away';
-      if(p.role === 'Director'){ sp.spot = 'desk'; sp.tx = f.ox0 + 52 * s; }
-      else if(p.role === 'Intern'){ sp.spot = 'desk'; sp.tx = f.ox0 + 112 * s; }
+      let f;
+      if(p.role === 'Director'){ f = tableFloor; sp.spot = 'desk'; sp.tx = f.ox0 + 52 * s; sp.desk = null; }
+      else if(p.role === 'Intern'){ f = tableFloor; sp.spot = 'desk'; sp.tx = f.ox0 + 112 * s; sp.desk = null; }
       else{
         const d = desks.get(p.id);
         sp.desk = d;
-        sp.spot = d < L.desksN ? 'desk' : 'stool';
-        sp.tx = d < L.desksN ? f.deskX(d) + 20 * s : f.stoolX(d - L.desksN) + 10 * s;
+        if(d < L.desksN){ f = L.floors[Math.floor(d / L.pf)]; sp.spot = 'desk'; sp.tx = f.deskX(d % L.pf) + 20 * s; }
+        else{ f = L.floors[0]; sp.spot = 'stool'; sp.tx = f.stoolX(d - L.desksN) + 10 * s; }
       }
+      sp.home = f.i;
+      sp.tfi = f.i;
       sp.onBreak = breaks.has(p.id);
-      if(sp.gone){ sp.spot = 'exit'; sp.tx = f.sideX; }
+      if(sp.gone){ sp.spot = 'exit'; sp.tfi = 0; sp.tx = L.floors[0].sideX; }
       else if(sp.onBreak){
-        // The couch first, then the coffee machine, then standing by the window.
-        const k = inBreakRoom++;
+        // Their own floor's break room: the couch first, then the coffee machine, then standing.
+        const k = next(inBreakRoom, f.i);
         if(k < 3){ sp.spot = 'couch'; sp.tx = f.kx0 + (82 + k * 26) * s; }
         else if(k < 5){ sp.spot = 'coffee'; sp.tx = f.kx0 + (30 + (k - 3) * 22) * s; }
         else{ sp.spot = 'stand'; sp.tx = f.kx0 + (60 + ((k - 5) % 4) * 13) * s; }
-      }else if(p.role === 'Manager' && p.state === 'working'){
-        // Managers write no code: on a contract, they're in the meeting room.
-        const k = inMeeting++;
+      }else if(!L.house && p.role === 'Manager' && p.state === 'working'){
+        // Managers write no code: on a contract, they're in their floor's meeting room. The spare
+        // room has none, so there they stay at their desk.
+        const k = next(inMeeting, f.i);
         sp.spot = 'meeting'; sp.tx = f.mx0 + (26 + (k % 4) * 22) * s;
       }
     });
@@ -242,24 +275,34 @@ window.DebuggOffice = (function(){
       sp.applicant = true;
       sp.onBreak = false;
       sp.gone = false;
+      sp.desk = null;
       sp.spot = 'chair';
-      sp.tx = f.rx0 + (22 + k * 27) * s;
+      sp.home = sp.tfi = 0;
+      sp.tx = L.floors[0].rx0 + (22 + k * 27) * s;
     });
     // Anyone no longer in the snapshot (left, or an applicant who gave up) walks out.
-    sprites.forEach(sp => { if(!seen.has(sp.id)){ sp.gone = true; sp.leaving = true; sp.spot = 'exit'; sp.tx = f.sideX; } });
+    sprites.forEach(sp => {
+      if(seen.has(sp.id)) return;
+      sp.gone = true; sp.leaving = true; sp.spot = 'exit'; sp.tfi = 0; sp.tx = L.floors[0].sideX;
+    });
     if(!placed){
-      sprites.forEach(sp => { sp.x = sp.tx; sp.alpha = sp.gone ? 0 : 1; });
+      sprites.forEach(sp => { sp.fi = sp.tfi; sp.x = sp.tx; sp.alpha = sp.gone ? 0 : 1; });
       placed = true;
     }
   }
 
+  // Walks everyone towards their spot. Going to another floor means the stairs (or the door) first.
   function steer(L, dt){
     const speed = reduceMotion ? 1e6 : Math.max(120 * L.s, (L.x1 - L.x0) / 5);
     sprites.forEach(sp => {
-      const dx = sp.tx - sp.x;
-      sp.walking = Math.abs(dx) > 1.5;
-      if(sp.walking){ sp.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt); sp.facing = Math.sign(dx); }
-      else sp.facing = sp.spot === 'chair' || sp.spot === 'meeting' ? 1 : sp.spot === 'couch' ? (sp.seed % 2 ? -1 : 1) : -1;
+      const f = L.floors[sp.fi] || L.floors[0];
+      const changing = sp.fi !== sp.tfi;
+      const goal = changing ? f.sideX : sp.tx;
+      const dx = goal - sp.x;
+      if(Math.abs(dx) > 1.5){ sp.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt); sp.facing = Math.sign(dx); }
+      else if(changing){ sp.fi = sp.tfi; sp.x = (L.floors[sp.fi] || f).sideX; }
+      sp.walking = sp.fi !== sp.tfi || Math.abs(sp.tx - sp.x) > 1.5;
+      if(!sp.walking) sp.facing = sp.spot === 'chair' || sp.spot === 'meeting' ? 1 : sp.spot === 'couch' ? (sp.seed % 2 ? -1 : 1) : -1;
       const out = sp.gone && !sp.walking;
       sp.alpha += ((out ? 0 : 1) - sp.alpha) * (reduceMotion ? 1 : Math.min(1, dt * (out ? 2 : 3)));
       if(out && sp.alpha < 0.03){
@@ -268,7 +311,6 @@ window.DebuggOffice = (function(){
       }
     });
   }
-
   // ---------------------------------------------------------------------------
   // Drawing helpers
   // ---------------------------------------------------------------------------
@@ -303,31 +345,42 @@ window.DebuggOffice = (function(){
     }
   }
 
-  // A house: brick front, a pitched roof with a chimney, and the company's name on the gable.
+  // The spare room is a house: brick front, a pitched roof with a chimney, and the company's name
+  // on the gable. A business unit is clad, with a flat roof and a sign, on a street.
   function drawShell(L, t){
     const { s, x0, x1, H } = L;
-    const roofY = L.f.top;
+    const roofY = L.floors[L.floors.length - 1].top;
     const gy = H - U.ground * s;
-    ctx.fillStyle = th.ground;
+    ctx.fillStyle = L.house ? th.ground : th.street;
     ctx.fillRect(0, gy, L.W, H - gy);
     ctx.fillStyle = th.slab;
     ctx.fillRect(0, gy, L.W, 3 * s);
-    ctx.fillStyle = th.brick;
+    ctx.fillStyle = L.house ? th.brick : th.cladding;
     ctx.fillRect(x0 - 8 * s, roofY - 8 * s, x1 - x0 + 16 * s, gy - roofY + 8 * s);
     ctx.fillStyle = th.roof;
+    if(!L.house){
+      ctx.fillStyle = tint('#ffffff', 0.12);
+      for(let x = 20 * s; x < L.W; x += 60 * s) ctx.fillRect(x, gy + 20 * s, 28 * s, 3 * s);
+      ctx.fillStyle = th.roof;
+      ctx.fillRect(x0 - 12 * s, roofY - 14 * s, x1 - x0 + 24 * s, 8 * s);
+      ctx.fillStyle = tint('#000000', 0.12);
+      for(let x = x0 - 8 * s; x < x1 + 8 * s; x += 9 * s) ctx.fillRect(x, roofY - 6 * s, 1.5 * s, 6 * s);
+      sign(L, x0 + 150 * s, roofY - 36 * s, 'DEBUGGIT LTD', 'Unit 4 · ' + (L.owned ? 'owned' : 'rented'));
+      return;
+    }
     ctx.beginPath();
     ctx.moveTo(x0 - 22 * s, roofY - 6 * s);
-    ctx.lineTo((x0 + x1) / 2, roofY - U.roof * s + 8 * s);
+    ctx.lineTo((x0 + x1) / 2, roofY - U.roof.house * s + 8 * s);
     ctx.lineTo(x1 + 22 * s, roofY - 6 * s);
     ctx.closePath();
     ctx.fill();
-    ctx.fillRect(x1 - 120 * s, roofY - U.roof * s + 30 * s, 22 * s, 40 * s);
+    ctx.fillRect(x1 - 120 * s, roofY - U.roof.house * s + 30 * s, 22 * s, 40 * s);
     if(!reduceMotion){
       ctx.fillStyle = tint('#ffffff', 0.25);
       for(let i = 0; i < 3; i++){
         const p = (t * 0.4 + i / 3) % 1;
         ctx.globalAlpha = 1 - p;
-        ell(x1 - 109 * s + Math.sin(p * 6) * 4 * s, roofY - U.roof * s + 24 * s - p * 30 * s, (5 + p * 8) * s, (4 + p * 5) * s); ctx.fill();
+        ell(x1 - 109 * s + Math.sin(p * 6) * 4 * s, roofY - U.roof.house * s + 24 * s - p * 30 * s, (5 + p * 8) * s, (4 + p * 5) * s); ctx.fill();
         ctx.globalAlpha = 1;
       }
     }
@@ -348,54 +401,46 @@ window.DebuggOffice = (function(){
     font(600, 8.5 * s, true); ctx.fillStyle = '#9498a3'; ctx.fillText(sub, cx, y + 10 * s);
   }
 
-  function drawFloor(L, snap, t){
-    const s = L.s, f = L.f, x0 = L.x0, x1 = L.x1;
+  function drawFloor(L, f, snap, t){
+    const s = L.s, x0 = L.x0, x1 = L.x1;
     const { top, floorY } = f;
     const g = ctx.createLinearGradient(0, top, 0, floorY);
     g.addColorStop(0, th.wallTop); g.addColorStop(1, th.wallBottom);
     ctx.fillStyle = g;
     ctx.fillRect(x0, top, x1 - x0, floorY - top);
-    // The co-working corner: rented hot desks after the spare room's own.
-    if(L.desksN > L.home){
-      const cx0 = f.deskX(L.home) - f.slotW / 2;
-      const cx1 = f.deskX(L.desksN - 1) + f.slotW / 2;
-      ctx.fillStyle = tint('#5aa9e6', 0.08);
-      ctx.fillRect(cx0, top, cx1 - cx0, floorY - top);
-      ctx.fillStyle = tint('#5aa9e6', 0.5);
-      ctx.fillRect(cx0, top, 2 * s, floorY - top);
-      font(700, 8 * s); ctx.fillStyle = th.dim; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillText('CO-WORKING · RENTED', cx0 + 8 * s, top + 34 * s);
-    }
     ctx.fillStyle = th.slab;
     ctx.fillRect(x0 - 8 * s, floorY, x1 - x0 + 16 * s, U.slab * s);
-    drawDoor(L);
-    drawMeeting(L);
-    drawKitchen(L, t);
-    drawInterviews(L, snap);
-    drawFloorSign(L, snap, t);
+    drawSide(L, f);
+    if(!L.house) drawMeeting(L, f);
+    drawKitchen(L, f, t);
+    if(f.i === 0) drawInterviews(L, f, snap);
+    else if(f.table) drawDirectorsOffice(L, f);
+    drawFloorSign(L, f, snap, t);
 
-    const at = sp => sp && !sp.walking && !sp.gone && sp.alpha > 0.5 ? sp : null;
-    const director = snap.people.find(p => p.role === 'Director');
-    const intern = snap.people.find(p => p.role === 'Intern');
-    drawOwnTable(L, director && sprites.get(director.id), intern && sprites.get(intern.id), at, t);
+    const at = sp => sp && !sp.walking && !sp.gone && sp.alpha > 0.5 && sp.fi === f.i ? sp : null;
+    if(f.table){
+      const director = snap.people.find(p => p.role === 'Director');
+      const intern = snap.people.find(p => p.role === 'Intern');
+      drawOwnTable(L, f, director && sprites.get(director.id), intern && sprites.get(intern.id), at, t);
+    }
     const owners = new Map();
     sprites.forEach(sp => { if(!sp.applicant && !sp.leaving && sp.desk != null && desks.get(sp.id) === sp.desk) owners.set(sp.desk, sp); });
-    for(let j = 0; j < L.desksN; j++){
-      const owner = owners.get(j);
-      drawDesk(f.deskX(j), floorY, s, owner && at(owner), owner, t, j >= L.home);
+    for(let j = 0; j < L.pf; j++){
+      const owner = owners.get(f.i * L.pf + j);
+      drawDesk(f.deskX(j), floorY, s, owner && at(owner), owner, t, false);
     }
-    for(let k = 0; k < L.stools; k++){
+    if(f.i === 0) for(let k = 0; k < L.stools; k++){
       const owner = owners.get(L.desksN + k);
       drawStool(f.stoolX(k), floorY, s, owner && at(owner), owner, t);
     }
-    const people = [...sprites.values()].filter(sp => sp.alpha > 0.01).sort((a, b) => a.x - b.x);
+    const people = [...sprites.values()].filter(sp => sp.fi === f.i && sp.alpha > 0.01).sort((a, b) => a.x - b.x);
     people.forEach(sp => drawPerson(sp, floorY, s, t));
 
     // Names on the slab, and "free" under empty desks.
     font(700, 8.5 * s); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const ny = floorY + (U.slab / 2 + 0.5) * s;
-    for(let j = 0; j < L.desksN; j++){
-      if(!owners.get(j)){ ctx.fillStyle = tint('#9498a3', 0.75); ctx.fillText('free', f.deskX(j), ny); }
+    for(let j = 0; j < L.pf; j++){
+      if(!owners.get(f.i * L.pf + j)){ ctx.fillStyle = tint('#9498a3', 0.75); ctx.fillText('free', f.deskX(j), ny); }
     }
     const named = people.filter(sp => !sp.gone);
     named.forEach((sp, i) => {
@@ -409,22 +454,23 @@ window.DebuggOffice = (function(){
       ctx.fillText(n, sp.x, ny);
       ctx.globalAlpha = 1;
     });
-    buildTargets(L);
+    addTargets(L, f);
   }
 
-  function drawFloorSign(L, snap, t){
-    const s = L.s, f = L.f;
-    const x = f.ox0, y = f.top + 9 * s;
-    const label = 'SPARE ROOM';
+  function drawFloorSign(L, f, snap, t){
+    const s = L.s;
+    const x = L.house ? f.ox0 : f.dz0, y = f.top + 9 * s;
+    const label = L.house ? 'SPARE ROOM' : f.i === 0 ? 'GROUND' : 'LEVEL ' + f.i;
     font(800, 10 * s, true);
     const w = ctx.measureText(label).width + 16 * s;
     ctx.fillStyle = '#f2b84b';
     rrect(x, y, w, 18 * s, 9 * s); ctx.fill();
     ctx.fillStyle = '#131417'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText(label, x + 8 * s, y + 9.5 * s);
-    const c = counts(snap);
+    const c = counts(snap, f.i);
     font(600, 9.5 * s); ctx.fillStyle = th.dim;
-    const txt = c.taken + '/' + c.desks + ' desks' + (c.squeezed ? ' + ' + c.squeezed + ' squeezed in' : '') + ' · ' + c.working + ' on contracts · ' + c.bench + ' on the bench' + (c.breaks ? ' · ' + c.breaks + ' on a break' : '') + (c.away ? ' · ' + c.away + ' away' : '');
+    const txt = c.taken + '/' + L.pf + ' desks' + (c.squeezed ? ' + ' + c.squeezed + ' squeezed in' : '') + ' · ' + c.working + ' on contracts · ' +
+      c.bench + ' on the bench' + (c.breaks ? ' · ' + c.breaks + ' on a break' : '') + (c.away ? ' · ' + c.away + ' away' : '');
     ctx.fillText(txt, x + w + 8 * s, y + 9.5 * s);
     if(c.stuck){
       const lx = x + w + 8 * s + ctx.measureText(txt).width + 14 * s;
@@ -435,28 +481,38 @@ window.DebuggOffice = (function(){
     }
   }
 
-  // The front door opens while someone is walking through it.
-  function drawDoor(L){
-    const s = L.s, x = L.f.sideX, fy = L.f.floorY;
-    const near = [...sprites.values()].some(sp => Math.abs(sp.x - x) < 30 * s && (sp.walking || (sp.alpha > 0.03 && sp.alpha < 0.98)));
-    const open = near ? 1 : 0;
+  // The way in: the spare room's front door; a unit's stairs on every floor, and its door on the
+  // ground floor. The door opens while someone is walking through it.
+  function drawSide(L, f){
+    const s = L.s, x = f.sideX, fy = f.floorY;
+    const open = [...sprites.values()].some(sp => sp.fi === f.i && Math.abs(sp.x - x) < 30 * s && (sp.walking || (sp.alpha > 0.03 && sp.alpha < 0.98)));
+    if(L.house){ door(x, fy, s, open); return; }
+    ctx.fillStyle = th.slab;
+    const steps = 8, sw = 6 * s, rise = (U.floor - U.slab) * s / steps;
+    for(let k = 0; k < steps; k++) ctx.fillRect(x - 24 * s + k * sw, fy - (k + 1) * rise, sw + 1, (k + 1) * rise);
+    ctx.strokeStyle = th.dim; ctx.lineWidth = 1.5 * s;
+    ctx.beginPath(); ctx.moveTo(x - 24 * s, fy - 22 * s); ctx.lineTo(x - 24 * s + steps * sw, fy - 22 * s - steps * rise); ctx.stroke();
+    if(f.i === 0) door(x + 10 * s, fy, s, open);
+  }
+
+  function door(x, fy, s, open){
     const w = 30 * s, h = 64 * s;
     ctx.fillStyle = '#5a3f2c'; ctx.fillRect(x - w / 2 - 3 * s, fy - h - 3 * s, w + 6 * s, h + 3 * s);
     ctx.fillStyle = '#1a1714'; ctx.fillRect(x - w / 2, fy - h, w, h);
-    const dw = w * (1 - open * 0.75);
+    const dw = w * (1 - (open ? 0.75 : 0));
     ctx.fillStyle = '#8a6141'; ctx.fillRect(x - w / 2, fy - h, dw, h);
     ctx.fillStyle = '#f2b84b'; ell(x - w / 2 + dw - 5 * s, fy - h / 2, 2 * s, 2 * s); ctx.fill();
     ctx.fillStyle = 'rgba(190,220,240,0.5)'; ctx.fillRect(x - w / 2 + 5 * s, fy - h + 6 * s, Math.max(0, dw - 10 * s), 14 * s);
   }
 
-  // The kitchen, the spare room's break room: a coffee machine (steaming while someone's at it), a
+  // The kitchen, where breaks are taken, on every floor: a coffee machine (steaming while someone's at it), a
   // window and a couch.
-  function drawKitchen(L, t){
-    const s = L.s, f = L.f, k = f.kx0, fy = f.floorY, x1 = L.x1;
+  function drawKitchen(L, f, t){
+    const s = L.s, k = f.kx0, fy = f.floorY, x1 = L.x1;
     ctx.fillStyle = tint('#f2b84b', 0.07);
     ctx.fillRect(k, f.top, x1 - k, fy - f.top);
     font(700, 8 * s); ctx.fillStyle = th.dim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('KITCHEN · BREAKS', k + 76 * s, f.top + 8 * s);
+    ctx.fillText('KITCHEN', k + 76 * s, f.top + 8 * s);
     const wx = k + 96 * s, wy = f.top + 26 * s;
     ctx.fillStyle = '#8a6141'; ctx.fillRect(wx - 26 * s, wy - 3 * s, 52 * s, 40 * s);
     const g = ctx.createLinearGradient(0, wy, 0, wy + 34 * s); g.addColorStop(0, th.skyTop); g.addColorStop(1, th.skyBottom);
@@ -467,7 +523,7 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = '#131417'; rrect(k + 14 * s, fy - 60 * s, 18 * s, 24 * s, 3 * s); ctx.fill();
     ctx.fillStyle = '#ef6a6a'; ell(k + 28 * s, fy - 55 * s, 1.5 * s, 1.5 * s); ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.fillRect(k + 19 * s, fy - 45 * s, 8 * s, 8 * s);
-    if(!reduceMotion && [...sprites.values()].some(sp => sp.spot === 'coffee' && !sp.walking && !sp.gone)){
+    if(!reduceMotion && [...sprites.values()].some(sp => sp.fi === f.i && sp.spot === 'coffee' && !sp.walking && !sp.gone)){
       ctx.strokeStyle = 'rgba(180,180,190,0.6)'; ctx.lineWidth = 1.2 * s;
       for(let i = 0; i < 2; i++){
         const p = (t * 0.8 + i * 0.5) % 1;
@@ -485,9 +541,9 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = '#3a2a1e'; ctx.fillRect(cx0 + 2 * s, fy - 8 * s, 4 * s, 8 * s); ctx.fillRect(cx0 + cw - 6 * s, fy - 8 * s, 4 * s, 8 * s);
   }
 
-  // The meeting room, on every floor: a whiteboard of cards and a table.
-  function drawMeeting(L){
-    const s = L.s, f = L.f, a = f.mx0, b = f.kx0, fy = f.floorY;
+  // The meeting room, on every floor of a business unit (not the spare room): a whiteboard of cards and a table.
+  function drawMeeting(L, f){
+    const s = L.s, a = f.mx0, b = f.kx0, fy = f.floorY;
     ctx.fillStyle = tint('#a57be0', 0.07);
     ctx.fillRect(a, f.top, b - a, fy - f.top);
     ctx.fillStyle = th.slab;
@@ -502,8 +558,8 @@ window.DebuggOffice = (function(){
   }
 
   // The interview room, by the front door: a chair per applicant slot, a plant and a framed kiwi.
-  function drawInterviews(L, snap){
-    const s = L.s, f = L.f, a = f.rx0, b = f.rx1, fy = f.floorY;
+  function drawInterviews(L, f, snap){
+    const s = L.s, a = f.rx0, b = f.rx1, fy = f.floorY;
     ctx.fillStyle = tint('#4fd18b', 0.07);
     ctx.fillRect(a, f.top, b - a, fy - f.top);
     ctx.fillStyle = th.slab;
@@ -526,10 +582,22 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = '#9a6a43'; ell(a + 47 * s, f.top + 47 * s, 7 * s, 5 * s); ctx.fill(); ell(a + 53 * s, f.top + 43 * s, 3 * s, 3 * s); ctx.fill();
   }
 
-  // The Director's own table, which isn't one of the staff's desks (the Director works from home):
-  // the kiwi's laptop, and the intern's beside it, since they work as a pair.
-  function drawOwnTable(L, dsp, isp, at, t){
-    const s = L.s, x = L.f.ox0, fy = L.f.floorY;
+  // In a business unit the Director has an office on the top floor, where the interview room is
+  // on the ground floor.
+  function drawDirectorsOffice(L, f){
+    const s = L.s, a = f.rx0, b = f.rx1, fy = f.floorY;
+    ctx.fillStyle = tint('#9a6a43', 0.08);
+    ctx.fillRect(a, f.top, b - a, fy - f.top);
+    ctx.fillStyle = th.slab;
+    ctx.fillRect(b - 2 * s, f.top, 4 * s, fy - f.top - 62 * s);
+    font(700, 8 * s); ctx.fillStyle = th.dim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('YOUR OFFICE', (a + b) / 2, f.top + 8 * s);
+  }
+
+  // The Director's own table, which isn't one of the staff's desks (the Director works from home,
+  // or from their office): the kiwi's laptop, and the intern's beside it, since they work as a pair.
+  function drawOwnTable(L, f, dsp, isp, at, t){
+    const s = L.s, x = f.ox0, fy = f.floorY;
     ctx.fillStyle = '#c49a6c';
     ctx.fillRect(x + 6 * s, fy - 40 * s, U.own * s - 12 * s, 5 * s);
     ctx.fillStyle = '#8a6141';
@@ -756,8 +824,19 @@ window.DebuggOffice = (function(){
       if(p.state !== 'stuck') return;
       const sp = sprites.get(p.id);
       if(!sp || sp.walking || sp.alpha < 0.5) return;
-      bubble(sp.x, L.f.floorY - 62 * s, 'Stuck · tap to help', s, L.W);
+      bubble(sp.x, L.floors[sp.fi].floorY - 62 * s, 'Stuck · tap to help', s, L.W);
     });
+  }
+
+  function banner(L, text){
+    const s = L.s;
+    font(800, 14 * s, true);
+    const w = ctx.measureText(text).width + 30 * s;
+    const x = Math.min(L.W, box.clientWidth) / 2 + box.scrollLeft;
+    ctx.fillStyle = 'rgba(19,20,23,0.88)';
+    rrect(x - w / 2, 12 * s, w, 30 * s, 15 * s); ctx.fill();
+    ctx.fillStyle = '#f2b84b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, 27.5 * s);
   }
 
   function bubble(x, y, text, s, maxX){
@@ -780,11 +859,10 @@ window.DebuggOffice = (function(){
   // ---------------------------------------------------------------------------
 
   // Taps are a shortcut, never the only way: each does what a button in the panels does.
-  function buildTargets(L){
-    const s = L.s, f = L.f;
-    targets = [];
+  function addTargets(L, f){
+    const s = L.s;
     sprites.forEach(sp => {
-      if(sp.gone || sp.walking || sp.alpha < 0.5) return;
+      if(sp.fi !== f.i || sp.gone || sp.walking || sp.alpha < 0.5) return;
       const p = sp.p;
       const tap = sp.applicant ? { kind: 'applicant', id: sp.id }
         : p.role === 'Director' ? { kind: 'director', id: sp.id }
@@ -825,13 +903,17 @@ window.DebuggOffice = (function(){
     return into >= start && into < start + BREAK_MS;
   }
 
-  function counts(snap){
-    const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern');
-    const team = snap.people.filter(p => p.role !== 'Director');
+  // Who's where, for the whole building or (with fi) one floor: people count on the floor of their
+  // desk, even while they're on a break.
+  function counts(snap, fi){
+    const here = p => fi == null || ((sprites.get(p.id) || {}).home || 0) === fi;
+    const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern' && here(p));
+    const team = snap.people.filter(p => p.role !== 'Director' && here(p));
+    const squeezed = fi == null || fi === 0 ? snap.premises.squeezed : 0;
     return {
-      taken: staff.length - snap.premises.squeezed,
-      desks: snap.premises.perFloor + snap.premises.cowork,
-      squeezed: snap.premises.squeezed,
+      taken: staff.length - squeezed,
+      desks: snap.premises.floors * snap.premises.perFloor,
+      squeezed,
       working: team.filter(p => ON_CONTRACT.indexOf(p.state) >= 0).length,
       bench: team.filter(p => p.state === 'bench').length,
       breaks: team.filter(p => breaks.has(p.id)).length,
@@ -842,10 +924,11 @@ window.DebuggOffice = (function(){
   }
 
   // The canvas is a picture; its label sums it up for screen readers (the panels say it all too).
-  function updateLabel(snap){
+  function updateLabel(snap, L){
     const c = counts(snap);
     const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
-    const text = 'Your office, the spare room: ' + c.taken + ' of ' + c.desks + ' desks taken' +
+    const where = L.house ? 'the spare room' : (L.owned ? 'an owned ' : 'a rented ') + L.name + ' on ' + L.floors.length + ' floors';
+    const text = 'Your office, ' + where + ': ' + c.taken + ' of ' + c.desks + ' desks taken' +
       (c.squeezed ? ' and ' + c.squeezed + ' squeezed in' : '') + ', ' +
       c.working + ' on contracts, ' + c.bench + ' on the bench' +
       (c.breaks ? ', ' + c.breaks + ' on a break' : '') + (c.away ? ', ' + c.away + ' away' : '') + (c.stuck ? ', ' + c.stuck + ' stuck' : '') + ', ' +

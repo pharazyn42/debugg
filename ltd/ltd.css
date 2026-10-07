@@ -613,6 +613,8 @@
   --office-slab: #3a3d46;
   --office-slab-text: #c9ccd4;
   --office-brick: #6b4436;
+  --office-cladding: #4a5566;
+  --office-street: #2a2d33;
   --office-roof: #2c2f37;
   margin-bottom: 18px;
 }
