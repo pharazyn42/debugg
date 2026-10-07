@@ -293,7 +293,7 @@ new ideas there. Index (status in brackets):
 - 18 Multiple sites
 - 19 Prestige
 
-**Polish:** 20 SLOC animation · 21 Visualise the office · 22 Skill gain through supervision
+**Polish:** 20 SLOC animation · 21 Visualise the office · 21b The agent office (planned: `ideas/ltd-office-view-plan.md`) · 22 Skill gain through supervision
 
 ## Testing notes
 
