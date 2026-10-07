@@ -170,8 +170,9 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
   expect(desk.jobs.length).toBeGreaterThanOrEqual(2);
   expect(desk.jobs.length).toBeLessThanOrEqual(3);
   expect(desk.jobs.map(j => j.id)).not.toContain('old');
-  expect(desk.jobs.every(j => j.expiresAt > Date.now() && j.size >= 1 && j.size <= 3)).toBe(true);
-  expect(desk.nextAt).toBeGreaterThan(Date.now());
+  const now = await page.evaluate(() => Date.now());   // the page's fixed clock, not this process's
+  expect(desk.jobs.every(j => j.expiresAt > now && j.size >= 1 && j.size <= 3)).toBe(true);
+  expect(desk.nextAt).toBeGreaterThan(now);
   // No question is asked twice across waiting jobs.
   const ids = desk.jobs.flatMap(j => j.questions);
   expect(new Set(ids).size).toBe(ids.length);
@@ -184,7 +185,8 @@ test("the Director's puzzle levels boost contract success in that language", asy
   await expect(page.locator('.card.director')).toContainText('Python Lv 3 (+2% success)');
   await editCompany(page, s => {
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
-    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, expiresAt: Date.now() + 3600000 };
+    s.contractsOpen = true; s.firstClient = true;
+    s.board.push({ id: 'o1', tier: 1, lang: 'Python', sloc: 600, expiresAt: Date.now() + 3600000 });
   });
   await page.click('[data-action=staff][data-offer=o1]');
   await page.click('[data-pick=g1]');
@@ -206,14 +208,16 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
     g.lang = { Python: 10 };
+    s.roster.forEach(p => { p.pace = 1; });
     s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: [g.id],
                   startedAt: Date.now(), endsAt: Date.now() + 60000, chance: 1, payout: 20, repeat: false,
                   status: 'running', attempt: 1 });
   });
   await page.clock.setFixedTime(at(12, 30));
   await page.reload();
-  // 30 minutes of a ¤2/min salary, plus the ¤20 contract.
-  await expect(page.locator('#statMoney')).toHaveText('¤130');
+  // 30 minutes of a ¤2/min salary, plus the ¤20 contract, plus the intern's everyday work
+  // (0.2 SLOC/min × ¤0.54 × 30 minutes = ¤3.24).
+  await expect(page.locator('#statMoney')).toHaveText('¤133');
   await expect(page.locator('#welcomeToast')).toContainText('1 contract wrapped up while you were away');
   await expect(page.locator('#log')).toContainText('delivered');
 });
@@ -227,7 +231,7 @@ test('hiring costs only go up, with inflation and competition', async ({ page })
   expect(nextAt).toBeGreaterThanOrEqual(12 * 3600000 - 60000);
   expect(nextAt).toBeLessThanOrEqual(36 * 3600000);
   // A rival hiring managers has pushed their price up by half.
-  await editCompany(page, s => { s.market.prices.Manager = 1.5; s.money = 2000; });
+  await editCompany(page, s => { s.market.prices.Manager = 1.5; s.money = 2000; s.office = { premises: 'unit-s', owned: true }; });
   await expect(mgr).toHaveText('¤1,350 ↑50%');
   await page.click('[data-action=hire][data-role=Manager]');
   await expect(page.locator('#statMoney')).toHaveText('¤650');
@@ -272,7 +276,7 @@ test('developers apply now and then, graduates too, once the studio has some rep
   await expect(page.locator('#log')).toContainText('applied to join as a ' + a.role.toLowerCase());
   const card = page.locator('.applicant[data-applicant="' + a.id + '"]');
   await expect(card).toContainText('Offer open 12h');
-  await card.locator('[data-action=hire-applicant]').click();
+  await card.locator('[data-action=hire-applicant]:not([data-wfh])').click();
   await expect(page.locator('.applicant')).toHaveCount(0);
   const after = await ltd(page);
   expect(after.money).toBeCloseTo(5000 - a.cost, 0);
@@ -322,17 +326,23 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   });
   await expect(page.locator('.guide')).toContainText('Gus A. has applied');
   await page.click('[data-action=hire-applicant].guide-target');
-  // 5. Put them on a hotfix they can take, with repeat on.
-  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'staff');
-  await expect(page.locator('.guide')).toContainText('Put Gus A. to work');
-  const target = page.locator('[data-action=staff].guide-target');
-  await expect(target).toHaveCount(1);
-  await expect(page.locator('.offer:has(.guide-target) .chip.lang')).toHaveText('Python');
   // Grads are full at one while you're alone, and the note says why.
   await expect(page.locator('#structureNote')).toContainText('Grads 1/1 are full, though you have room for 3 more devs (Devs 1/4)');
-  await target.click();
-  await page.click('[data-pick=ga1]');
+  // 5. Fill the spare room: contracts only come once it's full.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'hire');
+  await expect(page.locator('.guide')).toContainText('Clients only come once your spare room is full (2 of 4 desks');
+  await editCompany(page, s => {
+    s.roster.push({ id: 'j1', name: 'Jo B.', role: 'Junior', since: Date.now(), lang: { Python: 50 } });
+    s.roster.push({ id: 's1', name: 'Sy C.', role: 'Senior', since: Date.now(), lang: { Python: 400 } });
+  });
+  // 6. Your first client: a Python feature for the whole team.
+  await expect(page.locator('.guide')).toHaveAttribute('data-step', 'first');
+  await expect(page.locator('.guide')).toContainText('Your first client!');
+  await expect(page.locator('.offer:has(.guide-target)')).toContainText('★ Your first client · pays ×2 · needs 3 developers');
+  await page.click('[data-action=staff].guide-target');
+  for(const id of ['ga1', 'j1', 's1']) await page.click('[data-pick=' + id + ']');
   await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job', { hasText: 'Feature' })).toContainText('first client');
   await expect(page.locator('.guide')).toHaveCount(0);
   expect((await ltd(page)).guideDone).toBe(true);
 });
@@ -465,19 +475,19 @@ test('a company from before interns gets one, once', async ({ page }) => {
   expect((await ltd(page)).roster.filter(p => p.role === 'Intern')).toHaveLength(0);
 });
 
-test('staff on the bench and debt are flagged; the welcome can be dismissed', async ({ page }) => {
+test('debt is flagged, staff do everyday work, and the welcome can be dismissed', async ({ page }) => {
   await found(page);
   await page.click('#welcomeToast [data-action=close-toast]');
   await expect(page.locator('#welcomeToast')).toBeHidden();
   await editCompany(page, s => {
     s.guideDone = true;
     s.money = -50;
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, pace: 1 });
   });
   await expect(page.locator('.guide')).toHaveCount(0);
-  await expect(page.locator('[data-alert=idle]')).toContainText('Ada L. is on the bench doing odd jobs, which only just cover their salary (+¤0.1/min)');
   await expect(page.locator('[data-alert=debt]')).toContainText('The company is ¤50 in debt');
-  await expect(page.locator('.card[data-id=g1]')).toContainText('On the bench · odd jobs · +¤0.1/min');
+  // 5 SLOC/min × ¤0.54.
+  await expect(page.locator('.card[data-id=g1]')).toContainText('Everyday work · support tickets · +¤2.7/min');
 });
 
 test('language skills are open-ended levels, each with a bar towards the next', async ({ page }) => {
@@ -507,18 +517,20 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   await expect(page.locator('.stage-bar')).toContainText('Next: Small business, with your first manager.');
   await expect(page.locator('.stage-step.now')).toHaveCount(1);
 
-  // A manager joins (from an old save, say): it's a small business, and they staff the idle grad.
+  // A manager joins (from an old save, say): it's a small business, and they staff the idle grad
+  // on a feature, on repeat.
   await editCompany(page, s => {
-    s.guideDone = true;
+    s.guideDone = true; s.contractsOpen = true; s.firstClient = true;
     s.roster.push({ id: 'm1', name: 'Mo M.', role: 'Manager', since: Date.now(), lang: {} });
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.board.unshift({ id: 'f1', tier: 1, lang: 'Python', sloc: 600, risk: 'standard', expert: 0, expiresAt: Date.now() + 3600000 });
   });
   await expect(page.locator('.stage-name')).toHaveText('Small business');
   await expect(page.locator('.stage-bar')).toContainText('Next: Mid-size company, with 3 managers (you have 1) and 25 staff (you have 3)');
   await expect(page.locator('#log')).toContainText('Debuggit Ltd is now a small business.');
   await expect(page.locator('#log')).toContainText('Your managers put Ada L. to work.');
   const job = (await ltd(page)).jobs[0];
-  expect(job).toMatchObject({ team: ['g1'], lang: 'Python', tier: 0, repeat: true });
+  expect(job).toMatchObject({ team: ['g1'], lang: 'Python', tier: 1, repeat: true });
   expect((await ltd(page)).stage).toBe('small');
 
   // The desk pays half: a Learn question's ¤40 is ¤20.
@@ -530,38 +542,39 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   await expect(page.locator('#deskDone')).toContainText('¤20 (a small business gets 50% of desk pay)');
 });
 
-test('developers on the bench do odd jobs, which cover their salary with 5% to spare', async ({ page }) => {
+test('anyone not on a contract does everyday work, worth about 1.35× their salary', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
   await found(page);
   await editCompany(page, s => {
     s.guideDone = true;
     s.money = 1000;
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
-    s.roster.push({ id: 's1', name: 'Sam Q.', role: 'Senior', since: Date.now(), lang: { Rust: 150 } });
+    s.roster.forEach(p => { p.pace = 1; });   // the intern
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 }, pace: 1 });
+    s.roster.push({ id: 's1', name: 'Sam Q.', role: 'Senior', since: Date.now(), lang: { Rust: 150 }, pace: 1 });
   });
-  // An hour away: a grad earns ¤2.10/min on odd jobs against ¤2/min salary, a senior ¤12.60 against ¤12,
-  // so the company grows by ¤0.70/min: ¤42 over the hour.
+  // An hour away: at ¤0.54 a line, a grad earns ¤2.70/min against ¤2, a senior ¤16.20 against ¤12,
+  // and the intern ¤0.108 (0.2 SLOC/min, no salary): ¤5.008/min, ¤300 over the hour.
   await page.clock.setFixedTime(at(13));
   await page.reload();
-  await expect(page.locator('#statMoney')).toHaveText('¤1,042');
-  // No XP and no promotion time for the bench.
+  await expect(page.locator('#statMoney')).toHaveText('¤1,300');
+  // No XP and no promotion time for it.
   const saved = await ltd(page);
   expect(saved.roster.find(p => p.id === 'g1')).toMatchObject({ lang: { Python: 10 } });
   expect(saved.roster.find(p => p.id === 'g1').worked || 0).toBe(0);
-  await expect(page.locator('.card[data-id=s1]')).toContainText('On the bench · odd jobs · +¤0.6/min');
+  await expect(page.locator('.card[data-id=s1]')).toContainText('Everyday work · support tickets · +¤16.2/min');
 
-  // Only the bench earns it: not someone on a contract (even a failed one waiting for Retry or
-  // Drop), and not someone away (training, holiday, off sick).
+  // Not someone on a contract (even a failed one waiting for a decision), and not someone away
+  // (training, holiday, off sick).
   await editCompany(page, s => {
     s.money = 1000;
-    s.jobs.push({ id: 'j1', tier: 0, lang: 'Python', sloc: 5, teamSloc: 5, team: ['g1'], startedAt: Date.now() - 120000,
+    s.jobs.push({ id: 'j1', tier: 1, lang: 'Python', sloc: 600, teamSloc: 5, team: ['g1'], startedAt: Date.now() - 120000,
                   endsAt: Date.now() - 60000, chance: 1, payout: 5, repeat: false, status: 'failed', attempt: 2 });
     s.roster.find(p => p.id === 's1').away = { kind: 'holiday', until: Date.now() + 2 * 3600000 };
   });
   await page.clock.setFixedTime(at(14));
   await page.reload();
-  // Both just cost their salary for the hour: 60 × (¤2 + ¤12).
-  await expect(page.locator('#statMoney')).toHaveText('¤160');
+  // Both just cost their salary for the hour, 60 × (¤2 + ¤12), less the intern's ¤6.48.
+  await expect(page.locator('#statMoney')).toHaveText('¤166');
 });
 
 test('risky contracts pay more, succeed less often, and cost more reputation when they fail', async ({ page }) => {
@@ -574,45 +587,48 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
     s.guideDone = true;
     s.reputation = 10;
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
-    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, risk: 'high', expiresAt: Date.now() + 3600000 };
+    s.contractsOpen = true; s.firstClient = true;
+    s.board.push({ id: 'o1', tier: 1, lang: 'Python', sloc: 600, risk: 'high', expiresAt: Date.now() + 3600000 });
   });
   const offer = page.locator('.offer:has([data-offer=o1])');
   await expect(offer.locator('.risk.high')).toHaveText('High stakes · pays ×2 · −30% success');
   await page.click('[data-action=staff][data-offer=o1]');
   await page.click('[data-pick=g1]');
-  // A grad's 70% reliability, +1% for 1 bar of Python, −30% for the risk; double the ¤5.
-  await expect(page.locator('.forecast')).toContainText('Success chance 41% (incl. −30% for the risk) · Payout ¤10 (×2)');
+  // A grad's 70% reliability, +1% for 1 bar of Python, −30% for the risk; double the ¤900 (600 SLOC × 1.5).
+  await expect(page.locator('.forecast')).toContainText('Success chance 41% (incl. −30% for the risk) · Payout ¤1,800 (×2)');
   await expect(page.locator('.forecast')).toContainText('each failure costs 4× the usual reputation');
   await page.click('[data-action=pick-start]');
   await expect(page.locator('.job')).toContainText('High stakes');
-  expect((await ltd(page)).jobs[0]).toMatchObject({ risk: 'high', payout: 10, chance: 0.41 });
+  const job = (await ltd(page)).jobs.find(j => j.id === 'o1');
+  expect(job).toMatchObject({ risk: 'high', payout: 1800, chance: 0.41 });
 
-  // A failed retry loses the contract and 4× the usual reputation (a hotfix's 0.05 ÷ 2 × 4 = 0.1).
+  // Failing loses the contract (no retries before managers) and 4× the usual reputation (a
+  // feature's 1 ÷ 2 × 4 = 2).
   await editCompany(page, s => {
-    Object.assign(s.jobs[0], { chance: 0, attempt: 2, endsAt: Date.now() - 1000 });
+    const j = s.jobs.find(j => j.id === 'o1');
+    Object.assign(j, { chance: 0, endsAt: Date.now() - 1000, snags: [] });
+    delete j.slow;
   });
-  await expect(page.locator('#log')).toContainText('✕ high stakes Hotfix (Python) retry failed again — contract lost.');
-  expect((await ltd(page)).reputation).toBeCloseTo(9.9);
+  await expect(page.locator('#log')).toContainText('✕ high stakes Feature (Python) failed.');
+  await expect(page.locator('#log')).toContainText('The client has taken the feature elsewhere.');
+  expect((await ltd(page)).jobs.filter(j => j.id === 'o1')).toHaveLength(0);
+  expect((await ltd(page)).reputation).toBeCloseTo(8);
 });
 
-test('a repeating contract always retries a failure itself, even one from long ago', async ({ page }) => {
+test('with a manager, a repeating contract always retries a failure itself, even one from long ago', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
   await found(page);
-  await editCompany(page, s => {
-    s.guideDone = true;
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 8 * 3600000, lang: { Python: 10 } });
-    s.board[0] = { id: 'o1', tier: 0, lang: 'Python', sloc: 5, risk: 'standard', expiresAt: Date.now() + 3600000 };
-  });
-  await page.click('[data-action=staff][data-offer=o1]');
-  await page.click('[data-pick=g1]');
-  await page.click('[data-action=pick-start]');  // hotfixes repeat by default
-  await expect(page.locator('.job')).toHaveCount(1);
-
   // It failed 6 hours ago, before the 4-hour offline cap: it retries from the cap, not waiting.
   await editCompany(page, s => {
-    Object.assign(s.jobs[0], { chance: 0, startedAt: Date.now() - 6 * 3600000 - 60000, endsAt: Date.now() - 6 * 3600000 });
+    s.guideDone = true; s.contractsOpen = true; s.firstClient = true;
+    s.office = { premises: 'unit-s', owned: true };
+    s.roster.push({ id: 'm1', name: 'Mo M.', role: 'Manager', since: Date.now(), lang: {} });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 8 * 3600000, lang: { Python: 10 } });
+    s.jobs = [{ id: 'f1', tier: 1, lang: 'Python', risk: 'standard', expert: 0, sloc: 600, teamSloc: 6, team: ['g1'],
+                startedAt: Date.now() - 6 * 3600000 - 60000, endsAt: Date.now() - 6 * 3600000,
+                chance: 0, payout: 900, repeat: true, status: 'running', attempt: 1 }];
   });
-  await expect(page.locator('#log')).toContainText('↻ Retrying Hotfix (Python)');
+  await expect(page.locator('#log')).toContainText('↻ Retrying Feature (Python)');
   await expect(page.locator('.job.failed')).toHaveCount(0);
 
   // A save with a repeating job left waiting on the player retries it straight away.
@@ -625,40 +641,68 @@ test('a repeating contract always retries a failure itself, even one from long a
   expect(job).toMatchObject({ status: 'running', attempt: 2 });
 });
 
+test('before managers, nothing repeats or retries', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.contractsOpen = true; s.firstClient = true; s.guideDone = true;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.board.push({ id: 'o1', tier: 1, lang: 'Python', sloc: 600, risk: 'standard', expiresAt: Date.now() + 3600000 });
+    s.jobs = [{ id: 'old', tier: 1, lang: 'Python', risk: 'standard', expert: 0, sloc: 600, teamSloc: 6, team: [],
+                startedAt: Date.now(), endsAt: Date.now() + 3600000, chance: 1, payout: 900, repeat: true, status: 'running', attempt: 1 }];
+  });
+  // Older saves' repeats stop until there's a manager.
+  expect((await ltd(page)).jobs.find(j => j.id === 'old').repeat).toBe(false);
+  await page.click('[data-action=staff][data-offer=o1]');
+  await expect(page.locator('[data-picker-repeat]')).toHaveCount(0);
+  await expect(page.locator('.forecast')).toContainText('If it fails, the client takes it elsewhere (retries and repeats come with your first manager)');
+  await page.click('[data-pick=g1]');
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('[data-repeat]')).toHaveCount(0);
+  expect((await ltd(page)).jobs.find(j => j.id === 'o1').repeat).toBe(false);
+});
+
 test('a repeating contract keeps working through the last 4 hours of a long time away', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
   await found(page);
-  // A grad on a repeating Python hotfix that finished 8 hours ago, when the page was closed.
+  // Every roll comes up the middle: contracts succeed (a grad's ~71%), new ones are standard, with
+  // no expert level, and nobody hands in their notice.
+  await page.addInitScript(() => { Math.random = () => 0.5; });
+  // With a manager, a grad on a repeating feature that finished 8 hours ago, when the page was closed.
   await editCompany(page, s => {
-    s.guideDone = true;
-    s.money = 1000;
+    s.guideDone = true; s.contractsOpen = true; s.firstClient = true;
+    s.money = 5000;
+    s.office = { premises: 'unit-s', owned: true };
     s.lastTick = Date.now() - 8 * 3600000;
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 9 * 3600000, lang: { Python: 10 } });
-    s.jobs = [{ id: 'j1', tier: 0, lang: 'Python', risk: 'standard', expert: 0, sloc: 5, teamSloc: 6, team: ['g1'],
+    s.nextNoticeAt = Date.now() + 24 * 3600000;
+    s.roster.push({ id: 'm1', name: 'Mo M.', role: 'Manager', since: Date.now() - 9 * 3600000, lang: {} });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now() - 9 * 3600000,
+                    lang: { Python: 10, 'C/C++': 10, JavaScript: 10, Rust: 10 } });
+    s.jobs = [{ id: 'j1', tier: 1, lang: 'Python', risk: 'standard', expert: 0, sloc: 600, teamSloc: 6, team: ['g1'],
                 startedAt: Date.now() - 8 * 3600000 - 50000, endsAt: Date.now() - 8 * 3600000,
-                chance: 1, payout: 5, repeat: true, status: 'running', attempt: 1 }];
+                chance: 1, payout: 900, repeat: true, status: 'running', attempt: 1 }];
   });
-  // Payroll is drawn for 4 hours (¤480), and the repeats ran through those 4 hours: a couple of
-  // hundred hotfixes, about ¤1,000 and 7 reputation, and one still going.
+  // That one is delivered, and the repeats run through the last 4 hours (about 100 minutes each for
+  // a lone grad): two more delivered, and one still going.
   const s = await ltd(page);
   const job = s.jobs.find(j => j.team.includes('g1'));
   expect(job).toMatchObject({ status: 'running', repeat: true });
-  expect(job.endsAt).toBeGreaterThan(Date.now());
-  expect(s.reputation).toBeGreaterThan(4);
-  expect(s.money).toBeGreaterThan(1300);
+  expect(job.endsAt).toBeGreaterThan(await page.evaluate(() => Date.now()));
+  expect(s.reputation).toBeGreaterThanOrEqual(3);
 });
 
-test('the board has a hotfix in every language, and no domains', async ({ page }) => {
+test('hotfixes are the intern’s, one in every language; features wait for a full spare room', async ({ page }) => {
   await found(page);
-  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');
+  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
   await expect(hotfixes).toHaveCount(4);
   await expect(hotfixes.locator('.chip.lang')).toHaveText(['Python', 'C/C++', 'JavaScript', 'Rust']);
-  // …plus an expert hotfix, last.
-  await expect(page.locator('.board-group[data-tier=hotfix] .offer').last()).toHaveClass(/expert-offer/);
-  await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Patches', 'Minor releases', 'Major releases']);
+  await expect(page.locator('.board-group[data-tier=hotfix] .board-sum')).toHaveText('your intern, with you');
+  await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Features', 'Patches', 'Minor releases', 'Major releases']);
+  await expect(page.locator('.board-group[data-tier=feature]')).toHaveClass(/locked/);
+  await expect(page.locator('.board-group[data-tier=feature] .level-count')).toHaveText('start once your spare room is full (1 of 4 desks)');
   const saved = await ltd(page);
   expect(JSON.stringify(saved)).not.toContain('"dom"');
   expect(saved.board.filter(o => o.tier !== 0)).toHaveLength(0);
+  expect(saved.board.filter(o => o.expert)).toHaveLength(0);
 });
 
 // Adds staff until the company has `n` people, the Director included (the intern doesn't count).
@@ -679,14 +723,16 @@ test('patches only come to the board above 10 staff', async ({ page }) => {
   // Dropping back to 10 takes them off the board again.
   await editCompany(page, s => { s.roster.pop(); });
   await expect(patches).toHaveClass(/locked/);
-  expect((await ltd(page)).board.filter(o => o.tier === 1)).toHaveLength(0);
+  expect((await ltd(page)).board.filter(o => o.tier === 2)).toHaveLength(0);
 });
 
 test('the demo runs hotfixes and patches, with managers', async ({ page }) => {
   await found(page);
   await expect(page.locator('#welcomeToast')).toContainText('In the demo it runs hotfixes, and patches once you have more than 10 staff');
   await expect(page.locator('#welcomeToast')).toContainText('reset when v0.1 comes out');
-  // Managers can be hired (this company just can't afford one yet).
+  // Managers can be hired once the company has left the spare room.
+  await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('managers need an office: move out of the spare room first');
+  await editCompany(page, s => { s.office = { premises: 'unit-s', owned: true }; });
   await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('not enough cash');
   // Patches open above 10 staff.
   await editCompany(page, staffUpTo(11));
@@ -699,35 +745,29 @@ test('the demo runs hotfixes and patches, with managers', async ({ page }) => {
 
   // A company from before the demo keeps its staff, but its bigger offers go.
   await editCompany(page, s => {
-    s.board.push({ id: 'm1', tier: 2, lang: 'Python', sloc: 2700, expiresAt: Date.now() + 3600000 });
+    s.board.push({ id: 'm1', tier: 3, lang: 'Python', sloc: 2700, expiresAt: Date.now() + 3600000 });
   });
-  expect((await ltd(page)).board.filter(o => o.tier > 1)).toHaveLength(0);
+  expect((await ltd(page)).board.filter(o => o.tier > 2)).toHaveLength(0);
 });
 
-test('a hotfix that is taken is replaced in the same language', async ({ page }) => {
+test('a hotfix the intern takes is replaced in the same language; developers can’t take hotfixes', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
-    s.roster = s.roster.filter(p => p.role !== 'Intern');
-    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Rust: 10 } });
-    s.board.find(o => o.tier === 0 && o.lang === 'Rust').id = 'rust1';
+    s.guideDone = true;
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.board.find(o => o.tier === 0 && o.lang === 'Python').id = 'py1';
   });
-  // Only the Rust hotfix can be taken; the other three fold away (the expert hotfix aside).
-  const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer:not(.expert-offer)');
-  await expect(hotfixes).toHaveCount(1);
-  await expect(hotfixes.locator('.chip.lang')).toHaveText('Rust');
-  await page.click('.board-group[data-tier=hotfix] [data-action=toggle-unknown]');
-  await expect(hotfixes).toHaveCount(4);
-  await expect(hotfixes.nth(1)).toContainText('Nobody on staff knows');
-  await page.click('.board-group[data-tier=hotfix] [data-action=toggle-unknown]');
-  await expect(hotfixes).toHaveCount(1);
-  await page.click('[data-action=staff][data-offer=rust1]');
-  await page.click('[data-pick=g1]');
+  const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  await page.click('[data-action=staff][data-offer=py1]');
+  await expect(page.locator('[data-pick=g1]')).toHaveCount(0);
+  await page.click('[data-pick="' + intern.id + '"]');
+  await page.click('[data-pick="director"]');
   await page.click('[data-action=pick-start]');
-  await expect(page.locator('.job')).toContainText('Rust');
-  const board = (await ltd(page)).board.filter(o => o.tier === 0 && !o.expert);
+  await expect(page.locator('.job')).toContainText('Python');
+  const board = (await ltd(page)).board.filter(o => o.tier === 0);
   expect(board.map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
-  expect(board.find(o => o.id === 'rust1')).toBeUndefined();
-  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×5 · 1 running');
+  expect(board.find(o => o.id === 'py1')).toBeUndefined();
+  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×4 · 1 running');
 });
 
 test('everyone needs a desk: the spare room has 4, then a small business unit for rent', async ({ page }) => {
@@ -915,31 +955,30 @@ test('a company from before desks starts in the spare room; co-working desks are
 test('expert contracts need someone at a skill level, and pay more', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
+    s.contractsOpen = true; s.firstClient = true;
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
     s.roster.push({ id: 'j1', name: 'Bo K.', role: 'Junior', since: Date.now(), lang: { Python: 1000 } });
-    const e = s.board.find(o => o.tier === 0 && o.expert);
-    Object.assign(e, { id: 'x1', lang: 'Python', expert: 5, risk: 'standard', sloc: 5 });
+    s.board.push({ id: 'x1', tier: 1, lang: 'Python', expert: 5, risk: 'standard', sloc: 600, expiresAt: Date.now() + 3600000 });
   });
   const offer = page.locator('.offer.expert-offer');
-  await expect(offer.locator('.expert')).toHaveText('Expert · needs Lv 5 Python · pays ×1.6');
+  await expect(offer.locator('.expert')).toHaveText('Expert · needs someone at Lv 5 Python · pays ×1.6');
   await page.click('[data-action=staff][data-offer=x1]');
-  // Only someone at Lv 5 can take it on their own.
-  await expect(page.locator('[data-pick=g1]')).toHaveCount(0);
+  // The grad alone can't take it; with the junior at Lv 5 on the team, they can.
+  await page.click('[data-pick=g1]');
+  await expect(page.locator('[data-action=pick-start]')).toBeDisabled();
   await page.click('[data-pick=j1]');
   await page.click('[data-action=pick-start]');
   await expect(page.locator('.job .expert-tag')).toHaveText('Lv 5');
   const job = (await ltd(page)).jobs.find(j => j.id === 'x1');
-  expect(job).toMatchObject({ expert: 5, payout: 8 });  // 5 SLOC × 1.6
-  // The board keeps an expert hotfix.
-  expect((await ltd(page)).board.filter(o => o.tier === 0 && o.expert)).toHaveLength(1);
+  expect(job).toMatchObject({ expert: 5, payout: 1440 });  // 600 SLOC × 1.5 × 1.6
 });
 
 test('each skill level past 5 adds a little speed', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
     s.roster.push({ id: 'p1', name: 'Grace H.', role: 'Principal', since: Date.now(), lang: { Python: 5800 } });
-    const o = s.board.find(o => o.tier === 0 && o.lang === 'Python' && !o.expert);
-    o.id = 'py1';
+    s.contractsOpen = true; s.firstClient = true;
+    s.board.push({ id: 'py1', tier: 1, lang: 'Python', sloc: 600, risk: 'standard', expiresAt: Date.now() + 3600000 });
   });
   await page.click('[data-action=staff][data-offer=py1]');
   // A principal writes 70 SLOC/min: ×2 at Lv 5, and +5% more for each of Lv 6, 7 and 8.
