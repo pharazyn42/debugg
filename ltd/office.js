@@ -64,6 +64,8 @@ window.DebuggOffice = (function(){
   let lastLabel = '';
   let breaks = new Set();    // ids on a break this frame
   let lastKind = null;
+  let viewW = 0;             // the picture's width this frame, to keep speech bubbles inside it
+  let snapNow = 0;           // the game time this frame, for the hours a notice has left
   let desksN = 0;            // how many desks the building has (desk numbers past it are squeezed in)       // the premises last drawn, to notice moving day
   let movingUntil = 0;       // the moving-day banner shows until then
 
@@ -219,6 +221,7 @@ window.DebuggOffice = (function(){
 
   function fit(L){
     const dpr = Math.min(2, window.devicePixelRatio || 1);
+    viewW = L.W;
     canvas.style.width = L.W + 'px';
     canvas.style.height = L.H + 'px';
     const w = Math.round(L.W * dpr), h = Math.round(L.H * dpr);
@@ -275,6 +278,7 @@ window.DebuggOffice = (function(){
     const staff = inOffice.filter(p => p.role !== 'Intern').sort((a, b) => (b.role === 'Director') - (a.role === 'Director'));
     desksN = L.desksN;
     assignDesks(staff, L.desksN + L.squeezed);
+    snapNow = snap.now;
     breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
     const director = snap.people.find(p => p.role === 'Director');
     const dDesk = director ? desks.get(director.id) : 0;
@@ -864,7 +868,30 @@ window.DebuggOffice = (function(){
     const hy = top - 9 * s;
     drawHead(look, f, hy, s, !reduceMotion && Math.sin(t * 0.9 + sp.seed * 3) > 0.985);
     if(pose === 'couch'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.beginPath(); ctx.arc(f * 4 * s, hy + 3 * s, 2 * s, 0.2, Math.PI - 0.2); ctx.stroke(); }
+    if(p && p.notice && !sp.gone) noticeBubble(p.notice, sp.x, hy - 13 * s, s);
     ctx.restore();
+  }
+
+  // A speech bubble above someone who has handed in their notice: why, and how long they have left
+  // (the same as the notifications bar). Drawn in the person's own coordinates; `x` is where they
+  // stand, to keep the bubble inside the picture.
+  function noticeBubble(n, x, bottom, s){
+    const left = n.until - snapNow;
+    const text = n.reason === 'cramped' ? 'Too cramped here…' : 'I’ve had a better offer…';
+    const sub = left > 0 ? 'leaving in ' + (left >= 3600000 ? Math.ceil(left / 3600000) + 'h' : Math.max(1, Math.ceil(left / 60000)) + 'min') : 'leaving soon';
+    const px = Math.max(8, 7.5 * s);
+    font(600, px);
+    const w = Math.max(ctx.measureText(text).width, ctx.measureText(sub).width) + 10 * s, h = px * 2.5 + 5 * s;
+    const bx = Math.max(-x + 3, Math.min(viewW - x - w - 3, -w / 2));   // 0 is the person's x
+    const by = bottom - h - 4 * s;
+    ctx.fillStyle = '#fff8e6'; ctx.strokeStyle = '#d9534f'; ctx.lineWidth = 1.2 * s;
+    rrect(bx, by, w, h, 4 * s); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-3 * s, by + h); ctx.lineTo(0, bottom); ctx.lineTo(3 * s, by + h); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff8e6'; ctx.fillRect(-2.2 * s, by + h - 1.5 * s, 4.4 * s, 3 * s);
+    ctx.fillStyle = '#7a1f1f'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(text, bx + w / 2, by + 3 * s);
+    font(500, px * 0.9); ctx.fillStyle = '#a55'; ctx.fillText(sub, bx + w / 2, by + 3 * s + px * 1.3);
   }
 
   // A head seen side-on, facing f: skin, hair (short, long, bun, bald or curly), the eye, glasses
@@ -1145,6 +1172,7 @@ window.DebuggOffice = (function(){
       breaks: team.filter(p => breaks.has(p.id)).length,
       away: team.filter(p => p.state === 'away').length,
       stuck: team.filter(p => p.state === 'stuck').length,
+      notice: team.filter(p => p.notice).length,
       wfh: fi == null || fi === 0 ? snap.people.filter(p => p.wfh).length : 0,
       applicants: snap.applicants.length
     };
@@ -1158,7 +1186,7 @@ window.DebuggOffice = (function(){
     const text = 'Your office, ' + where + ': ' + c.taken + ' of ' + c.desks + ' desks taken' +
       (c.squeezed ? ' and ' + c.squeezed + ' squeezed in' : '') + (c.wfh ? ', ' + c.wfh + ' working from home' : '') + ', ' +
       c.working + ' on contracts, ' + c.bench + ' on everyday work' +
-      (c.breaks ? ', ' + c.breaks + ' on a break' : '') + (c.away ? ', ' + c.away + ' away' : '') + (c.stuck ? ', ' + c.stuck + ' stuck' : '') + ', ' +
+      (c.breaks ? ', ' + c.breaks + ' on a break' : '') + (c.away ? ', ' + c.away + ' away' : '') + (c.stuck ? ', ' + c.stuck + ' stuck' : '') + (c.notice ? ', ' + c.notice + ' handed in their notice' : '') + ', ' +
       plural(c.applicants, 'applicant', 'applicants') + ' waiting.';
     if(text !== lastLabel){ canvas.setAttribute('aria-label', text); lastLabel = text; }
   }

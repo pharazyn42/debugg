@@ -898,11 +898,16 @@ test('someone who hands in their notice can be kept with a pay rise, or leaves a
     s.roster.push({ id: 'g2', name: 'Bo K.', role: 'Graduate', since: Date.now(), lang: { Rust: 10 },
                     notice: { reason: 'offer', until: Date.now() + 3600000, ask: 1 } });
   });
-  await expect(page.locator('.alert[data-alert=notice]')).toContainText('2 people have handed in their notice');
-  await openPerson(page, 'g1');
-  await expect(page.locator('#personModalBody .notice')).toContainText('Handed in notice · leaves in 18h · has a better offer');
+  await expect(page.locator('#notifications .alert[data-alert=notice]')).toHaveCount(2);
+  await expect(page.locator('.alert[data-alert=notice][data-id=g1]')).toContainText('Ada L. (graduate) handed in their notice: a better offer · leaves in 18h');
   await expect(page.locator('#statPayroll')).toHaveText('−¤4/min');
-  await page.click('[data-action=keep][data-id=g1]');
+  // The name opens their panel, which shows the same notice.
+  await page.click('.alert[data-id=g1] .link-btn');
+  await expect(page.locator('#personModalBody .notice')).toContainText('Handed in notice · leaves in 18h · has a better offer');
+  await page.keyboard.press('Escape');
+  await page.click('.alert[data-id=g1] [data-action=keep]');
+  await expect(page.locator('.alert[data-id=g1]')).toHaveCount(0);
+  await openPerson(page, 'g1');
   await expect(page.locator('#personModalBody .notice')).toHaveCount(0);
   await expect(page.locator('#personModalBody')).toContainText('−¤2.5/min');
   await page.keyboard.press('Escape');
@@ -943,7 +948,7 @@ test('a notice over a cramped office is withdrawn once there’s a free desk', a
   await openPerson(page, 'j0');
   await expect(page.locator('#personModalBody .notice')).toContainText('the office is too cramped');
   await page.keyboard.press('Escape');
-  await expect(page.locator('.alert[data-alert=notice]')).toContainText('or free up a desk');
+  await expect(page.locator('.alert[data-alert=notice]')).toContainText('free up a desk to keep them');
   await page.click('[data-action=move][data-tenure=rent]');
   await openPerson(page, 'j0');
   await expect(page.locator('#personModalBody .notice')).toHaveCount(0);
@@ -1323,4 +1328,20 @@ test('a new company is named, with its Director, who chooses how they look', asy
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody .modal-name')).toHaveText('Aroha T.');
   expect((await ltd(page)).roster[0].look.glasses).toBe(0);
+});
+
+test('someone who has handed in their notice gets a speech bubble in the office, and the notifications bar is apart from Recent', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await officeBreaks(page, []);
+  await found(page);
+  await expect(page.locator('#notifications')).toBeHidden();
+  await editCompany(page, s => {
+    s.guideDone = true;
+    s.roster.push({ id: 'g1', name: 'Ben', role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 },
+                    notice: { reason: 'offer', until: Date.now() + 5 * 3600000, ask: 0.5 } });
+  });
+  await expect(page.locator('#notifications .alert[data-id=g1]')).toContainText('a better offer');
+  await expect(page.locator('#log .alert')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => DebuggOffice.targets().some(t => t.kind === 'person' && t.id === 'g1'))).toBe(true);
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /, 1 handed in their notice, /);
 });

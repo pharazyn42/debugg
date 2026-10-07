@@ -349,6 +349,7 @@ state = {
   office view, squeezed-in people take a stool after the last desk, then share the end of someone's
   desk, the meeting-room table, the kitchen couch and counter, the stairs and the floor
   (`squeezeSpots()`, `squeezeProp()`).
+- **Notifications bar and bubbles** (October 2026, item 10c step 2; `renderNotifications()`, `#notifications` at the top of the contract board, apart from the Recent log): one line per notice (the name opens their panel, a **Keep** button) and the debt warning. The office draws a speech bubble over anyone with a notice (`noticeBubble()`, from `notice: { reason, until }` in the snapshot), and its aria-label counts them. The guide stays in the Studio box.
 - **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
   until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their
   notice with `NOTICE_PER_DAY` (1.5%) / 24 chance, × `NOTICE_CRAMPED` (1, 3, 5, 7 by cramp

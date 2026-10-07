@@ -80,6 +80,7 @@ window.DebuggLtd = (function(){
       '</div>';
     boardSlot.innerHTML =
       '<div class="panel">' +
+        '<div class="notifications" id="notifications" hidden></div>' +
         '<h2>Contract board <span class="tag">staff a team to take one on</span></h2>' +
         '<div class="board" id="board"></div>' +
         '<h3>In progress</h3>' +
@@ -105,7 +106,7 @@ window.DebuggLtd = (function(){
     const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), studioName = $('studioName'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
     const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
-    const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
+    const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log'), notifEl = $('notifications');
     const welcomeToast = $('welcomeToast');
     const teamModal = $('teamModal'), teamModalBody = $('teamModalBody');
     const personModal = $('personModal'), personModalBody = $('personModalBody');
@@ -1738,18 +1739,29 @@ window.DebuggLtd = (function(){
         html += '<div class="guide" data-step="' + step.key + '"><button class="toast-close" data-action="skip-guide" aria-label="Hide the guide">✕</button>' +
           '<span class="guide-label">Next step</span>' + step.text + '</div>';
       }
-      const leaving = state.roster.filter(p => p.notice);
-      if(leaving.length){
-        html += '<div class="alert bad" data-alert="notice">✉ ' + (leaving.length === 1 ? esc(leaving[0].name) + ' has' : leaving.length + ' people have') +
-          ' handed in their notice. Agree a pay rise on their card to keep them' +
-          (leaving.some(p => p.notice.reason === 'cramped') ? ', or free up a desk' : '') + '.</div>';
-      }
+      setHTML(guideEl, html);
+      return step;
+    }
+
+    // The notifications bar, at the top of the contract board: things that need you, with the
+    // button to deal with them. Notices of resignation (the same message floats over the person's
+    // head in the office) and debt for now.
+    function renderNotifications(now){
+      let html = '';
+      state.roster.filter(p => p.notice).forEach(p => {
+        const n = p.notice, left = n.until - now;
+        html += '<div class="alert bad" data-alert="notice" data-id="' + p.id + '">' +
+          '<span>✉ <button type="button" class="link-btn" data-action="inspect" data-id="' + p.id + '">' + esc(p.name) + '</button> (' + p.role.toLowerCase() +
+          ') handed in their notice: ' + (n.reason === 'cramped' ? 'the office is too cramped (free up a desk to keep them)' : 'a better offer') +
+          ' · ' + (left > 0 ? 'leaves in ' + fmtDuration(left) : 'leaves after this contract') + '</span>' +
+          '<button class="btn-small btn-promote" data-action="keep" data-id="' + p.id + '">Keep: +' + fmtRate(n.ask) + '/min</button></div>';
+      });
       if(state.money < 0){
         html += '<div class="alert bad" data-alert="debt">⚠ The company is ' + fmt(-state.money) + ' in debt, and salaries keep going out. ' +
           'Put everyone on contracts, take a desk job, or let someone go.</div>';
       }
-      setHTML(guideEl, html);
-      return step;
+      setHTML(notifEl, html);
+      notifEl.hidden = !html;
     }
 
     function renderStage(){
@@ -2231,6 +2243,7 @@ window.DebuggLtd = (function(){
     function renderAll(){
       const now = Date.now();
       guide = renderGuide();
+      renderNotifications(now);
       renderStage();
       renderStats();
       renderStudio(now);
@@ -2273,7 +2286,7 @@ window.DebuggLtd = (function(){
             : isAway(p, now) ? 'away'
             : job ? (isStuck(job) || isSlow(job) ? 'stuck' : isRunning(job) ? 'working' : 'failed')
             : onBench(p, busy, now) ? 'bench' : 'idle';
-          return { id: p.id, name: p.name, role: p.role, look: p.look || null, wfh: !!p.wfh, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
+          return { id: p.id, name: p.name, role: p.role, look: p.look || null, wfh: !!p.wfh, state: st, notice: p.notice ? { reason: p.notice.reason, until: p.notice.until } : null, job: job ? officeJob(job, now) : null };
         }),
         applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
       };

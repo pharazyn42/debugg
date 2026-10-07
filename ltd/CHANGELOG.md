@@ -10,6 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **A notifications bar and speech bubbles.** When someone hands in their notice, a bar at the top of the contract board says who, why and how long they have left, with a **Keep** button and their name opening their panel. In the office they get a speech bubble over their head saying the same ("I've had a better offer…", "Too cramped here…"). The company being in debt shows in the bar too. The bar sits apart from the Recent list of results.
 - **A clearer Studio box.** It's named after your company, and a new **Premises** list shows each place you can work from: what it is, its desks and floors, what it adds, what it costs to rent or buy, and which one you're in ("You are here"). The next-step guide and the headcount by type stay.
 - **People live in the office picture.** The Director card and the staff list are gone: click anyone in the office, you included, to open their panel with their skills, what they're doing, promotion, Keep and Let go (and for you, your languages, your desk, and editing your name and look). There's still a plain list of names under "Everyone in the studio" for keyboards and screen readers. The office is always shown now, so there's nothing to hide.
 - **SLOC/min in the stats bar.** A new cell between Cash and Reputation shows how many lines of code your company writes per minute, on contracts and everyday work together.
