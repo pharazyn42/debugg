@@ -289,7 +289,7 @@ new ideas there. Index (status in brackets):
 - 17 In-house products and maintenance teams
 - 17b Tech Debt · 17c Merge Conflict · 17d Disruptive events
 - 17e Multi-language contracts
-- 17f AI agents
+- 17f AI agents (planned; detail in `ideas/ai-agents-plan.md`)
 - 18 Multiple sites
 - 19 Prestige
 
