@@ -912,7 +912,15 @@ player-owner:
     deliberate spend; test with the sim.
   - Managers can't be hired in the spare room (`hireProblem()`), so the board says so there.
 - **Build in steps** (all done, October 2026): (1) the panel, premises and people panels; (2) the notifications bar and
-  bubbles; (3) interview-room hiring; (4) the job board (posting fee 10% of the hire cost, replies in an hour, offers open a day; to tune with the sim).
+  bubbles; (3) interview-room hiring; (4) the job board (posting fee 10% of the hire cost, replies in an hour, offers open a day).
+  **Sim pass (October 2026, `npm run sim`, 5 seeds):** the milestones up to the first manager
+  barely moved against the interview-room-only version. The fee is small next to a manager (¤90 of
+  ¤900; ¤20 for a work-from-home graduate). The hour's wait costs a keen player about 4 hours, a
+  casual one about a check-in (12 hours), and an always-open one about an hour: with a 6-minute
+  wait the keen and casual players gain only 4 and 12 hours, because they still hire at their next
+  visit, so the wait isn't what holds them back and the 1 hour, 10% and 24 hours stay. The sim's
+  player posts the manager job once it has half the price, so the reply is waiting when it can
+  pay; a player who waits until they can pay in full hires a check-in later.
 
 ## Phase 3 — Retention and mid-game growth
 

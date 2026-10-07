@@ -281,7 +281,8 @@ function play(page, log, now, opts){
   // A manager when the developers are at the Director's and managers' span. Managers need an office,
   // so the player rents the unit first.
   const managers = s.roster.filter(p => p.role === 'Manager').length;
-  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers && spendable() >= priceOf(s, 'Manager')){
+  // The player posts when they're about half way to the price, so the reply is waiting when they can pay.
+  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers && spendable() >= priceOf(s, 'Manager') * 0.5){
     if(spare()){ act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' }); if(!spare()) log('moved/unit-s'); }
     if(!spare()) post('Manager', false);
   }
