@@ -1404,6 +1404,10 @@ Big systems that depend on the earlier phases.
 - A worked-out version of this is the agent office (21b).
 
 ### 21b. The agent office (the player-owner's idea, October 2026; not started)
+- **Chosen (October 2026): the graphics version, from the start of the game.** The plan to build
+  it is `ideas/ltd-office-view-plan.md`, with a working prototype in `ideas/ltd-office-demo.html`:
+  a building per premises (the spare room is one floor; bigger premises add floors and desks per
+  floor), an interview room where applicants wait, and break rooms where breaks stop people's work.
 - **Where it comes from.** The player-owner's "Agent HQ" (claude-pet, in the `pharazyn42/claude`
   repository, on its `claude/creature-animation-ideas-o53x86` branch): a side-on office building
   drawn on a canvas, with no dependencies, showing real Claude Code agents at work. One floor per
