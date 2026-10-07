@@ -1921,6 +1921,7 @@ window.DebuggLtd = (function(){
         fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts' +
         (job && isRunning(job) ? '<br>' + fmtClock(job.endsAt - now) + ' left on the ' + TIERS[job.tier].name.toLowerCase() : '') + '</div>') +
         '<div class="person-actions">' + personActionsHTML(p, now) + '</div>' +
+        (p.role === 'Director' && !state.roster.some(isIntern) ? '' : contractsHTML(p, now)) +
         body);
     }
 
@@ -2144,6 +2145,33 @@ window.DebuggLtd = (function(){
       if(e.target === candidateModal || e.target.closest('[data-action=close-candidate]')) closeCandidateModal();
       else onAction(e);
     });
+
+    // The contracts on the board someone could be put on right now, ones they know the stack for first
+    // (the team picker has the rest of the rules). Nothing while they're on a contract or away.
+    function contractsFor(p, now){
+      if(jobFor(p.id) || isAway(p, now)) return [];
+      return state.board.filter(o => {
+        const tier = TIERS[o.tier];
+        if(!tierOpen(o.tier) || !eligibleFor(tier, p)) return false;
+        if(isHotfix(o.tier)) return internCan(o);
+        return tier.max > 1 || (qualifiedFor(p, o) && meetsExpert(p, o));
+      }).sort((a, b) => qualifiedFor(p, b) - qualifiedFor(p, a) || b.tier - a.tier);
+    }
+    function contractsHTML(p, now){
+      if(jobFor(p.id)) return '';
+      const list = contractsFor(p, now);
+      const shown = list.slice(0, 6);
+      return '<div class="skill-section-title">Contracts they could take</div>' + (shown.length
+        ? '<div class="contract-list">' + shown.map(o => {
+            const t = TIERS[o.tier], e = expertOf(o);
+            const tags = (o.first ? ' · your first client' : '') + (e ? ' · needs Lv ' + e.level : '') +
+              (o.risk && o.risk !== 'standard' ? ' · ' + riskOf(o).name.toLowerCase() : '') +
+              (isDev(p) && !qualifiedFor(p, o) ? ' · learner' : '');
+            return '<div class="contract-row"><span><b>' + t.name + '</b> · ' + esc(o.lang) + ' · ' + o.sloc.toLocaleString('en-GB') + ' SLOC' + tags + '</span>' +
+              '<button class="btn-small btn-ghost" data-action="staff-with" data-offer="' + o.id + '" data-id="' + p.id + '">Staff…</button></div>';
+          }).join('') + (list.length > shown.length ? '<div class="empty">+' + (list.length - shown.length) + ' more on the board</div>' : '') + '</div>'
+        : '<p class="applicants-note">' + (isAway(p, now) ? 'Away at the moment.' : 'Nothing on the board they can take right now. Everyday work meanwhile.') + '</p>');
+    }
 
     // What's going on with someone, and what you can do about it: shown in their panel.
     function personActionsHTML(p, now){
@@ -2436,10 +2464,10 @@ window.DebuggLtd = (function(){
 
     let picker = null; // { offerId, selected: Set, repeat }
 
-    function openPicker(offerId){
+    function openPicker(offerId, preselect){
       const offer = state.board.find(o => o.id === offerId);
       // With managers, contracts default to repeating; before them there are no repeats.
-      picker = { offerId, selected: new Set(), repeat: !!offer && managed() && !isHotfix(offer.tier) };
+      picker = { offerId, selected: new Set(preselect || []), repeat: !!offer && managed() && !isHotfix(offer.tier) };
       teamModal.hidden = false;
       renderPicker();
     }
@@ -2756,6 +2784,14 @@ window.DebuggLtd = (function(){
         addLog('info', p.name + ' has left the studio.');
       }else if(action === 'staff'){
         openPicker(btn.dataset.offer);
+        return;
+      }else if(action === 'staff-with'){
+        // From someone's panel: the team picker with them (and, for the intern's hotfix, the pair) ticked.
+        const p = person(btn.dataset.id);
+        if(!p || !state.board.some(o => o.id === btn.dataset.offer)) return;
+        closePersonModal();
+        openPicker(btn.dataset.offer, isIntern(p) || p.role === 'Director'
+          ? state.roster.filter(x => isIntern(x) || x.role === 'Director').map(x => x.id) : [p.id]);
         return;
       }else if(action === 'intern-help'){
         startHelp(btn.dataset.job);

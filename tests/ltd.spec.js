@@ -1450,3 +1450,28 @@ test('the job board: post a job for a fee, a candidate replies later, managers a
   expect(posting.readyAt - at(12).getTime()).toBeGreaterThanOrEqual(3600000 - 1000);
   expect(posting.readyAt - at(12).getTime()).toBeLessThanOrEqual(3600000 + 60000);
 });
+
+test('clicking someone lists the contracts they could take, and Staff… opens the team picker with them ticked', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.guideDone = true; s.contractsOpen = true; s.firstClient = true;
+    s.board.push({ id: 'o1', tier: 1, lang: 'Python', sloc: 600, expiresAt: Date.now() + 3600000 });
+    s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    s.roster.push({ id: 'g2', name: 'Bo K.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+  });
+  await openPerson(page, 'g1');
+  await expect(page.locator('#personModalBody .contract-row').first()).toContainText('Feature');
+  await page.locator('#personModalBody [data-action=staff-with]').first().click();
+  await expect(page.locator('#personModal')).toBeHidden();
+  await expect(page.locator('#teamModal')).toBeVisible();
+  await expect(page.locator('label.pick', { hasText: 'Ada L.' }).locator('input')).toBeChecked();
+  await expect(page.locator('label.pick', { hasText: 'Bo K.' }).locator('input')).not.toBeChecked();
+  await page.keyboard.press('Escape');
+  // On a contract: no list, just what they're on.
+  await page.click('[data-action=staff][data-offer=o1]');
+  await page.click('[data-pick=g1]');
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job')).toHaveCount(1);
+  await openPerson(page, 'g1');
+  await expect(page.locator('#personModalBody .contract-row')).toHaveCount(0);
+});
