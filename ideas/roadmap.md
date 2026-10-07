@@ -1161,19 +1161,24 @@ roster.
   dog in the office, ice-cream tubs); the new **SLOC/min** stat in the stats bar shows the effect.
   A "Perks" card in the Studio panel lists what's on offer, its price, effect, time left and
   cooldown.
+- **Decided with the player-owner (October 2026).**
+  - **Boosts speed up contracts by the same amount as the SLOC/min boost**: +20% SLOC/min means a
+    running contract finishes 20% sooner. Running jobs need their `endsAt` brought in (and put back
+    as the boost ends), the way a snagged contract's `job.slow` already changes pace.
+  - **Boosts stack** (several at once, each with its own timer and cooldown).
+  - **Some upgrades need bigger premises.** A barista station needs the space, and a barista, so it
+    can't go in the spare room; the Perks card says why ("no room in the spare room"), as hiring
+    does for a full office. Which stage needs which premises is open.
 - **Design questions.**
-  - Boosts apply to everyday work and contracts alike, or only one? (Contracts already have fixed
-    durations, so a boost would need to shorten `endsAt` of running jobs, or apply to jobs when
-    they start.)
   - Size of the boosts (+10–30%?), durations (minutes to hours), cooldowns (hours). Price them
     against the extra code they bring, so that using a boost is a good deal but not a no-brainer,
     and the permanent stages are worth their running cost (target: each stage pays for its
     running cost with the SLOC it adds at a company of the size that can afford it, and a bit more).
-  - Do boosts stack, or one at a time? Do they run while the page is closed (within the 4-hour
+  - How far should stacked boosts go (a cap, or diminishing returns)? Do they run while the page is closed (within the 4-hour
     offline cap)? Does pausing stop them? (Pausing shifts every clock, so the same rule as jobs.)
   - Tie into the events system (item 15b): a hot day makes ice cream worth more.
-  - Upgrades might need a business stage or premises (a barista station wants a kitchen), and the
-    unit has more kitchens than the spare room.
+  - Which upgrades need which premises or business stage (the unit has more kitchens than the spare
+    room).
   - Balance with the sim (`npm run sim`), and the pacing targets in `ideas/ltd-pacing-targets.md`.
 
 ## Phase 4 — Late game
