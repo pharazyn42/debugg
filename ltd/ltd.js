@@ -50,7 +50,8 @@ window.DebuggLtd = (function(){
       '</div>';
     deskSlot.innerHTML =
       '<div class="panel desk-panel">' +
-        '<h2>Your desk <span class="tag" id="deskCount"></span></h2>' +
+        '<h2>Your desk <span class="tag" id="deskCount"></span>' +
+          '<button type="button" class="btn-small btn-ghost" data-action="desk-details" style="margin-left:auto;">Your details</button></h2>' +
         '<p class="desk-intro">Desk jobs for you, the Director: questions from past daily puzzles and Debuggit Learn. ' +
           'Every right answer pays the company, and a job with every answer right pays a bonus.</p>' +
         '<div class="desk-play" id="deskPlay" hidden></div>' +
@@ -104,6 +105,18 @@ window.DebuggLtd = (function(){
       '<div class="modal-back" id="personModal" hidden><div class="modal person">' +
         '<button class="modal-close" data-action="close-person" aria-label="Close" style="float:right;">✕</button>' +
         '<div id="personModalBody"></div></div></div>';
+    // The desk lives in a window of its own, opened by clicking yourself in the office (or the Studio box's
+    // button): the slot the page gives us is moved into it.
+    const deskModal = document.createElement('div');
+    deskModal.className = 'modal-back';
+    deskModal.id = 'deskModal';
+    deskModal.hidden = true;
+    const deskBox = document.createElement('div');
+    deskBox.className = 'modal desk-modal';
+    deskBox.innerHTML = '<button class="modal-close" data-action="close-desk" aria-label="Close" style="float:right;">✕</button>';
+    deskBox.appendChild(deskSlot);
+    deskModal.appendChild(deskBox);
+    modals.appendChild(deskModal);
     document.body.appendChild(modals);
 
     const $ = id => document.getElementById(id);
@@ -314,7 +327,7 @@ window.DebuggLtd = (function(){
     // hotfix → patch → minor release → major release.
     const TIERS = [
       { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 0.33,  rep: 0.05,
-        needs: {}, req: 'your intern, with you' },
+        needs: {}, req: 'one dev who knows the stack, or your intern with you' },
       { key: 'feature', name: 'Feature',      plural: 'Features',       minutes: 60, offerLife: 360, refSloc: 10,  min: 1,  max: 3,  mult: 1.5, xpPerMin: 0.4,  rep: 1,
         needs: {}, req: '1–3 devs, any level' },
       { key: 'patch', name: 'Patch',          plural: 'Patches',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 0.4,  rep: 2,
@@ -366,7 +379,7 @@ window.DebuggLtd = (function(){
     function tierLock(tierIndex){
       const key = TIERS[tierIndex].key;
       if(DEMO && !DEMO_TIERS.includes(key)) return COMING;
-      if(key === 'hotfix') return state && state.roster.some(isIntern) ? null : 'your intern’s, while you have one';
+      if(key === 'hotfix') return null;
       if(key === 'feature') return state && state.contractsOpen ? null
         : 'start once your spare room is full (' + (state ? Math.min(desksUsed(), SPARE_ROOM_DESKS) : 1) + ' of ' + SPARE_ROOM_DESKS + ' desks)';
       if(headcount() <= PATCH_HEADCOUNT) return STAFF_LOCK;
@@ -1005,7 +1018,6 @@ window.DebuggLtd = (function(){
       // The Director only takes hotfixes, alongside an intern.
       if(p.role === 'Director') return tier.key === 'hotfix' && state.roster.some(isIntern);
       if(isIntern(p)) return tier.key === 'hotfix';
-      if(tier.key === 'hotfix') return false;   // hotfixes are the intern's (October 2026)
       if(p.role === 'Manager') return !!tier.needs.Manager;
       return true;
     }
@@ -1053,7 +1065,6 @@ window.DebuggLtd = (function(){
                       ok: atLeast('Senior') >= need });
       }
       if(!devs.length) checks.push({ label: 'at least one developer', ok: false });
-      if(tier.key === 'hotfix') checks.push({ label: 'hotfixes are your intern’s, with you', ok: false });
       const knowers = devs.filter(d => qualifiedFor(d, offer));
       const learners = devs.length - knowers.length;
       if(tier.max === 1){
@@ -1566,6 +1577,7 @@ window.DebuggLtd = (function(){
       if(!q) return;
       save();
       helpActive = job.id;
+      openDesk();
       let text = '';
       const box = document.getElementById('deskPlay');
       box.hidden = false;
@@ -1648,6 +1660,20 @@ window.DebuggLtd = (function(){
       renderAll();
       return text;
     }
+    function openDesk(){
+      deskModal.hidden = false;
+      renderDesk();
+    }
+    function closeDesk(){ deskModal.hidden = true; }
+    deskModal.addEventListener('click', (e) => {
+      if(e.target === deskModal || e.target.closest('[data-action=close-desk]')) closeDesk();
+      else if(e.target.closest('[data-action=desk-details]')){
+        const d = state.roster.find(p => p.role === 'Director');
+        closeDesk();
+        if(d) openPersonModal(d.id);
+      }
+    });
+
     function renderDesk(){
       const now = Date.now();
       const jobs = state.desk.jobs;
@@ -1723,11 +1749,11 @@ window.DebuggLtd = (function(){
     function managersStaff(){
       if(stageIndex() < 1) return 0;
       let placed = [];
-      const free = () => { const busy = busyIds(); return state.roster.filter(p => p.role !== 'Director' && !busy.has(p.id)); };
-      for(let ti = TIERS.length - 1; ti > 0; ti--){
+      const free = () => { const busy = busyIds(), now = Date.now(); return state.roster.filter(p => p.role !== 'Director' && !busy.has(p.id) && !isAway(p, now)); };
+      for(let ti = TIERS.length - 1; ti >= 0; ti--){
         const tier = TIERS[ti];
         state.board.filter(o => o.tier === ti && !(picker && picker.offerId === o.id)).forEach(o => {
-          const pool = free().filter(p => eligibleFor(tier, p));
+          const pool = free().filter(p => eligibleFor(tier, p) && !isIntern(p));
           const ids = suggestTeam(tier, o, pool);
           if(ids.length < tier.min || !evaluateTeam(tier, o, ids.map(person)).valid) return;
           if(startJob(o.id, ids, true)) placed = placed.concat(ids.filter(id => isDev(person(id))));
@@ -1767,7 +1793,7 @@ window.DebuggLtd = (function(){
             'in any language you know: Python, and any you’ve earned daily puzzle XP in. Now and then they get stuck, and need you to answer a puzzle.' };
       }
       if(!(state.desk && state.desk.done)){
-        return { key: 'desk', text: '<b>Take a desk job.</b> At your desk, answer a question or two from past daily puzzles ' +
+        return { key: 'desk', text: '<b>Take a desk job.</b> Click yourself in the office (or press Your desk), then answer a question or two from past daily puzzles ' +
           'and Debuggit Learn. Every right answer pays the company and earns reputation, and new jobs turn up about every hour.' };
       }
       if(!state.contractsOpen){
@@ -2040,7 +2066,10 @@ window.DebuggLtd = (function(){
       renderPersonModal(now);
 
       const ready = (state.candidates || []).length, pending = (state.postings || []).length;
+      const waiting = state.desk ? state.desk.jobs.length : 0;
       setHTML(jobEntry,
+        '<button class="btn-small btn-ghost' + (guide && guide.key === 'desk' ? ' guide-target' : '') + '" data-action="open-desk">Your desk' +
+        (waiting ? ' · ' + waiting + ' waiting' : '') + '</button>' +
         '<button class="btn-small btn-ghost" data-action="open-jobs">Job board' + (ready ? ' · ' + ready + ' replied' : '') +
         (pending ? ' · ' + pending + ' waiting for replies' : '') + '</button>' +
         '<span class="why">Managers' + (premisesKey() === 'spare-room' ? ' and people who work from home' : '') + ' are found here, or tap the JOBS screen in the interview room.</span>');
@@ -2169,7 +2198,7 @@ window.DebuggLtd = (function(){
       return state.board.filter(o => {
         const tier = TIERS[o.tier];
         if(!tierOpen(o.tier) || !eligibleFor(tier, p)) return false;
-        if(isHotfix(o.tier)) return internCan(o);
+        if(isHotfix(o.tier) && (isIntern(p) || p.role === 'Director')) return internCan(o);
         return tier.max > 1 || (qualifiedFor(p, o) && meetsExpert(p, o));
       }).sort((a, b) => qualifiedFor(p, b) - qualifiedFor(p, a) || b.tier - a.tier);
     }
@@ -2452,6 +2481,7 @@ window.DebuggLtd = (function(){
             : onBench(p, busy, now) ? 'bench' : 'idle';
           return { id: p.id, name: p.name, role: p.role, look: p.look || null, wfh: !!p.wfh, state: st, notice: p.notice ? { reason: p.notice.reason, until: p.notice.until } : null, job: job ? officeJob(job, now) : null };
         }),
+        deskJobs: state.desk ? state.desk.jobs.length : 0,
         jobBoard: { ready: (state.candidates || []).length, pending: (state.postings || []).length },
         applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
       };
@@ -2464,8 +2494,7 @@ window.DebuggLtd = (function(){
         }else if(kind === 'stuck'){
           startHelp(id);
         }else if(kind === 'director'){
-          const d = state.roster.find(p => p.role === 'Director');
-          if(d) openPersonModal(d.id);
+          openDesk();
         }else if(kind === 'jobs'){
           openJobBoard();
         }else if(kind === 'applicant'){
@@ -2483,7 +2512,7 @@ window.DebuggLtd = (function(){
     function openPicker(offerId, preselect){
       const offer = state.board.find(o => o.id === offerId);
       // With managers, contracts default to repeating; before them there are no repeats.
-      picker = { offerId, selected: new Set(preselect || []), repeat: !!offer && managed() && !isHotfix(offer.tier) };
+      picker = { offerId, selected: new Set(preselect || []), repeat: !!offer && managed() };
       teamModal.hidden = false;
       renderPicker();
     }
@@ -2684,6 +2713,7 @@ window.DebuggLtd = (function(){
       if(inspectId) closePersonModal();
       if(candidateId) closeCandidateModal();
       if(jobsOpen) closeJobBoard();
+      if(!deskModal.hidden) closeDesk();
     });
 
     // ---------------------------------------------------------------------
@@ -2768,9 +2798,12 @@ window.DebuggLtd = (function(){
         track('office/buy/' + premisesKey());
       }else if(action === 'toggle-unknown'){
         state.showUnknownOffers = !state.showUnknownOffers;
+      }else if(action === 'open-desk'){
+        openDesk();
+        return;
       }else if(action === 'go-desk'){
         closePersonModal();
-        if(deskSlot.scrollIntoView) deskSlot.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        openDesk();
         return;
       }else if(action === 'skip-guide'){
         state.guideDone = true;

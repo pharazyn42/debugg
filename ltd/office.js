@@ -65,6 +65,7 @@ window.DebuggOffice = (function(){
   let breaks = new Set();    // ids on a break this frame
   let lastKind = null;
   let viewW = 0;             // the picture's width this frame, to keep speech bubbles inside it
+  let deskJobs = 0;          // desk jobs waiting for the Director this frame
   let snapNow = 0;           // the game time this frame, for the hours a notice has left
   let desksN = 0;            // how many desks the building has (desk numbers past it are squeezed in)       // the premises last drawn, to notice moving day
   let movingUntil = 0;       // the moving-day banner shows until then
@@ -279,6 +280,7 @@ window.DebuggOffice = (function(){
     desksN = L.desksN;
     assignDesks(staff, L.desksN + L.squeezed);
     snapNow = snap.now;
+    deskJobs = snap.deskJobs || 0;
     breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
     const director = snap.people.find(p => p.role === 'Director');
     const dDesk = director ? desks.get(director.id) : 0;
@@ -884,8 +886,22 @@ window.DebuggOffice = (function(){
     drawHead(look, f, hy, s, !reduceMotion && Math.sin(t * 0.9 + sp.seed * 3) > 0.985);
     if(pose === 'couch'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.beginPath(); ctx.arc(f * 4 * s, hy + 3 * s, 2 * s, 0.2, Math.PI - 0.2); ctx.stroke(); }
     if(p && p.notice && !sp.gone) noticeBubble(p.notice, sp.x, hy - 13 * s, s);
+    else if(p && p.role === 'Director' && deskJobs > 0 && !sp.walking) deskBadge(deskJobs, hy - 15 * s, s, motion);
     else if(p && !sp.walking && !sp.onBreak && !sp.gone && !sp.applicant && (p.job || p.state === 'bench')) workBadge(!!p.job, hy - 15 * s, s);
     ctx.restore();
+  }
+
+  // Over the Director while a desk job is waiting: an amber badge with the number of jobs, pulsing
+  // (still under reduced motion).
+  function deskBadge(n, y, s, motion){
+    const k = 1.3 * (1 + 0.1 * Math.sin(motion * 5));
+    s *= k;
+    const w = 15 * s, h = 10 * s, x = -w / 2;
+    ctx.fillStyle = '#f2b84b'; ctx.strokeStyle = '#a67a1e'; ctx.lineWidth = 1 * s;
+    rrect(x, y - h, w, h, 3 * s); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-2 * s, y - 0.5 * s); ctx.lineTo(0, y + 2.5 * s); ctx.lineTo(2 * s, y - 0.5 * s); ctx.closePath(); ctx.fill();
+    font(800, 7 * s, true); ctx.fillStyle = '#131417'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('?' + (n > 1 ? n : ''), 0, y - h / 2 + 0.5 * s);
   }
 
   // A small badge over someone's head saying what they're doing: a green briefcase when they're on

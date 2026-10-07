@@ -696,3 +696,8 @@
 .ltd .contract-row{ display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-dim);
   border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
 .ltd .contract-row b{ color: var(--text); font-weight: 600; }
+
+/* The desk, in a window */
+.ltd .modal.desk-modal{ max-width: 520px; }
+.ltd .desk-modal .panel{ border: 0; padding: 0; background: none; box-shadow: none; margin: 0; }
+.ltd .desk-modal .panel h2{ display: flex; align-items: center; gap: 8px; }

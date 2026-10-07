@@ -163,7 +163,7 @@ state = {
     there about when the contract time is up (Lv 3 after about 7 hours on hotfixes, Lv 5 about 3
     days later, Lv 8 after about 14 days on patches); spreading across languages takes longer.
   - **A free slot** at the next level.
-- **Contract board** (since October 2026 hotfixes are the intern's and features come first; see "Everyday work and contracts as events" below): shown as a tree like the roster, one foldable group
+- **Contract board** (from October 2026 features come first, and hotfixes are for the intern or any dev who knows the language; see "Everyday work and contracts as events" below): shown as a tree like the roster, one foldable group
   per contract type (Hotfixes, Patches, Minor releases, Major releases),
   each header showing how many offers and how many are running. Folded
   groups are remembered (`collapsedTiers`). There's **always a hotfix in
@@ -420,8 +420,13 @@ state = {
     `SNAG_CHANCE` each): stuck, it runs at half speed (`job.slow`) until you help with a puzzle
     (`finishSlowHelp()`): back to full speed, `INTERN_NUDGE` on (paying like a desk question and
     reputation) or back. Ignored, it just finishes later. With managers: repeats, retries, no snags.
-  - **Hotfixes are the intern's**, with you, as before; developers can't take them, even with
-    managers (decided), and the board only has them while there's an intern. No expert hotfixes.
+  - **Hotfixes are for the intern, with you, or for any dev who knows the language** (the player-owner's
+    call, October 2026, reversing the October rule that they were the intern's alone): a dev takes one
+    solo (no learning solo; `eligibleFor()`), and with managers it repeats like any contract, and idle
+    devs are put on one last by `managersStaff()` (never the intern, never someone away). A hotfix is
+    always on the board while the demo has them (`tierLock()` is never a lock for them). No expert
+    hotfixes. A hotfix pays ¤1 a line against everyday work's ¤0.54, so a team on repeating hotfixes
+    earns more than one on everyday work; the sim (keen, day 9) showed about 18% more cash than before.
   - **The guide**: the intern's hotfix, a desk job, filling the spare room, your first client,
     and helping a stuck team. The old "on the bench" warning went with odd jobs.
 
