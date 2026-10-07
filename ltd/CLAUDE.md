@@ -253,15 +253,19 @@ state = {
   picks up from it; until October 2026 a repeat finished before the cap stopped, so an overnight
   company paid 4 hours' salary for no work), and stop if the team no longer meets the
   requirements.
-- **Roster UI**: the Director card, then a collapsible tree grouped by
-  level. Each group header shows its headcount, how many are busy, SLOC/min
-  and salary/min. Collapse state persists. Clicking a card opens the
-  employee panel: every language as a level ("Lv 6", with no top; the best in amber) and a bar
-  of XP towards the next level ("2600/3400 xp"), current assignment, and a promotion checklist.
-  Roster cards show a dev's two best languages ("Python Lv 6 · Rust Lv 2"). Skill levels were
-  five pips until September 2026 (the player-owner's call); levels 1–5 need the same XP as the
-  five pips did, so nothing changed for existing staff, and levels above 5 don't yet add speed or
-  success (`SKILL_FULL`).
+- **Roster UI** (changed October 2026, item 10c step 1): there is no roster tree or Director card.
+  Everyone, the Director included, is opened by clicking them in the office view (or from the
+  names-only "Everyone in the studio" list, `.person-link`, for keyboards and screen readers). The
+  panel (`renderPersonModal()`) shows every language as a level ("Lv 6", with no top; the best in
+  amber) and a bar of XP towards the next level ("2600/3400 xp"), what they're doing, their notice and
+  **Keep**, the promotion checklist and **Promote**, and **Let go** (`personActionsHTML()`); its buttons
+  go through `onAction()` too. The Director's panel shows their languages (with `a.learn-lang` links),
+  "Go to your desk" and "Edit name and look". Skill levels were five pips until September 2026 (the
+  player-owner's call); levels 1–5 need the same XP as the five pips did, and levels above 5 don't
+  yet add speed or success (`SKILL_FULL`). The headcount chips above the office stay.
+- **The Studio box** is titled with the company's name, and a **Premises** list (`PREMISES`,
+  with a `blurb` each) shows every place with its desks, floors, price and buttons (rent, buy, buy
+  the one you rent, move back and sell), the current one marked "You are here".
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
 - **Odd jobs** (replaced in October 2026 by everyday work, below; the player-owner's call, September 2026): developers on no contract earn their
@@ -378,9 +382,8 @@ state = {
   note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
   page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do
   what a panel button does: a person opens their panel, an applicant's card scrolls into view and
-  flashes (hiring stays a button), a stuck intern opens Help, the Director scrolls to the desk. The
-  canvas is `role="img"` with an `aria-label` summary. Shown by default; **Hide the office** sets
-  `state.showOffice = false`. Nothing is drawn while the tab is hidden; reduced motion stops the
+  flashes (hiring stays a button), a stuck intern opens Help, the Director opens their panel. The
+  canvas is `role="img"` with an `aria-label` summary. Always shown (the hide option went in October 2026; `state.showOffice` is no longer used). Nothing is drawn while the tab is hidden; reduced motion stops the
   walking and flashing. `ltd.js` works without the script or the slot (the simulator has neither).
 
 - **Founding a company** (the player-owner's idea, October 2026; `ltd/founding.js`,

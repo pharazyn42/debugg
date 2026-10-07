@@ -159,6 +159,23 @@
 .ltd .office .cramped{ color: var(--amber); margin-top: 3px; }
 .ltd .card-foot.notice{ margin-top: 6px; gap: 8px; }
 .ltd .office-actions{ display: flex; gap: 6px; flex-wrap: wrap; }
+.ltd .premises{ margin-bottom: 12px; }
+.ltd .premises-title{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-bottom: 6px; }
+.ltd .premises-row{ border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; color: var(--text-dim); }
+.ltd .premises-row.here{ border-color: var(--text-faint); }
+.ltd .premises-row b{ color: var(--text); font-weight: 600; }
+.ltd .premises-top{ display: flex; gap: 8px; align-items: center; }
+.ltd .premises-facts{ margin-top: 2px; }
+.ltd .premises-facts .full{ color: var(--amber); }
+.ltd .premises-blurb{ margin: 3px 0 6px; color: var(--text-faint); }
+.ltd .premises-row .cramped{ color: var(--amber); margin-bottom: 6px; }
+.ltd .premises-row .office-actions{ margin-top: 4px; }
+.ltd .people-list{ margin-bottom: 14px; font-size: 12.5px; }
+.ltd .people-list summary{ cursor: pointer; color: var(--text-dim); }
+.ltd .people-list .roster{ margin: 8px 0 0; max-height: 220px; }
+.ltd .person-link{ display: flex; justify-content: space-between; gap: 8px; text-align: left; background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; }
+.ltd .person-actions{ margin: 8px 0 4px; }
 
 .ltd .roster{
   display: flex;

@@ -10,6 +10,8 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **A clearer Studio box.** It's named after your company, and a new **Premises** list shows each place you can work from: what it is, its desks and floors, what it adds, what it costs to rent or buy, and which one you're in ("You are here"). The next-step guide and the headcount by type stay.
+- **People live in the office picture.** The Director card and the staff list are gone: click anyone in the office, you included, to open their panel with their skills, what they're doing, promotion, Keep and Let go (and for you, your languages, your desk, and editing your name and look). There's still a plain list of names under "Everyone in the studio" for keyboards and screen readers. The office is always shown now, so there's nothing to hide.
 - **SLOC/min in the stats bar.** A new cell between Cash and Reputation shows how many lines of code your company writes per minute, on contracts and everyday work together.
 - **Screens pause on a break.** In the office view, when someone heads off for a break their monitor freezes (the code stops typing, the ticket queue stops ticking) until they're back at their desk.
 - **More room to squeeze people in.** Once every desk is taken, an office takes up to half as many people again without desks (2 in the spare room, 5 in a small business unit). A full office no longer slows anyone down; each person squeezed in makes everyone 6% slower. In the office you'll see them sharing the end of someone's desk, at the meeting-room table, on the kitchen couch, on the stairs or on the floor with a laptop.

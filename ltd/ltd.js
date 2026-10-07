@@ -45,8 +45,7 @@ window.DebuggLtd = (function(){
     [statsSlot, studioSlot, boardSlot, deskSlot, officeSlot].forEach(el => { if(el){ el.classList.add('ltd'); el.hidden = false; } });
     if(officeSlot) officeSlot.innerHTML =
       '<div class="panel office-view">' +
-        '<h2>Office <span class="tag" id="officeTag"></span>' +
-          '<button type="button" class="btn-small btn-ghost office-toggle" data-action="office-toggle" id="officeToggle" aria-controls="officeBox"></button></h2>' +
+        '<h2>Office <span class="tag" id="officeTag"></span></h2>' +
         '<div class="office-box" id="officeBox"></div>' +
       '</div>';
     deskSlot.innerHTML =
@@ -69,12 +68,12 @@ window.DebuggLtd = (function(){
       '<div class="toast" id="welcomeToast"></div>';
     studioSlot.innerHTML =
       '<div class="panel">' +
-        '<h2>Studio <span class="tag" id="rosterCount">1 person</span></h2>' +
+        '<h2><span id="studioName">Studio</span> <span class="tag" id="rosterCount">1 person</span></h2>' +
         '<div id="guide"></div>' +
         '<div class="structure" id="structure"></div>' +
         '<p class="structure-note" id="structureNote"></p>' +
-        '<div class="office" id="office"></div>' +
-        '<div class="roster" id="roster"></div>' +
+        '<div class="premises" id="office"></div>' +
+        '<details class="people-list"><summary>Everyone in the studio</summary><div class="roster" id="roster"></div></details>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
         '<h3>Applicants</h3>' +
         '<div class="applicants" id="applicants"></div>' +
@@ -103,7 +102,7 @@ window.DebuggLtd = (function(){
 
     const $ = id => document.getElementById(id);
     const statMoney = $('statMoney'), statRep = $('statRep'), statPayroll = $('statPayroll'), statHeads = $('statHeads'), statPayrollLabel = $('statPayrollLabel'), statSloc = $('statSloc');
-    const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
+    const structureEl = $('structure'), rosterEl = $('roster'), rosterCount = $('rosterCount'), studioName = $('studioName'), hireGrid = $('hireGrid'), applicantsEl = $('applicants');
     const guideEl = $('guide'), structureNote = $('structureNote'), stageBar = $('stageBar'), officeEl = $('office');
     const studioEl = studioSlot;
     const boardEl = $('board'), jobsEl = $('jobs'), logEl = $('log');
@@ -751,8 +750,10 @@ window.DebuggLtd = (function(){
     // October 2026, when the unit replaced them (phase 2 of ideas/company-growth-roadmap.md,
     // without leases yet). Prices are placeholders for the balance pass.
     const PREMISES = {
-      'spare-room': { name: 'spare room', floors: 1, perFloor: 4, rent: 0 },
-      'unit-s': { name: 'small business unit', floors: 2, perFloor: 5, rent: 4, price: 60000, upkeep: 1 }
+      'spare-room': { name: 'spare room', floors: 1, perFloor: 4, rent: 0,
+        blurb: 'Your own place, free. A kitchen and the interview room, but no meeting room, and not room for managers.' },
+      'unit-s': { name: 'small business unit', floors: 2, perFloor: 5, rent: 4, price: 60000, upkeep: 1,
+        blurb: 'A unit on two floors: a kitchen and a meeting room on each, a server room, stairs, and room for managers.' }
     };
     const SELL_BACK = 0.9;
     const PREMISES_ORDER = ['spare-room', 'unit-s'];
@@ -1828,6 +1829,23 @@ window.DebuggLtd = (function(){
         body += '<div class="skill-section-title">Internship</div><div class="req-list"><div class="no">' +
                 'Free, and writes hotfixes with you alongside, in any language they or you know; when they get stuck, you help with a puzzle. ' +
                 'Ends in ' + fmtDuration(Math.max(0, internEnds(p) - now)) + ', when they’ll ask to stay on as a graduate for half the usual cost.</div></div>';
+      }else if(p.role === 'Director'){
+        const c0 = headcounts(state.roster);
+        body += '<div class="skill-section-title">Languages (your puzzle levels)</div><div class="req-list"><div class="no">' + Object.keys(D.LANGS).map(k => {
+          const boost = directorBoost(D.LANGS[k].studio);
+          const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[k];
+          const name = course && !course.soon
+            ? '<a class="learn-lang" href="learn/#' + k + '" title="Learn ' + esc(D.LANGS[k].name) + ' in Debuggit Learn">' + esc(D.LANGS[k].name) + '</a>'
+            : esc(D.LANGS[k].name);
+          return name + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
+        }).join(' · ') + '</div></div>' +
+          '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
+          (jobFor(p.id) ? 'Helping on a hotfix with your intern, and taking desk jobs. ' : '') +
+          (c0.Manager ? 'Taking desk jobs. Your managers look after the team.'
+            : 'Taking desk jobs, and managing the start-up yourself (up to ' + DIRECTOR_SPAN + ' devs).') + '</div></div>' +
+          '<div class="card-foot" style="margin-top:8px;"><button type="button" class="btn-small btn-ghost" data-action="go-desk">Go to your desk</button>' +
+          (window.DebuggFounding ? '<button type="button" class="btn-small btn-ghost" data-action="edit-founder"' +
+            ' title="Change the company’s name, your name and your look">Edit name and look</button>' : '') + '</div>';
       }else{
         body += '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
                 'Managers don’t write code. Each one looks after up to ' + MANAGER_SPAN + ' devs and ' +
@@ -1837,13 +1855,11 @@ window.DebuggLtd = (function(){
       setHTML(personModalBody,
         '<div class="modal-top"><div><div class="modal-name">' + esc(p.name) + '</div>' +
         '<div class="modal-level">' + p.role + '</div></div></div>' +
-        '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salaryOf(p)) + '/min upkeep' +
+        (p.role === 'Director' ? '' : '<div class="modal-sub">' + (isDev(p) ? role.sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salaryOf(p)) + '/min upkeep' +
         (p.raise ? ' (incl. a ' + fmtRate(p.raise) + ' rise)' : '') + ' · ' +
-        fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts<br>' +
-        (job && isStuck(job) ? 'Waiting on you: stuck on the ' + esc(job.lang) + ' hotfix'
-         : job && !isRunning(job) ? 'Waiting on you: ' + esc(jobTag(job)) + ' failed — retry or drop it'
-         : job ? 'On ' + TIERS[job.tier].name + ' (' + esc(job.lang) + ') — ' + fmtClock(job.endsAt - now) + ' left'
-             : 'Idle') + '</div>' +
+        fmtDuration((tenure || 0) * 60000, true) + ' in role · ' + fmtDuration(p.worked || 0, true) + ' on contracts' +
+        (job && isRunning(job) ? '<br>' + fmtClock(job.endsAt - now) + ' left on the ' + TIERS[job.tier].name.toLowerCase() : '') + '</div>') +
+        '<div class="person-actions">' + personActionsHTML(p, now) + '</div>' +
         body);
     }
 
@@ -1860,6 +1876,7 @@ window.DebuggLtd = (function(){
 
     personModal.addEventListener('click', (e) => {
       if(e.target === personModal || e.target.closest('[data-action=close-person]')) closePersonModal();
+      else onAction(e);   // promote, Keep, Let go, the Director's Edit and desk
     });
 
     function renderStudio(now){
@@ -1875,29 +1892,42 @@ window.DebuggLtd = (function(){
         slot('Grads', c.Graduate, cap.Graduate) +
         slot('Devs', c.devs, cap.devs) +
         slot('Desks', desksUsed(), deskCount()));
-      const pr = premises(), up = nextPremises(), down = prevPremises();
-      setHTML(officeEl,
-        '<div class="office-text"><b>Office</b> · ' + (premisesKey() === 'spare-room' ? 'your' : 'a') + ' ' + pr.name + ', ' + deskCount() + ' desks' +
-          (pr.floors > 1 ? ' on ' + pr.floors + ' floors' : '') +
-          (owned() ? ', owned (' + fmtRate(pr.upkeep) + '/min upkeep)' : pr.rent ? ', rented (' + fmtRate(pr.rent) + '/min)' : '') +
-          ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span>' +
-          (cramLevel() ? '<div class="cramped">' + cramLevel() + ' squeezed in without a desk' +
+      const here = premisesKey(), up = nextPremises(), down = prevPremises();
+      const row = key => {
+        const pr = PREMISES[key], cur = key === here;
+        const price = key === 'spare-room' ? 'Free'
+          : cur ? (owned() ? 'Owned, ' + fmtRate(pr.upkeep) + '/min upkeep' : 'Rented, ' + fmtRate(pr.rent) + '/min')
+          : 'Rent ' + fmtRate(pr.rent) + '/min, or buy for ' + fmt(pr.price) + ' (then ' + fmtRate(pr.upkeep) + '/min upkeep)';
+        const buttons = key === up
+          ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + key + '" data-tenure="rent">Rent a ' + pr.name +
+              ' · ' + desksIn(key) + ' desks · ' + fmtRate(pr.rent) + '/min</button>' +
+            '<button class="btn-small btn-ghost" data-action="move" data-premises="' + key + '" data-tenure="buy"' +
+              (state.money < pr.price ? ' disabled title="Not enough cash"' : '') + '>Buy one · ' + fmt(pr.price) +
+              ', then ' + fmtRate(pr.upkeep) + '/min upkeep</button>'
+          : cur && key !== 'spare-room' && !owned()
+          ? '<button class="btn-small btn-ghost" data-action="buy-premises"' +
+              (state.money < pr.price ? ' disabled title="Not enough cash"' : '') + '>Buy this ' + pr.name + ' · ' + fmt(pr.price) +
+              ', then ' + fmtRate(pr.upkeep) + '/min upkeep</button>'
+          : key === down
+          ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + key + '"' +
+              (moveProblem(key) ? ' disabled title="Can’t move back: ' + moveProblem(key) + '"' : '') + '>' +
+              (owned() ? 'Sell for ' + fmt(sellPrice(here)) + ' and move back to the ' : 'Move back to the ') + pr.name + '</button>'
+          : '';
+        return '<div class="premises-row' + (cur ? ' here' : '') + '" data-premises="' + key + '">' +
+          '<div class="premises-top"><b>' + (key === 'spare-room' ? 'Your ' : 'A ') + pr.name + '</b>' +
+            (cur ? '<span class="tag">You are here</span>' : '') + '</div>' +
+          '<div class="premises-facts">' + desksIn(key) + ' desks' + (pr.floors > 1 ? ' on ' + pr.floors + ' floors' : '') + ' · ' + price +
+            (cur ? ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span>' : '') + '</div>' +
+          '<div class="premises-blurb">' + esc(pr.blurb) + '</div>' +
+          (cur && cramLevel() ? '<div class="cramped">' + cramLevel() + ' squeezed in without a desk' +
             ': cramped, so everyone is ' + Math.round(crampedPenalty() * 100) + '% slower on new contracts, and likelier to hand in their notice.</div>' : '') +
-          '</div>' +
-        '<div class="office-actions">' +
-          (up ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + up + '" data-tenure="rent">Rent a ' + PREMISES[up].name +
-              ' · ' + desksIn(up) + ' desks · ' + fmtRate(PREMISES[up].rent) + '/min</button>' +
-            '<button class="btn-small btn-ghost" data-action="move" data-premises="' + up + '" data-tenure="buy"' +
-              (state.money < PREMISES[up].price ? ' disabled title="Not enough cash"' : '') + '>Buy one · ' + fmt(PREMISES[up].price) +
-              ', then ' + fmtRate(PREMISES[up].upkeep) + '/min upkeep</button>'
-            : '<button class="btn-small btn-ghost" disabled title="Bigger premises are coming in v0.1">Bigger premises · coming in v0.1</button>') +
-          (premisesKey() !== 'spare-room' && !owned() ? '<button class="btn-small btn-ghost" data-action="buy-premises"' +
-            (state.money < pr.price ? ' disabled title="Not enough cash"' : '') + '>Buy this ' + pr.name + ' · ' + fmt(pr.price) +
-            ', then ' + fmtRate(pr.upkeep) + '/min upkeep</button>' : '') +
-          (down ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + down + '"' +
-            (moveProblem(down) ? ' disabled title="Can’t move back: ' + moveProblem(down) + '"' : '') + '>' +
-            (owned() ? 'Sell for ' + fmt(sellPrice(premisesKey())) + ' and move back to the ' : 'Move back to the ') + PREMISES[down].name + '</button>' : '') +
-        '</div>');
+          (buttons ? '<div class="office-actions">' + buttons + '</div>' : '') +
+          '</div>';
+      };
+      setHTML(officeEl,
+        '<div class="premises-title">Premises</div>' +
+        PREMISES_ORDER.map(row).join('') +
+        (up ? '' : '<div class="premises-row soon"><div class="office-actions"><button class="btn-small btn-ghost" disabled title="Bigger premises are coming in v0.1">Bigger premises · coming in v0.1</button></div></div>'));
       // Why a level is full while there's still room for devs overall: every level needs
       // someone at the level above (or you) to look after it.
       const LEVEL_NOTES = [
@@ -1915,42 +1945,14 @@ window.DebuggLtd = (function(){
 
       rosterCount.textContent = state.roster.length + (state.roster.length === 1 ? ' person' : ' people');
 
-      const director = state.roster.find(p => p.role === 'Director');
-      const c0 = headcounts(state.roster);
-      const skills = Object.keys(D.LANGS).map(k => {
-        const boost = directorBoost(D.LANGS[k].studio);
-        // A language with a Debuggit Learn course links to it (Learn has its own XP; puzzle levels set these).
-        const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[k];
-        const name = course && !course.soon
-          ? '<a class="learn-lang" href="learn/#' + k + '" title="Learn ' + esc(D.LANGS[k].name) + ' in Debuggit Learn">' + esc(D.LANGS[k].name) + '</a>'
-          : esc(D.LANGS[k].name);
-        return name + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
-      }).join(' · ');
-      let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +
-                 '<span class="card-level">Director' + (window.DebuggFounding ? ' <button type="button" class="btn-small btn-ghost" data-action="edit-founder"' +
-                   ' title="Change the company’s name, your name and your look">Edit</button>' : '') + '</span></div>' +
-                 '<div class="card-stats"><span>' + skills + '</span></div>' +
-                 '<div class="card-foot"><span>' + (jobFor(director.id) ? 'Helping on a hotfix with your intern, and taking desk jobs. ' : '') + (c0.Manager
-                   ? 'Taking desk jobs. Your managers look after the team.'
-                   : 'Taking desk jobs, and managing the start-up yourself (up to ' + DIRECTOR_SPAN + ' devs).') +
-                 '</span></div></div>';
-
-      ROSTER_GROUPS.forEach(level => {
-        const members = state.roster.filter(p => p.role === level);
-        if(!members.length) return;
-        const sloc = members.length * ROLES[level].sloc;
-        const salary = members.reduce((n, p) => n + salaryOf(p), 0);
-        const busy = members.filter(p => jobFor(p.id)).length;
-        const collapsed = state.collapsedLevels.indexOf(level) >= 0;
-        html += '<div class="level-group' + (collapsed ? ' collapsed' : '') + '">' +
-          '<div class="level-header" data-action="toggle-level" data-level="' + level + '">' +
-            '<div class="level-header-left"><span class="chevron">▾</span>' +
-            '<span class="level-name">' + level + (members.length > 1 ? 's' : '') + '</span>' +
-            '<span class="level-count">×' + members.length + ' · ' + busy + ' busy</span></div>' +
-            '<div class="level-sum">' + (sloc ? sloc + ' SLOC/min · ' : '') + '−' + fmtRate(salary) + '/min</div>' +
-          '</div><div class="level-body">' +
-          members.map(p => cardHTML(p, now)).join('') +
-          '</div></div>';
+      studioName.textContent = companyName();
+      // A names-only way in for anyone who can't tap the picture (keyboard, screen reader).
+      let html = '';
+      ['Director'].concat(ROSTER_GROUPS).forEach(level => {
+        state.roster.filter(p => p.role === level).forEach(p => {
+          html += '<button type="button" class="person-link" data-action="inspect" data-id="' + p.id + '">' + esc(p.name) +
+            ' <span class="card-level ' + p.role + '">' + p.role + '</span>' + (p.notice ? ' ✉' : '') + '</button>';
+        });
       });
       setHTML(rosterEl, html);
       renderPersonModal(now);
@@ -2011,8 +2013,8 @@ window.DebuggLtd = (function(){
       setHTML(applicantsEl, html);
     }
 
-    function cardHTML(p, now){
-      const role = ROLES[p.role];
+    // What's going on with someone, and what you can do about it: shown in their panel.
+    function personActionsHTML(p, now){
       const job = jobFor(p.id);
       const status = job && isStuck(job)
         ? '<span class="promo blocked">Stuck on the ' + esc(job.lang) + ' hotfix — help them below</span>'
@@ -2040,19 +2042,13 @@ window.DebuggLtd = (function(){
       const release = '<button class="btn-small btn-ghost" data-action="release" data-id="' + p.id + '"' +
                       (releaseWhy ? ' disabled title="Can’t let go: ' + esc(releaseWhy) + '"' : '') + '>Let go</button>';
 
-      return '<div class="card" data-action="inspect" data-id="' + p.id + '">' +
-        '<div class="card-top"><span class="card-name">' + esc(p.name) + (p.wfh ? ' <span class="repeat-tag" title="Works from home: no desk, ' +
-          Math.round(WFH_EFFICIENCY * 100) + '% as productive">WFH</span>' : '') + '</span>' +
-        '<span class="card-level ' + p.role + '">' + p.role + '</span></div>' +
-        '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p)
-          : isIntern(p) ? role.sloc + ' SLOC/min · works with you · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
-        '<span>−' + fmtRate(salaryOf(p)) + '/min</span></div>' +
-        '<div class="card-foot">' + status + '<span class="foot-actions">' + release + '</span></div>' +
+      return '<div class="card-foot">' + status + (p.wfh ? ' <span class="repeat-tag" title="Works from home: no desk, ' +
+          Math.round(WFH_EFFICIENCY * 100) + '% as productive">WFH</span>' : '') + '</div>' +
         noticeHTML(p, now) +
         (promo ? '<div class="card-foot" style="margin-top:6px;">' + promo + '</div>' : '') +
         (isIntern(p) ? '<div class="card-foot" style="margin-top:6px;"><span class="promo">Internship ends in ' +
           fmtDuration(Math.max(0, internEnds(p) - now)) + '</span></div>' : '') +
-        '</div>';
+        (p.role === 'Director' ? '' : '<div class="card-foot" style="margin-top:8px;"><span class="foot-actions">' + release + '</span></div>');
     }
 
     // Short summary of a dev's two best languages for a roster card; the full
@@ -2249,19 +2245,13 @@ window.DebuggLtd = (function(){
     // It changes nothing itself; a tap does what a button in the panels does.
     // ---------------------------------------------------------------------
 
-    let officeShown = null;
+    let officeMounted = false;
     function renderOffice(){
       if(!officeSlot) return;
       $('officeTag').textContent = (premisesKey() === 'spare-room' ? 'your ' : 'a ') + premises().name;
-      const show = state.showOffice !== false;
-      if(show === officeShown) return;
-      officeShown = show;
-      const toggle = $('officeToggle'), box = $('officeBox');
-      toggle.textContent = show ? 'Hide the office' : 'Show the office';
-      toggle.setAttribute('aria-expanded', String(show));
-      box.hidden = !show;
-      if(show) window.DebuggOffice.mount(box, officeApi);
-      else window.DebuggOffice.unmount();
+      if(officeMounted) return;
+      officeMounted = true;
+      window.DebuggOffice.mount($('officeBox'), officeApi);
     }
     function officeJob(job, now){
       const length = Math.max(1, job.endsAt - job.startedAt);
@@ -2296,7 +2286,8 @@ window.DebuggLtd = (function(){
         }else if(kind === 'stuck'){
           startHelp(id);
         }else if(kind === 'director'){
-          if(deskSlot.scrollIntoView) deskSlot.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          const d = state.roster.find(p => p.role === 'Director');
+          if(d) openPersonModal(d.id);
         }else if(kind === 'applicant'){
           // Hiring costs money, so it stays a button: the tap shows you their card.
           const card = [...applicantsEl.querySelectorAll('.applicant')].find(el => el.dataset.applicant === id);
@@ -2308,13 +2299,6 @@ window.DebuggLtd = (function(){
         }
       }
     };
-    if(officeSlot) officeSlot.addEventListener('click', (e) => {
-      if(!e.target.closest('[data-action=office-toggle]')) return;
-      state.showOffice = state.showOffice === false;
-      save();
-      renderOffice();
-    });
-
     // ---------------------------------------------------------------------
     // Team picker
     // ---------------------------------------------------------------------
@@ -2571,6 +2555,7 @@ window.DebuggLtd = (function(){
           : 'Moved into a rented ' + pr.name + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.rent) + '/min rent.');
         track('office/' + (key === 'spare-room' ? 'move' : buy ? 'buy' : 'rent') + '/' + key);
       }else if(action === 'edit-founder'){
+        closePersonModal();
         const d = state.roster.find(p => p.role === 'Director');
         window.DebuggFounding.open({
           edit: true,
@@ -2593,6 +2578,10 @@ window.DebuggLtd = (function(){
         track('office/buy/' + premisesKey());
       }else if(action === 'toggle-unknown'){
         state.showUnknownOffers = !state.showUnknownOffers;
+      }else if(action === 'go-desk'){
+        closePersonModal();
+        if(deskSlot.scrollIntoView) deskSlot.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        return;
       }else if(action === 'skip-guide'){
         state.guideDone = true;
       }else if(action === 'hire-applicant'){
@@ -2641,10 +2630,6 @@ window.DebuggLtd = (function(){
       }else if(action === 'inspect'){
         openPersonModal(btn.dataset.id);
         return;
-      }else if(action === 'toggle-level'){
-        const level = btn.dataset.level;
-        const i = state.collapsedLevels.indexOf(level);
-        if(i < 0) state.collapsedLevels.push(level); else state.collapsedLevels.splice(i, 1);
       }else if(action === 'toggle-tier'){
         const key = btn.dataset.tier;
         const i = state.collapsedTiers.indexOf(key);

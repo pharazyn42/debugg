@@ -182,7 +182,9 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
 test("the Director's puzzle levels boost contract success in that language", async ({ page }) => {
   await withStorage(page, { 'debugg-xp': { python: 450 } }); // Python level 3: +2%
   await found(page);
-  await expect(page.locator('.card.director')).toContainText('Python Lv 3 (+2% success)');
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 3 (+2% success)');
+  await page.keyboard.press('Escape');
   await editCompany(page, s => {
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
     s.contractsOpen = true; s.firstClient = true;
@@ -353,7 +355,9 @@ test('a new company starts with a free intern, who writes hotfixes with you and 
   expect(intern).toBeTruthy();
   // No desk, no headcount, no salary.
   await expect(page.locator('#statHeads')).toHaveText('1');
-  await expect(page.locator('.card[data-id="' + intern.id + '"]')).toContainText('Internship ends in');
+  await openPerson(page, intern.id);
+  await expect(page.locator('#personModalBody')).toContainText('Internship ends in');
+  await page.keyboard.press('Escape');
   // You know Python, so the pair can take the Python hotfix: Suggest a team picks them both.
   const python = (await ltd(page)).board.find(o => o.tier === 0 && !o.expert && o.lang === 'Python');
   await page.click('[data-action=staff][data-offer="' + python.id + '"]');
@@ -414,7 +418,9 @@ test('the intern sometimes gets stuck, and the hotfix stalls until you help with
   await stuckHotfix(page);
   const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
   await expect(page.locator('.job.stuck')).toContainText('stuck at 50% until you help: a Python puzzle');
-  await expect(page.locator('.card[data-id="' + intern.id + '"]')).toContainText('Stuck on the Python hotfix — help them below');
+  await openPerson(page, intern.id);
+  await expect(page.locator('#personModalBody')).toContainText('Stuck on the Python hotfix — help them below');
+  await page.keyboard.press('Escape');
   await expect(page.locator('#log')).toContainText(intern.name + ' is stuck on the Python hotfix');
   // Two hours away: still stuck, nothing delivered.
   await page.clock.setFixedTime(at(14));
@@ -487,7 +493,9 @@ test('debt is flagged, staff do everyday work, and the welcome can be dismissed'
   await expect(page.locator('.guide')).toHaveCount(0);
   await expect(page.locator('[data-alert=debt]')).toContainText('The company is ¤50 in debt');
   // 5 SLOC/min × ¤0.54.
-  await expect(page.locator('.card[data-id=g1]')).toContainText('Everyday work · support tickets · +¤2.7/min');
+  await openPerson(page, 'g1');
+  await expect(page.locator('#personModalBody')).toContainText('Everyday work · support tickets · +¤2.7/min');
+  await page.keyboard.press('Escape');
 });
 
 test('language skills are open-ended levels, each with a bar towards the next', async ({ page }) => {
@@ -496,8 +504,7 @@ test('language skills are open-ended levels, each with a bar towards the next', 
     s.roster.push({ id: 'p1', name: 'Grace H.', role: 'Principal', since: Date.now(), worked: 0,
                     lang: { Python: 2600, Rust: 60, JavaScript: 5 } });
   });
-  await expect(page.locator('.card[data-id=p1]')).toContainText('Python Lv 6 · Rust Lv 2');
-  await page.click('.card[data-id=p1] .card-name');
+  await openPerson(page, 'p1');
   const row = name => page.locator('#personModalBody .skill-row', { hasText: name });
   // Level 6 is 1,800 XP and level 7 is 3,400: 2,600 is halfway.
   await expect(row('Python').locator('.skill-level')).toHaveText('Lv 6');
@@ -561,7 +568,9 @@ test('anyone not on a contract does everyday work, worth about 1.35× their sala
   const saved = await ltd(page);
   expect(saved.roster.find(p => p.id === 'g1')).toMatchObject({ lang: { Python: 10 } });
   expect(saved.roster.find(p => p.id === 'g1').worked || 0).toBe(0);
-  await expect(page.locator('.card[data-id=s1]')).toContainText('Everyday work · support tickets · +¤16.2/min');
+  await openPerson(page, 's1');
+  await expect(page.locator('#personModalBody')).toContainText('Everyday work · support tickets · +¤16.2/min');
+  await page.keyboard.press('Escape');
 
   // Not someone on a contract (even a failed one waiting for a decision), and not someone away
   // (training, holiday, off sick).
@@ -773,7 +782,8 @@ test('a hotfix the intern takes is replaced in the same language; developers can
 test('everyone needs a desk: the spare room has 4, then a small business unit for rent', async ({ page }) => {
   await found(page);
   // You, the Director, take one of the spare room's 4 desks.
-  await expect(page.locator('.office')).toContainText('your spare room, 4 desks · 1/4 desks used');
+  await expect(page.locator('.premises-row.here')).toContainText('Your spare room');
+  await expect(page.locator('.premises-row.here')).toContainText('1/4 desks used');
   await expect(page.locator('[data-action=move][data-premises=spare-room]')).toHaveCount(0);
   await editCompany(page, s => {
     s.money = 5000;
@@ -782,20 +792,21 @@ test('everyone needs a desk: the spare room has 4, then a small business unit fo
   });
   // The spare room is full, but nobody's squeezed in, so it isn't cramped. Managers need an office.
   await expect(page.locator('.slot', { hasText: 'Desks' })).toHaveText('Desks 4/4');
-  await expect(page.locator('.office .cramped')).toHaveCount(0);
+  await expect(page.locator('.premises .cramped')).toHaveCount(0);
   await expect(page.locator('[data-action=hire][data-role=Manager] .why')).toHaveText('managers need an office: move out of the spare room first');
   // The next premises can be rented or bought outright; ¤5,000 isn't enough to buy.
   await expect(page.locator('[data-action=move][data-tenure=rent]')).toHaveText('Rent a small business unit · 10 desks · ¤4/min');
   await expect(page.locator('[data-action=move][data-tenure=buy]')).toHaveText('Buy one · ¤60,000, then ¤1/min upkeep');
   await expect(page.locator('[data-action=move][data-tenure=buy]')).toBeDisabled();
   await page.click('[data-action=move][data-tenure=rent]');
-  await expect(page.locator('.office .cramped')).toHaveCount(0);
-  await expect(page.locator('.office')).toContainText('a small business unit, 10 desks on 2 floors, rented (¤4/min) · 4/10 desks used');
+  await expect(page.locator('.premises .cramped')).toHaveCount(0);
+  await expect(page.locator('.premises-row.here')).toContainText('A small business unit');
+  await expect(page.locator('.premises-row.here')).toContainText('10 desks on 2 floors · Rented, ¤4/min · 4/10 desks used');
   await expect(page.locator('#log')).toContainText('Moved into a rented small business unit: 10 desks, ¤4/min rent.');
   await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + rent');
   await expect(page.locator('#statPayroll')).toHaveText('−¤13/min');  // ¤9 salaries + ¤4 rent
   await page.click('[data-action=hire][data-role=Manager]');
-  await expect(page.locator('.office')).toContainText('5/10 desks used');
+  await expect(page.locator('.premises')).toContainText('5/10 desks used');
   expect((await ltd(page)).office).toEqual({ premises: 'unit-s', owned: false });
   // Nothing bigger in the demo yet.
   await expect(page.locator('.office-actions button', { hasText: 'Bigger premises' })).toBeDisabled();
@@ -819,7 +830,7 @@ test('premises can be bought outright: the price up front, then upkeep, and movi
   let s = await ltd(page);
   expect(s.office).toEqual({ premises: 'unit-s', owned: true });
   expect(Math.round(s.money)).toBe(10000);
-  await expect(page.locator('.office')).toContainText('a small business unit, 10 desks on 2 floors, owned (¤1/min upkeep)');
+  await expect(page.locator('.premises-row.here')).toContainText('10 desks on 2 floors · Owned, ¤1/min upkeep');
   await expect(page.locator('#log')).toContainText('Bought a small business unit for ¤60,000: 10 desks, ¤1/min upkeep.');
   await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + upkeep');
   await expect(page.locator('[data-action=buy-premises]')).toHaveCount(0);
@@ -848,7 +859,7 @@ test('a full office is fine; each person squeezed in, up to half the desks, slow
   });
   // Every desk taken, nobody squeezed in: full speed. A junior at Lv 3 writes 12 × 1.6 = 19.2 SLOC/min.
   // (A full spare room opens contracts, starting with your first client.)
-  await expect(page.locator('.office .cramped')).toHaveCount(0);
+  await expect(page.locator('.premises .cramped')).toHaveCount(0);
   const first = (await ltd(page)).board.find(o => o.first).id;
   await page.click('[data-action=staff][data-offer="' + first + '"]');
   await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('19.2 SLOC/min');
@@ -859,14 +870,14 @@ test('a full office is fine; each person squeezed in, up to half the desks, slow
     s.applicants = [{ id: 'ga1', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
                       person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
   });
-  await expect(page.locator('.office .cramped')).toContainText('2 squeezed in without a desk: cramped, so everyone is 12% slower');
+  await expect(page.locator('.premises .cramped')).toContainText('2 squeezed in without a desk: cramped, so everyone is 12% slower');
   await expect(page.locator('.applicant[data-applicant=ga1] .blocked')).toHaveText('no room to squeeze anyone else in — rent or buy a small business unit');
   await page.click('[data-action=staff][data-offer="' + first + '"]');
   await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('16.9 SLOC/min');   // 19.2 × 0.88
   await page.keyboard.press('Escape');
   // A small business unit has a desk for everyone. Moving back would squeeze in 2 again, which is allowed.
   await page.click('[data-action=move][data-tenure=rent]');
-  await expect(page.locator('.office .cramped')).toHaveCount(0);
+  await expect(page.locator('.premises .cramped')).toHaveCount(0);
   await expect(page.locator('[data-action=move][data-premises=spare-room]')).toBeEnabled();
   // The unit takes 5 squeezed in (half its 10 desks).
   await expect(page.locator('.applicant[data-applicant=ga1] .blocked')).toHaveCount(0);
@@ -888,17 +899,19 @@ test('someone who hands in their notice can be kept with a pay rise, or leaves a
                     notice: { reason: 'offer', until: Date.now() + 3600000, ask: 1 } });
   });
   await expect(page.locator('.alert[data-alert=notice]')).toContainText('2 people have handed in their notice');
-  await expect(page.locator('.card[data-id=g1] .notice')).toContainText('Handed in notice · leaves in 18h · has a better offer');
+  await openPerson(page, 'g1');
+  await expect(page.locator('#personModalBody .notice')).toContainText('Handed in notice · leaves in 18h · has a better offer');
   await expect(page.locator('#statPayroll')).toHaveText('−¤4/min');
   await page.click('[data-action=keep][data-id=g1]');
-  await expect(page.locator('.card[data-id=g1] .notice')).toHaveCount(0);
-  await expect(page.locator('.card[data-id=g1]')).toContainText('−¤2.5/min');
+  await expect(page.locator('#personModalBody .notice')).toHaveCount(0);
+  await expect(page.locator('#personModalBody')).toContainText('−¤2.5/min');
+  await page.keyboard.press('Escape');
   await expect(page.locator('#statPayroll')).toHaveText('−¤4.5/min');
   expect((await ltd(page)).roster.find(p => p.id === 'g1')).toMatchObject({ raise: 0.5 });
   expect((await ltd(page)).roster.find(p => p.id === 'g1').notice).toBeUndefined();
   // The other one's notice runs out: they leave.
   await editCompany(page, s => { s.roster.find(p => p.id === 'g2').notice.until = Date.now() - 1000; });
-  await expect(page.locator('.card[data-id=g2]')).toHaveCount(0);
+  await expect(page.locator('.person-link[data-id=g2]')).toHaveCount(0);
   await expect(page.locator('#log')).toContainText('Bo K. (graduate) has left the studio.');
 });
 
@@ -927,10 +940,14 @@ test('a notice over a cramped office is withdrawn once there’s a free desk', a
                     notice: { reason: 'cramped', until: Date.now() + 20 * 3600000, ask: 1 } });
     for(let i = 0; i < 3; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
   });
-  await expect(page.locator('.card[data-id=j0] .notice')).toContainText('the office is too cramped');
+  await openPerson(page, 'j0');
+  await expect(page.locator('#personModalBody .notice')).toContainText('the office is too cramped');
+  await page.keyboard.press('Escape');
   await expect(page.locator('.alert[data-alert=notice]')).toContainText('or free up a desk');
   await page.click('[data-action=move][data-tenure=rent]');
-  await expect(page.locator('.card[data-id=j0] .notice')).toHaveCount(0);
+  await openPerson(page, 'j0');
+  await expect(page.locator('#personModalBody .notice')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await expect(page.locator('#log')).toContainText('Jun 0 is staying, now there’s room in the office.');
 });
 
@@ -946,8 +963,8 @@ test('a company from before desks starts in the spare room; co-working desks are
   });
   expect((await ltd(page)).office).toEqual({ premises: 'spare-room', owned: false });
   expect((await ltd(page)).roster.filter(p => p.role === 'Graduate')).toHaveLength(7);
-  await expect(page.locator('.office')).toContainText('8/4 desks used');
-  await expect(page.locator('.office .cramped')).toContainText('4 squeezed in without a desk: cramped, so everyone is 24% slower');
+  await expect(page.locator('.premises')).toContainText('8/4 desks used');
+  await expect(page.locator('.premises .cramped')).toContainText('4 squeezed in without a desk: cramped, so everyone is 24% slower');
   await expect(page.locator('#log')).toContainText('Co-working desks are gone: everyone who sat at one is squeezed into your spare room.');
   await expect(page.locator('[data-action=move][data-tenure=rent]')).toBeEnabled();
 });
@@ -1032,12 +1049,12 @@ test('promotion needs contract time and a language level only', async ({ page })
   // …and Lv 3 in a language: 12 hours at Lv 2 isn't enough.
   await editCompany(page, s => { Object.assign(s.roster.find(p => p.id === 'g1'), { worked: 12 * 3600000 + 60000, lang: { Python: 149 } }); });
   await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveCount(0);
-  await page.click('.card[data-id=g1] .card-name');
+  await openPerson(page, 'g1');
   await expect(page.locator('#personModalBody')).toContainText('○ A language at level 3');
   await page.keyboard.press('Escape');
   await editCompany(page, s => { s.roster.find(p => p.id === 'g1').lang.Python = 150; });
+  await openPerson(page, 'g1');
   await expect(page.locator('[data-action=promote][data-id=g1]')).toHaveText('Promote to Junior');
-  await page.click('.card[data-id=g1] .card-name');
   await expect(page.locator('#personModalBody')).toContainText('✓ A language at level 3');
   await expect(page.locator('#personModalBody')).not.toContainText('omain');
 });
@@ -1138,9 +1155,10 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
   // The top buttons name each page: Learn (its own section, also linked from the
   // Director's languages, and it links back), then the daily and Ltd, both demos for now.
   await expect(page.locator('.modes a')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
-  await expect(page.locator('.card.director a.learn-lang')).toHaveText('Python');
-  await expect(page.locator('.card.director a.learn-lang')).toHaveAttribute('href', 'learn/#python');
-  await page.click('.card.director a.learn-lang');
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody a.learn-lang')).toHaveText('Python');
+  await expect(page.locator('#personModalBody a.learn-lang')).toHaveAttribute('href', 'learn/#python');
+  await page.click('#personModalBody a.learn-lang');
   await expect(page.locator('h1')).toHaveText('Learn Python');
   await page.click('#ltdTab');
   await expect(page.locator('#statMoney')).toBeVisible();
@@ -1156,6 +1174,12 @@ test('works at phone width with the studio on', async ({ page }) => {
 
 // The office view (ltd/office.js): the studio drawn as a building above the desk and the studio.
 const officeLabel = page => page.locator('.office-canvas');
+// Open someone's panel from the names-only list (the keyboard way in; the picture's taps do the same).
+async function openPerson(page, id){
+  await page.evaluate(() => { document.querySelector('.people-list').open = true; });
+  await page.click('.person-link[data-id="' + id + '"]');
+  await expect(page.locator('#personModal')).toBeVisible();
+}
 // Breaks come from the game time; these fix who's on one (none, unless given).
 const officeBreaks = (page, ids = []) => page.addInitScript(ids => { window.DEBUGG_OFFICE_BREAKS = ids; }, ids);
 // Clicks the office where a tap target is (its kind and id, from DebuggOffice.targets()).
@@ -1216,21 +1240,12 @@ test('tapping the office: a person opens their panel, an applicant shows their c
   expect((await ltd(page)).jobs[0].question).toBeTruthy();
 });
 
-test('the office can be hidden, and stays hidden after a reload', async ({ page }) => {
+test('the office is always shown: there is nothing to hide', async ({ page }) => {
   await found(page);
-  await expect(page.locator('#officeToggle')).toHaveText('Hide the office');
-  await page.click('#officeToggle');
-  await expect(page.locator('.office-canvas')).toHaveCount(0);
-  await expect(page.locator('#officeBox')).toBeHidden();
-  await expect(page.locator('#officeToggle')).toHaveText('Show the office');
-  expect((await ltd(page)).showOffice).toBe(false);
-  await page.reload();
-  await expect(page.locator('#statMoney')).toBeVisible();
-  await expect(page.locator('#officeToggle')).toHaveText('Show the office');
-  await expect(page.locator('.office-canvas')).toHaveCount(0);
-  await page.click('#officeToggle');
   await expect(officeLabel(page)).toBeVisible();
-  expect((await ltd(page)).showOffice).toBe(true);
+  await expect(page.locator('#officeToggle')).toHaveCount(0);
+  await page.reload();
+  await expect(officeLabel(page)).toBeVisible();
 });
 
 test('the studio still plays when the office view fails to load', async ({ page }) => {
@@ -1290,7 +1305,9 @@ test('a new company is named, with its Director, who chooses how they look', asy
   await page.click('#foundingStart');
   await expect(page.locator('#statMoney')).toBeVisible();
   await expect(page.locator('#welcomeToast')).toContainText('You’ve founded Kiwi Code Ltd');
-  await expect(page.locator('.card.director .card-name')).toHaveText('Aroha');
+  await expect(page.locator('.panel h2', { hasText: 'Kiwi Code Ltd' })).toBeVisible();
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody .modal-name')).toHaveText('Aroha');
   const s = await ltd(page);
   expect(s.companyName).toBe('Kiwi Code Ltd');
   expect(s.roster[0]).toMatchObject({ role: 'Director', name: 'Aroha',
@@ -1303,6 +1320,7 @@ test('a new company is named, with its Director, who chooses how they look', asy
   await page.fill('#foundingDirector', 'Aroha T.');
   await page.check('input[name=found-glasses][value="0"]', { force: true });
   await page.click('#foundingStart');
-  await expect(page.locator('.card.director .card-name')).toHaveText('Aroha T.');
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody .modal-name')).toHaveText('Aroha T.');
   expect((await ltd(page)).roster[0].look.glasses).toBe(0);
 });
