@@ -64,8 +64,10 @@ state = {
   guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
   stage,                                          // the business stage last announced ('startup', 'small', …)
   market: { prices: { Graduate: 1.08, … }, nextAt }, // hire-cost multipliers, and when the market next moves
-  office: { cowork },                             // co-working desks rented beyond the spare room's 4
+  office: { premises, owned },                    // 'spare-room' | 'unit-s'; owned = bought rather than rented
   showOffice,                                     // false once the player hides the office view
+  contractsOpen, firstClient, nextFeatureAt,      // features: open once the spare room is full; the first client offered; the next arrival
+  companyName,                                    // the founding step's name (null: "Debuggit Ltd")
   nextNoticeAt                                    // when the next hourly notice roll is due
 }
 ```
@@ -161,7 +163,7 @@ state = {
     there about when the contract time is up (Lv 3 after about 7 hours on hotfixes, Lv 5 about 3
     days later, Lv 8 after about 14 days on patches); spreading across languages takes longer.
   - **A free slot** at the next level.
-- **Contract board**: shown as a tree like the roster, one foldable group
+- **Contract board** (since October 2026 hotfixes are the intern's and features come first; see "Everyday work and contracts as events" below): shown as a tree like the roster, one foldable group
   per contract type (Hotfixes, Patches, Minor releases, Major releases),
   each header showing how many offers and how many are running. Folded
   groups are remembered (`collapsedTiers`). There's **always a hotfix in
@@ -262,7 +264,7 @@ state = {
   success (`SKILL_FULL`).
 - **Payroll** is drawn every second, including offline (capped at 4 hours).
   Cash can go negative.
-- **Odd jobs** (the player-owner's call, September 2026): developers on no contract earn their
+- **Odd jobs** (replaced in October 2026 by everyday work, below; the player-owner's call, September 2026): developers on no contract earn their
   salary plus `BENCH_MARGIN` (5%), netted against payroll every second (and offline, by who was
   busy at the start), so a benched team grows the company slowly: a grad ¤2.10 vs ¤2/min, a
   senior ¤12.60 vs ¤12. No XP or promotion time, so contracts stay far better. Managers earn
@@ -314,24 +316,35 @@ state = {
   for one level raises that one by 6–15%. Each move is logged, and hire buttons show the
   rise since founding ("¤270 ↑50%"). Moves happen while the page is closed (not while
   paused), and are kept in `state.market`.
-- **The office** (phase 1 of item 15e, September 2026; `SPARE_ROOM_DESKS`, `COWORK_*`,
-  `state.office`): everyone on staff needs a desk, except the Director, who works from home at
-  their own desk jobs. The spare room has 4 desks, free, matching the Director's span of 4 devs, so
-  the first manager needs the first **co-working desk**: ¤1/min each (`COWORK_RATE`), up to 8
-  (`COWORK_MAX`, so 12 staff and the Director, enough for patches), rented and given up from the
-  **Office** line in the Studio panel (a desk can only be given up while one is free). Rent is
-  drawn with payroll every second (`paySalaries()`), offline too, not while paused; the stats bar
-  then reads "Payroll + rent". The structure line shows "Desks 5/6". Saves from before desks get
-  co-working desks for everyone they have. Business units, WFH applicants and bigger premises are
-  the next phases.
-- **A cramped office** (the player-owner's call, September 2026; `CRAM_MAX`, `CRAMPED`,
-  `cramLevel()`): a full office is cramped, and up to 2 more people can be squeezed in without
-  desks. Everyone writes 5% less code with every desk taken, 15% with one squeezed in and 30% with
-  two (applied in `devSlocOn()`, so to contracts started while it's cramped), and notices are
-  likelier. Past that, `deskProblem()` blocks hiring ("no room to squeeze anyone else in"); hire
-  buttons and applicants warn first ("no desk: squeezed in, everyone −15% speed"), and the Office
-  line says how cramped it is. A co-working desk can be given up as long as nobody more than
-  `CRAM_MAX` ends up without one.
+- **The office** (item 15e: phase 1 September 2026, the unit October 2026; `PREMISES`,
+  `state.office`): everyone on staff needs a desk, **the Director included** (the player-owner's
+  call, October 2026; until then they worked from home), but not the intern, who works beside the
+  Director. The spare room has 4 desks, free: you and 3 more, so the Director's 4th dev is squeezed
+  in. Older companies are told once (`state.directorDesk`). After it, the **small business unit** (`unit-s`: 2 floors × 5
+  desks), which is a choice (the player-owner's call): **rent** it (¤4/min) or **buy** it outright
+  (¤60,000, then ¤1/min upkeep). A rented unit can be bought later without moving
+  (`buy-premises`); moving out of a bought one sells it for `SELL_BACK` (90%). Moving either way
+  is instant, from the **Office** line in the Studio panel, as long as everyone fits
+  (`moveProblem()`: desks plus `CRAM_MAX`). Rent or upkeep is drawn with payroll every second
+  (`paySalaries()`), offline too, not while paused; the stats bar then reads "Payroll + rent" or
+  "Payroll + upkeep". 10 desks plus 2 squeezed in is 12 staff and the Director, enough for patches.
+  **Co-working desks** (¤1/min each, up to 8) were the way past the spare room until October 2026,
+  when the player-owner swapped them for the unit; a save that had them keeps everyone, squeezed
+  in past `CRAM_MAX` if need be (hiring then waits for a move), with a log line. Prices are
+  placeholders. Leases, deposits, moving time, listings, the large unit and WFH applicants are
+  still to come.
+- **A cramped office** (the player-owner's calls, September and October 2026; `cramMax()`,
+  `CRAM_STEP`, `cramLevel()` = how many are squeezed in): past its desks, an office takes up to half
+  as many people again squeezed in (the spare room 2, the unit 5). A full office with nobody
+  squeezed in is fine; each person squeezed in makes everyone write `CRAM_STEP` (6%) less code
+  (applied in `devSlocOn()`, so to contracts started while it's cramped) and adds
+  `NOTICE_CRAMPED_STEP` to the notice rate (×3 with one, ×5 with two…). Past `cramMax()`,
+  `deskProblem()` blocks hiring ("no room to squeeze anyone else in"); hire buttons and applicants
+  warn first ("no desk: squeezed in, everyone −6% speed"), and the Office line says how cramped it
+  is. Until October 2026: at most 2 squeezed in, and 5% / 15% / 30% slower from a full office. In the
+  office view, squeezed-in people take a stool after the last desk, then share the end of someone's
+  desk, the meeting-room table, the kitchen couch and counter, the stairs and the floor
+  (`squeezeSpots()`, `squeezeProp()`).
 - **Notice** (the player-owner's idea, September 2026; `moveNotices()`, `p.notice = { reason,
   until, ask }`): every hour (`state.nextNoticeAt`) each person but the Director hands in their
   notice with `NOTICE_PER_DAY` (1.5%) / 24 chance, × `NOTICE_CRAMPED` (1, 3, 5, 7 by cramp
@@ -345,12 +358,18 @@ state = {
   then blocks hiring until it's fixed.
 - **The office view** (item 21b, step 1 of `ideas/ltd-office-view-plan.md`, October 2026;
   `ltd/office.js`, `officeSnapshot()`, `officeApi`, `renderOffice()`): the studio drawn on a canvas
-  in its own slot above the desk and the studio (`#ltdOffice`), as the spare room: a house with the
+  in its own slot above the desk and the studio (`#ltdOffice`). The spare room is a house with the
   front door, the interview room (a chair per `MAX_APPLICANTS`, applicants in grey holding a CV in
-  their level's colour), the Director's own table (the kiwi, with the intern beside it; not a
-  counted desk), the 4 desks, the co-working desks in a tinted corner, stools for anyone squeezed
-  in, the meeting room (managers on a contract stand there) and the kitchen, the break room. Every
-  floor gets a meeting room and a break room (the player-owner's call, October 2026). **Breaks are
+  their level's colour), the 4 desks (the Director at the first, with the intern on a crate
+  beside it; a plant fills that space on other floors), stools for anyone squeezed in, and the
+  kitchen; no meeting room (the player-owner's call). The small business unit is a clad unit on a
+  street, its sign giving the company's name and saying rented or owned: stairs on each floor, the
+  interview room on the ground floor and a server room above it, then each floor's desks, a
+  meeting room (managers on a contract stand there) and a kitchen, where breaks are taken.
+  Everyone is a person (the kiwi stays the site's logo, not the Director): staff get a look from a
+  hash of their id in their level's colour (principals wear glasses), and the Director the look
+  the player chose (`drawHead()`, `lookFor()`, `LOOKS`). People walk to the stairs to change
+  floor; a move between premises is a "Moving day" banner, with everyone at their new place. **Breaks are
   only a picture** (also theirs): the view picks who's on one from a hash of their id and the
   10-minute window of game time (`BREAK_ODDS`, `BREAK_MS`: about 12% of the time; contract and
   bench only), so nothing in `ltd.js` or the save changes and nobody's work slows; their monitor
@@ -359,10 +378,58 @@ state = {
   note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
   page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do
   what a panel button does: a person opens their panel, an applicant's card scrolls into view and
-  flashes (hiring stays a button), a stuck intern opens Help, the kiwi scrolls to the desk. The
+  flashes (hiring stays a button), a stuck intern opens Help, the Director scrolls to the desk. The
   canvas is `role="img"` with an `aria-label` summary. Shown by default; **Hide the office** sets
   `state.showOffice = false`. Nothing is drawn while the tab is hidden; reduced motion stops the
   walking and flashing. `ltd.js` works without the script or the slot (the simulator has neither).
+
+- **Founding a company** (the player-owner's idea, October 2026; `ltd/founding.js`,
+  `state.companyName`, `roster[0].look`): before a new company starts, a dialog names it and its
+  Director and chooses the Director's look (skin, hair colour and style, facial hair, glasses,
+  clothes), with a live preview (`DebuggOffice.portrait()`) and **Surprise me**. Cancelling goes
+  back to the Ltd tab's card. Empty names show as "Debuggit Ltd" and "You". The company's name is on
+  the office's sign and in the welcome; the Director's on their card and under their desk. The
+  Director card's **Edit** opens the same dialog. The index page's loader opens it only for a new
+  company (not a paused one or an import), and tests skip it (`window.DEBUGG_FOUNDING = false`,
+  set by `openAt()` unless `{ founding: true }`); a company started without it (or by the
+  simulator) gets the defaults.
+
+- **Everyday work and contracts as events** (the player-owner's brief, October 2026;
+  `ideas/ltd-early-game-plan.md`):
+  - **Everyday work** (`EVERYDAY_RATE`, `PACE`, `p.pace`, `benchPerMinute()`): anyone who writes
+    code and isn't on a contract or away earns their level's SLOC/min × their pace (0.9–1.1, set
+    at hire; older staff get one on load) at ¤0.54 a line, about 1.35× salary; the intern their
+    tiny share. Replaced odd jobs (salary + 5%). Cards read "Everyday work · support tickets";
+    the office draws a ticket queue on their monitor.
+  - **Features** (tier `feature`, index 1, `TIERS_VERSION` 4 moved patches and up along): 1–3
+    devs, any level, ~600 SLOC, pay ×1.5. None until the spare room is full (`state.contractsOpen`,
+    set once by `moveFeatures()`); then **your first client** (`offer.first`: Python, the whole team
+    `FIRST_CLIENT_TEAM`, ×`FIRST_CLIENT_PAY`, open a day, sticking points `FIRST_CLIENT_SNAGS`), and
+    before managers up to `FEATURES_MAX` arriving every `FEATURE_EVERY_H` hours (offline too),
+    each open 6 hours and not replaced; with managers the board always has `FEATURES_MAX`.
+  - **Before managers** (`managed()`): no repeats, no retries (a failed contract is lost), and a
+    team contract in a language with puzzles gets up to `SNAG_MAX` sticking points (`job.snags`,
+    `SNAG_CHANCE` each): stuck, it runs at half speed (`job.slow`) until you help with a puzzle
+    (`finishSlowHelp()`): back to full speed, `INTERN_NUDGE` on (paying like a desk question and
+    reputation) or back. Ignored, it just finishes later. With managers: repeats, retries, no snags.
+  - **Hotfixes are the intern's**, with you, as before; developers can't take them, even with
+    managers (decided), and the board only has them while there's an intern. No expert hotfixes.
+  - **The guide**: the intern's hotfix, a desk job, filling the spare room, your first client,
+    and helping a stuck team. The old "on the bench" warning went with odd jobs.
+
+- **Working from home, and managers out of the spare room** (the player-owner's calls, October
+  2026; `p.wfh`, `WFH_EFFICIENCY`, `canHireWfh()`, `moveWfh()`): in the spare room an applicant can
+  be hired to work from home (a second button on their card): no desk (`desksUsed()` leaves them
+  out, so they don't fill the spare room for contracts either), and 80% of the code on contracts
+  (`devSlocOn()`) and everyday work. Cards say "WFH"; the office draws them as video-call tiles in the sky
+  by the building (`drawRemote()`, `face()`: a front-on face from their webcam, or an empty chair while
+  they're on a break, as often as anyone in the office, or away; tapping one opens their panel; now and
+  then, `holidayFor()`, 15% of 4-hour stretches, a holiday spot behind them: beach, ski slopes, city,
+  lake or island, only a picture; tests can fix it with `window.DEBUGG_OFFICE_HOLIDAY`)
+  and counts them in its summary. Once the company is out of the spare room, they come in as
+  desks free up. **Managers can't be hired in the spare room** (`hireProblem()`), so the Director's
+  span (4 devs: 3 at desks and one from home) is the spare room's limit, and a small business needs
+  the unit.
 
 ## Known gaps — not wired in yet
 

@@ -54,6 +54,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `tools/sim-ltd.js` | `npm run sim`: the Debuggit Ltd pacing simulator. Plays the real `ltd/ltd.js` headless (fake clock, seeded randomness, a stand-in page) as a keen, casual or always-open player, and prints when the milestones in `ideas/ltd-pacing-targets.md` happen. `--ltd` plays a modified copy, to try a balance change. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `ltd/office.js` | The office view (item 21b): the studio drawn on a canvas from a read-only snapshot `ltd.js` hands it. Optional: the studio plays the same without it. |
+| `ltd/founding.js` | Founding a company: naming it and its Director, and choosing the Director's look (drawn by `office.js`). The loader opens it for a new company; tests skip it (`DEBUGG_FOUNDING`). |
 | `ltd/CLAUDE.md` | Debugg Ltd's design notes: data model, what's implemented, known gaps. |
 | `ideas/` | The roadmap (`roadmap.md`), detailed plans for some of its items, and separate game concepts. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
@@ -91,7 +92,8 @@ card on the Ltd tab or the one under a finished puzzle, which moves to the Ltd t
 old pre-merge save exists (which opens the Ltd tab). On the Daily tab a running company isn't
 loaded; a one-line note says how many desk jobs are waiting (read from the save) and links to Ltd.
 `DebuggLtd.start({ stats, studio, board, desk, office })` renders into the five slots (`office` is
-optional, as is `ltd/office.js`, which the loader loads between `desk.js` and `ltd.js`) and either resumes
+optional, as is `ltd/office.js`; the loader loads `desk.js`, `office.js`, `founding.js`, then `ltd.js`, and for a
+new company opens the founding step first, passing its answers in as `founding`) and either resumes
 the saved company, imports an old one, or founds a new one. `body.ltd-on` shows the desk and the
 studio in the two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title).
 The desk used to be the daily puzzle itself, which folded to its tiles once done; that went with
@@ -121,8 +123,8 @@ visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
 since managers came to the demo in September 2026, with desks, as its money sink). The locked
-types, and premises beyond co-working desks, show as "coming in v0.1". Patches need more than
-10 staff (see the contract board), so a manager and co-working desks. Old saves keep any staff
+types, and premises beyond the small business unit, show as "coming in v0.1". Patches need more than
+10 staff (see the contract board), so a manager and the unit. Old saves keep any staff
 and running jobs they have, but their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with

@@ -613,6 +613,8 @@
   --office-slab: #3a3d46;
   --office-slab-text: #c9ccd4;
   --office-brick: #6b4436;
+  --office-cladding: #4a5566;
+  --office-street: #2a2d33;
   --office-roof: #2c2f37;
   margin-bottom: 18px;
 }
@@ -626,3 +628,32 @@
 .ltd .applicant.office-picked{ animation: office-pick 1.6s ease-out; }
 @keyframes office-pick{ 0%, 40%{ outline: 2px solid var(--amber); outline-offset: 2px; } 100%{ outline: 2px solid transparent; outline-offset: 2px; } }
 @media (prefers-reduced-motion: reduce){ .ltd .applicant.office-picked{ animation: none; outline: 2px solid var(--amber); outline-offset: 2px; } }
+
+/* Founding a company (ltd/founding.js): names, and the Director's look with a live preview. */
+.ltd .founding .found-intro{ color: var(--text-dim); font-size: 13px; margin: 0 0 12px; }
+.ltd .found-grid{ display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 520px){ .ltd .found-grid{ grid-template-columns: minmax(0, 1fr); } }
+.ltd .found-preview{ background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; display: flex; justify-content: center; position: sticky; top: 0; }
+.ltd .found-preview canvas{ width: 130px; height: 190px; display: block; }
+.ltd .found-name{ display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 10px; }
+.ltd .found-name input{
+  display: block; width: 100%; margin-top: 4px; box-sizing: border-box;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+  padding: 8px 10px; font: inherit; font-size: 14px;
+}
+.ltd .found-row{ border: 0; margin: 0 0 10px; padding: 0; min-width: 0; }
+.ltd .found-row legend{ font-size: 12.5px; color: var(--text-dim); padding: 0; margin-bottom: 5px; }
+.ltd .found-opts{ display: flex; flex-wrap: wrap; gap: 6px; }
+.ltd .found-opt{ position: relative; cursor: pointer; }
+.ltd .found-opt input{ position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ltd .found-opt > span:not(.sr){
+  display: inline-block; font-size: 12px; padding: 4px 9px; border-radius: 6px;
+  border: 1.5px solid var(--line); background: var(--panel-2); color: var(--text-dim);
+}
+.ltd .found-opt.swatch .chip{ width: 24px; height: 24px; padding: 0; border-radius: 50%; }
+.ltd .found-opt input:checked + span{ border-color: var(--amber); color: var(--text); }
+.ltd .found-opt input:focus-visible + span{ outline: 2px solid var(--amber); outline-offset: 2px; }
+.ltd .found-opt .sr{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ltd .found-actions{ display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.ltd .found-spacer{ flex: 1; }
+.ltd .card.director .card-level .btn-small{ margin-left: 6px; padding: 2px 7px; font-size: 10.5px; }

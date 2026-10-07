@@ -7,6 +7,12 @@ together roadmap items 13 (business stages), 15 (office space) and 18 (multiple 
 gives the demo a money sink. Status and decisions live in `ideas/roadmap.md` and `ltd/CLAUDE.md`; this file is the detail.
 Every number here is a placeholder for the balance pass (item 10).
 
+**Changed in October 2026 (the player-owner's calls):** co-working desks are gone, and buying is no
+longer a late-game step: **each premises after the spare room is a choice of renting or buying it
+outright**. The small business unit is built that way: 2 floors × 5 desks (not 8), rent ¤4/min, or
+buy for ¤60,000 then ¤1/min upkeep, selling for 90% when moving out. The tables below are the
+earlier sketch; where they disagree, this note and `ltd/CLAUDE.md` win.
+
 ## The progression
 
 | Stage (item 13) | Where you work | Property as income |

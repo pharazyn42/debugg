@@ -201,7 +201,8 @@ What it found:
 2. **The first grad isn't affordable at founding.** ¤150 start cash against a ¤180 grad (costs
    went ×3 in the first balance pass; start cash didn't), so a new player without puzzle XP can't
    follow the guide's first step until they've done a desk job. **Fixed:** start cash is ¤250.
-3. **Desks cap the company at 13, and cash then piles up.** 4 spare-room desks plus 8 co-working
+3. **Desks cap the company at 13, and cash then piles up.** (October 2026: co-working desks are gone; the small business
+   unit's 10 desks plus 2 squeezed in now make the same cap of 12 staff and the Director, rented or bought.) 4 spare-room desks plus 8 co-working
    desks is 12 staff and the Director, reached on day 2 by keen players. After that there's
    nothing to buy: ¤1.3 million by day 14, in the demo and the full game alike. Mid-size (25
    staff) can't be reached until business units exist (phase 2 of item 15e). Principle 1 fails

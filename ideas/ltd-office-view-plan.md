@@ -40,30 +40,28 @@ grow, so every move reads as a bigger building):
 
 | Premises | Building | Floors × desks | Desks | In `company-growth-roadmap.md` | Cost (placeholder) |
 |---|---|---|---|---|---|
-| Spare room (now) | A house: pitched roof, chimney, front door | 1 × 4 | 4 (+ co-working) | 4 | free |
-| Small business unit | A clad unit with stairs | 2 × 5 | 10 | 8 | ¤4/min |
+| Spare room (built) | A house: pitched roof, chimney, front door | 1 × 4 | 4 | 4 | free |
+| Small business unit (built) | A clad unit with stairs | 2 × 5 | 10 | 8 | rent ¤4/min, or buy ¤60,000 + ¤1/min |
 | Large business unit | A clad unit with stairs | 3 × 6 | 18 | 16 | ¤8/min |
 | Office floors | A tower with a lift | 4 × 10 | 40 | 40 | ¤16/min |
 | Office building (bought) | A tower with a lift | 8 × 15 | 120 | 120 | ¤6/min upkeep |
 
 - **Changed from the growth plan:** the two business units go from 8 to 10 desks and 16 to 18,
-  so a floor never has fewer desks than the one before. Confirm with the player-owner before
-  building 15e phase 2, then update `company-growth-roadmap.md` to match.
-- **Only the spare room exists in the game today** (15e phase 1: `SPARE_ROOM_DESKS` 4 plus up to
-  `COWORK_MAX` 8 co-working desks, `CRAM_MAX` 2 squeezed in). Phase 1 of this plan draws exactly
-  that. The other buildings come with 15e phase 2 (business units) and later.
-- **Co-working desks** are drawn on the spare room's floor, in a tinted "co-working · rented"
-  corner between the home desks and the kitchen, as plain white hot desks. The prototype allows 6;
-  the game allows 8.
-- **Squeezed in** (a cramped office): the up-to-2 people without a desk sit on stools at the end
-  of the last desk, so a cramped office looks cramped.
+  so a floor never has fewer desks than the one before. The small unit was built with 10.
+- **Built (October 2026):** the spare room and the small business unit (`PREMISES` in `ltd.js`).
+  Co-working desks are gone (the player-owner's call), and **each premises after the spare room
+  can be rented or bought outright** (also theirs); the unit's sign says which.
+- **Squeezed in** (a cramped office): people without a desk sit on stools on the ground floor
+  after the last desk, so a cramped office looks cramped (more than 2 only in a save that lost its
+  co-working desks).
 
 ## The rooms on each floor
 
-Left to right on every floor: the way in (front door, stairs or lift), a side room on the ground
-floor (the interview room), the desks, the meeting room, then the break room. Every floor has a
-break room and a meeting room, the spare room's one floor included (the player-owner's call,
-October 2026). None of the rooms take desks.
+Left to right on every floor: the way in (front door, stairs or lift), a side room (the
+interview room on the ground floor; the Director's office on the top floor of a unit), the desks,
+the meeting room, then the kitchen. Every floor has a kitchen and a meeting room, **except the
+spare room, which has no meeting room**; every break room is labelled just "Kitchen" (the
+player-owner's calls, October 2026). None of the rooms take desks.
 
 - **Interview room** (ground floor, by the way in): a row of waiting chairs, one per applicant
   slot (`MAX_APPLICANTS` = 3 in the game), a plant and a framed kiwi. Each of
@@ -74,8 +72,9 @@ October 2026). None of the rooms take desks.
   couch. People on a break go there (the couch first, then the coffee machine, then standing).
   **Breaks are only a picture** (the player-owner's call, October 2026): they cost no work, so the
   game's numbers, offline progress and the simulator are untouched.
-- **Meeting room** (every floor, beside the break room): a whiteboard and a table. Managers on a
-  contract stand there, since they write no code.
+- **Meeting room** (every floor beside the kitchen, but not in the spare room): a whiteboard and a
+  table. Managers on a contract stand there, since they write no code; in the spare room they stay
+  at their desk.
 - **The bench is not a room.** Someone with no contract (on the bench, doing odd jobs) sits at
   their own desk with a screensaver.
 
@@ -87,7 +86,7 @@ except through the actions the panels already have.
 | In the game | In the office |
 |---|---|
 | `deskCount()`, `coworkDesks()`, `desksUsed()`, `cramLevel()` | The desks, the co-working corner, free desks labelled "free", stools when squeezed in |
-| The Director (`roster[0]`) | The kiwi, at their own desk that isn't one of the staff's (see "Decide first") |
+| The Director (`roster[0]`) | A person with the look the player chose at founding, at the first desk (decided October 2026: they take a desk, and aren't the kiwi) |
 | The intern (`isIntern()`) | Beside the Director: they work as a pair and take no desk |
 | A person on a running job | At their desk; the monitor types code in the job's language, with a progress bar from `startedAt`/`endsAt` |
 | A stuck intern job (`isStuck()`) | The intern's monitor flashes "?"; tapping them does what the job card's **Help them** does (`startHelp()`) |
@@ -123,7 +122,9 @@ unless a later feature needs it).
    - **Or real breaks:** each person's break pushes their job's `endsAt` and shows in the job
      card. Truer, but a lot more code (offline, teams, repeats) for little gain.
    - Or breaks are only a picture and cost nothing (not what was asked).
-2. **Where the Director sits.** The game says the Director works from home, at their own desk, and
+2. **Where the Director sits. Decided (October 2026): at the first desk**, which counts against the
+   premises' desks, and as a person the player designs at founding, not the kiwi (the
+   player-owner's calls; built). Before that: the game said the Director works from home, at their own desk, and
    takes no staff desk. Proposed: in the spare room (which is home) the kiwi has the kitchen table,
    an extra desk by the front door that isn't counted; in bigger premises, a corner office on the
    top floor. The prototype gives the Director desk 0, which the game must not do.

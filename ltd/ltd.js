@@ -32,6 +32,8 @@ window.DebuggLtd = (function(){
   const DIRECTOR_BOOST_CAP = 0.10;
 
   function start(slots){
+    // A new company's name and its Director's name and look, from the founding step (ltd/founding.js).
+    const founding = slots.founding || null;
     const statsSlot = slots.stats, studioSlot = slots.studio, boardSlot = slots.board, deskSlot = slots.desk;
     // The office view (ltd/office.js) is optional: without its slot or its script the studio plays the same.
     const officeSlot = slots.office && window.DebuggOffice ? slots.office : null;
@@ -43,7 +45,7 @@ window.DebuggLtd = (function(){
     [statsSlot, studioSlot, boardSlot, deskSlot, officeSlot].forEach(el => { if(el){ el.classList.add('ltd'); el.hidden = false; } });
     if(officeSlot) officeSlot.innerHTML =
       '<div class="panel office-view">' +
-        '<h2>Office <span class="tag">your spare room</span>' +
+        '<h2>Office <span class="tag" id="officeTag"></span>' +
           '<button type="button" class="btn-small btn-ghost office-toggle" data-action="office-toggle" id="officeToggle" aria-controls="officeBox"></button></h2>' +
         '<div class="office-box" id="officeBox"></div>' +
       '</div>';
@@ -282,7 +284,7 @@ window.DebuggLtd = (function(){
       { level: 8, weight: 3,  pay: 2.2 }
     ];
     const EXPERT_NONE_WEIGHT = 76;
-    const EXPERT_HOTFIXES = 1;
+    const EXPERT_HOTFIXES = 0;   // hotfixes are the intern's now, so no expert ones (1 until October 2026)
     function expertOf(o){ return EXPERT.find(e => e.level === (o && o.expert)) || null; }
     function rollExpert(always){
       const pool = always ? EXPERT : [{ level: 0, weight: EXPERT_NONE_WEIGHT }].concat(EXPERT);
@@ -300,7 +302,9 @@ window.DebuggLtd = (function(){
     // hotfix → patch → minor release → major release.
     const TIERS = [
       { key: 'hotfix', name: 'Hotfix',        plural: 'Hotfixes',       minutes: 1,  offerLife: 3,   refSloc: 5,   min: 1,  max: 1,  mult: 1.0, xpPerMin: 0.33,  rep: 0.05,
-        needs: {}, req: '1 developer, any level' },
+        needs: {}, req: 'your intern, with you' },
+      { key: 'feature', name: 'Feature',      plural: 'Features',       minutes: 60, offerLife: 360, refSloc: 10,  min: 1,  max: 3,  mult: 1.5, xpPerMin: 0.4,  rep: 1,
+        needs: {}, req: '1–3 devs, any level' },
       { key: 'patch', name: 'Patch',          plural: 'Patches',        minutes: 10, offerLife: 15,  refSloc: 40,  min: 3,  max: 5,  mult: 1.2, xpPerMin: 0.4,  rep: 2,
         needs: { Senior: 1 }, req: '3–5 devs · 1+ senior' },
       { key: 'minor', name: 'Minor release',  plural: 'Minor releases', minutes: 30, offerLife: 45,  refSloc: 90,  min: 5,  max: 10, mult: 1.5, xpPerMin: 0.45, rep: 6,
@@ -308,24 +312,37 @@ window.DebuggLtd = (function(){
       { key: 'major', name: 'Major release',  plural: 'Major releases', minutes: 90, offerLife: 120, refSloc: 250, min: 10, max: 20, mult: 2.0, xpPerMin: 0.5,  rep: 20,
         needs: { Manager: 1, Principal: 2, Senior: 3 }, req: '10+ people · manager, 2 principals, 3 seniors' }
     ];
-    // 1 = quick fix / sprint / milestone / full delivery (same rules, old names).
-    const TIERS_VERSION = 3;
+    // 1 = quick fix / sprint / milestone / full delivery (same rules, old names). 4 = features
+    // inserted after hotfixes (October 2026), so patches and up moved one index along.
+    const TIERS_VERSION = 4;
     // 1 = offers tagged with a language and a domain; 2 = language only, with a
     // hotfix in every language.
     const BOARD_VERSION = 2;
-    // Hotfixes: one per language, always, so a lone dev always has one they can
-    // take. Every other contract type: this many offers, in random languages.
+    // Hotfixes are the intern's (with you): one per language, while you have an intern.
+    // Features (October 2026, ideas/ltd-early-game-plan.md): none until the spare room is full
+    // (you and 3 staff, `state.contractsOpen`, kept once set). Then, before managers, up to
+    // FEATURES_MAX turn up, one every FEATURE_EVERY_H hours, each open for its offerLife; with
+    // managers there are always FEATURES_MAX. Every other contract type: OFFERS_PER_TIER offers,
+    // in random languages, replaced at once.
     const OFFERS_PER_TIER = 2;
+    const FEATURES_MAX = 3;
+    const FEATURE_EVERY_H = [1, 3];
+    // The first contract, once the spare room is full: "Your first client", a Python feature for
+    // the whole team (FIRST_CLIENT_TEAM devs), paying FIRST_CLIENT_PAY times, with sticking points
+    // you're sure to help with (FIRST_CLIENT_SNAGS). Open for a day.
+    const FIRST_CLIENT_TEAM = 3;
+    const FIRST_CLIENT_PAY = 2;
+    const FIRST_CLIENT_SNAGS = [0.3, 0.65];
     // Unstaffed offers are replaced after `offerLife` minutes, so the board
     // keeps turning over even if nobody on staff can take what's on it. A
     // replacement hotfix keeps its language.
 
     // The demo is the start-up slice: hotfixes and patches only (patches need more than
-    // PATCH_HEADCOUNT staff, so managers and co-working desks). Managers were locked in the demo
+    // PATCH_HEADCOUNT staff, so managers and the small business unit). Managers were locked in the demo
     // until September 2026, when they came in with desks as the demo's money sink. The rest is
     // shown as coming in v0.1. Old saves keep what they have; they just get no more of it.
     const DEMO = !!D.DEMO;
-    const DEMO_TIERS = ['hotfix', 'patch'];
+    const DEMO_TIERS = ['hotfix', 'feature', 'patch'];
     const DEMO_LOCKED_ROLES = [];
     const COMING = 'coming in v0.1';
     // Patches (and every bigger type) only come to the board once the company has more than
@@ -335,10 +352,16 @@ window.DebuggLtd = (function(){
     function headcount(){ return state ? state.roster.filter(p => !isIntern(p)).length : 1; }
     // Why a contract type isn't on the board yet, or null if it is.
     function tierLock(tierIndex){
-      if(DEMO && !DEMO_TIERS.includes(TIERS[tierIndex].key)) return COMING;
-      if(!isHotfix(tierIndex) && headcount() <= PATCH_HEADCOUNT) return STAFF_LOCK;
+      const key = TIERS[tierIndex].key;
+      if(DEMO && !DEMO_TIERS.includes(key)) return COMING;
+      if(key === 'hotfix') return state && state.roster.some(isIntern) ? null : 'your intern’s, while you have one';
+      if(key === 'feature') return state && state.contractsOpen ? null
+        : 'start once your spare room is full (' + (state ? Math.min(desksUsed(), SPARE_ROOM_DESKS) : 1) + ' of ' + SPARE_ROOM_DESKS + ' desks)';
+      if(headcount() <= PATCH_HEADCOUNT) return STAFF_LOCK;
       return null;
     }
+    // Managers run the team: with one, contracts repeat and retry, and nobody gets stuck.
+    function managed(){ return stageIndex() >= 1; }
     function tierOpen(tierIndex){ return !tierLock(tierIndex); }
 
     const FIRST_NAMES = ['Alex','Sam','Jamie','Taylor','Morgan','Riley','Casey','Drew','Reese','Quinn','Charlie','Jordan',
@@ -418,12 +441,15 @@ window.DebuggLtd = (function(){
     // Saves from before the merge, when the studio lived at /studio/.
     const OLD_STORAGE_KEY = 'contract-debugger-state-v3';
 
-    function freshState(money){
+    function freshState(money, named){
       const now = Date.now();
+      const director = { id: 'director', name: (named && named.director) || 'You', role: 'Director', since: now, lang: {} };
+      if(named && named.look) director.look = named.look;
       return {
         money,
         reputation: 0,
-        roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {} }, makeIntern(now)],
+        companyName: (named && named.company) || null,  // null: "Debuggit Ltd"
+        roster: [director, makeIntern(now)],
         internGiven: true,    // the starting intern (see INTERN_DAYS); older saves get one on load
         board: makeBoard(),
         jobs: [],             // staffed contracts in progress
@@ -435,7 +461,11 @@ window.DebuggLtd = (function(){
         boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
-        office: { cowork: 0 },// co-working desks rented beyond the spare room
+        office: { premises: 'spare-room', owned: false },
+        directorDesk: true,   // the Director takes a desk (older saves are told once)
+        contractsOpen: false, // features come once the spare room is full (moveFeatures())
+        firstClient: false,   // your first client has been offered
+        nextFeatureAt: 0,  // where the company works (PREMISES), and whether it's bought
         desk: freshDesk(now)  // desk jobs (see "The desk")
       };
     }
@@ -459,7 +489,9 @@ window.DebuggLtd = (function(){
     }
     // The offer that takes a taken or expired one's place: an everyday hotfix keeps its language,
     // and an expert hotfix is replaced by another (in any language).
+    // Features before managers aren't replaced: new ones turn up in their own time (moveFeatures()).
     function replacementFor(o){
+      if(TIERS[o.tier].key === 'feature' && !managed()) return null;
       if(!isHotfix(o.tier)) return makeOffer(o.tier);
       return o.expert ? makeOffer(o.tier, null, true) : makeOffer(o.tier, o.lang, false);
     }
@@ -471,22 +503,60 @@ window.DebuggLtd = (function(){
       state.board.forEach((o, i) => {
         if(o.expiresAt <= now && !(picker && picker.offerId === o.id)) state.board[i] = replacementFor(o);
       });
+      state.board = state.board.filter(Boolean);
       const hotfix = TIERS.findIndex(t => t.key === 'hotfix');
-      LANGS.forEach(lang => {
+      if(tierOpen(hotfix)) LANGS.forEach(lang => {
         if(!state.board.some(o => o.tier === hotfix && o.lang === lang && !o.expert)) state.board.push(makeOffer(hotfix, lang, false));
       });
+      moveFeatures(now);
       for(let k = state.board.filter(o => o.tier === hotfix && o.expert).length; k < EXPERT_HOTFIXES; k++) state.board.push(makeOffer(hotfix, null, true));
       // A type that has just opened (e.g. patches, once the company is big enough) gets its offers.
-      TIERS.forEach((_, i) => {
-        if(isHotfix(i) || !tierOpen(i)) return;
+      TIERS.forEach((t, i) => {
+        if(isHotfix(i) || t.key === 'feature' || !tierOpen(i)) return;
         for(let k = state.board.filter(o => o.tier === i).length; k < OFFERS_PER_TIER; k++) state.board.push(makeOffer(i));
       });
     }
 
+    // Features: the spare room filling up opens contracts (once, for good) with your first client;
+    // after that, before managers, new features turn up every FEATURE_EVERY_H hours, while the page
+    // is closed too (skipping any whose offer would already have run out); with managers, the board
+    // always has FEATURES_MAX.
+    function moveFeatures(now){
+      const fi = TIERS.findIndex(t => t.key === 'feature');
+      if(!state.contractsOpen && (desksUsed() >= SPARE_ROOM_DESKS || managed())){
+        state.contractsOpen = true;
+        if(!state.firstClient){
+          state.firstClient = true;
+          const o = makeOffer(fi, 'Python', false);
+          Object.assign(o, { first: true, risk: 'standard', minTeam: FIRST_CLIENT_TEAM, bonus: FIRST_CLIENT_PAY, expiresAt: now + 24 * 3600000 });
+          state.board.push(o);
+          addLog('ok', '★ Your spare room is full, and your first client has a job for you: a Python feature for the whole team, at double pay.');
+          showToast('Your first client! A Python feature for your whole team, at double pay, is on the contract board. ' +
+            'They’re junior, so expect to help when they get stuck.');
+          track('first-client/offered');
+        }
+        state.nextFeatureAt = now + between(FEATURE_EVERY_H) * 3600000;
+      }
+      if(!tierOpen(fi)) return;
+      const count = () => state.board.filter(o => o.tier === fi).length;
+      if(managed()){
+        while(count() < FEATURES_MAX) state.board.push(makeOffer(fi));
+        return;
+      }
+      if(!state.nextFeatureAt) state.nextFeatureAt = now + between(FEATURE_EVERY_H) * 3600000;
+      for(let i = 0; state.nextFeatureAt <= now && i < 100; i++){
+        const at = state.nextFeatureAt;
+        const o = makeOffer(fi);
+        o.expiresAt = at + TIERS[fi].offerLife * 60000;
+        if(o.expiresAt > now && count() < FEATURES_MAX) state.board.push(o);
+        state.nextFeatureAt = at + between(FEATURE_EVERY_H) * 3600000;
+      }
+    }
+
     function makeBoard(){
       const board = [];
-      TIERS.forEach((_, i) => {
-        if(!tierOpen(i)) return;
+      TIERS.forEach((t, i) => {
+        if(!tierOpen(i) || t.key === 'feature') return;
         if(isHotfix(i)){
           LANGS.forEach(lang => board.push(makeOffer(i, lang, false)));
           for(let k = 0; k < EXPERT_HOTFIXES; k++) board.push(makeOffer(i, null, true));
@@ -498,12 +568,12 @@ window.DebuggLtd = (function(){
 
     // The starting intern knows no language yet: the Director's languages carry them.
     function makeIntern(now){
-      return { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.', role: 'Intern', since: now, lang: {} };
+      return { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.', role: 'Intern', since: now, lang: {}, pace: between(PACE) };
     }
 
     function makeHire(role){
       const p = { id: uid('e'), name: pick(FIRST_NAMES) + ' ' + String.fromCharCode(65 + rand(26)) + '.',
-                  role, since: Date.now(), lang: {} };
+                  role, since: Date.now(), lang: {}, pace: between(PACE) };
       const langs = shuffle(LANGS.slice());
       const set = (b, i) => { if(b > 0) p.lang[langs[i]] = skillXp(b); };
 
@@ -669,50 +739,89 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // The office: desks (phase 1 of ideas/company-growth-roadmap.md)
     // ---------------------------------------------------------------------
-    // Everyone on staff needs a desk; the Director works from home, at their own desk. The
-    // spare room has SPARE_ROOM_DESKS, free. Past that, co-working desks: rented one at a time
-    // (up to COWORK_MAX), COWORK_RATE per desk per minute, charged like payroll (offline too,
-    // not while paused), and given up any time a desk is free. Business units come next.
-    const SPARE_ROOM_DESKS = 4;
-    const COWORK_RATE = 1;
-    const COWORK_MAX = 8;
-    function coworkDesks(){ return (state.office && state.office.cowork) || 0; }
-    function deskCount(){ return SPARE_ROOM_DESKS + coworkDesks(); }
-    function desksUsed(){ return state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length; }
-    function rentPerMinute(){ return coworkDesks() * COWORK_RATE; }
-    // A full office is cramped, and up to CRAM_MAX more people can be squeezed in without desks,
-    // each making it worse. Everyone writes CRAMPED[level] less code on contracts started while
-    // it's cramped (level 1 = every desk taken, 2 = one squeezed in, 3 = two), and people are
-    // likelier to hand in their notice (see "Notice" below). The player-owner's call.
-    const CRAM_MAX = 2;
-    const CRAMPED = [0, 0.05, 0.15, 0.30];
-    function cramLevel(extra){
-      const over = desksUsed() + (extra || 0) - deskCount();
-      return over < 0 ? 0 : Math.min(CRAMPED.length - 1, over + 1);
+    // Everyone on staff needs a desk, the Director included (since October 2026, the player-owner's
+    // call; they used to work from home); the intern works beside the Director. The company
+    // starts in the spare room (4 desks, free). Each premises after it is a choice (the
+    // player-owner's call, October 2026): rent it (rent per minute) or buy it outright (its price
+    // up front, then a smaller upkeep per minute). Rent and upkeep are charged like payroll (offline
+    // too, not while paused). A rented place can be bought later without moving; moving out of a
+    // bought one sells it for SELL_BACK of its price. Moving is instant, as long as everyone fits
+    // (desks plus cramMax() squeezed in). Co-working desks were the way past the spare room until
+    // October 2026, when the unit replaced them (phase 2 of ideas/company-growth-roadmap.md,
+    // without leases yet). Prices are placeholders for the balance pass.
+    const PREMISES = {
+      'spare-room': { name: 'spare room', floors: 1, perFloor: 4, rent: 0 },
+      'unit-s': { name: 'small business unit', floors: 2, perFloor: 5, rent: 4, price: 60000, upkeep: 1 }
+    };
+    const SELL_BACK = 0.9;
+    const PREMISES_ORDER = ['spare-room', 'unit-s'];
+    const SPARE_ROOM_DESKS = PREMISES['spare-room'].perFloor;
+    function premisesKey(){ return (state.office && PREMISES[state.office.premises]) ? state.office.premises : 'spare-room'; }
+    function premises(){ return PREMISES[premisesKey()]; }
+    function nextPremises(){ return PREMISES_ORDER[PREMISES_ORDER.indexOf(premisesKey()) + 1] || null; }
+    function prevPremises(){ return PREMISES_ORDER[PREMISES_ORDER.indexOf(premisesKey()) - 1] || null; }
+    function desksIn(key){ return PREMISES[key].floors * PREMISES[key].perFloor; }
+    function deskCount(){ return desksIn(premisesKey()); }
+    function desksUsed(){ return state.roster.filter(p => !isIntern(p) && !p.wfh).length; }
+    // Working from home (the player-owner's call, October 2026): in the spare room, a developer
+    // can be hired to work from home (`p.wfh`). They need no desk, and write WFH_EFFICIENCY of the
+    // code, on contracts and everyday work alike. Once the company has left the spare room, they
+    // come into the office as desks free up (moveWfh()).
+    const WFH_EFFICIENCY = 0.8;
+    function wfhFactor(p){ return p.wfh ? WFH_EFFICIENCY : 1; }
+    function canHireWfh(role){ return premisesKey() === 'spare-room' && APPLICANT_ROLES.includes(role); }
+    function moveWfh(){
+      if(premisesKey() === 'spare-room') return;
+      state.roster.filter(p => p.wfh).forEach(p => {
+        if(desksUsed() >= deskCount()) return;
+        delete p.wfh;
+        addLog('info', p.name + ' has come into the office, now there’s a desk for them.');
+      });
     }
-    function crampedPenalty(){ return CRAMPED[cramLevel()]; }
+    function companyName(){ return state.companyName || 'Debuggit Ltd'; }
+    function owned(){ return !!(state.office && state.office.owned) && premisesKey() !== 'spare-room'; }
+    // Rent, or upkeep for a place the company owns.
+    function rentPerMinute(){ return owned() ? premises().upkeep : premises().rent; }
+    function sellPrice(key){ return Math.round(PREMISES[key].price * SELL_BACK); }
+    // Why the company can't move somewhere smaller ('' if it can).
+    function moveProblem(key){ return desksUsed() > desksIn(key) + cramMax(key) ? 'too many people to fit' : ''; }
+    // Up to half as many people as an office has desks (cramMax(): the spare room 2, the unit 5) can
+    // be squeezed in without desks, and with anyone squeezed in it's cramped: everyone writes
+    // CRAM_STEP less code for each person squeezed in (6%, 12%, 18%…) on contracts started meanwhile,
+    // and people are likelier to hand in their notice (noticeCramped()). A full office with nobody
+    // squeezed in is fine. The player-owner's calls (September 2026; October 2026 for half the desks,
+    // the flat step, and no slowdown until someone's squeezed in, which replaced at most 2 squeezed in
+    // and 5% / 15% / 30% from a full office).
+    const CRAM_STEP = 0.06;
+    function cramMax(key){ return Math.floor(desksIn(key || premisesKey()) / 2); }
+    // How many are squeezed in (with `extra` more people): 0 while there's a desk for everyone.
+    function cramLevel(extra){ return Math.max(0, desksUsed() + (extra || 0) - deskCount()); }
+    function crampAt(n){ return Math.min(0.9, CRAM_STEP * n); }
+    function crampedPenalty(){ return crampAt(cramLevel()); }
     function deskProblem(){
-      if(desksUsed() < deskCount() + CRAM_MAX) return null;
-      return 'no room to squeeze anyone else in' + (coworkDesks() < COWORK_MAX ? ' — rent a co-working desk' : ' — bigger premises are coming in v0.1');
+      if(desksUsed() < deskCount() + cramMax()) return null;
+      return 'no room to squeeze anyone else in' + (nextPremises() ? ' — rent or buy a ' + PREMISES[nextPremises()].name : ' — bigger premises are coming in v0.1');
     }
     // What hiring one more would do to the office, for the hire buttons: '' when there's a free desk.
     function deskNote(){
       if(desksUsed() < deskCount()) return '';
-      return 'no desk: squeezed in, everyone −' + Math.round(CRAMPED[cramLevel(1)] * 100) + '% speed';
+      return 'no desk: squeezed in, everyone −' + Math.round(crampAt(cramLevel(1)) * 100) + '% speed';
     }
 
     // ---------------------------------------------------------------------
     // Notice: people sometimes hand in their notice
     // ---------------------------------------------------------------------
     // Checked every hour (state.nextNoticeAt): each person but the Director hands in their notice
-    // with NOTICE_PER_DAY / 24 chance, times NOTICE_CRAMPED[cramLevel()]. A notice
+    // with NOTICE_PER_DAY / 24 chance, times noticeCramped(): 1, plus NOTICE_CRAMPED_STEP for each
+    // person squeezed in (×3 with one, ×5 with two…). A notice
     // (p.notice = { reason, until, ask }) runs NOTICE_H hours, then they leave, once they're off
     // any running contract (a repeat stops for them). It can be turned around: a cramped one is
     // withdrawn once there's a free desk again, and any can be settled by agreeing a pay rise of
     // `ask` ¤/min, a random 15–35% of their level's salary (p.raise). The player-owner's idea.
     // While the page is closed, only the last OFFLINE_CAP hours roll, like repeats.
     const NOTICE_PER_DAY = 0.015;
-    const NOTICE_CRAMPED = [1, 3, 5, 7];
+    const NOTICE_CRAMPED_STEP = 2;
+    function noticeCramped(){ return 1 + NOTICE_CRAMPED_STEP * cramLevel(); }
     const NOTICE_H = 24;
     const RAISE = [0.15, 0.35];
     function giveNotice(p, at, reason){
@@ -728,7 +837,7 @@ window.DebuggLtd = (function(){
       for(let i = 0; state.nextNoticeAt <= now && i < 400; i++){
         const at = state.nextNoticeAt;
         if(at >= from){
-          const perHour = NOTICE_PER_DAY * NOTICE_CRAMPED[cramLevel()] / 24;
+          const perHour = NOTICE_PER_DAY * noticeCramped() / 24;
           state.roster.forEach(p => {
             if(p.role !== 'Director' && !isIntern(p) && !p.notice && Math.random() < perHour) giveNotice(p, at, cramLevel() ? 'cramped' : 'offer');
           });
@@ -785,9 +894,12 @@ window.DebuggLtd = (function(){
         '<button class="btn-small btn-promote" data-action="keep" data-id="' + p.id + '">Keep: +' + fmtRate(n.ask) + '/min</button></div>';
     }
 
-    function hireProblem(role){
+    // `wfh`: hiring them to work from home, so no desk is needed.
+    function hireProblem(role, wfh){
       if(DEMO && DEMO_LOCKED_ROLES.includes(role)) return COMING;
-      return problemWith({ [role]: 1 }) || deskProblem();
+      // Managers come once the company has left the spare room (the player-owner's call, October 2026).
+      if(role === 'Manager' && premisesKey() === 'spare-room') return 'managers need an office: move out of the spare room first';
+      return problemWith({ [role]: 1 }) || (wfh ? null : deskProblem());
     }
     function releaseProblem(p){
       if(jobFor(p.id)) return 'on a contract';
@@ -843,6 +955,7 @@ window.DebuggLtd = (function(){
       // The Director only takes hotfixes, alongside an intern.
       if(p.role === 'Director') return tier.key === 'hotfix' && state.roster.some(isIntern);
       if(isIntern(p)) return tier.key === 'hotfix';
+      if(tier.key === 'hotfix') return false;   // hotfixes are the intern's (October 2026)
       if(p.role === 'Manager') return !!tier.needs.Manager;
       return true;
     }
@@ -855,7 +968,7 @@ window.DebuggLtd = (function(){
       return 1 + SKILL_SPEED * Math.min(level, SKILL_FULL) / SKILL_FULL + SKILL_SPEED_BEYOND * Math.max(0, level - SKILL_FULL);
     }
     function devSlocOn(d, offer){
-      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang])) * (1 - crampedPenalty());
+      return ROLES[d.role].sloc * speedFor(skillLevel(d.lang[offer.lang])) * (1 - crampedPenalty()) * wfhFactor(d);
     }
 
     // A dev "knows the stack" for a contract if they have at least level 1 in
@@ -876,10 +989,11 @@ window.DebuggLtd = (function(){
       const atLeast = level => devs.filter(d => levelRank(d.role) >= levelRank(level)).length;
       const checks = [];
 
-      const sizeLabel = tier.min === tier.max ? tier.min + ' person' + (tier.min > 1 ? 's' : '')
-                      : tier.key === 'major' ? tier.min + '+ people'
-                      : tier.min + '–' + tier.max + ' people';
-      checks.push({ label: sizeLabel + ' (' + members.length + ')', ok: members.length >= tier.min && members.length <= tier.max });
+      const min = Math.max(tier.min, offer.minTeam || 0);   // your first client wants the whole team
+      const sizeLabel = min === tier.max ? min + ' ' + (min > 1 ? 'people' : 'person')
+                      : tier.key === 'major' ? min + '+ people'
+                      : min + '–' + tier.max + ' people';
+      checks.push({ label: sizeLabel + ' (' + members.length + ')', ok: members.length >= min && members.length <= tier.max });
       if(tier.needs.Manager) checks.push({ label: tier.needs.Manager + '+ manager', ok: managers >= tier.needs.Manager });
       if(tier.needs.Principal) checks.push({ label: tier.needs.Principal + '+ principal', ok: atLeast('Principal') >= tier.needs.Principal });
       if(tier.needs.Senior){
@@ -889,6 +1003,7 @@ window.DebuggLtd = (function(){
                       ok: atLeast('Senior') >= need });
       }
       if(!devs.length) checks.push({ label: 'at least one developer', ok: false });
+      if(tier.key === 'hotfix') checks.push({ label: 'hotfixes are your intern’s, with you', ok: false });
       const knowers = devs.filter(d => qualifiedFor(d, offer));
       const learners = devs.length - knowers.length;
       if(tier.max === 1){
@@ -916,7 +1031,7 @@ window.DebuggLtd = (function(){
       // A contract pays the same whoever does it: skill makes a team faster (more contracts an
       // hour), not better paid per contract.
       const expert = expertOf(offer);
-      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay * (expert ? expert.pay : 1));
+      const payout = Math.round(offer.sloc * LINE_RATE * tier.mult * risk.pay * (expert ? expert.pay : 1) * (offer.bonus || 1));
       const salaryCost = members.reduce((s, p) => s + salaryOf(p), 0) * ms / 60000;
       const xp = tier.xpPerMin * ms / 60000;
 
@@ -961,17 +1076,37 @@ window.DebuggLtd = (function(){
       if(!ev.valid) return false;
 
       const now = Date.now();
-      const job = newJob(offer, memberIds.slice(), now, ev, !!repeat && !members.some(isIntern));
+      const job = newJob(offer, memberIds.slice(), now, ev, !!repeat && managed() && !members.some(isIntern));
       if(members.some(isIntern)){
         job.stuckPoints = [];
         for(let i = 0; i < INTERN_STUCK_MAX; i++) if(Math.random() < INTERN_STUCK) job.stuckPoints.push(between(INTERN_STUCK_AT));
         job.stuckPoints.sort((a, b) => a - b);
+      }else if(!managed() && hasPuzzles(offer.lang)){
+        // A start-up's junior team gets stuck now and then, and slows to half speed until you help.
+        job.snags = offer.first ? FIRST_CLIENT_SNAGS.slice() : [];
+        if(!offer.first) for(let i = 0; i < SNAG_MAX; i++) if(Math.random() < SNAG_CHANCE) job.snags.push(between(SNAG_AT));
+        job.snags.sort((a, b) => a - b);
       }
+      if(offer.first){ job.first = true; track('first-client/started'); }
       state.jobs.push(job);
-      state.board[offerIdx] = replacementFor(offer);
+      const next = replacementFor(offer);
+      if(next) state.board[offerIdx] = next; else state.board.splice(offerIdx, 1);
       save();
       return true;
     }
+
+    // A start-up team's sticking points (October 2026): up to SNAG_MAX, each with SNAG_CHANCE, at
+    // SNAG_AT of the way. Stuck, a contract runs at half speed (`job.slow`: when it got stuck, the
+    // full-speed time it still needed, and its full-speed length) until you answer a puzzle in its
+    // language. Right: back to full speed, INTERN_NUDGE further on, and the help pays like a desk
+    // question. Wrong: back to full speed, but INTERN_NUDGE further back. Ignored, it just takes
+    // longer. Only where there are puzzles to ask (hasPuzzles()), and never with managers.
+    const SNAG_MAX = 3;
+    const SNAG_CHANCE = 0.4;
+    const SNAG_AT = [0.15, 0.85];
+    function isSlow(job){ return !!job.slow; }
+    // How far along a stuck (half-speed) contract is, 0–1.
+    function slowDone(job, now){ return Math.min(1, 1 - Math.max(0, job.slow.left - Math.max(0, now - job.slow.since) / 2) / job.slow.length); }
 
     // status: 'running' | 'failed' (waiting for the player to retry or drop it).
     // attempt: 1 for the original run, 2 for the retry.
@@ -1011,6 +1146,11 @@ window.DebuggLtd = (function(){
       if(intern || Math.random() < job.chance){
         state.money += job.payout;
         state.reputation += tier.rep;
+        if(job.first){
+          addLog('ok', '★ Your first client is delighted: ' + fmt(job.payout) + ' in the bank.');
+          showToast('Your first client is delivered, and paid ' + fmt(job.payout) + '. More features will turn up on the contract board every hour or two.');
+          track('first-client/delivered');
+        }
         job.team.forEach(id => {
           const p = person(id);
           if(!p || !(isDev(p) || isIntern(p))) return;
@@ -1076,6 +1216,15 @@ window.DebuggLtd = (function(){
         retryJob(j, now);
         addLog('info', '↻ Retrying ' + jobTag(j) + ' for ' + fmt(j.payout) + '.');
       });
+      // A start-up team that hits a snag slows to half speed until you help (see SNAG_MAX).
+      const snagTime = j => j.snags && j.snags.length && !j.slow ? j.startedAt + j.snags[0] * (j.endsAt - j.startedAt) : Infinity;
+      state.jobs.filter(j => isRunning(j) && snagTime(j) < j.endsAt && snagTime(j) <= now).forEach(j => {
+        const since = snagTime(j), left = j.endsAt - since;
+        j.slow = { since, left, length: j.endsAt - j.startedAt };
+        j.endsAt = since + 2 * left;
+        j.snags.shift();
+        addLog('info', '✋ The team is stuck on the ' + j.lang + ' ' + TIERS[j.tier].name.toLowerCase() + ', and it’s going at half speed. Answer a puzzle to help them.');
+      });
       // An intern who's got stuck stalls until you help (see INTERN_STUCK).
       const stuckTime = j => j.stuckPoints && j.stuckPoints.length ? j.startedAt + j.stuckPoints[0] * (j.endsAt - j.startedAt) : Infinity;
       state.jobs.filter(j => isRunning(j) && stuckTime(j) < j.endsAt && stuckTime(j) <= now).forEach(j => {
@@ -1098,10 +1247,14 @@ window.DebuggLtd = (function(){
           if(job.repeat){
             retryJob(job, Math.max(job.endsAt, repeatCutoff));
             addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
-          }else{
-            job.status = 'failed';
+            continue;
           }
-          continue;
+          // Before managers there are no retries: the contract is lost.
+          if(managed()){
+            job.status = 'failed';
+            continue;
+          }
+          addLog('bad', 'The client has taken the ' + TIERS[job.tier].name.toLowerCase() + ' elsewhere.');
         }
         state.jobs = state.jobs.filter(j => j !== job);
         if(job.repeat) restartJob(job, Math.max(job.endsAt, repeatCutoff));
@@ -1111,7 +1264,7 @@ window.DebuggLtd = (function(){
 
     function setRepeat(jobId, on){
       const job = state.jobs.find(j => j.id === jobId);
-      if(job) job.repeat = on;
+      if(job) job.repeat = on && managed() && !isInternJob(job);
     }
 
     // A person's salary: their level's, plus any pay rise agreed to keep them (p.raise).
@@ -1119,17 +1272,24 @@ window.DebuggLtd = (function(){
     function payrollPerMinute(){
       return state.roster.reduce((s, p) => s + salaryOf(p), 0);
     }
-    // Developers on the bench do odd jobs: support tickets, tidying code, internal tools. It covers their salary with BENCH_MARGIN (5%) to spare, so a benched team grows the
-    // company slowly, with no XP or promotion time: contracts are still far better. (The
-    // player-owner's call.) Managers write no code, so no odd jobs.
-    const BENCH_MARGIN = 0.05;
-    function benchPerMinute(p){ return isDev(p) ? salaryOf(p) * (1 + BENCH_MARGIN) : 0; }
-    // On the bench = a developer doing nothing else: not on a contract (including a failed one
-    // waiting for Retry or Drop), and not away. Anything that takes someone away, such as
-    // training, a holiday or being off sick (items 14 and 15c), sets p.away = { kind, until },
-    // and they earn no odd jobs until it ends.
+    // Everyday work (the player-owner's call, October 2026; ideas/ltd-early-game-plan.md): anyone
+    // who writes code and isn't on a contract does the studio's everyday work, support tickets,
+    // bug fixes and small hotfixes for existing clients, at their level's SLOC/min × their own pace
+    // (PACE, set when they're hired), paid at EVERYDAY_RATE per SLOC: about 1.35× salary on average
+    // (1.22× to 1.49× by pace). No XP or promotion time. Managers write no code, so none; the
+    // Director takes desk jobs; the intern earns their tiny share. It replaced odd jobs (salary
+    // + 5%). Contracts pay far more, but nobody on one does everyday work meanwhile.
+    const EVERYDAY_RATE = 0.54;
+    const PACE = [0.9, 1.1];
+    function paceOf(p){ return p.pace || 1; }
+    function everydaySloc(p){ return (isDev(p) || isIntern(p)) ? ROLES[p.role].sloc * paceOf(p) * wfhFactor(p) : 0; }
+    function benchPerMinute(p){ return everydaySloc(p) * EVERYDAY_RATE; }
+    // Doing everyday work ("on the bench" in the code) = someone who writes code doing nothing
+    // else: not on a contract (including a failed one waiting for Retry or Drop), and not away.
+    // Anything that takes someone away, such as training, a holiday or being off sick (items 14
+    // and 15c), sets p.away = { kind, until }, and they earn nothing until it ends.
     function isAway(p, now){ return !!(p.away && !(p.away.until <= now)); }
-    function onBench(p, busy, now){ return isDev(p) && !busy.has(p.id) && !isAway(p, now); }
+    function onBench(p, busy, now){ return (isDev(p) || isIntern(p)) && !busy.has(p.id) && !isAway(p, now); }
     function benchIncomePerMinute(){
       const busy = busyIds(), now = Date.now();
       return state.roster.filter(p => onBench(p, busy, now)).reduce((s, p) => s + benchPerMinute(p), 0);
@@ -1163,7 +1323,8 @@ window.DebuggLtd = (function(){
     function skipTime(ms){
       if(!(ms > 0)) return;
       state.lastTick = (state.lastTick || Date.now()) + ms;
-      state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; });
+      state.jobs.forEach(j => { j.startedAt += ms; j.endsAt += ms; if(j.slow) j.slow.since += ms; });
+      if(state.nextFeatureAt) state.nextFeatureAt += ms;
       state.board.forEach(o => { o.expiresAt += ms; });
       if(state.market) state.market.nextAt += ms;
       if(state.nextApplicantAt) state.nextApplicantAt += ms;
@@ -1201,9 +1362,9 @@ window.DebuggLtd = (function(){
       opening = 'Your company has moved in. Your desk has jobs for you: questions that pay the company.';
     }else{
       const bonus = founderBonus();
-      state = freshState(START_CASH + bonus);
+      state = freshState(START_CASH + bonus, founding);
       track('founded');
-      opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
+      opening = 'You’ve founded ' + companyName() + ' with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Debuggit Ltd is in beta, so its numbers may change.' +
         (DEMO ? ' In the demo it runs hotfixes, and patches once you have more than ' + PATCH_HEADCOUNT + ' staff; it will be reset when v0.1 comes out.' : '');
@@ -1329,7 +1490,7 @@ window.DebuggLtd = (function(){
     let helpActive = null;  // the id of the stuck hotfix being helped with
     function startHelp(id){
       const job = state.jobs.find(j => j.id === id);
-      if(!job || !isStuck(job) || !deskPool || deskActive || helpActive) return;
+      if(!job || !(isStuck(job) || isSlow(job)) || !deskPool || deskActive || helpActive) return;
       if(!job.question || !deskPool.get(job.question)) job.question = stuckQuestion(job);
       const q = job.question && deskPool.get(job.question);
       if(!q) return;
@@ -1354,6 +1515,7 @@ window.DebuggLtd = (function(){
     // Settles the answer at once (so a reload can't retry it): the hotfix jumps ahead or falls back
     // INTERN_NUDGE of its length and carries on from now. Returns what happened.
     function finishHelp(job, q, right){
+      if(isSlow(job)) return finishSlowHelp(job, q, right);
       const intern = person(job.team.find(id => isIntern(person(id))));
       const name = intern ? intern.name : 'Your intern';
       const length = job.endsAt - job.startedAt;
@@ -1380,6 +1542,37 @@ window.DebuggLtd = (function(){
         addLog('bad', '✕ ' + text);
       }
       track('intern/help/' + (right ? 'right' : 'wrong'));
+      resolveDueJobs(now);
+      save();
+      renderAll();
+      return text;
+    }
+    // Helping a team stuck at half speed: the work done meanwhile counts, then right or wrong moves it
+    // INTERN_NUDGE on or back, at full speed again.
+    function finishSlowHelp(job, q, right){
+      const now = Date.now(), L = job.slow.length;
+      let left = Math.max(0, job.slow.left - Math.max(0, now - job.slow.since) / 2);
+      left = right ? Math.max(0, left - L * INTERN_NUDGE) : Math.min(L, left + L * INTERN_NUDGE);
+      state.desk.seen = state.desk.seen.concat(q.id).slice(-DESK_SEEN);
+      delete job.question;
+      delete job.slow;
+      job.startedAt = now - (L - left);
+      job.endsAt = now + left;
+      const done = 1 - left / L;
+      job.snags = (job.snags || []).filter(p => p > done);
+      const what = 'the ' + job.lang + ' ' + TIERS[job.tier].name.toLowerCase();
+      let text;
+      if(right){
+        const cash = helpPay(q.difficulty);
+        state.money += cash;
+        state.reputation += DESK_REP;
+        text = 'Right: the team is unstuck, ' + what + ' jumps ahead at full speed again, and your help earns ' + fmt(cash) + ' and +' + DESK_REP + ' reputation.';
+        addLog('ok', '✓ ' + text);
+      }else{
+        text = 'Not quite: the team is back at full speed, but went the wrong way, and ' + what + ' loses some progress.';
+        addLog('bad', '✕ ' + text);
+      }
+      track('team/help/' + (right ? 'right' : 'wrong'));
       resolveDueJobs(now);
       save();
       renderAll();
@@ -1470,11 +1663,6 @@ window.DebuggLtd = (function(){
           if(startJob(o.id, ids, true)) placed = placed.concat(ids.filter(id => isDev(person(id))));
         });
       }
-      free().filter(isDev).forEach(d => {
-        const o = state.board.filter(o => isHotfix(o.tier) && qualifiedFor(d, o) && meetsExpert(d, o) && !(picker && picker.offerId === o.id))
-          .sort((a, b) => skillLevel(d.lang[b.lang]) - skillLevel(d.lang[a.lang]))[0];
-        if(o && startJob(o.id, [d.id], true)) placed.push(d.id);
-      });
       if(placed.length){
         const names = placed.map(id => person(id).name);
         addLog('info', 'Your managers put ' + (names.length <= 2 ? names.join(' and ') : names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more') + ' to work.');
@@ -1482,10 +1670,11 @@ window.DebuggLtd = (function(){
       return placed.length;
     }
 
-    // The first steps, shown as one "next step" card until the player has a dev on a contract (or
-    // dismisses it): put the intern on a hotfix, review it, take a desk job, hire a graduate once one
-    // applies (they wait for a little reputation), and put them on a hotfix. Returns
-    // { key, text, offerId? } or null.
+    // The first steps, shown as one "next step" card until your first client's contract is under
+    // way (or the guide is dismissed): put the intern on a hotfix and help them, take a desk job,
+    // fill the spare room with graduates as they apply (they wait for a little reputation), then
+    // staff your first client and help the team when they're stuck. Returns { key, text, offerId? }
+    // or null.
     function guideStep(){
       if(state.guideDone) return null;
       const devs = state.roster.filter(isDev);
@@ -1494,6 +1683,10 @@ window.DebuggLtd = (function(){
       if(internJob && isStuck(internJob)){
         return { key: 'stuck', text: '<b>' + esc(intern.name) + ' is stuck.</b> Press <b>Help them</b> under Contracts and answer the puzzle. ' +
           'Right, and the hotfix jumps ahead (and your help pays like a desk job); wrong, and it loses some progress.' };
+      }
+      if(state.jobs.some(isSlow)){
+        return { key: 'team-stuck', text: '<b>Your team is stuck.</b> They’re junior, so it happens: the contract is going at half speed. ' +
+          'Press <b>Help them</b> under Contracts and answer the puzzle to get them back to full speed.' };
       }
       if(!devs.length && intern && !internJob && !state.internDone){
         const offer = state.board.find(o => isHotfix(o.tier) && !o.expert && o.lang === 'Python') ||
@@ -1507,22 +1700,22 @@ window.DebuggLtd = (function(){
         return { key: 'desk', text: '<b>Take a desk job.</b> At your desk, answer a question or two from past daily puzzles ' +
           'and Debuggit Learn. Every right answer pays the company and earns reputation, and new jobs turn up about every hour.' };
       }
-      if(!devs.length){
+      if(!state.contractsOpen){
         const grad = (state.applicants || []).find(a => a.role === 'Graduate');
-        return { key: 'hire', text: grad
-          ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied, under Applicants: they write the code; you run the company.'
+        const desks = Math.min(desksUsed(), SPARE_ROOM_DESKS) + ' of ' + SPARE_ROOM_DESKS + ' desks';
+        return { key: 'hire', text: (grad
+          ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied, under Applicants.'
           : (state.reputation || 0) >= APPLICANT_REP.Graduate
-          ? '<b>A graduate will apply soon.</b> The studio has the reputation; the first applicant turns up within the hour or so.'
+          ? '<b>Wait for applicants.</b> Graduates apply every few hours now the studio has the reputation; keep taking desk jobs meanwhile.'
           : '<b>Earn some reputation.</b> Graduates apply once the studio has ' + APPLICANT_REP.Graduate + ' reputation (you have ' +
-            Math.floor(state.reputation || 0) + '). Every right answer, on a desk job or helping your stuck intern, earns 1.' };
+            Math.floor(state.reputation || 0) + '). Every right answer, on a desk job or helping your stuck intern, earns 1.') +
+          ' Clients only come once your spare room is full (' + desks + ': you and 3 more). Meanwhile your staff do everyday work, ' +
+          'support tickets and bug fixes, which more than covers their salary.' };
       }
-      if(!state.jobs.some(j => j.team.some(id => isDev(person(id) || {})))){
-        const d = devs[0];
-        const offer = state.board.find(o => TIERS[o.tier].key === 'hotfix' && qualifiedFor(d, o) && meetsExpert(d, o));
-        return { key: 'staff', offerId: offer && offer.id,
-          text: '<b>Put ' + esc(d.name) + ' to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
-            esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and start it. Leave <b>Repeat</b> on and they’ll keep going ' +
-            'while you’re away. On the bench they only do odd jobs, which barely cover their salary.' };
+      const first = state.board.find(o => o.first);
+      if(first){
+        return { key: 'first', offerId: first.id, text: '<b>Your first client!</b> They’ve a Python feature for your whole team, at double pay. ' +
+          'Press <b>Staff a team</b> on it, tick everyone and start it. Your team is junior, so be ready to help when they get stuck.' };
       }
       state.guideDone = true;
       save();
@@ -1535,14 +1728,6 @@ window.DebuggLtd = (function(){
       if(step){
         html += '<div class="guide" data-step="' + step.key + '"><button class="toast-close" data-action="skip-guide" aria-label="Hide the guide">✕</button>' +
           '<span class="guide-label">Next step</span>' + step.text + '</div>';
-      }
-      const busy = busyIds(), now = Date.now();
-      const idle = state.roster.filter(p => onBench(p, busy, now));
-      if(idle.length && !(step && step.key === 'staff')){
-        const spare = idle.reduce((n, p) => n + benchPerMinute(p) - salaryOf(p), 0);
-        html += '<div class="alert" data-alert="idle">' + (idle.length === 1 ? esc(idle[0].name) + ' is' : idle.length + ' developers are') +
-          ' on the bench doing odd jobs, which only just cover their salary (+' + fmtRate(spare) + '/min). A contract earns far more. ' +
-          (stageIndex() >= 1 ? 'Your managers will put them to work once there’s a contract they can take.' : 'Staff them on a contract below.') + '</div>';
       }
       const leaving = state.roster.filter(p => p.notice);
       if(leaving.length){
@@ -1574,8 +1759,9 @@ window.DebuggLtd = (function(){
       statRep.textContent = Math.floor(state.reputation).toLocaleString('en-GB');
       const rent = rentPerMinute();
       statPayroll.textContent = '−' + fmtRate(payrollPerMinute() + rent) + '/min';
-      statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min rent' : 'Salaries';
-      statPayrollLabel.textContent = rent ? 'Payroll + rent' : 'Payroll';
+      const rentWord = owned() ? 'upkeep' : 'rent';
+      statPayroll.title = rent ? fmtRate(payrollPerMinute()) + '/min salaries + ' + fmtRate(rent) + '/min ' + rentWord : 'Salaries';
+      statPayrollLabel.textContent = rent ? 'Payroll + ' + rentWord : 'Payroll';
       statHeads.textContent = headcount();
     }
 
@@ -1678,17 +1864,28 @@ window.DebuggLtd = (function(){
         slot('Grads', c.Graduate, cap.Graduate) +
         slot('Devs', c.devs, cap.devs) +
         slot('Desks', desksUsed(), deskCount()));
-      const cowork = coworkDesks();
+      const pr = premises(), up = nextPremises(), down = prevPremises();
       setHTML(officeEl,
-        '<div class="office-text"><b>Office</b> · your spare room, ' + SPARE_ROOM_DESKS + ' desks' +
-          (cowork ? ' + ' + cowork + ' co-working desk' + (cowork === 1 ? '' : 's') + ' (' + fmtRate(rentPerMinute()) + '/min)' : '') +
+        '<div class="office-text"><b>Office</b> · ' + (premisesKey() === 'spare-room' ? 'your' : 'a') + ' ' + pr.name + ', ' + deskCount() + ' desks' +
+          (pr.floors > 1 ? ' on ' + pr.floors + ' floors' : '') +
+          (owned() ? ', owned (' + fmtRate(pr.upkeep) + '/min upkeep)' : pr.rent ? ', rented (' + fmtRate(pr.rent) + '/min)' : '') +
           ' · <span class="' + (desksUsed() >= deskCount() ? 'full' : '') + '">' + desksUsed() + '/' + deskCount() + ' desks used</span>' +
-          (cramLevel() ? '<div class="cramped">' + (desksUsed() > deskCount() ? (desksUsed() - deskCount()) + ' squeezed in without a desk' : 'Every desk is taken') +
+          (cramLevel() ? '<div class="cramped">' + cramLevel() + ' squeezed in without a desk' +
             ': cramped, so everyone is ' + Math.round(crampedPenalty() * 100) + '% slower on new contracts, and likelier to hand in their notice.</div>' : '') +
           '</div>' +
         '<div class="office-actions">' +
-          '<button class="btn-small btn-ghost" data-action="cowork-add"' + (cowork >= COWORK_MAX ? ' disabled title="Bigger premises are coming in v0.1"' : '') + '>+ Co-working desk · ' + fmtRate(COWORK_RATE) + '/min</button>' +
-          (cowork ? '<button class="btn-small btn-ghost" data-action="cowork-drop"' + (desksUsed() > deskCount() - 1 + CRAM_MAX ? ' disabled title="Nobody else can be squeezed in"' : '') + '>− Give one up</button>' : '') +
+          (up ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + up + '" data-tenure="rent">Rent a ' + PREMISES[up].name +
+              ' · ' + desksIn(up) + ' desks · ' + fmtRate(PREMISES[up].rent) + '/min</button>' +
+            '<button class="btn-small btn-ghost" data-action="move" data-premises="' + up + '" data-tenure="buy"' +
+              (state.money < PREMISES[up].price ? ' disabled title="Not enough cash"' : '') + '>Buy one · ' + fmt(PREMISES[up].price) +
+              ', then ' + fmtRate(PREMISES[up].upkeep) + '/min upkeep</button>'
+            : '<button class="btn-small btn-ghost" disabled title="Bigger premises are coming in v0.1">Bigger premises · coming in v0.1</button>') +
+          (premisesKey() !== 'spare-room' && !owned() ? '<button class="btn-small btn-ghost" data-action="buy-premises"' +
+            (state.money < pr.price ? ' disabled title="Not enough cash"' : '') + '>Buy this ' + pr.name + ' · ' + fmt(pr.price) +
+            ', then ' + fmtRate(pr.upkeep) + '/min upkeep</button>' : '') +
+          (down ? '<button class="btn-small btn-ghost" data-action="move" data-premises="' + down + '"' +
+            (moveProblem(down) ? ' disabled title="Can’t move back: ' + moveProblem(down) + '"' : '') + '>' +
+            (owned() ? 'Sell for ' + fmt(sellPrice(premisesKey())) + ' and move back to the ' : 'Move back to the ') + PREMISES[down].name + '</button>' : '') +
         '</div>');
       // Why a level is full while there's still room for devs overall: every level needs
       // someone at the level above (or you) to look after it.
@@ -1719,7 +1916,8 @@ window.DebuggLtd = (function(){
         return name + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
       }).join(' · ');
       let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +
-                 '<span class="card-level">Director</span></div>' +
+                 '<span class="card-level">Director' + (window.DebuggFounding ? ' <button type="button" class="btn-small btn-ghost" data-action="edit-founder"' +
+                   ' title="Change the company’s name, your name and your look">Edit</button>' : '') + '</span></div>' +
                  '<div class="card-stats"><span>' + skills + '</span></div>' +
                  '<div class="card-foot"><span>' + (jobFor(director.id) ? 'Helping on a hotfix with your intern, and taking desk jobs. ' : '') + (c0.Manager
                    ? 'Taking desk jobs. Your managers look after the team.'
@@ -1780,6 +1978,9 @@ window.DebuggLtd = (function(){
             'Hire for ' + fmt(a.cost) + '</button></div>' +
           (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
             : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
+          (canHireWfh(a.role) ? '<div class="card-foot"><span class="promo">Or from home: no desk, ' + Math.round(WFH_EFFICIENCY * 100) + '% as productive</span>' +
+            '<button class="btn-small btn-ghost" data-action="hire-applicant" data-wfh="1" data-id="' + a.id + '"' +
+              (hireProblem(a.role, true) || broke ? ' disabled' : '') + '>Hire to work from home</button></div>' : '') +
           '</div>';
       }).join('');
       if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
@@ -1809,8 +2010,8 @@ window.DebuggLtd = (function(){
         : job
         ? '<span class="status-busy">On ' + TIERS[job.tier].name + ' · ' + esc(job.lang) +
           (job.repeat ? ' <span class="repeat-tag">↻</span>' : '') + '</span>'
-        : isDev(p) ? '<span class="status-idle warn" title="Odd jobs earn ' + fmtRate(benchPerMinute(p)) + '/min against a ' + fmtRate(salaryOf(p)) + '/min salary">' +
-            'On the bench · odd jobs · +' + fmtRate(benchPerMinute(p) - salaryOf(p)) + '/min</span>'
+        : isDev(p) || isIntern(p) ? '<span class="status-idle" title="Everyday work earns ' + fmtRate(benchPerMinute(p)) + '/min against a ' + fmtRate(salaryOf(p)) + '/min salary">' +
+            'Everyday work · support tickets · +' + fmtRate(benchPerMinute(p)) + '/min</span>'
         : '<span class="status-idle">Idle</span>';
 
       let promo = '';
@@ -1829,7 +2030,8 @@ window.DebuggLtd = (function(){
                       (releaseWhy ? ' disabled title="Can’t let go: ' + esc(releaseWhy) + '"' : '') + '>Let go</button>';
 
       return '<div class="card" data-action="inspect" data-id="' + p.id + '">' +
-        '<div class="card-top"><span class="card-name">' + esc(p.name) + '</span>' +
+        '<div class="card-top"><span class="card-name">' + esc(p.name) + (p.wfh ? ' <span class="repeat-tag" title="Works from home: no desk, ' +
+          Math.round(WFH_EFFICIENCY * 100) + '% as productive">WFH</span>' : '') + '</span>' +
         '<span class="card-level ' + p.role + '">' + p.role + '</span></div>' +
         '<div class="card-stats"><span>' + (isDev(p) ? role.sloc + ' SLOC/min · ' + topSkillsText(p)
           : isIntern(p) ? role.sloc + ' SLOC/min · works with you · ' + topSkillsText(p) : 'Looks after the team · no SLOC') + '</span>' +
@@ -1920,13 +2122,15 @@ window.DebuggLtd = (function(){
       const t = TIERS[o.tier];
       return '<div class="offer' + (o.expert ? ' expert-offer' : '') + '">' +
         '<div class="offer-top"><span class="chip lang">' + esc(o.lang) + '</span><span class="dur">' + o.sloc.toLocaleString('en-GB') + ' SLOC</span></div>' +
+        (o.first ? '<div class="expert">★ Your first client · pays ×' + o.bonus + ' · needs ' + o.minTeam + ' developers</div>' : '') +
         expertChip(o) + riskChip(o) +
         (!state.roster.some(p => isDev(p) && qualifiedFor(p, o)) && !internCan(o) ? '<div class="detail" style="color:var(--amber)">Nobody on staff knows ' + esc(o.lang) + '</div>'
           : !state.roster.some(p => isDev(p) && meetsExpert(p, o)) ? '<div class="detail" style="color:var(--amber)">Nobody on staff is at ' + esc(o.lang) + ' Lv ' + o.expert + ' yet</div>'
           : '') +
         '<div class="detail">≈ ' + fmtClock(o.sloc / t.refSloc * 60000) + ' with a minimum team, no ' + esc(o.lang) + ' skill · ' +
           t.xpPerMin + ' XP/min</div>' +
-        '<div class="detail" style="color:var(--text-faint)">Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken</div>' +
+        '<div class="detail" style="color:var(--text-faint)">' + (TIERS[o.tier].key === 'feature' && !managed()
+          ? 'Open for another ' + fmtDuration(o.expiresAt - Date.now()) : 'Replaced in ' + fmtDuration(o.expiresAt - Date.now()) + ' if not taken') + '</div>' +
         '<button class="btn-ghost btn-small' + (guide && guide.offerId === o.id ? ' guide-target' : '') + '" data-action="staff" data-offer="' + o.id + '">Staff a team</button>' +
         '</div>';
     }
@@ -1956,6 +2160,20 @@ window.DebuggLtd = (function(){
                   (helpActive || deskActive ? ' disabled' : '') + '>Help them</button>' +
               '</div></div>';
           }
+          if(isSlow(j)){
+            const done = Math.round(slowDone(j, now) * 100);
+            return '<div class="job stuck">' +
+              '<div class="job-top"><span class="left">' + t.name +
+              ' <span class="chip lang">' + esc(j.lang) + '</span>' + (j.first ? ' <span class="repeat-tag">★ first client</span>' : '') + riskTag(j) + '</span>' +
+              '<span class="time" style="color:var(--amber)" data-time="' + j.id + '"></span></div>' +
+              '<div class="progress"><div data-bar="' + j.id + '" style="width:' + done + '%"></div></div>' +
+              '<div class="detail">' + team + ' · stuck, so going at half speed until you help: a ' + esc(j.lang) + ' puzzle. Right, and it’s back to full speed, ' +
+                Math.round(INTERN_NUDGE * 100) + '% further on, and pays ' + helpPayText() + '; wrong, and it’s back to full speed but loses ' + Math.round(INTERN_NUDGE * 100) + '%.</div>' +
+              '<div class="actions" style="margin:8px 0 0;">' +
+                '<button class="btn-primary btn-small' + (guide && guide.key === 'team-stuck' ? ' guide-target' : '') + '" data-action="intern-help" data-job="' + j.id + '"' +
+                  (helpActive || deskActive ? ' disabled' : '') + '>Help them</button>' +
+              '</div></div>';
+          }
           if(!isRunning(j)){
             return '<div class="job failed">' +
               '<div class="job-top"><span class="left">' + t.name +
@@ -1963,28 +2181,28 @@ window.DebuggLtd = (function(){
               '<span class="time" style="color:var(--red)">Failed</span></div>' +
               '<div class="detail">' + team + ' · the team is waiting on your call.</div>' +
               '<div class="actions" style="margin:8px 0 0;">' +
-                '<button class="btn-primary btn-small" data-action="retry-job" data-job="' + j.id + '">Retry — ' +
-                  fmtClock(retryMs(j)) + ' for ' + fmt(retryPayout(j)) + ' (' + Math.round(j.chance * 100) + '%)</button>' +
+                (managed() ? '<button class="btn-primary btn-small" data-action="retry-job" data-job="' + j.id + '">Retry — ' +
+                  fmtClock(retryMs(j)) + ' for ' + fmt(retryPayout(j)) + ' (' + Math.round(j.chance * 100) + '%)</button>' : '') +
                 '<button class="btn-ghost btn-small" data-action="drop-job" data-job="' + j.id + '">Drop it</button>' +
               '</div></div>';
           }
           return '<div class="job">' +
             '<div class="job-top"><span class="left">' + t.name +
-            ' <span class="chip lang">' + esc(j.lang) + '</span>' + expertTag(j) + riskTag(j) + '</span>' +
+            ' <span class="chip lang">' + esc(j.lang) + '</span>' + (j.first ? ' <span class="repeat-tag">★ first client</span>' : '') + expertTag(j) + riskTag(j) + '</span>' +
             '<span class="time" data-time="' + j.id + '"></span></div>' +
             '<div class="progress"><div data-bar="' + j.id + '"></div></div>' +
             '<div class="detail">' + team + (j.sloc ? ' · ' + j.sloc.toLocaleString('en-GB') + ' SLOC at ' + j.teamSloc + '/min' : '') +
             (isInternJob(j) ? ' · ' + fmt(j.payout) + ' when it’s written' + '</div>'
               : ' · ' + Math.round(j.chance * 100) + '% success · ' + fmt(j.payout) +
                 ' on delivery' + (j.attempt === 2 ? ' · retry' : '') + '</div>' +
-                '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
-                (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>') +
+                (managed() ? '<label class="repeat-row" style="margin:6px 0 0;"><input type="checkbox" data-repeat="' + j.id + '"' +
+                (j.repeat ? ' checked' : '') + '> Repeat with this team when it finishes</label>' : '')) +
             '</div>';
         }).join(''));
         jobs.filter(isRunning).forEach(j => {
           const time = jobsEl.querySelector('[data-time="' + j.id + '"]');
           const bar = jobsEl.querySelector('[data-bar="' + j.id + '"]');
-          const pct = Math.min(100, ((now - j.startedAt) / (j.endsAt - j.startedAt)) * 100);
+          const pct = Math.min(100, (isSlow(j) ? slowDone(j, now) : (now - j.startedAt) / (j.endsAt - j.startedAt)) * 100);
           if(time) time.textContent = fmtClock(j.endsAt - now) + ' left';
           if(bar) bar.style.width = pct.toFixed(1) + '%';
         });
@@ -2023,6 +2241,7 @@ window.DebuggLtd = (function(){
     let officeShown = null;
     function renderOffice(){
       if(!officeSlot) return;
+      $('officeTag').textContent = (premisesKey() === 'spare-room' ? 'your ' : 'a ') + premises().name;
       const show = state.showOffice !== false;
       if(show === officeShown) return;
       officeShown = show;
@@ -2035,7 +2254,7 @@ window.DebuggLtd = (function(){
     }
     function officeJob(job, now){
       const length = Math.max(1, job.endsAt - job.startedAt);
-      const progress = isStuck(job) ? 1 - (job.left || 0) / length : isRunning(job) ? (now - job.startedAt) / length : 1;
+      const progress = isSlow(job) ? slowDone(job, now) : isStuck(job) ? 1 - (job.left || 0) / length : isRunning(job) ? (now - job.startedAt) / length : 1;
       return { id: job.id, tier: job.tier, lang: job.lang, status: job.status || 'running', progress: Math.max(0, Math.min(1, progress)) };
     }
     // Everything the office draws, from the save. state: director, working, stuck, failed, bench,
@@ -2044,15 +2263,16 @@ window.DebuggLtd = (function(){
       const now = Date.now(), busy = busyIds();
       return {
         now,
-        premises: { kind: 'spare-room', perFloor: SPARE_ROOM_DESKS, cowork: coworkDesks(),
+        company: companyName(),
+        premises: { kind: premisesKey(), name: premises().name, owned: owned(), floors: premises().floors, perFloor: premises().perFloor,
                     squeezed: Math.max(0, desksUsed() - deskCount()), maxApplicants: MAX_APPLICANTS },
         people: state.roster.map(p => {
           const job = jobFor(p.id);
           const st = p.role === 'Director' ? 'director'
             : isAway(p, now) ? 'away'
-            : job ? (isStuck(job) ? 'stuck' : isRunning(job) ? 'working' : 'failed')
+            : job ? (isStuck(job) || isSlow(job) ? 'stuck' : isRunning(job) ? 'working' : 'failed')
             : onBench(p, busy, now) ? 'bench' : 'idle';
-          return { id: p.id, name: p.name, role: p.role, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
+          return { id: p.id, name: p.name, role: p.role, look: p.look || null, wfh: !!p.wfh, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
         }),
         applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
       };
@@ -2092,8 +2312,8 @@ window.DebuggLtd = (function(){
 
     function openPicker(offerId){
       const offer = state.board.find(o => o.id === offerId);
-      // Hotfixes default to repeating so a grad keeps earning unattended.
-      picker = { offerId, selected: new Set(), repeat: !!offer && TIERS[offer.tier].key === 'hotfix' };
+      // With managers, contracts default to repeating; before them there are no repeats.
+      picker = { offerId, selected: new Set(), repeat: !!offer && managed() && !isHotfix(offer.tier) };
       teamModal.hidden = false;
       renderPicker();
     }
@@ -2223,11 +2443,14 @@ window.DebuggLtd = (function(){
                 (ev.learners ? ', −' + Math.round(LEARNER_DRAG * ev.learners * 100) + '% for ' + ev.learners + ' learner' + (ev.learners > 1 ? 's' : '') : '') + ')'
               : '') +
             ' → takes <b>' + (ev.sloc ? fmtClock(ev.ms) : '—') + '</b><br>' +
-          'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered. If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout' +
+          'Everyone gains <b>+' + fmtXp(ev.xp) + ' XP</b> in ' + esc(offer.lang) + ' if it’s delivered, and does no everyday work while they’re on it. ' +
+          (managed() ? 'If it fails, you can retry once in half the time for ' + Math.round(RETRY_PAYOUT * 100) + '% of the payout'
+            : 'If it fails, the client takes it elsewhere (retries and repeats come with your first manager)') +
           (offer.risk && offer.risk !== 'standard' ? ', and each failure costs ' + riskOf(offer).repLoss + '× the usual reputation.' : '.') +
+          (!managed() && hasPuzzles(offer.lang) ? ' Your team is junior: now and then they’ll get stuck and slow to half speed until you help.' : '') +
         '</div>' +
-        '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
-          'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>') +
+        (managed() ? '<label class="repeat-row"><input type="checkbox" data-picker-repeat' + (picker.repeat ? ' checked' : '') + '>' +
+          'Repeat with this team — roll straight into another ' + tier.name.toLowerCase() + ' when it finishes, even while you’re away</label>' : '')) +
         '<div class="actions">' +
           '<button class="btn-primary" data-action="pick-start"' + (ev.valid ? '' : ' disabled') + '>Start contract</button>' +
           '<button class="btn-ghost" data-action="pick-suggest">Suggest a team</button>' +
@@ -2316,27 +2539,61 @@ window.DebuggLtd = (function(){
         addLog('ok', '✓ ' + p.name + ' is staying, for a ' + fmtRate(p.notice.ask) + '/min pay rise.');
         delete p.notice;
         track('kept/' + p.role.toLowerCase());
-      }else if(action === 'cowork-add'){
-        if(coworkDesks() >= COWORK_MAX) return;
-        state.office.cowork = coworkDesks() + 1;
-        addLog('info', 'Rented a co-working desk (' + fmtRate(COWORK_RATE) + '/min).');
-        track('office/cowork');
-      }else if(action === 'cowork-drop'){
-        if(!coworkDesks() || desksUsed() > deskCount() - 1 + CRAM_MAX) return;
-        state.office.cowork = coworkDesks() - 1;
-        addLog('info', 'Gave up a co-working desk.');
+      }else if(action === 'move'){
+        const key = btn.dataset.premises, buy = btn.dataset.tenure === 'buy';
+        if(!PREMISES[key] || key === premisesKey() || (key !== nextPremises() && key !== prevPremises()) || moveProblem(key)) return;
+        const pr = PREMISES[key];
+        if(buy && (key === 'spare-room' || state.money < pr.price)) return;
+        // Leaving a place the company owns sells it.
+        if(owned()){
+          const from = premisesKey(), cash = sellPrice(from);
+          state.money += cash;
+          addLog('info', 'Sold your ' + PREMISES[from].name + ' for ' + fmt(cash) + '.');
+          track('office/sell/' + from);
+        }
+        if(buy) state.money -= pr.price;
+        state.office.premises = key;
+        state.office.owned = buy;
+        moveWfh();
+        addLog('info', key === 'spare-room' ? 'Moved back into your spare room: ' + desksIn(key) + ' desks, free.'
+          : buy ? 'Bought a ' + pr.name + ' for ' + fmt(pr.price) + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.upkeep) + '/min upkeep.'
+          : 'Moved into a rented ' + pr.name + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.rent) + '/min rent.');
+        track('office/' + (key === 'spare-room' ? 'move' : buy ? 'buy' : 'rent') + '/' + key);
+      }else if(action === 'edit-founder'){
+        const d = state.roster.find(p => p.role === 'Director');
+        window.DebuggFounding.open({
+          edit: true,
+          values: { company: state.companyName || '', director: d.name === 'You' ? '' : d.name, look: d.look },
+          onDone: v => {
+            state.companyName = v.company || null;
+            d.name = v.director || 'You';
+            d.look = v.look;
+            save();
+            renderAll();
+          }
+        });
+        return;
+      }else if(action === 'buy-premises'){
+        const pr = premises();
+        if(premisesKey() === 'spare-room' || owned() || state.money < pr.price) return;
+        state.money -= pr.price;
+        state.office.owned = true;
+        addLog('info', 'Bought the ' + pr.name + ' you rent for ' + fmt(pr.price) + ': ' + fmtRate(pr.upkeep) + '/min upkeep instead of ' + fmtRate(pr.rent) + '/min rent.');
+        track('office/buy/' + premisesKey());
       }else if(action === 'toggle-unknown'){
         state.showUnknownOffers = !state.showUnknownOffers;
       }else if(action === 'skip-guide'){
         state.guideDone = true;
       }else if(action === 'hire-applicant'){
         const a = (state.applicants || []).find(x => x.id === btn.dataset.id);
-        if(!a || state.money < a.cost || hireProblem(a.role)) return;
+        const wfh = !!btn.dataset.wfh;
+        if(!a || state.money < a.cost || hireProblem(a.role, wfh) || (wfh && !canHireWfh(a.role))) return;
         state.money -= a.cost;
         state.applicants = state.applicants.filter(x => x !== a);
         a.person.since = Date.now();
+        if(wfh) a.person.wfh = true;
         state.roster.push(a.person);
-        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + '.');
+        addLog('info', 'Hired ' + a.person.name + ' as ' + a.role.toLowerCase() + (wfh ? ', working from home.' : '.'));
         track('hired/' + a.role.toLowerCase());
       }else if(action === 'promote'){
         const p = person(btn.dataset.id);
@@ -2363,6 +2620,7 @@ window.DebuggLtd = (function(){
         const job = state.jobs.find(j => j.id === btn.dataset.job);
         if(!job || isRunning(job) || isStuck(job)) return;
         if(action === 'retry-job'){
+          if(!managed()) return;
           retryJob(job, Date.now());
           addLog('info', '↻ Retrying ' + jobTag(job) + ' for ' + fmt(job.payout) + '.');
         }else{
@@ -2395,12 +2653,28 @@ window.DebuggLtd = (function(){
 
     if(!state.collapsedLevels) state.collapsedLevels = [];
     if(!state.collapsedTiers) state.collapsedTiers = [];
-    // Saves from before desks: enough co-working desks for everyone already on staff.
-    if(!state.office) state.office = { cowork: Math.max(0, state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length - SPARE_ROOM_DESKS) };
+    // Saves from before desks start in the spare room. Co-working desks are gone (the player-owner's
+    // call, October 2026): anyone who sat at one is squeezed in, and past cramMax() hiring waits
+    // until the company moves into a business unit. Nobody is let go.
+    if(!state.office) state.office = { premises: 'spare-room' };
+    if('cowork' in state.office){
+      if(state.office.cowork > 0) addLog('info', 'Co-working desks are gone: everyone who sat at one is squeezed into your spare room. ' +
+        'A small business unit (' + desksIn('unit-s') + ' desks) is the way to grow now.');
+      delete state.office.cowork;
+    }
+    if(!state.office.premises) state.office.premises = 'spare-room';
+    if(!('owned' in state.office)) state.office.owned = false;
+    // The Director takes a desk since October 2026: say so once to companies from before.
+    if(!state.directorDesk){
+      if(state.roster.length > 2 || state.log.length) addLog('info', 'You now sit at one of the office’s desks yourself, so it holds one fewer of your staff.');
+      state.directorDesk = true;
+    }
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.
     if((state.tiersVersion || 1) < TIERS_VERSION){
+      // Features went in after hotfixes (version 4): patches and up move one along.
+      if((state.tiersVersion || 1) < 4) state.jobs.forEach(j => { if(j.tier >= 1) j.tier += 1; });
       state.board = makeBoard();
       state.tiersVersion = TIERS_VERSION;
     }
@@ -2430,6 +2704,15 @@ window.DebuggLtd = (function(){
       state.internGiven = true;
       addLog('info', 'An intern has joined: free, and they write hotfixes with you in any language you know.');
     }
+    // Everyday work (October 2026): everyone has a pace. A company whose spare room is already full
+    // (or that has managers) has contracts open, and is past its first client. Before managers
+    // nothing repeats.
+    state.roster.forEach(p => { if(!p.pace && (isDev(p) || isIntern(p))) p.pace = between(PACE); });
+    if(!('contractsOpen' in state)){
+      state.contractsOpen = desksUsed() >= SPARE_ROOM_DESKS || managed();
+      state.firstClient = state.contractsOpen;
+    }
+    if(!managed()) state.jobs.forEach(j => { j.repeat = false; });
     // Intern hotfixes from before they could get stuck: no repeats, and one left failed (they used
     // to fail) is delivered, as they all are now.
     state.jobs.forEach(j => {
@@ -2481,6 +2764,7 @@ window.DebuggLtd = (function(){
       moveNotices(t);
       moveInterns(t);
       moveDesk(t);
+      moveWfh();
       checkStage();
       managersStaff();
       renderAll();

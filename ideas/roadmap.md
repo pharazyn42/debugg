@@ -1002,7 +1002,8 @@ here means commercial premises, a small office unit like one on a business park 
 player-owner's meaning), not a division of the company.
 - **Desks** cap on-site headcount alongside supervision ("Devs 5/16 · Desks 5/8"); an Office
   line in the Studio panel.
-- **Working from home** (the player-owner's idea): about 1 in 4 applicants are **WFH** and need
+- **Working from home** (the player-owner's idea; a first version built October 2026: in the spare room any
+  applicant can be hired to work from home, at 80% productivity, coming in once there are desks): about 1 in 4 applicants are **WFH** and need
   no desk ("Desks 5/8 · +2 WFH"); they keep working when the office is closed, but, decided,
   they learn a little slower (−25% XP) and can't be learners, so WFH stays a trade-off. They still count towards supervision. They
   replace item 15's separate contractors.
@@ -1017,7 +1018,10 @@ player-owner's meaning), not a division of the company.
   tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
   tenant events via 15b.
 - **Phase 1 is built** (September 2026): desks, co-working and managers in the demo (see "The
-  office" above). Decided then: the Director takes no desk; a full office is cramped (slower,
+  office" above). **October 2026, the player-owner's calls:** co-working desks are gone, and each
+  premises after the spare room is a choice of **renting or buying outright**. The small business
+  unit is built (2 floors × 5 desks; rent ¤4/min, or buy for ¤60,000 then ¤1/min upkeep, selling
+  for 90% on moving out); leases, deposits, moving time, listings and the large unit are to do. Decided then: the Director takes no desk; a full office is cramped (slower,
   and people hand in their notice) and takes up to 2 more squeezed in, rather than blocking
   hiring. WFH applicants weren't in it and are still to come.
 - **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
