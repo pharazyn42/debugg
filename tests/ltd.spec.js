@@ -30,6 +30,11 @@ async function answerDesk(page, q, right){
   await expect(page.locator('.desk-feedback')).toHaveClass(right ? /right/ : /wrong/);
   await page.click('.desk-go');
 }
+// The desk is a window, opened from the Studio box's button (or by clicking yourself in the office).
+async function openDesk(page){
+  if(!(await page.locator('#deskModal').isVisible())) await page.click('[data-action=open-desk]');
+  await expect(page.locator('#deskModal')).toBeVisible();
+}
 // Replaces the desk's jobs with one asking these questions (and no more arriving for a while).
 async function setDeskJob(page, questions){
   await page.evaluate(ids => {
@@ -40,6 +45,7 @@ async function setDeskJob(page, questions){
     localStorage.setItem('debugg-ltd', JSON.stringify(s));
   }, questions.map(q => q.id));
   await page.reload();
+  await openDesk(page);
   await expect(page.locator('[data-action=desk-start][data-job=dj1]')).toBeVisible();
 }
 
@@ -105,8 +111,12 @@ test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async (
 test('the daily puzzle is its own game: it pays the company nothing, and the Ltd tab shows the desk instead', async ({ page }) => {
   await found(page);
   await expect(page.locator('main.desk')).toBeHidden();
-  await expect(page.locator('#ltdDesk')).toBeVisible();
+  // The desk is a window now, opened from the Studio box or by clicking yourself in the office.
+  await expect(page.locator('#deskModal')).toBeHidden();
+  await openDesk(page);
   await expect(page.locator('#ltdDesk h2')).toContainText('Your desk');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#deskModal')).toBeHidden();
   // A new company's first desk job is waiting straight away.
   await expect(page.locator('.desk-job')).toHaveCount(1);
   // On the Daily tab the company isn't loaded, and a solve pays it nothing.
@@ -127,12 +137,14 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   // A day-3 difficulty puzzle pays ¤70 and a Learn question ¤40; both right, ×1.25.
   await setDeskJob(page, [daily, learn]);
   await expect(page.locator('.desk-job')).toContainText('2 questions · up to ¤138');
+  await openDesk(page);
   await page.click('[data-action=desk-start][data-job=dj1]');
   await expect(page.locator('.desk-q-num')).toHaveText('Question 1 of 2');
   await answerDesk(page, daily, true);
   // Answers are saved as they're given: a reload carries on from the next question.
   await page.reload();
   await expect(page.locator('.desk-job')).toContainText('1 answered');
+  await openDesk(page);
   await page.click('[data-action=desk-start][data-job=dj1]');
   await expect(page.locator('.desk-q-num')).toHaveText('Question 2 of 2');
   await answerDesk(page, learn, true);
@@ -143,6 +155,7 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
 
   // One wrong: only the right one pays, with no bonus.
   await setDeskJob(page, [daily, learn]);
+  await openDesk(page);
   await page.click('[data-action=desk-start][data-job=dj1]');
   await answerDesk(page, daily, false);
   await answerDesk(page, learn, true);
@@ -151,7 +164,8 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   for(const kind of ['typed', 'line']){
     const q = qs.find(x => x.kind === kind);
     await setDeskJob(page, [q]);
-    await page.click('[data-action=desk-start][data-job=dj1]');
+    await openDesk(page);
+  await page.click('[data-action=desk-start][data-job=dj1]');
     await answerDesk(page, q, true);
     await expect(page.locator('#deskDone')).toContainText('1 of 1 right');
   }
@@ -167,6 +181,7 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
     s.desk.nextAt = Date.now() - 5 * h;
   });
   // Every 45–90 minutes, each lasting 4 hours, so 2 or 3 are waiting.
+  await openDesk(page);
   await expect(page.locator('.desk-job').nth(1)).toBeVisible();
   const desk = (await ltd(page)).desk;
   expect(desk.jobs.length).toBeGreaterThanOrEqual(2);
@@ -323,6 +338,7 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
   await expect(page.locator('.guide')).toHaveAttribute('data-step', 'desk');
   const job = (await ltd(page)).desk.jobs[0];
   const qs = await page.evaluate(ids => { const all = DebuggDesk.all(Debugg.today()); return ids.map(id => all.get(id)); }, job.questions);
+  await openDesk(page);
   await page.click('[data-action=desk-start].guide-target');
   for(const q of qs) await answerDesk(page, q, true);
   // 4. Graduates apply once there's a little reputation; hire one.
@@ -553,6 +569,7 @@ test('the business grows from a start-up; managers staff idle devs and the desk 
   const q = (await deskQuestions(page)).find(x => x.source === 'learn' && x.kind === 'choice');
   await setDeskJob(page, [q]);
   const money = (await ltd(page)).money;
+  await openDesk(page);
   await page.click('[data-action=desk-start][data-job=dj1]');
   await answerDesk(page, q, true);
   await expect(page.locator('#deskDone')).toContainText('¤20 (a small business gets 50% of desk pay)');
@@ -708,12 +725,12 @@ test('a repeating contract keeps working through the last 4 hours of a long time
   expect(s.reputation).toBeGreaterThanOrEqual(3);
 });
 
-test('hotfixes are the intern’s, one in every language; features wait for a full spare room', async ({ page }) => {
+test('there is a hotfix in every language, for a dev or the intern; features wait for a full spare room', async ({ page }) => {
   await found(page);
   const hotfixes = page.locator('.board-group[data-tier=hotfix] .offer');
   await expect(hotfixes).toHaveCount(4);
   await expect(hotfixes.locator('.chip.lang')).toHaveText(['Python', 'C/C++', 'JavaScript', 'Rust']);
-  await expect(page.locator('.board-group[data-tier=hotfix] .board-sum')).toHaveText('your intern, with you');
+  await expect(page.locator('.board-group[data-tier=hotfix] .board-sum')).toHaveText('one dev who knows the stack, or your intern with you');
   await expect(page.locator('.board-group .level-name')).toHaveText(['Hotfixes', 'Features', 'Patches', 'Minor releases', 'Major releases']);
   await expect(page.locator('.board-group[data-tier=feature]')).toHaveClass(/locked/);
   await expect(page.locator('.board-group[data-tier=feature] .level-count')).toHaveText('start once your spare room is full (1 of 4 desks)');
@@ -772,7 +789,7 @@ test('the demo runs hotfixes and patches, with managers', async ({ page }) => {
   expect((await ltd(page)).board.filter(o => o.tier > 2)).toHaveLength(0);
 });
 
-test('a hotfix the intern takes is replaced in the same language; developers can’t take hotfixes', async ({ page }) => {
+test('a hotfix is replaced in the same language, whether the intern or a dev takes it', async ({ page }) => {
   await found(page);
   await editCompany(page, s => {
     s.guideDone = true;
@@ -780,16 +797,25 @@ test('a hotfix the intern takes is replaced in the same language; developers can
     s.board.find(o => o.tier === 0 && o.lang === 'Python').id = 'py1';
   });
   const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  // A dev who knows the language can take it alone; one who doesn't can't (no learning solo).
   await page.click('[data-action=staff][data-offer=py1]');
-  await expect(page.locator('[data-pick=g1]')).toHaveCount(0);
+  await expect(page.locator('[data-pick=g1]')).toHaveCount(1);
+  await page.click('[data-pick=g1]');
+  await expect(page.locator('#teamModal .check.no')).toHaveCount(0);
+  await page.click('[data-action=pick-start]');
+  await expect(page.locator('.job')).toContainText('Python');
+  expect((await ltd(page)).jobs[0].team).toEqual(['g1']);
+  // The intern and you take the replacement Python one.
+  await editCompany(page, s => { s.board.find(o => o.tier === 0 && o.lang === 'Python').id = 'py2'; });
+  await page.click('[data-action=staff][data-offer=py2]');
   await page.click('[data-pick="' + intern.id + '"]');
   await page.click('[data-pick="director"]');
   await page.click('[data-action=pick-start]');
-  await expect(page.locator('.job')).toContainText('Python');
+  await expect(page.locator('.job').nth(1)).toContainText('Python');
   const board = (await ltd(page)).board.filter(o => o.tier === 0);
   expect(board.map(o => o.lang).sort()).toEqual(['C/C++', 'JavaScript', 'Python', 'Rust']);
-  expect(board.find(o => o.id === 'py1')).toBeUndefined();
-  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×4 · 1 running');
+  expect(board.find(o => o.id === 'py1' || o.id === 'py2')).toBeUndefined();
+  await expect(page.locator('.board-group[data-tier=hotfix] .level-count')).toHaveText('×4 · 2 running');
 });
 
 test('everyone needs a desk: the spare room has 4, then a small business unit for rent', async ({ page }) => {
@@ -880,7 +906,9 @@ test('a full office is fine; each person squeezed in, up to half the desks, slow
   await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('19.2 SLOC/min');
   await page.keyboard.press('Escape');
   // Two managers squeezed in (the spare room takes half its 4 desks): 12% slower, and nobody else fits.
+  // The others are on holiday, so the managers don't put them on hotfixes while we look.
   await editCompany(page, s => {
+    s.roster.forEach(p => { if(p.role !== 'Director' && p.role !== 'Intern') p.away = { kind: 'holiday', until: Date.now() + 86400000 }; });
     for(let i = 0; i < 2; i++) s.roster.push({ id: 'm' + i, name: 'Manager ' + i, role: 'Manager', since: Date.now(), lang: {} });
     s.applicants = [{ id: 'ga1', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
                       person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
@@ -1191,6 +1219,7 @@ test('Daily and Ltd are tabs; on the Daily tab a running company is a note linki
 test('works at phone width with the studio on', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await found(page);
+  await openDesk(page);
   await page.click('[data-action=desk-start]');
   await expect(page.locator('.desk-q')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
@@ -1295,6 +1324,7 @@ test('the studio still plays when the office view fails to load', async ({ page 
   await page.route('**/ltd/office.js', r => r.abort());
   await found(page);
   await expect(page.locator('#ltdOffice')).toBeHidden();
+  await openDesk(page);
   await page.click('[data-action=desk-start]');
   await expect(page.locator('.desk-q')).toBeVisible();
   expect(errors).toEqual([]);
@@ -1489,3 +1519,26 @@ test('the SLOC/min cell shows what the code earns per minute, and the tooltip ne
   await expect(page.locator('#statSloc')).toHaveText('5.2');
   await expect(page.locator('#statIncome')).toHaveAttribute('title', /everyday work \(0\.54 a line\).*against ¤2\/min payroll and rent: \+¤0\.8\/min net/);
 });
+
+test('clicking yourself in the office opens your desk, and a badge over your head says when a desk job is waiting', async ({ page }) => {
+  await page.clock.setFixedTime(at(12));
+  await officeBreaks(page);
+  await found(page);
+  await expect(page.locator('[data-action=open-desk]')).toContainText('1 waiting');
+  await expect(page.locator('#deskModal')).toBeHidden();
+  await tapOffice(page, 'director', 'director');
+  await expect(page.locator('#deskModal')).toBeVisible();
+  await expect(page.locator('.desk-job')).toHaveCount(1);
+  // Your details (name, look, languages) are one click away, and so is the desk from there.
+  await page.click('[data-action=desk-details]');
+  await expect(page.locator('#deskModal')).toBeHidden();
+  await expect(page.locator('#personModalBody .modal-name')).toBeVisible();
+  await page.click('#personModalBody [data-action=go-desk]');
+  await expect(page.locator('#deskModal')).toBeVisible();
+  await page.click('[data-action=close-desk]');
+  await expect(page.locator('#deskModal')).toBeHidden();
+  // The office knows how many desk jobs are waiting, to draw the badge.
+  await editCompany(page, s => { s.desk.jobs = []; s.desk.nextAt = Date.now() + 3600000; });
+  await expect(page.locator('[data-action=open-desk]')).toHaveText('Your desk');
+}
+);
