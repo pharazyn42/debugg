@@ -1297,24 +1297,39 @@
     loading = true;
     document.body.classList.add('ltd-running');
     showView();
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'ltd/ltd.css';
-    document.head.appendChild(css);
-    // The desk's questions (ltd/desk.js) and the office view (ltd/office.js) first, then, once
-    // they're in, the studio. The office is only a picture: if it fails to load, the studio starts without it.
+    if(!document.querySelector('link[href="ltd/ltd.css"]')){
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'ltd/ltd.css';
+      document.head.appendChild(css);
+    }
+    // The desk's questions (ltd/desk.js), the office view (ltd/office.js) and the founding step
+    // (ltd/founding.js) first, then, once they're in, the studio. The office is only a picture: if
+    // it fails to load, the studio starts without it (and without the founding step, which draws with it).
     const deskJs = document.createElement('script');
     deskJs.src = 'ltd/desk.js';
     const officeJs = document.createElement('script');
     officeJs.src = 'ltd/office.js';
+    const foundingJs = document.createElement('script');
+    foundingJs.src = 'ltd/founding.js';
     const js = document.createElement('script');
     js.src = 'ltd/ltd.js';
-    js.onload = () => {
+    const giveUp = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
+    const start = founding => {
       document.body.classList.add('ltd-on');
-      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk'), office: $('ltdOffice') });
+      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk'), office: $('ltdOffice'), founding });
     };
-    js.onerror = deskJs.onerror = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
-    officeJs.onload = officeJs.onerror = () => document.body.appendChild(js);
+    // A new company is named first, with its Director (tests skip it with window.DEBUGG_FOUNDING = false).
+    js.onload = () => {
+      if(!saved && !importing && window.DebuggFounding && window.DebuggOffice && window.DEBUGG_FOUNDING !== false)
+        window.DebuggFounding.open({ onDone: start, onCancel: giveUp });
+      else start(null);
+    };
+    // Back again after cancelling the founding step: everything's loaded already.
+    if(window.DebuggLtd){ js.onload(); return; }
+    js.onerror = deskJs.onerror = giveUp;
+    foundingJs.onload = foundingJs.onerror = () => document.body.appendChild(js);
+    officeJs.onload = officeJs.onerror = () => document.body.appendChild(foundingJs);
     deskJs.onload = () => document.body.appendChild(officeJs);
     document.body.appendChild(deskJs);
   }

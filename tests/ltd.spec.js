@@ -732,12 +732,13 @@ test('a hotfix that is taken is replaced in the same language', async ({ page })
 
 test('everyone needs a desk: the spare room has 4, then a small business unit for rent', async ({ page }) => {
   await found(page);
-  await expect(page.locator('.office')).toContainText('your spare room, 4 desks · 0/4 desks used');
+  // You, the Director, take one of the spare room's 4 desks.
+  await expect(page.locator('.office')).toContainText('your spare room, 4 desks · 1/4 desks used');
   await expect(page.locator('[data-action=move][data-premises=spare-room]')).toHaveCount(0);
   await editCompany(page, s => {
     s.money = 5000;
     s.roster.push({ id: 'j0', name: 'Jun 0', role: 'Junior', since: Date.now(), lang: { Python: 150 } });
-    for(let i = 0; i < 3; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    for(let i = 0; i < 2; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
   });
   // The spare room is full, so it's cramped, and a manager would have to be squeezed in.
   await expect(page.locator('.slot', { hasText: 'Desks' })).toHaveText('Desks 4/4');
@@ -752,7 +753,7 @@ test('everyone needs a desk: the spare room has 4, then a small business unit fo
   await expect(page.locator('.office')).toContainText('a small business unit, 10 desks on 2 floors, rented (¤4/min) · 4/10 desks used');
   await expect(page.locator('#log')).toContainText('Moved into a rented small business unit: 10 desks, ¤4/min rent.');
   await expect(page.locator('#statPayrollLabel')).toHaveText('Payroll + rent');
-  await expect(page.locator('#statPayroll')).toHaveText('−¤15/min');  // ¤11 salaries + ¤4 rent
+  await expect(page.locator('#statPayroll')).toHaveText('−¤13/min');  // ¤9 salaries + ¤4 rent
   await page.click('[data-action=hire][data-role=Manager]');
   await expect(page.locator('.office')).toContainText('5/10 desks used');
   expect((await ltd(page)).office).toEqual({ premises: 'unit-s', owned: false });
@@ -803,7 +804,7 @@ test('a full office is cramped: up to 2 more can be squeezed in, each slowing ev
   await editCompany(page, s => {
     s.money = 5000; s.guideDone = true;
     s.roster.push({ id: 'j0', name: 'Jun 0', role: 'Junior', since: Date.now(), lang: { Python: 150 } });
-    for(let i = 0; i < 3; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
+    for(let i = 0; i < 2; i++) s.roster.push({ id: 'g' + i, name: 'Grad ' + i, role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
     s.board.find(o => o.tier === 0 && o.lang === 'Python' && !o.expert).id = 'py1';
   });
   // Every desk taken: 5% slower. A junior at Lv 3 writes 12 × 1.6 = 19.2 SLOC/min; 5% less is 18.2.
@@ -897,8 +898,8 @@ test('a company from before desks starts in the spare room; co-working desks are
   });
   expect((await ltd(page)).office).toEqual({ premises: 'spare-room', owned: false });
   expect((await ltd(page)).roster.filter(p => p.role === 'Graduate')).toHaveLength(7);
-  await expect(page.locator('.office')).toContainText('7/4 desks used');
-  await expect(page.locator('.office .cramped')).toContainText('3 squeezed in without a desk: cramped, so everyone is 30% slower');
+  await expect(page.locator('.office')).toContainText('8/4 desks used');
+  await expect(page.locator('.office .cramped')).toContainText('4 squeezed in without a desk: cramped, so everyone is 30% slower');
   await expect(page.locator('#log')).toContainText('Co-working desks are gone: everyone who sat at one is squeezed into your spare room.');
   await expect(page.locator('[data-action=move][data-tenure=rent]')).toBeEnabled();
 });
@@ -1123,7 +1124,7 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   await expect(officeLabel(page)).toBeVisible();
   await expect(officeLabel(page)).toHaveAttribute('role', 'img');
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
-    'Your office, the spare room: 0 of 4 desks taken, 0 on contracts, 0 on the bench, 0 applicants waiting.');
+    'Your office, the spare room: 1 of 4 desks taken, 0 on contracts, 0 on the bench, 0 applicants waiting.');
   // Two grads (one on a hotfix, one on the bench) and two applicants.
   await editCompany(page, s => {
     const grad = (id, name) => ({ id, name, role: 'Graduate', since: Date.now(), worked: 0, lang: { Python: 10 } });
@@ -1133,7 +1134,7 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
     s.applicants = ['a1', 'a2'].map(id => ({ id, role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000, person: grad(id, 'Applicant ' + id) }));
   });
   await expect(officeLabel(page)).toHaveAttribute('aria-label',
-    'Your office, the spare room: 2 of 4 desks taken, 1 on contracts, 1 on the bench, 2 applicants waiting.');
+    'Your office, the spare room: 3 of 4 desks taken, 1 on contracts, 1 on the bench, 2 applicants waiting.');
   const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
   expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'person:g1', 'person:g2',
                          'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
@@ -1196,7 +1197,7 @@ test('the studio still plays when the office view fails to load', async ({ page 
   expect(errors).toEqual([]);
 });
 
-test('a small business unit has two floors, each with a meeting room and a break room; the spare room has no meeting room', async ({ page }) => {
+test('a small business unit has two floors, each with a meeting room and a kitchen; the spare room has no meeting room', async ({ page }) => {
   await officeBreaks(page, ['g2']);
   await found(page);
   const seed = premises => editCompany(page, (s, premises) => {
@@ -1211,14 +1212,50 @@ test('a small business unit has two floors, each with a meeting room and a break
   const where = () => page.evaluate(() => Object.fromEntries(DebuggOffice.targets().map(t => [t.id, t])));
   // In the spare room the manager on a contract stays at their desk, left of Mei in the kitchen.
   await seed('spare-room');
-  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, the spare room: 3 of 4 desks taken, 3 on contracts, 0 on the bench, 1 on a break, /);
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, the spare room: 4 of 4 desks taken, 3 on contracts, 0 on the bench, 1 on a break, /);
   await expect.poll(async () => { const t = await where(); return t.m1 && t.g1 && t.g2 && t.m1.x < t.g1.x && t.g1.x < t.g2.x; }).toBe(true);
-  // In the unit: the manager is in the meeting room, between the desks and the break room; the
-  // Director's office is on the top floor and the interview room on the ground floor.
+  // In the unit: the manager is in the meeting room, between the desks and the kitchen; you're at
+  // the first desk on the ground floor.
   await seed('unit-s');
-  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, a rented small business unit on 2 floors: 3 of 10 desks taken, /);
+  await expect(officeLabel(page)).toHaveAttribute('aria-label', /^Your office, a rented small business unit on 2 floors: 4 of 10 desks taken, /);
   await expect.poll(async () => {
     const t = await where();
-    return !!(t.m1 && t.g1 && t.g2 && t.director) && t.g1.x < t.m1.x && t.m1.x < t.g2.x && t.director.y < t.g1.y;
+    return !!(t.m1 && t.g1 && t.g2 && t.director) && t.director.x < t.g1.x && t.g1.x < t.m1.x && t.m1.x < t.g2.x && t.director.y === t.g1.y;
   }).toBe(true);
+});
+
+test('a new company is named, with its Director, who chooses how they look', async ({ page }) => {
+  // On for this test (beforeEach opened the page with it off, as tests have it).
+  await page.addInitScript(() => { window.DEBUGG_FOUNDING = true; });
+  await page.goto('index.html?ltd');
+  await page.click('#ltdLink');
+  await expect(page.locator('#foundingModal')).toBeVisible();
+  // Cancelling goes back to the card, with no company.
+  await page.click('#foundingCancel');
+  await expect(page.locator('#foundingModal')).toHaveCount(0);
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  expect(await ltd(page)).toBeNull();
+  await page.click('#ltdLink');
+  await page.fill('#foundingCompany', 'Kiwi Code Ltd');
+  await page.fill('#foundingDirector', 'Aroha');
+  for(const [name, value] of [['skin', '#9a6748'], ['hair', '#8b3a2a'], ['hairStyle', '4'], ['beard', '3'], ['glasses', '1'], ['shirt', '#2f6f9f']])
+    await page.check('input[name="found-' + name + '"][value="' + value + '"]', { force: true });
+  await page.click('#foundingStart');
+  await expect(page.locator('#statMoney')).toBeVisible();
+  await expect(page.locator('#welcomeToast')).toContainText('You’ve founded Kiwi Code Ltd');
+  await expect(page.locator('.card.director .card-name')).toHaveText('Aroha');
+  const s = await ltd(page);
+  expect(s.companyName).toBe('Kiwi Code Ltd');
+  expect(s.roster[0]).toMatchObject({ role: 'Director', name: 'Aroha',
+    look: { skin: '#9a6748', hair: '#8b3a2a', hairStyle: 4, beard: 3, glasses: 1, shirt: '#2f6f9f' } });
+  // The Director sits at the first desk, and can change all of it later.
+  await expect.poll(() => page.evaluate(() => DebuggOffice.targets().some(t => t.kind === 'director'))).toBe(true);
+  await page.click('[data-action=edit-founder]');
+  await expect(page.locator('#foundingCompany')).toHaveValue('Kiwi Code Ltd');
+  await expect(page.locator('input[name=found-glasses][value="1"]')).toBeChecked();
+  await page.fill('#foundingDirector', 'Aroha T.');
+  await page.check('input[name=found-glasses][value="0"]', { force: true });
+  await page.click('#foundingStart');
+  await expect(page.locator('.card.director .card-name')).toHaveText('Aroha T.');
+  expect((await ltd(page)).roster[0].look.glasses).toBe(0);
 });

@@ -32,6 +32,8 @@ window.DebuggLtd = (function(){
   const DIRECTOR_BOOST_CAP = 0.10;
 
   function start(slots){
+    // A new company's name and its Director's name and look, from the founding step (ltd/founding.js).
+    const founding = slots.founding || null;
     const statsSlot = slots.stats, studioSlot = slots.studio, boardSlot = slots.board, deskSlot = slots.desk;
     // The office view (ltd/office.js) is optional: without its slot or its script the studio plays the same.
     const officeSlot = slots.office && window.DebuggOffice ? slots.office : null;
@@ -418,12 +420,15 @@ window.DebuggLtd = (function(){
     // Saves from before the merge, when the studio lived at /studio/.
     const OLD_STORAGE_KEY = 'contract-debugger-state-v3';
 
-    function freshState(money){
+    function freshState(money, named){
       const now = Date.now();
+      const director = { id: 'director', name: (named && named.director) || 'You', role: 'Director', since: now, lang: {} };
+      if(named && named.look) director.look = named.look;
       return {
         money,
         reputation: 0,
-        roster: [{ id: 'director', name: 'You', role: 'Director', since: now, lang: {} }, makeIntern(now)],
+        companyName: (named && named.company) || null,  // null: "Debuggit Ltd"
+        roster: [director, makeIntern(now)],
         internGiven: true,    // the starting intern (see INTERN_DAYS); older saves get one on load
         board: makeBoard(),
         jobs: [],             // staffed contracts in progress
@@ -435,7 +440,8 @@ window.DebuggLtd = (function(){
         boardVersion: BOARD_VERSION,
         enabled: true,        // false while the player has the company paused
         pausedAt: null,
-        office: { premises: 'spare-room', owned: false },  // where the company works (PREMISES), and whether it's bought
+        office: { premises: 'spare-room', owned: false },
+        directorDesk: true,   // the Director takes a desk (older saves are told once)  // where the company works (PREMISES), and whether it's bought
         desk: freshDesk(now)  // desk jobs (see "The desk")
       };
     }
@@ -669,7 +675,8 @@ window.DebuggLtd = (function(){
     // ---------------------------------------------------------------------
     // The office: desks (phase 1 of ideas/company-growth-roadmap.md)
     // ---------------------------------------------------------------------
-    // Everyone on staff needs a desk; the Director works from home, at their own desk. The company
+    // Everyone on staff needs a desk, the Director included (since October 2026, the player-owner's
+    // call; they used to work from home); the intern works beside the Director. The company
     // starts in the spare room (4 desks, free). Each premises after it is a choice (the
     // player-owner's call, October 2026): rent it (rent per minute) or buy it outright (its price
     // up front, then a smaller upkeep per minute). Rent and upkeep are charged like payroll (offline
@@ -691,7 +698,8 @@ window.DebuggLtd = (function(){
     function prevPremises(){ return PREMISES_ORDER[PREMISES_ORDER.indexOf(premisesKey()) - 1] || null; }
     function desksIn(key){ return PREMISES[key].floors * PREMISES[key].perFloor; }
     function deskCount(){ return desksIn(premisesKey()); }
-    function desksUsed(){ return state.roster.filter(p => p.role !== 'Director' && !isIntern(p)).length; }
+    function desksUsed(){ return state.roster.filter(p => !isIntern(p)).length; }
+    function companyName(){ return state.companyName || 'Debuggit Ltd'; }
     function owned(){ return !!(state.office && state.office.owned) && premisesKey() !== 'spare-room'; }
     // Rent, or upkeep for a place the company owns.
     function rentPerMinute(){ return owned() ? premises().upkeep : premises().rent; }
@@ -1219,9 +1227,9 @@ window.DebuggLtd = (function(){
       opening = 'Your company has moved in. Your desk has jobs for you: questions that pay the company.';
     }else{
       const bonus = founderBonus();
-      state = freshState(START_CASH + bonus);
+      state = freshState(START_CASH + bonus, founding);
       track('founded');
-      opening = 'You’ve founded Debuggit Ltd with ' + fmt(state.money) +
+      opening = 'You’ve founded ' + companyName() + ' with ' + fmt(state.money) +
         (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Debuggit Ltd is in beta, so its numbers may change.' +
         (DEMO ? ' In the demo it runs hotfixes, and patches once you have more than ' + PATCH_HEADCOUNT + ' staff; it will be reset when v0.1 comes out.' : '');
@@ -1749,7 +1757,8 @@ window.DebuggLtd = (function(){
         return name + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
       }).join(' · ');
       let html = '<div class="card director"><div class="card-top"><span class="card-name">' + esc(director.name) + '</span>' +
-                 '<span class="card-level">Director</span></div>' +
+                 '<span class="card-level">Director' + (window.DebuggFounding ? ' <button type="button" class="btn-small btn-ghost" data-action="edit-founder"' +
+                   ' title="Change the company’s name, your name and your look">Edit</button>' : '') + '</span></div>' +
                  '<div class="card-stats"><span>' + skills + '</span></div>' +
                  '<div class="card-foot"><span>' + (jobFor(director.id) ? 'Helping on a hotfix with your intern, and taking desk jobs. ' : '') + (c0.Manager
                    ? 'Taking desk jobs. Your managers look after the team.'
@@ -2075,6 +2084,7 @@ window.DebuggLtd = (function(){
       const now = Date.now(), busy = busyIds();
       return {
         now,
+        company: companyName(),
         premises: { kind: premisesKey(), name: premises().name, owned: owned(), floors: premises().floors, perFloor: premises().perFloor,
                     squeezed: Math.max(0, desksUsed() - deskCount()), maxApplicants: MAX_APPLICANTS },
         people: state.roster.map(p => {
@@ -2083,7 +2093,7 @@ window.DebuggLtd = (function(){
             : isAway(p, now) ? 'away'
             : job ? (isStuck(job) ? 'stuck' : isRunning(job) ? 'working' : 'failed')
             : onBench(p, busy, now) ? 'bench' : 'idle';
-          return { id: p.id, name: p.name, role: p.role, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
+          return { id: p.id, name: p.name, role: p.role, look: p.look || null, state: st, notice: !!p.notice, job: job ? officeJob(job, now) : null };
         }),
         applicants: (state.applicants || []).slice(0, MAX_APPLICANTS).map(a => ({ id: a.id, name: a.person.name, role: a.role }))
       };
@@ -2366,6 +2376,20 @@ window.DebuggLtd = (function(){
           : buy ? 'Bought a ' + pr.name + ' for ' + fmt(pr.price) + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.upkeep) + '/min upkeep.'
           : 'Moved into a rented ' + pr.name + ': ' + desksIn(key) + ' desks, ' + fmtRate(pr.rent) + '/min rent.');
         track('office/' + (key === 'spare-room' ? 'move' : buy ? 'buy' : 'rent') + '/' + key);
+      }else if(action === 'edit-founder'){
+        const d = state.roster.find(p => p.role === 'Director');
+        window.DebuggFounding.open({
+          edit: true,
+          values: { company: state.companyName || '', director: d.name === 'You' ? '' : d.name, look: d.look },
+          onDone: v => {
+            state.companyName = v.company || null;
+            d.name = v.director || 'You';
+            d.look = v.look;
+            save();
+            renderAll();
+          }
+        });
+        return;
       }else if(action === 'buy-premises'){
         const pr = premises();
         if(premisesKey() === 'spare-room' || owned() || state.money < pr.price) return;
@@ -2454,6 +2478,11 @@ window.DebuggLtd = (function(){
     }
     if(!state.office.premises) state.office.premises = 'spare-room';
     if(!('owned' in state.office)) state.office.owned = false;
+    // The Director takes a desk since October 2026: say so once to companies from before.
+    if(!state.directorDesk){
+      if(state.roster.length > 2 || state.log.length) addLog('info', 'You now sit at one of the office’s desks yourself, so it holds one fewer of your staff.');
+      state.directorDesk = true;
+    }
     // Version 1 saves used quick fix / sprint / milestone / full delivery,
     // which map one-for-one onto hotfix / patch / minor / major (same tier
     // indices), so only the board needs refreshing to pick up the new names.

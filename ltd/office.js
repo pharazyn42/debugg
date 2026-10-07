@@ -1,11 +1,12 @@
 // Debuggit Ltd: the office view (roadmap item 21b, ideas/ltd-office-view-plan.md).
 //
 // Draws the studio's premises as a building on a canvas, one floor per storey. The spare room is a
-// house with one floor: the front door, the interview room, the Director's own table, 4 desks,
-// stools when it's cramped, and the kitchen. A small business unit is a clad unit with stairs and
-// two floors of 5 desks: the interview room on the ground floor, the Director's office on the top
-// one, and a meeting room and a break room on every floor. The drawing is ported from the
-// prototype, ideas/ltd-office-demo.html.
+// house with one floor: the front door, the interview room, 4 desks (the Director takes the first,
+// with the intern on a crate beside them), stools when it's cramped, and the kitchen. A small
+// business unit is a clad unit with stairs and two floors of 5 desks: the interview room on the
+// ground floor, a server room above it, and a meeting room and a kitchen on every floor. Everyone is
+// a person; the Director looks the way the player chose when founding the company (LOOKS). The
+// drawing is ported from the prototype, ideas/ltd-office-demo.html.
 //
 // Breaks are only a picture (the player-owner's call): who is on one comes from a hash of their
 // id and the game time, so the same people are on a break after a reload, and nobody's work slows.
@@ -19,9 +20,10 @@ window.DebuggOffice = (function(){
   'use strict';
 
   // Layout in unscaled units; everything is multiplied by s. Left to right on a floor: the way in
-  // (door or stairs), the side room (interviews, or the Director's office), the Director's table in
-  // the spare room, the desks, any stools, the meeting room (not in the spare room), the break room.
-  const U = { margin: 18, side: 62, room: 124, own: 140, desk: 88, stool: 50, meeting: 116, kitchen: 152, floor: 132, slab: 14, ground: 36,
+  // (door or stairs), the side room (interviews, or a server room upstairs), the first desk and the
+  // space beside it (the intern's crate), the other desks, any stools, the meeting room (not in the
+  // spare room), the kitchen.
+  const U = { margin: 18, side: 62, room: 124, pair: 58, desk: 88, stool: 50, meeting: 116, kitchen: 152, floor: 132, slab: 14, ground: 36,
               roof: { house: 96, unit: 64 } };
   // Breaks: in BREAK_ODDS of each BREAK_WINDOW of game time, a person takes a BREAK_MS break
   // (about 12% of the time).
@@ -38,7 +40,18 @@ window.DebuggOffice = (function(){
     Rust: ['#f08d49', '#e8e9ec', '#c9a0f0', '#f2d04b']
   };
   const DIRECTOR_COLS = ['#f2b84b', '#e8e9ec', '#4fd18b'];
-  const SKIN = ['#f1c9a5', '#e0ac85', '#c68863', '#9a6748', '#704a33', '#f5d5bc'];
+  // What a person can look like. The Director's look is chosen when founding the company
+  // (ltd/founding.js); everyone else's comes from a hash of their id.
+  const LOOKS = {
+    skin: [['#f5d5bc', 'Very light'], ['#f1c9a5', 'Light'], ['#e0ac85', 'Light brown'], ['#c68863', 'Medium'], ['#9a6748', 'Brown'], ['#704a33', 'Dark brown'], ['#4a2f20', 'Very dark']],
+    hair: [['#1a1a1a', 'Black'], ['#2b1d16', 'Dark brown'], ['#4a3020', 'Brown'], ['#7a4f2a', 'Light brown'], ['#c49a5a', 'Blond'], ['#8b3a2a', 'Red'], ['#d9d4cc', 'Grey'], ['#6f5bd6', 'Purple']],
+    hairStyle: ['Short', 'Long', 'Bun', 'Bald', 'Curly'],
+    beard: ['None', 'Stubble', 'Moustache', 'Beard'],
+    glasses: ['None', 'Round', 'Square'],
+    shirt: [['#9a6a43', 'Brown'], ['#2f6f9f', 'Blue'], ['#3f9b5b', 'Green'], ['#c0392b', 'Red'], ['#7d4fb3', 'Purple'], ['#e0a12c', 'Mustard'], ['#3a3d46', 'Charcoal'], ['#e8e2d6', 'White']]
+  };
+  const DEFAULT_LOOK = { skin: '#e0ac85', hair: '#2b1d16', hairStyle: 0, beard: 0, glasses: 0, shirt: '#9a6a43' };
+  const SKIN = LOOKS.skin.map(x => x[0]).slice(0, 6);
   const HAIR = ['#2b1d16', '#4a3020', '#7a4f2a', '#c49a5a', '#1a1a1a', '#8b3a2a', '#d9d4cc'];
   const ON_CONTRACT = ['working', 'stuck', 'failed'];
 
@@ -147,10 +160,8 @@ window.DebuggOffice = (function(){
     const pr = snap.premises;
     const house = pr.kind === 'spare-room';
     const pf = pr.perFloor, nf = pr.floors, stools = pr.squeezed;
-    const leftW = house ? U.room : U.own;      // in a unit, the Director's office is as wide as their table
-    const ownW = house ? U.own : 0;            // the spare room's table has its own space
     const meetW = house ? 0 : U.meeting;
-    const need = U.margin * 2 + U.side + leftW + ownW + pf * U.desk + stools * U.stool + meetW + U.kitchen + 20;
+    const need = U.margin * 2 + U.side + U.room + U.pair + pf * U.desk + stools * U.stool + meetW + U.kitchen + 20;
     const s = Math.max(0.56, Math.min(1.1, viewW / need));
     const W = Math.max(viewW, Math.ceil(need * s));
     const roof = house ? U.roof.house : U.roof.unit;
@@ -159,22 +170,22 @@ window.DebuggOffice = (function(){
     const kx0 = x1 - U.kitchen * s;
     const mx0 = kx0 - meetW * s;
     const rx0 = x0 + U.side * s + 6 * s;
-    const rx1 = rx0 + leftW * s;
-    const ox0 = house ? rx1 + 6 * s : rx0;
-    const dz0 = house ? ox0 + U.own * s : rx1 + 6 * s;
-    const stoolW = U.stool * s;
-    const slotW = (mx0 - 12 * s - stools * stoolW - dz0) / Math.max(1, pf);
+    const rx1 = rx0 + U.room * s;
+    const dz0 = rx1 + 6 * s;
+    const stoolW = U.stool * s, pairW = U.pair * s;
+    const slotW = (mx0 - 12 * s - stools * stoolW - pairW - dz0) / Math.max(1, pf);
     const floors = [];
     for(let i = 0; i < nf; i++){
       const top = H - (U.ground + (i + 1) * U.floor) * s;
       floors.push({
-        i, top, floorY: top + (U.floor - U.slab) * s, kx0, mx0, rx0, rx1, ox0, dz0, slotW, sideX: x0 + (U.side * s) / 2,
-        table: i === (house ? 0 : nf - 1),
-        deskX: j => dz0 + slotW * (j + 0.5),
-        stoolX: k => dz0 + slotW * pf + stoolW * (k + 0.5)
+        i, top, floorY: top + (U.floor - U.slab) * s, kx0, mx0, rx0, rx1, dz0, slotW, sideX: x0 + (U.side * s) / 2,
+        pairX: dz0 + slotW,     // the space after the first desk
+        deskX: j => dz0 + slotW * (j + 0.5) + (j > 0 ? pairW : 0),
+        stoolX: k => dz0 + slotW * pf + pairW + stoolW * (k + 0.5)
       });
     }
-    return { s, W, H, x0, x1, floors, house, pf, desksN: nf * pf, stools, seats: pr.maxApplicants, kind: pr.kind, name: pr.name, owned: !!pr.owned };
+    return { s, W, H, x0, x1, floors, house, pf, desksN: nf * pf, stools, seats: pr.maxApplicants, kind: pr.kind, name: pr.name, owned: !!pr.owned,
+             company: snap.company || 'Debuggit Ltd' };
   }
 
   function fit(L){
@@ -229,10 +240,13 @@ window.DebuggOffice = (function(){
       movingUntil = t + 2.6;
     }
     lastKind = L.kind;
-    const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern');
+    // Everyone but the intern has a desk, the Director the first one.
+    const staff = snap.people.filter(p => p.role !== 'Intern').sort((a, b) => (b.role === 'Director') - (a.role === 'Director'));
     assignDesks(staff, L.desksN + L.stools);
     breaks = new Set(snap.people.filter(p => onBreak(p, snap.now)).map(p => p.id));
-    const tableFloor = L.floors.find(f => f.table);
+    const director = snap.people.find(p => p.role === 'Director');
+    const dDesk = director ? desks.get(director.id) : 0;
+    const dFloor = L.floors[dDesk < L.desksN ? Math.floor(dDesk / L.pf) : 0];
     const seen = new Set();
     const inBreakRoom = new Map(), inMeeting = new Map();
     const next = (m, i) => { const k = m.get(i) || 0; m.set(i, k + 1); return k; };
@@ -241,10 +255,10 @@ window.DebuggOffice = (function(){
       seen.add(p.id);
       sp.p = p;
       sp.applicant = false;
+      sp.look = lookFor(sp, p);
       sp.gone = p.state === 'away';
       let f;
-      if(p.role === 'Director'){ f = tableFloor; sp.spot = 'desk'; sp.tx = f.ox0 + 52 * s; sp.desk = null; }
-      else if(p.role === 'Intern'){ f = tableFloor; sp.spot = 'desk'; sp.tx = f.ox0 + 112 * s; sp.desk = null; }
+      if(p.role === 'Intern'){ f = dFloor; sp.spot = 'stool'; sp.tx = f.pairX + 40 * s; sp.desk = null; }
       else{
         const d = desks.get(p.id);
         sp.desk = d;
@@ -273,6 +287,7 @@ window.DebuggOffice = (function(){
       seen.add(a.id);
       sp.p = null;
       sp.applicant = true;
+      sp.look = lookFor(sp, null);
       sp.onBreak = false;
       sp.gone = false;
       sp.desk = null;
@@ -365,7 +380,7 @@ window.DebuggOffice = (function(){
       ctx.fillRect(x0 - 12 * s, roofY - 14 * s, x1 - x0 + 24 * s, 8 * s);
       ctx.fillStyle = tint('#000000', 0.12);
       for(let x = x0 - 8 * s; x < x1 + 8 * s; x += 9 * s) ctx.fillRect(x, roofY - 6 * s, 1.5 * s, 6 * s);
-      sign(L, x0 + 150 * s, roofY - 36 * s, 'DEBUGGIT LTD', 'Unit 4 · ' + (L.owned ? 'owned' : 'rented'));
+      sign(L, x0 + 150 * s, roofY - 36 * s, L.company.toUpperCase(), 'Unit 4 · ' + (L.owned ? 'owned' : 'rented'));
       return;
     }
     ctx.beginPath();
@@ -384,7 +399,7 @@ window.DebuggOffice = (function(){
         ctx.globalAlpha = 1;
       }
     }
-    sign(L, (x0 + x1) / 2, roofY - 40 * s, 'DEBUGGIT LTD', 'from the spare room');
+    sign(L, (x0 + x1) / 2, roofY - 40 * s, L.company.toUpperCase(), 'from the spare room');
   }
 
   function sign(L, cx, y, title, sub){
@@ -414,15 +429,15 @@ window.DebuggOffice = (function(){
     if(!L.house) drawMeeting(L, f);
     drawKitchen(L, f, t);
     if(f.i === 0) drawInterviews(L, f, snap);
-    else if(f.table) drawDirectorsOffice(L, f);
+    else drawServerRoom(L, f, t);
     drawFloorSign(L, f, snap, t);
 
     const at = sp => sp && !sp.walking && !sp.gone && sp.alpha > 0.5 && sp.fi === f.i ? sp : null;
-    if(f.table){
-      const director = snap.people.find(p => p.role === 'Director');
-      const intern = snap.people.find(p => p.role === 'Intern');
-      drawOwnTable(L, f, director && sprites.get(director.id), intern && sprites.get(intern.id), at, t);
-    }
+    // Beside the first desk: the intern's crate on the Director's floor, a plant on the others.
+    const intern = snap.people.find(p => p.role === 'Intern');
+    const isp = intern && sprites.get(intern.id);
+    if(isp && isp.home === f.i) drawStool(f.pairX + 30 * s, floorY, s, at(isp), isp, t);
+    else{ ctx.fillStyle = '#8a6141'; ctx.fillRect(f.pairX + 22 * s, floorY - 14 * s, 12 * s, 14 * s); ctx.fillStyle = '#3f9b5b'; ell(f.pairX + 28 * s, floorY - 22 * s, 9 * s, 11 * s); ctx.fill(); }
     const owners = new Map();
     sprites.forEach(sp => { if(!sp.applicant && !sp.leaving && sp.desk != null && desks.get(sp.id) === sp.desk) owners.set(sp.desk, sp); });
     for(let j = 0; j < L.pf; j++){
@@ -449,7 +464,7 @@ window.DebuggOffice = (function(){
       if(room < 22 * s) return;
       ctx.globalAlpha = sp.alpha;
       ctx.fillStyle = th.slabText;
-      let n = sp.role === 'Director' ? 'You' : sp.name;
+      let n = sp.name;
       while(n.length > 2 && ctx.measureText(n).width > room - 4 * s) n = n.slice(0, -2) + '…';
       ctx.fillText(n, sp.x, ny);
       ctx.globalAlpha = 1;
@@ -459,7 +474,7 @@ window.DebuggOffice = (function(){
 
   function drawFloorSign(L, f, snap, t){
     const s = L.s;
-    const x = L.house ? f.ox0 : f.dz0, y = f.top + 9 * s;
+    const x = f.dz0, y = f.top + 9 * s;
     const label = L.house ? 'SPARE ROOM' : f.i === 0 ? 'GROUND' : 'LEVEL ' + f.i;
     font(800, 10 * s, true);
     const w = ctx.measureText(label).width + 16 * s;
@@ -582,29 +597,25 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = '#9a6a43'; ell(a + 47 * s, f.top + 47 * s, 7 * s, 5 * s); ctx.fill(); ell(a + 53 * s, f.top + 43 * s, 3 * s, 3 * s); ctx.fill();
   }
 
-  // In a business unit the Director has an office on the top floor, where the interview room is
-  // on the ground floor.
-  function drawDirectorsOffice(L, f){
+  // Upstairs in a unit, above the interview room: a server room, racks of blinking lights.
+  function drawServerRoom(L, f, t){
     const s = L.s, a = f.rx0, b = f.rx1, fy = f.floorY;
-    ctx.fillStyle = tint('#9a6a43', 0.08);
+    ctx.fillStyle = tint('#5aa9e6', 0.06);
     ctx.fillRect(a, f.top, b - a, fy - f.top);
     ctx.fillStyle = th.slab;
     ctx.fillRect(b - 2 * s, f.top, 4 * s, fy - f.top - 62 * s);
     font(700, 8 * s); ctx.fillStyle = th.dim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('YOUR OFFICE', (a + b) / 2, f.top + 8 * s);
-  }
-
-  // The Director's own table, which isn't one of the staff's desks (the Director works from home,
-  // or from their office): the kiwi's laptop, and the intern's beside it, since they work as a pair.
-  function drawOwnTable(L, f, dsp, isp, at, t){
-    const s = L.s, x = f.ox0, fy = f.floorY;
-    ctx.fillStyle = '#c49a6c';
-    ctx.fillRect(x + 6 * s, fy - 40 * s, U.own * s - 12 * s, 5 * s);
-    ctx.fillStyle = '#8a6141';
-    ctx.fillRect(x + 10 * s, fy - 35 * s, 4 * s, 35 * s);
-    ctx.fillRect(x + U.own * s - 14 * s, fy - 35 * s, 4 * s, 35 * s);
-    laptop(x + 24 * s, fy - 40 * s, s, dsp && at(dsp), dsp, t);
-    if(isp) laptop(x + 86 * s, fy - 40 * s, s, at(isp), isp, t);
+    ctx.fillText('SERVER ROOM', (a + b) / 2, f.top + 8 * s);
+    for(let r = 0; r < 3; r++){
+      const x = a + (16 + r * 32) * s, h = 76 * s;
+      ctx.fillStyle = '#1d2026'; ctx.fillRect(x, fy - h, 24 * s, h);
+      for(let k = 0; k < 8; k++){
+        ctx.fillStyle = '#2c2f37'; ctx.fillRect(x + 3 * s, fy - h + (5 + k * 9) * s, 18 * s, 6 * s);
+        const on = reduceMotion ? hashRnd(r * 8 + k) > 0.4 : hashRnd(r * 8 + k + Math.floor(t * 2 + hashRnd(k + r) * 3)) > 0.4;
+        ctx.fillStyle = on ? (k % 3 ? '#4fd18b' : '#f2b84b') : '#2f4a3a';
+        ell(x + 17 * s, fy - h + (8 + k * 9) * s, 1.2 * s, 1.2 * s); ctx.fill();
+      }
+    }
   }
 
   function laptop(cx, y, s, seated, owner, t){
@@ -632,7 +643,7 @@ window.DebuggOffice = (function(){
     ctx.fillStyle = hot ? '#9aa3ae' : '#8a6141';
     if(hot){ ctx.fillRect(x - 33 * s, fy - 35 * s, 3 * s, 35 * s); ctx.fillRect(x + 24 * s, fy - 35 * s, 3 * s, 35 * s); }
     else{ ctx.fillRect(x - 33 * s, fy - 35 * s, 22 * s, 35 * s); ctx.fillRect(x + 22 * s, fy - 35 * s, 4 * s, 35 * s); ctx.fillStyle = '#a87b54'; ctx.fillRect(x - 25 * s, fy - 27 * s, 6 * s, 2 * s); ctx.fillRect(x - 25 * s, fy - 14 * s, 6 * s, 2 * s); }
-    if(owner){ ctx.fillStyle = ROLE_COLOR[owner.role] || '#8a93a3'; rrect(x + 6 * s, fy - 47 * s, 6 * s, 7 * s, 1.5 * s); ctx.fill(); }
+    if(owner){ ctx.fillStyle = (owner.look && owner.look.shirt) || ROLE_COLOR[owner.role] || '#8a93a3'; rrect(x + 6 * s, fy - 47 * s, 6 * s, 7 * s, 1.5 * s); ctx.fill(); }
     ctx.fillStyle = '#2a2d33';
     ctx.fillRect(x - 15 * s, fy - 47 * s, 8 * s, 7 * s);
     rrect(x - 32 * s, fy - 76 * s, 42 * s, 30 * s, 3 * s); ctx.fill();
@@ -736,9 +747,9 @@ window.DebuggOffice = (function(){
     ctx.save();
     ctx.globalAlpha = sp.alpha;
     ctx.translate(sp.x, fy);
-    if(sp.role === 'Director'){ kiwi(sp, s, motion, pose); ctx.restore(); return; }
     const f = sp.facing || 1;
-    const shirt = sp.applicant ? '#d9d4cc' : ROLE_COLOR[sp.role] || '#8a93a3';
+    const look = sp.look || DEFAULT_LOOK;
+    const shirt = look.shirt;
     const seat = pose === 'sit' ? (sp.spot === 'stool' ? 20 : 18) * s : pose === 'couch' ? 22 * s : 0;
     const step = pose === 'walk' ? Math.sin(motion * 12 + sp.seed) : 0;
     const bob = pose === 'walk' ? Math.abs(step) * 2 * s : 0;
@@ -784,37 +795,60 @@ window.DebuggOffice = (function(){
       ctx.beginPath(); ctx.moveTo(f * 5 * s, sh); ctx.lineTo(f * 6 * s + sw, sh + 15 * s); ctx.stroke();
     }
     const hy = top - 9 * s;
-    ctx.fillStyle = sp.skin; ell(0, hy, 9 * s, 9.5 * s); ctx.fill();
-    ctx.fillStyle = sp.hair;
-    ctx.beginPath();
-    if(sp.hairStyle === 0){ ctx.ellipse(-f * 1.5 * s, hy - 3 * s, 9.5 * s, 7 * s, 0, Math.PI, 2 * Math.PI); ctx.fill(); }
-    else if(sp.hairStyle === 1){ ctx.ellipse(-f * 2 * s, hy - 2 * s, 10 * s, 8 * s, 0, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); ctx.fillRect(-f * 9.5 * s - (f < 0 ? 0 : 4 * s), hy - 3 * s, 4 * s, 13 * s); }
-    else{ ctx.ellipse(-f * 1 * s, hy - 4 * s, 9 * s, 6 * s, 0, Math.PI, 2 * Math.PI); ctx.fill(); ell(-f * 6 * s, hy - 9 * s, 4 * s, 4 * s); ctx.fill(); }
-    ctx.fillStyle = '#131417';
-    const blink = !reduceMotion && Math.sin(t * 0.9 + sp.seed * 3) > 0.985;
-    if(blink) ctx.fillRect(f * 4 * s - 1.5 * s, hy, 3 * s, 0.8 * s); else{ ell(f * 4.2 * s, hy, 1.2 * s, 1.5 * s); ctx.fill(); }
-    if(sp.role === 'Principal'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.strokeRect(f * 4.2 * s - 2.6 * s, hy - 2.2 * s, 5.2 * s, 4.2 * s); }
+    drawHead(look, f, hy, s, !reduceMotion && Math.sin(t * 0.9 + sp.seed * 3) > 0.985);
     if(pose === 'couch'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.beginPath(); ctx.arc(f * 4 * s, hy + 3 * s, 2 * s, 0.2, Math.PI - 0.2); ctx.stroke(); }
     ctx.restore();
   }
 
-  // The Director is the kiwi.
-  function kiwi(sp, s, t, pose){
-    const f = sp.facing || -1;
-    const seat = pose === 'sit' ? 20 * s : 0;
-    const bob = pose === 'walk' ? Math.abs(Math.sin(t * 12)) * 2 * s : Math.sin(t * 2) * 0.6 * s;
-    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ell(0, 0, 16 * s, 2.8 * s); ctx.fill();
-    ctx.strokeStyle = '#e08a3c'; ctx.lineWidth = 2 * s; ctx.lineCap = 'round';
-    [-5, 5].forEach(dx => { ctx.beginPath(); ctx.moveTo(dx * s, -seat - 8 * s); ctx.lineTo(dx * s, -2 * s); ctx.lineTo(dx * s + f * 4 * s, -1 * s); ctx.stroke(); });
-    const cy = -seat - 20 * s - bob;
-    ctx.fillStyle = '#9a6a43'; ell(-f * 3 * s, cy, 19 * s, 14 * s); ctx.fill();
-    ctx.strokeStyle = 'rgba(110,69,41,0.7)'; ctx.lineWidth = 1.6 * s;
-    for(let i = 0; i < 4; i++){ ctx.beginPath(); ctx.moveTo(-f * (14 - i * 6) * s, cy - 4 * s + (i % 2) * 6 * s); ctx.quadraticCurveTo(-f * (10 - i * 6) * s, cy - 7 * s + (i % 2) * 6 * s, -f * (6 - i * 6) * s, cy - 3 * s + (i % 2) * 6 * s); ctx.stroke(); }
-    const hx = f * 13 * s, hy = cy - 9 * s;
-    ctx.fillStyle = '#ad7b50'; ell(hx, hy, 9 * s, 9 * s); ctx.fill();
-    ctx.fillStyle = '#f1dcaa'; ctx.beginPath(); ctx.moveTo(hx + f * 6 * s, hy - 2 * s); ctx.quadraticCurveTo(hx + f * 16 * s, hy + 4 * s, hx + f * 20 * s, hy + 14 * s); ctx.quadraticCurveTo(hx + f * 13 * s, hy + 7 * s, hx + f * 5 * s, hy + 3 * s); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#131417'; ell(hx + f * 3 * s, hy - 3 * s, 2.2 * s, 2.2 * s); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ell(hx + f * 3.6 * s, hy - 3.6 * s, 0.8 * s, 0.8 * s); ctx.fill();
+  // A head seen side-on, facing f: skin, hair (short, long, bun, bald or curly), the eye, glasses
+  // (round or square) and facial hair (stubble, a moustache or a beard).
+  function drawHead(look, f, hy, s, blink){
+    ctx.fillStyle = look.skin; ell(0, hy, 9 * s, 9.5 * s); ctx.fill();
+    if(look.beard === 1){ ctx.fillStyle = tint(look.hair, 0.35); ctx.beginPath(); ctx.ellipse(f * 1.5 * s, hy + 2.5 * s, 8 * s, 6.5 * s, 0, 0, Math.PI); ctx.fill(); }
+    else if(look.beard === 3){ ctx.fillStyle = look.hair; ctx.beginPath(); ctx.ellipse(f * 1.5 * s, hy + 2.5 * s, 8.2 * s, 7.5 * s, 0, 0, Math.PI); ctx.fill(); }
+    if(look.beard === 2 || look.beard === 3){ ctx.fillStyle = look.hair; rrect(f * 5 * s - 3.5 * s, hy + 2.8 * s, 7 * s, 2.2 * s, 1 * s); ctx.fill(); }
+    ctx.fillStyle = look.hair;
+    ctx.beginPath();
+    if(look.hairStyle === 0){ ctx.ellipse(-f * 1.5 * s, hy - 3 * s, 9.5 * s, 7 * s, 0, Math.PI, 2 * Math.PI); ctx.fill(); }
+    else if(look.hairStyle === 1){ ctx.ellipse(-f * 2 * s, hy - 2 * s, 10 * s, 8 * s, 0, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); ctx.fillRect(-f * 9.5 * s - (f < 0 ? 0 : 4 * s), hy - 3 * s, 4 * s, 13 * s); }
+    else if(look.hairStyle === 2){ ctx.ellipse(-f * 1 * s, hy - 4 * s, 9 * s, 6 * s, 0, Math.PI, 2 * Math.PI); ctx.fill(); ell(-f * 6 * s, hy - 9 * s, 4 * s, 4 * s); ctx.fill(); }
+    else if(look.hairStyle === 3){ ctx.ellipse(-f * 6 * s, hy - 1 * s, 3.5 * s, 4.5 * s, 0, 0, Math.PI * 2); ctx.fill(); }
+    else{ for(let i = 0; i < 6; i++){ ell(-f * (7 - i * 2.6) * s, hy - (6 + Math.sin(i * 1.7) * 1.5) * s, 4 * s, 4 * s); ctx.fill(); } ell(-f * 8 * s, hy - 1 * s, 3.5 * s, 4 * s); ctx.fill(); }
+    ctx.fillStyle = '#131417';
+    if(blink) ctx.fillRect(f * 4 * s - 1.5 * s, hy, 3 * s, 0.8 * s); else{ ell(f * 4.2 * s, hy, 1.2 * s, 1.5 * s); ctx.fill(); }
+    if(look.glasses){
+      ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s;
+      if(look.glasses === 1){ ctx.beginPath(); ctx.arc(f * 4.2 * s, hy, 2.8 * s, 0, Math.PI * 2); ctx.stroke(); }
+      else ctx.strokeRect(f * 4.2 * s - 2.6 * s, hy - 2.2 * s, 5.2 * s, 4.2 * s);
+      ctx.beginPath(); ctx.moveTo(f * 1.4 * s, hy - 0.5 * s); ctx.lineTo(-f * 3 * s, hy - 1.5 * s); ctx.stroke();
+    }
+  }
+
+  // Someone's look: the Director's from the save; anyone else's from a hash of their id, in their
+  // level's colour (applicants in grey). Principals wear glasses.
+  function lookFor(sp, p){
+    if(p && p.role === 'Director') return Object.assign({}, DEFAULT_LOOK, p.look || {});
+    const h = hashStr(sp.id);
+    return {
+      skin: SKIN[h % SKIN.length], hair: HAIR[(h >> 3) % HAIR.length], hairStyle: [0, 1, 2, 0, 4, 1, 3][(h >> 5) % 7],
+      glasses: sp.role === 'Principal' ? 2 : (h >> 8) % 6 === 0 ? 1 : 0,
+      beard: (h >> 10) % 5 === 0 ? 1 + (h >> 12) % 3 : 0,
+      shirt: sp.applicant ? '#d9d4cc' : ROLE_COLOR[sp.role] || '#8a93a3'
+    };
+  }
+
+  // Draws a person standing, large, on a canvas of its own: the founding step's preview.
+  function portrait(cv, look){
+    const saved = ctx;
+    ctx = cv.getContext('2d');
+    const dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth || cv.width, h = cv.clientHeight || cv.height;
+    if(cv.width !== Math.round(w * dpr)){ cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const s = Math.min(w / 46, h / 66);
+    drawPerson({ id: 'portrait', role: 'Director', look: Object.assign({}, DEFAULT_LOOK, look), x: w / 2, alpha: 1, facing: 1,
+                 walking: false, spot: 'exit', seed: 0, p: null }, h - 4 * s, s, 0);
+    ctx = saved;
   }
 
   // A stuck intern says so over their head.
@@ -907,7 +941,7 @@ window.DebuggOffice = (function(){
   // desk, even while they're on a break.
   function counts(snap, fi){
     const here = p => fi == null || ((sprites.get(p.id) || {}).home || 0) === fi;
-    const staff = snap.people.filter(p => p.role !== 'Director' && p.role !== 'Intern' && here(p));
+    const staff = snap.people.filter(p => p.role !== 'Intern' && here(p));
     const team = snap.people.filter(p => p.role !== 'Director' && here(p));
     const squeezed = fi == null || fi === 0 ? snap.premises.squeezed : 0;
     return {
@@ -941,5 +975,5 @@ window.DebuggOffice = (function(){
     return targets.map(tg => ({ kind: tg.kind, id: tg.id, x: Math.round(tg.cx), y: Math.round(tg.y + tg.h / 2) }));
   }
 
-  return { mount, unmount, targets: listTargets };
+  return { mount, unmount, targets: listTargets, portrait, LOOKS, DEFAULT_LOOK };
 })();

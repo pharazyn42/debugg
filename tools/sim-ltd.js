@@ -244,7 +244,7 @@ function play(page, log, now, opts){
   // Hiring. Room for one more on-site person, moving from the spare room into the small business
   // unit when it's full (and staying there). Returns 'free' or null (no room).
   const deskFor = () => {
-    const used = s.roster.filter(p => p.role !== 'Director' && p.role !== 'Intern').length;
+    const used = s.roster.filter(p => p.role !== 'Intern').length;   // the Director takes a desk too
     if(used < premisesOf(s).desks) return 'free';
     if(premisesOf(s) !== PREMISES['spare-room']) return null;
     act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' });

@@ -315,9 +315,10 @@ state = {
   rise since founding ("¤270 ↑50%"). Moves happen while the page is closed (not while
   paused), and are kept in `state.market`.
 - **The office** (item 15e: phase 1 September 2026, the unit October 2026; `PREMISES`,
-  `state.office`): everyone on staff needs a desk, except the Director, who works from home at
-  their own desk jobs. The spare room has 4 desks, free, matching the Director's span of 4 devs, so
-  the first manager is squeezed in. After it, the **small business unit** (`unit-s`: 2 floors × 5
+  `state.office`): everyone on staff needs a desk, **the Director included** (the player-owner's
+  call, October 2026; until then they worked from home), but not the intern, who works beside the
+  Director. The spare room has 4 desks, free: you and 3 more, so the Director's 4th dev is squeezed
+  in. Older companies are told once (`state.directorDesk`). After it, the **small business unit** (`unit-s`: 2 floors × 5
   desks), which is a choice (the player-owner's call): **rent** it (¤4/min) or **buy** it outright
   (¤60,000, then ¤1/min upkeep). A rented unit can be bought later without moving
   (`buy-premises`); moving out of a bought one sells it for `SELL_BACK` (90%). Moving either way
@@ -352,12 +353,15 @@ state = {
   `ltd/office.js`, `officeSnapshot()`, `officeApi`, `renderOffice()`): the studio drawn on a canvas
   in its own slot above the desk and the studio (`#ltdOffice`). The spare room is a house with the
   front door, the interview room (a chair per `MAX_APPLICANTS`, applicants in grey holding a CV in
-  their level's colour), the Director's own table (the kiwi, with the intern beside it; not a
-  counted desk), the 4 desks, stools for anyone squeezed in, and the kitchen; no meeting room
-  (the player-owner's call). The small business unit is a clad unit on a street, its sign saying
-  rented or owned: stairs on each floor, the interview room on the ground floor and the
-  Director's office on the top one, then each floor's desks, a meeting room (managers on a
-  contract stand there) and a kitchen, where breaks are taken. People walk to the stairs to change
+  their level's colour), the 4 desks (the Director at the first, with the intern on a crate
+  beside it; a plant fills that space on other floors), stools for anyone squeezed in, and the
+  kitchen; no meeting room (the player-owner's call). The small business unit is a clad unit on a
+  street, its sign giving the company's name and saying rented or owned: stairs on each floor, the
+  interview room on the ground floor and a server room above it, then each floor's desks, a
+  meeting room (managers on a contract stand there) and a kitchen, where breaks are taken.
+  Everyone is a person (the kiwi stays the site's logo, not the Director): staff get a look from a
+  hash of their id in their level's colour (principals wear glasses), and the Director the look
+  the player chose (`drawHead()`, `lookFor()`, `LOOKS`). People walk to the stairs to change
   floor; a move between premises is a "Moving day" banner, with everyone at their new place. **Breaks are
   only a picture** (also theirs): the view picks who's on one from a hash of their id and the
   10-minute window of game time (`BREAK_ODDS`, `BREAK_MS`: about 12% of the time; contract and
@@ -367,10 +371,21 @@ state = {
   note on the chair when away. The view hands out desk numbers itself (lowest free, kept while the
   page is open; nothing in the save), and people walk to wherever the snapshot puts them. Taps do
   what a panel button does: a person opens their panel, an applicant's card scrolls into view and
-  flashes (hiring stays a button), a stuck intern opens Help, the kiwi scrolls to the desk. The
+  flashes (hiring stays a button), a stuck intern opens Help, the Director scrolls to the desk. The
   canvas is `role="img"` with an `aria-label` summary. Shown by default; **Hide the office** sets
   `state.showOffice = false`. Nothing is drawn while the tab is hidden; reduced motion stops the
   walking and flashing. `ltd.js` works without the script or the slot (the simulator has neither).
+
+- **Founding a company** (the player-owner's idea, October 2026; `ltd/founding.js`,
+  `state.companyName`, `roster[0].look`): before a new company starts, a dialog names it and its
+  Director and chooses the Director's look (skin, hair colour and style, facial hair, glasses,
+  clothes), with a live preview (`DebuggOffice.portrait()`) and **Surprise me**. Cancelling goes
+  back to the Ltd tab's card. Empty names show as "Debuggit Ltd" and "You". The company's name is on
+  the office's sign and in the welcome; the Director's on their card and under their desk. The
+  Director card's **Edit** opens the same dialog. The index page's loader opens it only for a new
+  company (not a paused one or an import), and tests skip it (`window.DEBUGG_FOUNDING = false`,
+  set by `openAt()` unless `{ founding: true }`); a company started without it (or by the
+  simulator) gets the defaults.
 
 ## Known gaps — not wired in yet
 
