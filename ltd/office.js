@@ -884,7 +884,24 @@ window.DebuggOffice = (function(){
     drawHead(look, f, hy, s, !reduceMotion && Math.sin(t * 0.9 + sp.seed * 3) > 0.985);
     if(pose === 'couch'){ ctx.strokeStyle = '#131417'; ctx.lineWidth = 0.9 * s; ctx.beginPath(); ctx.arc(f * 4 * s, hy + 3 * s, 2 * s, 0.2, Math.PI - 0.2); ctx.stroke(); }
     if(p && p.notice && !sp.gone) noticeBubble(p.notice, sp.x, hy - 13 * s, s);
+    else if(p && !sp.walking && !sp.onBreak && !sp.gone && !sp.applicant && (p.job || p.state === 'bench')) workBadge(!!p.job, hy - 15 * s, s);
     ctx.restore();
+  }
+
+  // A small badge over someone's head saying what they're doing: a green briefcase when they're on
+  // a contract, a grey ticket when they're on everyday work (nothing for managers with no work).
+  function workBadge(contract, y, s){
+    s *= 1.3;
+    const w = 13 * s, h = 9 * s, x = -w / 2;
+    ctx.fillStyle = contract ? '#1f5a37' : '#2c2f37'; ctx.strokeStyle = contract ? '#4fd18b' : '#6b7280'; ctx.lineWidth = 1 * s;
+    rrect(x, y - h, w, h, 2.5 * s); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = contract ? '#4fd18b' : '#9aa3ae';
+    if(contract){
+      ctx.fillRect(x + 3.5 * s, y - h + 2.2 * s, 6 * s, 4.2 * s);                      // the case
+      ctx.strokeStyle = '#4fd18b'; ctx.lineWidth = 0.9 * s; ctx.strokeRect(x + 5 * s, y - h + 1 * s, 3 * s, 1.6 * s);   // its handle
+    }else{
+      ctx.fillRect(x + 3 * s, y - h + 2.5 * s, 7 * s, 1 * s); ctx.fillRect(x + 3 * s, y - h + 5 * s, 5 * s, 1 * s);    // lines of a ticket
+    }
   }
 
   // A speech bubble above someone who has handed in their notice: why, and how long they have left
