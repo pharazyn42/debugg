@@ -75,7 +75,6 @@ window.DebuggLtd = (function(){
         '<div class="premises" id="office"></div>' +
         '<details class="people-list"><summary>Everyone in the studio</summary><div class="roster" id="roster"></div></details>' +
         '<div class="hire-grid" id="hireGrid"></div>' +
-        '<h3>Applicants</h3>' +
         '<div class="applicants" id="applicants"></div>' +
       '</div>';
     boardSlot.innerHTML =
@@ -96,6 +95,9 @@ window.DebuggLtd = (function(){
     modals.className = 'ltd';
     modals.innerHTML =
       '<div class="modal-back" id="teamModal" hidden><div class="modal" id="teamModalBody"></div></div>' +
+      '<div class="modal-back" id="candidateModal" hidden><div class="modal person">' +
+        '<button class="modal-close" data-action="close-candidate" aria-label="Close" style="float:right;">✕</button>' +
+        '<div id="candidateModalBody"></div></div></div>' +
       '<div class="modal-back" id="personModal" hidden><div class="modal person">' +
         '<button class="modal-close" data-action="close-person" aria-label="Close" style="float:right;">✕</button>' +
         '<div id="personModalBody"></div></div></div>';
@@ -110,6 +112,7 @@ window.DebuggLtd = (function(){
     const welcomeToast = $('welcomeToast');
     const teamModal = $('teamModal'), teamModalBody = $('teamModalBody');
     const personModal = $('personModal'), personModalBody = $('personModalBody');
+    const candidateModal = $('candidateModal'), candidateModalBody = $('candidateModalBody');
     let tickTimer = null;
     let stopped = false;
     // Stops the clock and all saving, e.g. before a backup is restored over this company.
@@ -1714,7 +1717,7 @@ window.DebuggLtd = (function(){
         const grad = (state.applicants || []).find(a => a.role === 'Graduate');
         const desks = Math.min(desksUsed(), SPARE_ROOM_DESKS) + ' of ' + SPARE_ROOM_DESKS + ' desks';
         return { key: 'hire', text: (grad
-          ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied, under Applicants.'
+          ? '<b>Hire a graduate.</b> ' + esc(grad.person.name) + ' has applied: click them in the interview room.'
           : (state.reputation || 0) >= APPLICANT_REP.Graduate
           ? '<b>Wait for applicants.</b> Graduates apply every few hours now the studio has the reputation; keep taking desk jobs meanwhile.'
           : '<b>Earn some reputation.</b> Graduates apply once the studio has ' + APPLICANT_REP.Graduate + ' reputation (you have ' +
@@ -1943,7 +1946,7 @@ window.DebuggLtd = (function(){
       // Why a level is full while there's still room for devs overall: every level needs
       // someone at the level above (or you) to look after it.
       const LEVEL_NOTES = [
-        ['Graduate', 'Grads', 'Each junior can look after ' + MENTOR_SPAN + ' more grads: hire one from Applicants below, or promote a grad.'],
+        ['Graduate', 'Grads', 'Each junior can look after ' + MENTOR_SPAN + ' more grads: hire one from the interview room, or promote a grad.'],
         ['Junior', 'Juniors', 'Each senior can look after ' + MENTOR_SPAN + ' more juniors: wait for one to apply, or promote a junior.'],
         ['Senior', 'Seniors', 'Each principal can look after ' + MENTOR_SPAN + ' more seniors: wait for one to apply, or promote a senior.']
       ];
@@ -1965,6 +1968,10 @@ window.DebuggLtd = (function(){
           html += '<button type="button" class="person-link" data-action="inspect" data-id="' + p.id + '">' + esc(p.name) +
             ' <span class="card-level ' + p.role + '">' + p.role + '</span>' + (p.notice ? ' ✉' : '') + '</button>';
         });
+      });
+      state.applicants.forEach(a => {
+        html += '<button type="button" class="person-link applicant-link" data-action="candidate" data-id="' + a.id + '">' + esc(a.person.name) +
+          ' <span class="card-level ' + a.role + '">applicant · ' + a.role + '</span></button>';
       });
       setHTML(rosterEl, html);
       renderPersonModal(now);
@@ -1988,27 +1995,17 @@ window.DebuggLtd = (function(){
       renderApplicants(now);
     }
 
+    // Hiring is done in the interview room: click an applicant (in the picture, or in the names list
+    // for keyboards) to open their card, with the hire buttons. Here: the notes about who applies.
+    let candidateId = null;
     function renderApplicants(now){
-      let html = state.applicants.map(a => {
-        const why = hireProblem(a.role);
-        const broke = state.money < a.cost;
-        return '<div class="applicant" data-applicant="' + a.id + '">' +
-          '<div class="card-top"><span class="card-name">' + esc(a.person.name) + '</span>' +
-          '<span class="card-level ' + a.role + '">' + a.role + '</span></div>' +
-          '<div class="card-stats"><span>' + ROLES[a.role].sloc + ' SLOC/min · ' + topSkillsText(a.person) + '</span>' +
-          '<span>−¤' + ROLES[a.role].salary + '/min</span></div>' +
-          '<div class="card-foot"><span class="promo">Offer open ' + fmtDuration(a.expiresAt - now) + '</span>' +
-          '<button class="btn-small btn-promote' + (guide && guide.key === 'hire' && a.role === 'Graduate' ? ' guide-target' : '') +
-            '" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>' +
-            'Hire for ' + fmt(a.cost) + '</button></div>' +
-          (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
-            : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
-          (canHireWfh(a.role) ? '<div class="card-foot"><span class="promo">Or from home: no desk, ' + Math.round(WFH_EFFICIENCY * 100) + '% as productive</span>' +
-            '<button class="btn-small btn-ghost" data-action="hire-applicant" data-wfh="1" data-id="' + a.id + '"' +
-              (hireProblem(a.role, true) || broke ? ' disabled' : '') + '>Hire to work from home</button></div>' : '') +
-          '</div>';
-      }).join('');
-      if(!html) html = '<p class="applicants-note">Nobody’s applied yet. Developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours.</p>';
+      let html = '';
+      if(!state.applicants.length){
+        html = '<p class="applicants-note">Nobody’s applied yet. Developers apply every day or so, and their offers stay open for ' + APPLICANT_OPEN_H + ' hours. They wait in the interview room.</p>';
+      }else{
+        const n = state.applicants.length;
+        html = '<p class="applicants-note">' + n + (n === 1 ? ' applicant is' : ' applicants are') + ' waiting in the interview room: click one to see their card.</p>';
+      }
       // "Graduates and juniors apply once the studio has 15 reputation; seniors once it has 500"
       const locked = APPLICANT_ROLES.filter(r => (state.reputation || 0) < APPLICANT_REP[r]);
       if(locked.length){
@@ -2023,7 +2020,44 @@ window.DebuggLtd = (function(){
           ' (you have ' + Math.floor(state.reputation || 0).toLocaleString('en-GB') + '). Delivered contracts, desk jobs and helping your intern earn it.</p>';
       }
       setHTML(applicantsEl, html);
+      renderCandidateModal(now);
     }
+
+    function renderCandidateModal(now){
+      if(!candidateId) return;
+      const a = state.applicants.find(x => x.id === candidateId);
+      if(!a){ closeCandidateModal(); return; }
+      const why = hireProblem(a.role), broke = state.money < a.cost;
+      setHTML(candidateModalBody,
+        '<div class="modal-top"><div><div class="modal-name">' + esc(a.person.name) + '</div>' +
+        '<div class="modal-level">Applicant · ' + a.role + '</div></div></div>' +
+        '<div class="modal-sub">' + ROLES[a.role].sloc + ' SLOC/min · −' + fmtRate(ROLES[a.role].salary) + '/min salary · asking ' + fmt(a.cost) +
+        '<br>Offer open ' + fmtDuration(a.expiresAt - now) + '</div>' +
+        '<div class="skill-section-title">Languages</div>' + skillRowsHTML(LANGS, a.person.lang, 'lang') +
+        '<div class="card-foot" style="margin-top:10px;">' +
+          '<button class="btn-small btn-promote' + (guide && guide.key === 'hire' && a.role === 'Graduate' ? ' guide-target' : '') +
+            '" data-action="hire-applicant" data-id="' + a.id + '"' + (why || broke ? ' disabled' : '') + '>Hire for ' + fmt(a.cost) + '</button></div>' +
+        (why || broke ? '<div class="card-foot"><span class="promo blocked">' + esc(why || 'not enough cash') + '</span></div>'
+          : deskNote() ? '<div class="card-foot"><span class="promo">' + esc(deskNote()) + '</span></div>' : '') +
+        (canHireWfh(a.role) ? '<div class="card-foot"><span class="promo">Or from home: no desk, ' + Math.round(WFH_EFFICIENCY * 100) + '% as productive</span>' +
+          '<button class="btn-small btn-ghost" data-action="hire-applicant" data-wfh="1" data-id="' + a.id + '"' +
+            (hireProblem(a.role, true) || broke ? ' disabled' : '') + '>Hire to work from home</button></div>' : ''));
+    }
+    function openCandidateModal(id){
+      if(!state.applicants.some(a => a.id === id)) return;
+      candidateId = id;
+      candidateModal.hidden = false;
+      renderCandidateModal(Date.now());
+    }
+    function closeCandidateModal(){
+      candidateId = null;
+      candidateModal.hidden = true;
+      setHTML(candidateModalBody, '');
+    }
+    candidateModal.addEventListener('click', (e) => {
+      if(e.target === candidateModal || e.target.closest('[data-action=close-candidate]')) closeCandidateModal();
+      else onAction(e);
+    });
 
     // What's going on with someone, and what you can do about it: shown in their panel.
     function personActionsHTML(p, now){
@@ -2303,12 +2337,7 @@ window.DebuggLtd = (function(){
           if(d) openPersonModal(d.id);
         }else if(kind === 'applicant'){
           // Hiring costs money, so it stays a button: the tap shows you their card.
-          const card = [...applicantsEl.querySelectorAll('.applicant')].find(el => el.dataset.applicant === id);
-          if(!card) return;
-          card.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          card.classList.remove('office-picked');
-          void card.offsetWidth;
-          card.classList.add('office-picked');
+          openCandidateModal(id);
         }
       }
     };
@@ -2520,6 +2549,7 @@ window.DebuggLtd = (function(){
       if(e.key !== 'Escape') return;
       if(picker) closePicker();
       if(inspectId) closePersonModal();
+      if(candidateId) closeCandidateModal();
     });
 
     // ---------------------------------------------------------------------
@@ -2640,6 +2670,9 @@ window.DebuggLtd = (function(){
           state.jobs = state.jobs.filter(j => j !== job);
           addLog('info', 'Dropped ' + jobTag(job) + '.');
         }
+      }else if(action === 'candidate'){
+        openCandidateModal(btn.dataset.id);
+        return;
       }else if(action === 'inspect'){
         openPersonModal(btn.dataset.id);
         return;

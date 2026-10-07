@@ -49,8 +49,10 @@ async function hireGrad(page, cost = 180){
     s.applicants = [{ id: 'ga1', role: 'Graduate', cost: c, expiresAt: Date.now() + 3600000,
                       person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
   }, cost);
-  await page.click('[data-action=hire-applicant][data-id=ga1]');
-  await expect(page.locator('.applicant[data-applicant=ga1]')).toHaveCount(0);
+  await openCandidate(page, 'ga1');
+  await page.click('#candidateModalBody [data-action=hire-applicant][data-id=ga1]');
+  await expect(page.locator('#candidateModal')).toBeHidden();
+  await expect(page.locator('.applicant-link[data-id=ga1]')).toHaveCount(0);
 }
 
 // Edits the saved company, then reloads.
@@ -276,10 +278,10 @@ test('developers apply now and then, graduates too, once the studio has some rep
   expect(a.cost).toBeLessThanOrEqual(base * 1.2 + 5);
   expect(saved.nextApplicantAt - now).toBeGreaterThanOrEqual(8 * 3600000 - 1000);
   await expect(page.locator('#log')).toContainText('applied to join as a ' + a.role.toLowerCase());
-  const card = page.locator('.applicant[data-applicant="' + a.id + '"]');
-  await expect(card).toContainText('Offer open 12h');
-  await card.locator('[data-action=hire-applicant]:not([data-wfh])').click();
-  await expect(page.locator('.applicant')).toHaveCount(0);
+  await openCandidate(page, a.id);
+  await expect(page.locator('#candidateModalBody')).toContainText('Offer open 12h');
+  await page.locator('#candidateModalBody [data-action=hire-applicant]:not([data-wfh])').click();
+  await expect(page.locator('.applicant-link')).toHaveCount(0);
   const after = await ltd(page);
   expect(after.money).toBeCloseTo(5000 - a.cost, 0);
   expect(after.roster.find(p => p.id === a.id).role).toBe(a.role);
@@ -327,7 +329,8 @@ test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', a
                       person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
   });
   await expect(page.locator('.guide')).toContainText('Gus A. has applied');
-  await page.click('[data-action=hire-applicant].guide-target');
+  await openCandidate(page, 'ga1');
+  await page.click('#candidateModalBody [data-action=hire-applicant].guide-target');
   // Grads are full at one while you're alone, and the note says why.
   await expect(page.locator('#structureNote')).toContainText('Grads 1/1 are full, though you have room for 3 more devs (Devs 1/4)');
   // 5. Fill the spare room: contracts only come once it's full.
@@ -393,7 +396,9 @@ test('a new company starts with a free intern, who writes hotfixes with you and 
   expect(after.roster.some(p => p.role === 'Intern')).toBe(false);
   const offer = after.applicants.find(a => a.id === intern.id);
   expect(offer).toMatchObject({ role: 'Graduate', cost: 90 });
-  await expect(page.locator('.applicant[data-applicant="' + intern.id + '"]')).toContainText('Graduate');
+  await openCandidate(page, intern.id);
+  await expect(page.locator('#candidateModalBody')).toContainText('Graduate');
+  await page.keyboard.press('Escape');
 });
 
 // Puts the intern and you on a 20-minute Python hotfix, halfway through and just stuck, with another
@@ -871,7 +876,9 @@ test('a full office is fine; each person squeezed in, up to half the desks, slow
                       person: { id: 'ga1', name: 'Gus A.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
   });
   await expect(page.locator('.premises .cramped')).toContainText('2 squeezed in without a desk: cramped, so everyone is 12% slower');
-  await expect(page.locator('.applicant[data-applicant=ga1] .blocked')).toHaveText('no room to squeeze anyone else in — rent or buy a small business unit');
+  await openCandidate(page, 'ga1');
+  await expect(page.locator('#candidateModalBody .blocked')).toHaveText('no room to squeeze anyone else in — rent or buy a small business unit');
+  await page.keyboard.press('Escape');
   await page.click('[data-action=staff][data-offer="' + first + '"]');
   await expect(page.locator('label.pick', { hasText: 'Jun 0' })).toContainText('16.9 SLOC/min');   // 19.2 × 0.88
   await page.keyboard.press('Escape');
@@ -880,7 +887,9 @@ test('a full office is fine; each person squeezed in, up to half the desks, slow
   await expect(page.locator('.premises .cramped')).toHaveCount(0);
   await expect(page.locator('[data-action=move][data-premises=spare-room]')).toBeEnabled();
   // The unit takes 5 squeezed in (half its 10 desks).
-  await expect(page.locator('.applicant[data-applicant=ga1] .blocked')).toHaveCount(0);
+  await openCandidate(page, 'ga1');
+  await expect(page.locator('#candidateModalBody .blocked')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   // One more and the spare room can't hold them.
   await editCompany(page, s => {
     s.roster.push({ id: 'g9', name: 'Grad 9', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
@@ -1180,6 +1189,11 @@ test('works at phone width with the studio on', async ({ page }) => {
 // The office view (ltd/office.js): the studio drawn as a building above the desk and the studio.
 const officeLabel = page => page.locator('.office-canvas');
 // Open someone's panel from the names-only list (the keyboard way in; the picture's taps do the same).
+async function openCandidate(page, id){
+  await page.evaluate(() => { document.querySelector('.people-list').open = true; });
+  await page.click('.applicant-link[data-id="' + id + '"]');
+  await expect(page.locator('#candidateModal')).toBeVisible();
+}
 async function openPerson(page, id){
   await page.evaluate(() => { document.querySelector('.people-list').open = true; });
   await page.click('.person-link[data-id="' + id + '"]');
@@ -1221,7 +1235,7 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   await expect(page.locator('#ltdOffice')).toBeHidden();
 });
 
-test('tapping the office: a person opens their panel, an applicant shows their card, a stuck intern asks for help', async ({ page }) => {
+test('tapping the office: a person opens their panel, an applicant opens their card, a stuck intern asks for help', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
   await officeBreaks(page);
   await found(page);
@@ -1235,7 +1249,9 @@ test('tapping the office: a person opens their panel, an applicant shows their c
   await expect(page.locator('#personModalBody')).toContainText('Ben');
   await page.click('[data-action=close-person]');
   await tapOffice(page, 'applicant', 'a1');
-  await expect(page.locator('.applicant[data-applicant=a1]')).toHaveClass(/office-picked/);
+  await expect(page.locator('#candidateModal')).toBeVisible();
+  await expect(page.locator('#candidateModalBody')).toContainText('Kiri');
+  await page.keyboard.press('Escape');
   expect((await ltd(page)).roster.some(p => p.id === 'a1')).toBe(false);   // hiring stays a button
   await stuckHotfix(page);
   await expect(page.locator('.job.stuck')).toBeVisible();
@@ -1344,4 +1360,31 @@ test('someone who has handed in their notice gets a speech bubble in the office,
   await expect(page.locator('#log .alert')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => DebuggOffice.targets().some(t => t.kind === 'person' && t.id === 'g1'))).toBe(true);
   await expect(officeLabel(page)).toHaveAttribute('aria-label', /, 1 handed in their notice, /);
+});
+
+test('hiring is done from the applicant’s card in the interview room, at a desk or from home', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => {
+    s.money = 5000; s.guideDone = true;
+    s.applicants = [{ id: 'a1', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
+                      person: { id: 'a1', name: 'Kiri T.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
+  });
+  // No applicants list in the Studio box any more, just a note and the way in.
+  await expect(page.locator('.applicant')).toHaveCount(0);
+  await expect(page.locator('#applicants')).toContainText('1 applicant is waiting in the interview room');
+  await openCandidate(page, 'a1');
+  await expect(page.locator('#candidateModalBody')).toContainText('Kiri T.');
+  await expect(page.locator('#candidateModalBody')).toContainText('asking ¤180');
+  await expect(page.locator('#candidateModalBody')).toContainText('Python');
+  await page.click('#candidateModalBody [data-wfh="1"]');
+  await expect(page.locator('#candidateModal')).toBeHidden();
+  expect((await ltd(page)).roster.find(p => p.id === 'a1')).toMatchObject({ role: 'Graduate', wfh: true });
+  // An offer that runs out while its card is open closes it.
+  await editCompany(page, s => {
+    s.applicants = [{ id: 'a2', role: 'Graduate', cost: 180, expiresAt: Date.now() + 3600000,
+                      person: { id: 'a2', name: 'Moe R.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } } }];
+  });
+  await openCandidate(page, 'a2');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#candidateModal')).toBeHidden();
 });
