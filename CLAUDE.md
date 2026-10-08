@@ -1,5 +1,9 @@
 # Debuggit (formerly Debugg), Debuggit Learn and Debuggit Ltd
 
+**Read first, in this order:** `PLAN.md` (what & why) · `TODO.md` (one item at a time) · `NOTES.md` (decisions, gotchas, where the last session stopped). Then this file; `docs/design.md` or `docs/releases.md` only for the part a task names; `ltd/CLAUDE.md` when working under `ltd/`, and `ideas/roadmap.md` only when a roadmap item is named — it is 88 KB, never read it whole.
+
+**Agent team** lives in `.claude/agents/`: `roadmap` `plan-writer` `todo-curator` (planning, no code) · `daily-worker` `ltd-worker` `learn-worker` (one product each, CI-enforced scope) · `verifier` (runs tests, changes nothing) · `ship-web` `ship-phone` (distribution). Drive them with `/develop`, `/implement`, `/review`, `/status`, `/distribute` from `.pi/prompts/` (mirrored in `.claude/commands/`); `PROCESS.md` has the stages, gates, check commands and token rules. Project agents load only for a trusted project.
+
 The game is called **Debuggit** (September 2026; see item 2c). The code, the repository, the
 `debugg-*` save keys and `window.Debugg` keep the old spelling, and "Debugg" below means the
 same game. Its wordmark is "debug it" as a line of code in the day's puzzle language
@@ -13,7 +17,7 @@ read a short Python or JavaScript snippet and guess what it prints. **Debugg
 Ltd** is the optional idle studio-management game around it, on the **Ltd** tab
 next to Daily. Since September 2026 the two are separate: the daily puzzle pays the company
 nothing, and the Director's desk is **desk jobs**, questions from past dailies and Learn that turn
-up over time (see "The desk" in `ltd/CLAUDE.md`). The README covers the player-facing rules; this
+up over time (see "The desk" in `ltd/implemented.md`). The README covers the player-facing rules; this
 file is the design and implementation notes for the whole site, `ltd/CLAUDE.md` has Debugg Ltd's,
 and `ideas/roadmap.md` is the roadmap (item numbers refer to it).
 
@@ -60,246 +64,26 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
 
-**How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
-player-owner's call: the daily is its own game). The studio reads puzzle XP through
-`Debugg.readXp()` for the Director's skills and the founder's bonus, and its desk jobs reuse past
-daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
-`index.html` still fires `debugg:puzzle-finished` (`{ lang, day, solved, guesses, hintLevel, xp,
-streak }`) when a game ends, but nothing listens to it now.
+## Hard rules (the ones that break silently)
+- **Saves are live.** Never rename a `debugg-*` key or a state key; a shape change needs a boot-sequence guard in `ltd.js`. `SAVE_VERSION` only changes for the v0.1 reset.
+- **Don't move Day 1** (`LAUNCH` in `shared.js`) once players have progress; saves are keyed by day number.
+- **One product per branch** (daily, Ltd, Learn). Shared files count for none. `tools/check-scope.js` fails a PR otherwise.
+- **Every change players notice** adds a line under `## Unreleased` in that product's changelog, in the same PR.
+- No build step, no runtime dependencies. Plain ES modules and scripts only.
 
-**Two areas: the game and Learn** (split September 2026, the player-owner's call). The game is the
-daily puzzle and Debuggit Ltd, with **Daily | Ltd** tabs on `index.html`. **Debuggit Learn** is its
-own section at `learn/`; every page of the two areas shows the same top row of three buttons named for
-the products, `debuggit.learn()`, `debuggit.daily()` (demo) and `debuggit.ltd()` (demo), so there are no product
-links in the footers; it's the same site, so
-saves, XP levels and the backup code are shared. The game links into Learn from the top row, the
-Director's languages on the Ltd card (`a.learn-lang`, for courses that
-exist), and, after a missed or revealed puzzle (not a first-guess solve), `#learnMore`: the unit
-named by the puzzle's `learn` field (`learn/#python/strings`, which picks the unit out), or the
-course from the start. `index.html` loads `learn/courses.js` to know which courses exist. The
-checker fails a `learn` tag that isn't a written unit. The **sandbox** belongs to Learn too
-(`learn/sandbox.html`, showing Learn's version); the game links to it from its footer and from a
-finished puzzle's "Run it yourself", and lessons link to it from every step with code.
+## Design reference (read the section you need, never the whole file)
+- `docs/design.md`: how the daily and the studio connect, the two areas, tabs and loader, languages and rotation, XP, the demo, save versions and the v0.1 reset, the calendar, the weekly rotation, saves.
+- `docs/releases.md`: the full release routine and the one-product-per-branch rules.
+- `docs/roadmap-index.md`: the roadmap item index by phase. Detail is in `ideas/roadmap.md`.
+- `ltd/CLAUDE.md`: Ltd's data model and known gaps; `ltd/implemented.md`: everything built in Ltd.
 
-**Tabs and switching on.** The game's pages have **Daily | Ltd** tabs (inside the shared top row, which
-also holds the Learn button; `.modes` in `base.css`). The
-Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
-there): the company, with its desk beside the studio and no daily puzzle (`main.desk` is hidden),
-or, with no running company, a card (`#ltdIntro`) to start or resume one. Opening the tab never
-founds a company by itself. The loader at the bottom of `index.html` loads `ltd/desk.js` and then
-`ltd/ltd.js` only on the Ltd tab (for a running company, or one being started or resumed, from the
-card on the Ltd tab or the one under a finished puzzle, which moves to the Ltd tab), or when an
-old pre-merge save exists (which opens the Ltd tab). On the Daily tab a running company isn't
-loaded; a one-line note says how many desk jobs are waiting (read from the save) and links to Ltd.
-`DebuggLtd.start({ stats, studio, board, desk, office })` renders into the five slots (`office` is
-optional, as is `ltd/office.js`; the loader loads `desk.js`, `office.js`, `founding.js`, then `ltd.js`, and for a
-new company opens the founding step first, passing its answers in as `founding`) and either resumes
-the saved company, imports an old one, or founds a new one. `body.ltd-on` shows the desk and the
-studio in the two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title).
-The desk used to be the daily puzzle itself, which folded to its tiles once done; that went with
-the separation.
-
-**Languages and the rotation.** There's one puzzle a day, and the
-languages take turns. `LANG_INFO` in `shared.js` describes every language
-with puzzles (Python, JavaScript, C, Rust: name, extension, whether the
-sandbox can run it, its Debugg Ltd name, e.g. C is the studio's `C/C++`,
-and a playground link for Rust). `ROTATION` lists the languages in play and
-the day each joins (`from`); it's Python only for the demo. The week's six
-slots (Monday to Friday, then the weekend) go to the settled languages in
-turn, shifting one slot each week (`weekLangs()`), so each language gets
-every difficulty. A language in its first `NEW_LANG_WEEKS` (2) weeks only
-gets Monday and Tuesday. `LANGS` is the languages that have joined by today
-(the sandbox shows the runnable ones; the Director's skills show them all).
-Tests set the rotation with `openAt(page, path, day, { rotation })`
-(`window.DEBUGG_ROTATION`); left out, tests see what players see.
-
-**XP.** Kept per language in `debugg-xp` (`{ python: 120, rust: 40 }`);
-the overall XP is their total (`totalXp()`), shown as an "Overall" row
-above the languages, with the same level curve. Level-ups fire
-`level/<lang>/<n>` and `level/overall/<n>` analytics events.
-
-**The demo.** `DEMO` in `shared.js` is on. It shows a notice on the first
-visit (again from the **demo** badge in the header; tests switch the
-automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
-Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
-since managers came to the demo in September 2026, with desks, as its money sink). The locked
-types, and premises beyond the small business unit, show as "coming in v0.1". Patches need more than
-10 staff (see the contract board), so a manager and the unit. Old saves keep any staff
-and running jobs they have, but their bigger offers go and their repeats stop.
-
-**Save versions and the v0.1 reset.** Every save is marked with
-`debugg-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
-version is in `WIPED_VERSIONS` loses everything under `debugg-*` (and the
-pre-merge studio save) except sandbox drafts, and backup codes from those
-versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
-`'0.1'`, `WIPED_VERSIONS` to `['demo', '']` (`''` = saved before the
-marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
-`window.DEBUGG_WIPED_VERSIONS`.
-
-**Releases.** Three products, released separately (the player-owner's calls, September 2026: Learn
-first, since the Ltd game changes far more often than Learn, then the daily and Ltd): **Debuggit**,
-the daily puzzle; **Debuggit Ltd**, the studio game; and **Debuggit Learn**. Each has:
-- **Its own semantic version:** `APP_VERSION` (the daily), `LTD_VERSION` or `LEARN_VERSION` in
-  `shared.js`. All are separate from `SAVE_VERSION`, which only changes to reset saves. The daily
-  and Ltd shared one version up to 0.0.4, where Ltd's starts (its notes from 0.0.1 to 0.0.4 were
-  moved into its own changelog); Learn split off at 0.0.2. They run 0.0.x through the demo;
-  **0.1.0 is the launch** for each, since the v0.1 reset clears everything. After that, the middle
-  number is for new things to play (Learn: new units or courses) and the last for fixes and balance.
-- **Its own changelog:** `CHANGELOG.md` for the daily, `ltd/CHANGELOG.md` for Ltd,
-  `learn/CHANGELOG.md` for Learn.
-- **Its own What's new:** `whatsnew.html`, `whatsnew.html?ltd` or `whatsnew.html?learn`
-  (`PRODUCTS` in `shared.js` says which changelog each reads). The Daily tab's footer (and the
-  privacy page's) shows "v0.0.4 demo", the Ltd tab's "Ltd v0.0.4 demo" and Learn's "Learn v0.0.5
-  demo", each linking to its own What's new. Each has its own "· new" until the player has looked
-  (`debugg-seen-version`, `debugg-seen-ltd-version`, `debugg-seen-learn-version`).
-- **Its own tags and GitHub Releases:** `v0.0.5` / "Debuggit v0.0.5", `ltd-v0.0.5` / "Debuggit Ltd
-  v0.0.5", and `learn-v0.0.5` / "Debuggit Learn v0.0.5". Only the daily's releases are marked the
-  repository's "latest".
-
-**One product per branch (decided with the player-owner).** A branch, and so a PR, changes one
-product, never more. The exception is a change that really affects more than one: then each
-changelog it touches gets notes in that PR, and those products are released together.
-- The **scope** CI job (`tools/check-scope.js`) enforces this on every PR. Learn files are
-  `learn/` (the sandbox included), `learn.html`, `sandbox.html`, `tests/learn.spec.js` and
-  `tests/sandbox.spec.js`. Ltd files are `ltd/` (its changelog included), `studio/` and
-  `tests/ltd.spec.js`. Daily files are `index.html`, `daily/`, `puzzles/`, `CHANGELOG.md` and
-  `tests/daily.spec.js`. `index.html` also holds the Ltd tab, so on a branch whose other files are
-  all Ltd's it counts as Ltd's. A PR touching more than one fails unless it changes each one's
-  changelog.
-- Everything else is shared (`shared.js`, `base.css`, `backup.js`, tools, docs, CI) and counts for
-  none. A shared change players will notice still needs a line in the changelog of each product it
-  affects.
-- This session works from one designated branch, so each PR from it is kept to one product, and
-  the branch is re-synced with `main` after every merge.
-
-The routine:
-- **Every change players will notice adds a line under `## Unreleased`** in its product's
-  changelog, in the same PR, written for players. The changelogs are the full developer log and
-  stay in full.
-- **What's new shows players a curated view** (`playerView()` in `whatsnew.html`; the player-owner's
-  call, October 2026). While the demo runs (0.0.x, before any 0.1.0) every section is shown. After
-  that a section shows only its `<!-- player -->` … `<!-- /player -->` block: 3 to 6 one-line bullets
-  of what players will notice (new things to play, changes they'd see, fixes they'd have hit; not
-  tests, tooling, refactors or small balance tweaks). **Every minor release (0.1.0, 0.2.0…) has one**
-  and `tools/release.js bump` refuses a minor without it. **Before bumping a minor, draft that block
-  from the patch notes since the last minor, show it to the player-owner and get it approved**; for
-  0.1.0 it is the launch summary of the product, and the 0.0.x demo sections drop out of the page
-  automatically. A patch gets a block only for a critical fix players would notice, when the
-  player-owner agrees. The "· new" badge still follows `shared.js`'s version.
-- The player-owner says **release**, optionally with the product and version ("release Learn",
-  "release 0.1.0").
-  - Which product: whichever they name. If they don't name one, release every product with
-    something under Unreleased.
-  - Which version: the one they give, otherwise the next patch number.
-  - Bump with `node tools/release.js bump <version>` for the daily,
-    `node tools/release.js ltd bump <version>` for Ltd, or `node tools/release.js learn bump <version>`
-    for Learn. That dates the Unreleased notes and
-    sets the version. Then commit, PR (its scope check passes, since a release only touches
-    `shared.js` and that product's changelog) and merge.
-  - Then run the **Release** workflow on `main` with that product and version
-    (`workflow_dispatch`). Claude starts it through the GitHub connection, since this session
-    can't push tags, or the player-owner can from the Actions tab. Pushing a `v<version>`,
-    `ltd-v<version>` or `learn-v<version>` tag also starts it.
-- `.github/workflows/release.yml` runs every test (it calls `tests.yml`), checks that `shared.js`
-  and that product's changelog agree with the version, then creates the tag and a GitHub
-  Release with that version's notes. Tests failing means no release.
-- Until item 2d, `main` still deploys straight to GitHub Pages, so a release is a label and a
-  changelog entry; with 2d the public site will follow releases and `main` will go to a dev site.
-
-**The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `shared.js`). Days
-before it are preview days (0, -1, …), labelled "Preview", each with its
-own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
-once players have real progress**. If it does move, `shared.js` notices
-(it remembers the date in `debugg-epoch`) and clears per-day progress, the
-streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
-drafts.
-
-**The weekly rotation.** Each weekday has a difficulty (Monday 1 to Friday
-5), and Saturday and Sunday share one weekend puzzle (a **Make it pass** code
-challenge, its tests run on Pyodide by `daily/runner.js`; a hard 5 when none is left), saved under Saturday's day number: its
-*slot* (`slotDay()`). The schedule is computed from Day 1 in every
-browser: each slot's language (from the rotation) takes its first unused
-puzzle of that difficulty, in its file's order, else the nearest difficulty
-(easier first), and a puzzle is never served twice while its language has an unused one (the preview days' puzzles count as
-served, `PREVIEW_DAYS`). Only when a language has used every puzzle does the schedule start again, as a last resort
-(`firstRepeatDay()`); `tools/check-puzzles.js` fails when that day is less than 30 days away or two puzzles share code,
-so more get written in time. Streaks run slot to slot, so the
-weekend counts once. XP for a perfect solve follows the day (`BASE_XP`:
-60, 80, 100, 120, 150, weekend 200), and so does desk pay. Adding puzzles
-to the end only changes future days (and days that had fallen back), so
-it's safe to add them before they're due.
-
-**Saves.** Puzzle progress is `debugg-day<N>` (one per day, whatever
-the language), plus `debugg-xp`, `debugg-streak` and the sandbox's
-`debugg-lang` and `debugg-sandbox-<lang>` drafts.
-The company is `debugg-ltd`. Pre-merge studio saves
-(`contract-debugger-state-v3`) are imported once into `debugg-ltd` (dropping
-the old desk's `activeContract`), then removed. The boot sequence in
-`ltd.js` also carries the older shape guards (tier renames, Assembly,
-SLOC targets); add a similar guard if the state shape changes again.
-
-## Debuggit Ltd's design notes
-
-`ltd/CLAUDE.md` has the studio's data model, everything implemented in it and its known gaps.
-Claude Code loads it when working on files in `ltd/`; read it before changing Debuggit Ltd from
-elsewhere (`index.html`'s Ltd tab, `tools/sim-ltd.js`, `tests/ltd.spec.js`).
-
-## Future development
-
-The roadmap is in `ideas/roadmap.md`, by phase. Read an item there before working on it, and add
-new ideas there. Index (status in brackets):
-
-**Phase 1, foundations**
-- 1 Tests (done; unit tests and seeded randomness still to do)
-- 2 Semantic versioning and releases (done; 2d separates released from in progress)
-- 2b Hosting, players and analytics (step 1, GoatCounter, live)
-- 2c Direction: company-first, and the name Debuggit (decided; domain and trademark checks to do)
-- 2d Private repo, a new host (Cloudflare Pages), dev and release sites (to do)
-- 2e Separate pages: Learn done; Ltd's own page (to do, with 2d)
-- 3 Languages only for now (done)
-- 3b Puzzle formats and the weekly rotation (most formats built)
-- 3c One game: puzzles first, studio optional (done)
-- 3d Learn: courses, units, review queue, launch plan (Python units 1–7 built)
-- 3e Embedded C track (planned; detail in `ideas/embedded-c-roadmap.md`)
-- 3f Daily: weekend code challenges, hard mode, shared stats (next)
-- 3g The daily's launch plan (0.1.0)
-
-**Phase 2, the core loop**
-- 4a Success chance scales with level and skill match
-- 4b Show what makes up the success chance
-- 4c The intern's hotfixes are puzzles (built differently: the intern gets stuck)
-- 4d Graduates apply by reputation (built)
-- 5 Per-hire speed and success chance
-- 6 Contract deadlines
-- 7 Current contract in the employee panel
-- 8 Total SLOC/min in the stats bar
-- 9 Show what the desk pays
-- 10 Balance pass (first pass done)
-- 10b Look and feel (a kiwi mascot idea, light theme, accessibility)
-- 10c The studio panel, notifications bar and the job board (built)
-
-**Phase 3, retention and mid-game**
-- 11 (Moved into 3b)
-- 12 Reputation gates contract tiers
-- 13 Business tiers (stages built; unlocks to do)
-- 14 Training
-- 15 Office space (superseded by 15e)
-- 15b Shared event system
-- 15c Absences: sick days and holidays
-- 15d Company stats and records
-- 15e Business units, property and rentals (phase 1 built; detail in `ideas/company-growth-roadmap.md`)
-- 15f Perks and the kitchen: boosts with cooldowns, morale treats, permanent coffee-style upgrades (idea)
-
-**Phase 4, late game**
-- 16 Domains return with specialist hires
-- 17 In-house products and maintenance teams
-- 17b Tech Debt · 17c Merge Conflict · 17d Disruptive events
-- 17e Multi-language contracts
-- 17f AI agents (planned; detail in `ideas/ai-agents-plan.md`)
-- 18 Multiple sites
-- 19 Prestige
-
-**Polish:** 20 SLOC animation · 21 Visualise the office · 21b The agent office (step 1 built: `ideas/ltd-office-view-plan.md`) · 22 Skill gain through supervision
+## Releases
+Three products, released separately, each with its own version (`APP_VERSION`, `LTD_VERSION`,
+`LEARN_VERSION` in `shared.js`), changelog (`CHANGELOG.md`, `ltd/CHANGELOG.md`, `learn/CHANGELOG.md`),
+What's new page and tags (`v…`, `ltd-v…`, `learn-v…`). The owner says **release** (optionally product and
+version); then `node tools/release.js [ltd|learn] bump <version>`, a PR, merge, and the **Release** workflow
+(`workflow_dispatch`). A minor version needs a player-facing `<!-- player -->` block approved by the owner
+first. Full routine: `docs/releases.md`.
 
 ## Testing notes
 

@@ -399,6 +399,7 @@ for its contracts; they no longer name puzzles.
     for Sunday (e.g. a bonus golf round)?
 
 ### 3f. Daily puzzle: next features (on the roadmap, September 2026)
+More ideas for a fuller, higher-quality daily and Learn, with the current state of both: `ideas/daily-learn-quality-ideas.md` (October 2026).
 After the formats, stats, share picture, past puzzles and Step through it (3b), the player-owner
 put these on the roadmap, in this order:
 - **Weekend code challenges** (started October 2026): the weekend becomes a coding challenge, replacing the hard
