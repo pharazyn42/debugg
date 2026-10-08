@@ -462,9 +462,9 @@ window.DebuggLtd = (function(){
     // State
     // ---------------------------------------------------------------------
 
-    const STORAGE_KEY = 'debugg-ltd';
+    const STORAGE_KEY = D.KEYS.ltd.save;
     // Saves from before the merge, when the studio lived at /studio/.
-    const OLD_STORAGE_KEY = 'contract-debugger-state-v3';
+    const OLD_STORAGE_KEY = D.KEYS.shared.oldLtd;
 
     function freshState(money, named){
       const now = Date.now();

@@ -302,8 +302,8 @@ def _debugg_run(src):
   Object.keys(window.Debugg.LANGS).forEach(k => { if(window.Debugg.LANGS[k].runnable) LANGS[k] = window.Debugg.LANGS[k]; });
   const { highlight } = window.Debugg;
   const DAY = window.Debugg.today();
-  const LANG_KEY = 'debugg-lang';
-  const DRAFT_KEY = l => 'debugg-sandbox-' + l;
+  const LANG_KEY = window.Debugg.KEYS.learn.lang;
+  const DRAFT_KEY = l => window.Debugg.KEYS.learn.sandboxPrefix + l;
 
   // Python runs on Pyodide (CPython compiled to WebAssembly), loaded from a CDN on the first Python run.
   // window.DEBUGG_PYODIDE_URL lets tests point this at a local copy.

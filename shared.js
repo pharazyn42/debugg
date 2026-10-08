@@ -10,7 +10,23 @@ window.Debugg = (function(){
   const DAY_MS = 24 * 60 * 60 * 1000;
   // The Day 1 date before this one, for saves made before the calendar remembered its date.
   const OLD_LAUNCH = Date.UTC(2026, 8, 27);
-  const EPOCH_KEY = 'debugg-epoch';
+
+  // Every localStorage key the site writes, by owner. Nothing else spells a key out, so splitting the
+  // products later (their own prefixes) is a change here. `prefix` is what isOurKey() matches on.
+  const KEYS = {
+    prefix: 'debugg-',
+    daily: { xp: 'debugg-xp', streak: 'debugg-streak', dayPrefix: 'debugg-day', practicePrefix: 'debugg-practice-day',
+             demoSeen: 'debugg-demo-seen', seen: 'debugg-seen-version' },
+    ltd:   { save: 'debugg-ltd', seen: 'debugg-seen-ltd-version' },
+    learn: { save: 'debugg-learn', session: 'debugg-learn-session', collapsed: 'debugg-learn-collapsed',
+             lang: 'debugg-lang', sandboxPrefix: 'debugg-sandbox-', seen: 'debugg-seen-learn-version' },
+    shared: { version: 'debugg-version', epoch: 'debugg-epoch', oldLtd: 'contract-debugger-state-v3' }
+  };
+  const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // A saved day: the current key, or the older per-language form (debugg-python-day3).
+  const DAY_KEY_RE = new RegExp('^(?:' + escapeRe(KEYS.daily.dayPrefix) + '|' + escapeRe(KEYS.prefix) + '\\w+-day)-?\\d+$');
+  function isOurKey(k){ return k.startsWith(KEYS.prefix); }
+  const EPOCH_KEY = KEYS.shared.epoch;
 
   // Save versions. Every save is marked with the version that made it (`debugg-version`). Saves from
   // a version in WIPED_VERSIONS lose all their progress on load, as the demo warns players: v0.1 sets
@@ -28,15 +44,15 @@ window.Debugg = (function(){
   // Per product: its version, where "seen" is kept, which saves mean a returning player, its What's
   // new and its changelog. `game` is the daily's old name, kept for callers that still pass it.
   const PRODUCTS = {
-    daily: { version: APP_VERSION, seen: 'debugg-seen-version', name: 'Debuggit', label: '', page: 'whatsnew.html',
-             log: 'CHANGELOG.md', returning: /^debugg-(day-?\d+|xp|streak)$/ },
-    ltd:   { version: LTD_VERSION, seen: 'debugg-seen-ltd-version', name: 'Debuggit Ltd', label: 'Ltd ', page: 'whatsnew.html?ltd',
-             log: 'ltd/CHANGELOG.md', returning: /^debugg-ltd$/ },
-    learn: { version: LEARN_VERSION, seen: 'debugg-seen-learn-version', name: 'Debuggit Learn', label: 'Learn ', page: 'whatsnew.html?learn',
-             log: 'learn/CHANGELOG.md', returning: /^debugg-learn$/ }
+    daily: { version: APP_VERSION, seen: KEYS.daily.seen, name: 'Debuggit', label: '', page: 'whatsnew.html',
+             log: 'CHANGELOG.md', returning: new RegExp('^(?:' + escapeRe(KEYS.daily.dayPrefix) + '-?\\d+|' + escapeRe(KEYS.daily.xp) + '|' + escapeRe(KEYS.daily.streak) + ')$') },
+    ltd:   { version: LTD_VERSION, seen: KEYS.ltd.seen, name: 'Debuggit Ltd', label: 'Ltd ', page: 'whatsnew.html?ltd',
+             log: 'ltd/CHANGELOG.md', returning: new RegExp('^' + escapeRe(KEYS.ltd.save) + '$') },
+    learn: { version: LEARN_VERSION, seen: KEYS.learn.seen, name: 'Debuggit Learn', label: 'Learn ', page: 'whatsnew.html?learn',
+             log: 'learn/CHANGELOG.md', returning: new RegExp('^' + escapeRe(KEYS.learn.save) + '$') }
   };
   PRODUCTS.game = PRODUCTS.daily;
-  const VERSION_KEY = 'debugg-version';
+  const VERSION_KEY = KEYS.shared.version;
   const WIPED_VERSIONS = window.DEBUGG_WIPED_VERSIONS || [];
   function isWipedVersion(v){ return WIPED_VERSIONS.includes(v || ''); }
   (function wipeOldVersions(){
@@ -44,7 +60,7 @@ window.Debugg = (function(){
       const saved = localStorage.getItem(VERSION_KEY) || '';
       if(saved !== SAVE_VERSION && isWipedVersion(saved)){
         Object.keys(localStorage)
-          .filter(k => (k.startsWith('debugg-') && !k.startsWith('debugg-sandbox-')) || k === 'contract-debugger-state-v3')
+          .filter(k => (isOurKey(k) && !k.startsWith(KEYS.learn.sandboxPrefix)) || k === KEYS.shared.oldLtd)
           .forEach(k => localStorage.removeItem(k));
       }
       localStorage.setItem(VERSION_KEY, SAVE_VERSION);
@@ -59,14 +75,14 @@ window.Debugg = (function(){
     try{
       const saved = localStorage.getItem(EPOCH_KEY);
       const keys = Object.keys(localStorage);
-      const hasDays = keys.some(k => /^debugg-(\w+-)?day-?\d+$/.test(k));
+      const hasDays = keys.some(k => DAY_KEY_RE.test(k));
       const previous = saved !== null ? Number(saved) : (hasDays ? OLD_LAUNCH : LAUNCH);
       if(previous !== LAUNCH){
-        keys.filter(k => /^debugg-(\w+-)?day-?\d+$/.test(k) || k === 'debugg-streak').forEach(k => localStorage.removeItem(k));
-        const company = JSON.parse(localStorage.getItem('debugg-ltd'));
+        keys.filter(k => DAY_KEY_RE.test(k) || k === KEYS.daily.streak).forEach(k => localStorage.removeItem(k));
+        const company = JSON.parse(localStorage.getItem(KEYS.ltd.save));
         if(company && company.paid){
           company.paid = {};
-          localStorage.setItem('debugg-ltd', JSON.stringify(company));
+          localStorage.setItem(KEYS.ltd.save, JSON.stringify(company));
         }
       }
       localStorage.setItem(EPOCH_KEY, String(LAUNCH));
@@ -289,7 +305,7 @@ window.Debugg = (function(){
 
   // One save per day, whatever the language. Keyed by slot, so a weekend puzzle has one save for
   // Saturday and Sunday.
-  function stateKey(day){ return 'debugg-day' + slotDay(day); }
+  function stateKey(day){ return KEYS.daily.dayPrefix + slotDay(day); }
   function readState(day){
     try{ return JSON.parse(localStorage.getItem(stateKey(day))); }catch(e){ return null; }
   }
@@ -313,7 +329,7 @@ window.Debugg = (function(){
   // Puzzle XP is stored per language key: { python: 120, rust: 40 }. The overall XP is their total.
   function readXp(){
     try{
-      const raw = JSON.parse(localStorage.getItem('debugg-xp'));
+      const raw = JSON.parse(localStorage.getItem(KEYS.daily.xp));
       if(raw && typeof raw === 'object') return raw;
     }catch(e){}
     return {};
@@ -443,7 +459,7 @@ window.Debugg = (function(){
   }
   function markVersionSeen(product = 'daily'){ try{ localStorage.setItem(PRODUCTS[product].seen, PRODUCTS[product].version); }catch(e){} }
 
-  return { NAME, APP_VERSION, LTD_VERSION, LEARN_VERSION, PRODUCTS, renderVersion, markVersionSeen, renderWordmark, wordmarkFor, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
+  return { NAME, KEYS, DAY_KEY_RE, isOurKey, APP_VERSION, LTD_VERSION, LEARN_VERSION, PRODUCTS, renderVersion, markVersionSeen, renderWordmark, wordmarkFor, DEMO, SAVE_VERSION, isWipedVersion, LANG_INFO, LANGS, PUZZLE_FILES, ROTATION, langsBy, langFor, weekLangs,
            dayNumber, today, isPreview, dayLabel, launchDate, slotDay, previousSlot, isWeekend,
            dayKind, dayTitle, baseXp, puzzlesFor, puzzleFor, firstRepeatDay, codeId, FORMATS, formatOf, formatFor, stateKey, readState, isFinished, normaliseAnswer,
            readXp, totalXp, levelStart, levelFor, highlight, escapeHtml };

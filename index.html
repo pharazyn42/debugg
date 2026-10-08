@@ -523,8 +523,8 @@
   const resetLink = document.getElementById('resetLink');
   const xpEl = document.getElementById('xp');
 
-  const STREAK_KEY = 'debugg-streak';
-  const XP_KEY = 'debugg-xp';
+  const STREAK_KEY = window.Debugg.KEYS.daily.streak;
+  const XP_KEY = window.Debugg.KEYS.daily.xp;
 
   // There's one puzzle a day, and the languages take turns (see the rotation in shared.js).
   // index.html?day=N plays an earlier day again as practice (see daily/archive.js): saved apart,
@@ -538,7 +538,7 @@
   const puzzle = window.Debugg.puzzleFor(DAY);
   const lang = puzzle.lang;
   const LANG = LANG_INFO[lang];
-  const STATE_KEY = PRACTICE ? 'debugg-practice-day' + SLOT : window.Debugg.stateKey(DAY);
+  const STATE_KEY = PRACTICE ? window.Debugg.KEYS.daily.practicePrefix + SLOT : window.Debugg.stateKey(DAY);
   // How the puzzle is asked and answered (shared.js FORMATS, daily/formats.js).
   const FORMAT = window.Debugg.formatOf(puzzle);
   const MAX_GUESSES = window.Debugg.FORMATS[FORMAT].guesses;
@@ -1197,7 +1197,7 @@
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen', 'debugg-seen-version', 'debugg-seen-ltd-version', 'debugg-seen-learn-version'].includes(k)).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => { const K = window.Debugg.KEYS; return window.Debugg.isOurKey(k) && ![K.ltd.save, K.learn.save, K.daily.demoSeen, K.daily.seen, K.ltd.seen, K.learn.seen].includes(k); }).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });
@@ -1255,7 +1255,7 @@
 // a running company, or one being started or resumed), or when a save from before the merge exists
 // (the old /studio/ page, which opens the Ltd tab). On the Daily tab a running company gets a note.
 (function(){
-  const KEY = 'debugg-ltd', OLD_KEY = 'contract-debugger-state-v3';
+  const KEY = window.Debugg.KEYS.ltd.save, OLD_KEY = window.Debugg.KEYS.shared.oldLtd;
   function read(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
   const $ = id => document.getElementById(id);
 
@@ -1357,7 +1357,7 @@
     badge.addEventListener('click', () => notice.showModal());
     document.getElementById('demoOk').addEventListener('click', () => notice.close());
     let seen = true;
-    try{ seen = !!localStorage.getItem('debugg-demo-seen'); localStorage.setItem('debugg-demo-seen', '1'); }catch(e){}
+    try{ seen = !!localStorage.getItem(window.Debugg.KEYS.daily.demoSeen); localStorage.setItem(window.Debugg.KEYS.daily.demoSeen, '1'); }catch(e){}
     if(!seen && window.DEBUGG_DEMO_NOTICE !== false) notice.showModal();
   }
 

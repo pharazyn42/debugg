@@ -38,7 +38,7 @@ window.DebuggArchive = (function(){
     if(!dialog) build();
     const rows = slots(today).map(day => {
       const p = D.puzzleFor(day);
-      const real = result(D.readState(day)), practice = result(read('debugg-practice-day' + day));
+      const real = result(D.readState(day)), practice = result(read(window.Debugg.KEYS.daily.practicePrefix + day));
       const when = dateOf(day).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       const name = (D.isPreview(day) ? 'Preview' : D.dayLabel(day)) + ' · ' + when;
       const status = real ? (real === 'missed' ? 'Missed on the day' : 'Solved on the day in ' + real.split(' ').pop())

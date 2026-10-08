@@ -49,8 +49,9 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 `shared.js:62-69` (old epoch migration, touches Ltd's save: delete it), `index.html:1200` (reset list).
 
 ## Last session handoff
-- Branch: `claude/jolly-davinci-dfihk5`. `PLAN.md` is now the **repo-split plan** (Approved 2026-10-08); the old foundations plan is in git history, its TODO items are under "Parked" in `TODO.md`.
-- Finished: re-split `TODO.md` from the new plan (`todo-curator` agent failed to start, its tools list uses lowercase names this environment does not recognise, so it was done by hand); item 1, the key inventory, above. No code touched.
-- Next: "Central key map" in `TODO.md` (one `KEYS` object, behaviour unchanged, `npm test` green). Then the three renames. Decisions still open: Ltd XP values and Ltd languages, in `TODO.md` "Blocked".
-- Note: `check-scope.js` allows multi-product PRs when each touched product gets a changelog line, so the renames need not be split by repo.
-- Tests: not run, no code touched · Uncommitted changes: `TODO.md`, `NOTES.md`
+- Branch: `claude/jolly-davinci-dfihk5` (repo-split plan, Phase 1).
+- Finished: central key map. `shared.js` has `KEYS` (by owner: `daily`, `ltd`, `learn`, `shared`, plus the family `prefix`), `DAY_KEY_RE` and `isOurKey()`, all exposed on `window.Debugg`. Every other file reads keys from there: `index.html`, `daily/{archive,stats}.js`, `learn/{learn.js,sandbox.html}`, `ltd/ltd.js`, `backup.js`. Key names are unchanged. Grep for `'debugg-` now finds only the `KEYS` literals.
+- Tests: `npx playwright test` 148 passed; `node tools/sim-ltd.js` runs. No changelog line, nothing players notice.
+- Next: "Rename Ltd's keys to `debuggit-ltd-*`" (`KEYS.ltd` plus `KEYS.shared.oldLtd`). Gotchas: `isOurKey()` matches the one `debugg-` prefix, so a renamed key stops being backed up and wiped until `KEYS.prefix` becomes a list of prefixes; do that in the same PR. `DAY_KEY_RE` and the `returning:` regexes already follow `KEYS`. `tests/*.js` spell old keys out (~90 places): update them in the same PR. Bump `SAVE_VERSION` for the demo wipe.
+- Open: Ltd XP scale values and Ltd languages (`TODO.md` "Blocked").
+- Uncommitted changes: none after this commit.

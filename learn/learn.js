@@ -13,9 +13,9 @@
 window.DebuggLearn = (function(){
   const D = window.Debugg;
   const L = window.DEBUGG_LEARN;
-  const SAVE_KEY = 'debugg-learn';
-  const SESSION_KEY = 'debugg-learn-session';
-  const COLLAPSED_KEY = 'debugg-learn-collapsed';   // which units are folded on the map: a per-device convenience
+  const SAVE_KEY = window.Debugg.KEYS.learn.save;
+  const SESSION_KEY = window.Debugg.KEYS.learn.session;
+  const COLLAPSED_KEY = window.Debugg.KEYS.learn.collapsed;   // which units are folded on the map: a per-device convenience
   const LESSON_XP = 10;       // for finishing a lesson the first time
   const STAR_XP = 5;          // per star, paid again only for stars beyond your best
   const CHECKPOINT_XP = 30;   // for passing a checkpoint the first time

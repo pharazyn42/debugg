@@ -5,7 +5,7 @@
 
 ## Now
 - [x] Key inventory: list every `debugg-*` key with its owner (daily / learn / ltd / shared) in `NOTES.md`, including the dynamic ones (`'debugg-' + …` in `shared.js`, the prefix scan in `backup.js`, `debugg-sandbox-<lang>`, `debugg-<lang>-day<N>`). Check: `grep -rhoE "debugg-[a-z0-9-]*" --include=*.js --include=*.html . | sort -u` shows nothing missing from the list. No code change.
-- [ ] Central key map: put every key name in one `KEYS` object per product (`shared.js` for now), so the rename is a one-line change each. Behaviour unchanged. Check: `npm test` green and the inventory grep still shows the same names.
+- [x] Central key map: put every key name in one `KEYS` object per product (`shared.js` for now), so the rename is a one-line change each. Behaviour unchanged. Check: `npm test` green and the inventory grep still shows the same names.
 - [ ] Rename Ltd's keys to `debuggit-ltd-*` (`debugg-ltd` and anything Ltd-only). Bump `SAVE_VERSION` for the demo wipe, no migration. Check: `npm test` green, `grep -rn "debugg-ltd" --include=*.js --include=*.html --include=*.md . ` finds only old-name mentions in docs. Ltd changelog line under `## Unreleased`.
 
 ## Next
