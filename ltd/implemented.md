@@ -61,7 +61,7 @@ Moved out of `ltd/CLAUDE.md` to keep that always-loaded file small. Read the sec
 - **Pause / Close**: pausing stores `pausedAt` and reloads without the
   studio; resuming shifts every clock in the save (`lastTick`, jobs,
   offers, `since`) forward by the paused time, so nothing happens while
-  paused. Closing deletes `debugg-ltd`. The page's "reset puzzles" keeps
+  paused. Closing deletes `debuggit-ltd-save`. The page's "reset puzzles" keeps
   the company.
 - **Start-up**: you begin as the Director alone, and you double as the
   manager. The Director gives one slot at every level, one principal slot,

@@ -184,7 +184,7 @@ async function openPage(world){
   })));
   return {
     tick: () => { if(tick) tick(); },
-    state: () => JSON.parse(world.storage.getItem('debugg-ltd')),
+    state: () => JSON.parse(world.storage.getItem('debuggit-ltd-save')),
     click: dataset => fire(slots.studio, 'click', dataset),
     desk: dataset => fire(slots.desk, 'click', dataset),
     picker: dataset => fire(document.getElementById('teamModal'), 'click', dataset),

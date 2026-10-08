@@ -50,8 +50,9 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 
 ## Last session handoff
 - Branch: `claude/jolly-davinci-dfihk5` (repo-split plan, Phase 1).
-- Finished: central key map. `shared.js` has `KEYS` (by owner: `daily`, `ltd`, `learn`, `shared`, plus the family `prefix`), `DAY_KEY_RE` and `isOurKey()`, all exposed on `window.Debugg`. Every other file reads keys from there: `index.html`, `daily/{archive,stats}.js`, `learn/{learn.js,sandbox.html}`, `ltd/ltd.js`, `backup.js`. Key names are unchanged. Grep for `'debugg-` now finds only the `KEYS` literals.
-- Tests: `npx playwright test` 148 passed; `node tools/sim-ltd.js` runs. No changelog line, nothing players notice.
-- Next: "Rename Ltd's keys to `debuggit-ltd-*`" (`KEYS.ltd` plus `KEYS.shared.oldLtd`). Gotchas: `isOurKey()` matches the one `debugg-` prefix, so a renamed key stops being backed up and wiped until `KEYS.prefix` becomes a list of prefixes; do that in the same PR. `DAY_KEY_RE` and the `returning:` regexes already follow `KEYS`. `tests/*.js` spell old keys out (~90 places): update them in the same PR. Bump `SAVE_VERSION` for the demo wipe.
+- Finished: Ltd's keys renamed. `KEYS.ltd.save` is `debuggit-ltd-save` and `KEYS.ltd.seen` is `debuggit-ltd-seen-version`. `KEYS.prefix` became `KEYS.prefixes` (`['debugg-', 'debuggit-ltd-']`), and `isOurKey()` matches any, so backup, wipe and the reset list still cover Ltd. Tests, `tools/sim-ltd.js` and the docs that named the old keys are updated. Ltd changelog line added under Unreleased.
+- Deviation from the TODO item: **`SAVE_VERSION` was not bumped.** `WIPED_VERSIONS` is empty by default and `CLAUDE.md` says `SAVE_VERSION` only changes for the v0.1 reset, so a bump would do nothing here. Any browser with an old `debugg-ltd` save keeps it as an orphan; the player starts a new company. Fine with no players; revisit if one turns up.
+- Tests: `npx playwright test` 147 passed, 1 failed (`daily.spec.js:10` Python puzzles, a 60 s `page.fill` timeout under parallel load); it passes alone, 4/4. Not caused by this change. `tools/sim-ltd.js` loads and runs.
+- Next: "Rename Learn's keys to `debuggit-learn-*`" (`KEYS.learn`; add `'debuggit-learn-'` to `KEYS.prefixes`; `KEYS.learn.sandboxPrefix` is used by the wipe filter, so check sandbox drafts are still kept). Update `tests/learn.spec.js`, `tests/sandbox.spec.js` and docs. Learn changelog line.
 - Open: Ltd XP scale values and Ltd languages (`TODO.md` "Blocked").
 - Uncommitted changes: none after this commit.

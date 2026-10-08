@@ -71,7 +71,7 @@ test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the da
   await openAt(page, 'index.html');
   await fresh(page);
   // A returning company that last saw an older Ltd version sees "new" on the Ltd tab only.
-  await page.evaluate(() => { localStorage.setItem('debugg-seen-ltd-version', '0.0.0'); localStorage.setItem('debugg-ltd', '{}'); });
+  await page.evaluate(() => { localStorage.setItem('debuggit-ltd-seen-version', '0.0.0'); localStorage.setItem('debuggit-ltd-save', '{}'); });
   await page.goto('index.html?ltd');
   await expect(page.locator('.version-link')).toHaveText('Ltd v' + LTD_VERSION + ' demo · new');
   await page.goto('index.html');

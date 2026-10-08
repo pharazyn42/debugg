@@ -301,7 +301,7 @@ test('moving Day 1 clears progress saved under the old day numbers', async ({ pa
     localStorage.setItem('debugg-javascript-day1', JSON.stringify({ attempts: ['wrong'], solved: false, revealed: false, hintLevel: 0 }));
     localStorage.setItem('debugg-streak', JSON.stringify({ count: 1, lastDay: 1 }));
     localStorage.setItem('debugg-xp', JSON.stringify({ python: 100 }));
-    localStorage.setItem('debugg-ltd', JSON.stringify({ enabled: false, pausedAt: 1, money: 500, paid: { 'python-1': true } }));
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify({ enabled: false, pausedAt: 1, money: 500, paid: { 'python-1': true } }));
   });
   await page.reload();
   await expect(page.locator('#feedback')).not.toHaveClass(/correct/);
@@ -310,7 +310,7 @@ test('moving Day 1 clears progress saved under the old day numbers', async ({ pa
     js: localStorage.getItem('debugg-javascript-day1'),
     streak: localStorage.getItem('debugg-streak'),
     xp: JSON.parse(localStorage.getItem('debugg-xp')),
-    company: JSON.parse(localStorage.getItem('debugg-ltd'))
+    company: JSON.parse(localStorage.getItem('debuggit-ltd-save'))
   }));
   expect(kept.day1).toBeNull();
   expect(kept.js).toBeNull();

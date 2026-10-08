@@ -19,7 +19,7 @@ other files are all Ltd's.
 ## The engine (verify before relying on it)
 `ltd/ltd.js` mixes DOM rendering with logic; `ltd/desk.js` the desk jobs. State is one object
 (`money`, `roster`, `board`, `jobs`, `desk`, `applicants`, `market`, `office`, `log`, …) stored in
-`debugg-ltd`. Rules live as constants at the top: `TIERS`, `ROLES`, `PROMOTION`, `RISKS`, `EXPERT`,
+`debuggit-ltd-save`. Rules live as constants at the top: `TIERS`, `ROLES`, `PROMOTION`, `RISKS`, `EXPERT`,
 `DESK_PAY`, `COWORK_*`, `STAGES`.
 - **Never rename a state key or a `debugg-*` storage key** — saves are live in players' browsers.
   A shape change needs a boot-sequence guard in `ltd.js` (the pattern already used for tier renames).

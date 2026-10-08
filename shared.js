@@ -12,20 +12,22 @@ window.Debugg = (function(){
   const OLD_LAUNCH = Date.UTC(2026, 8, 27);
 
   // Every localStorage key the site writes, by owner. Nothing else spells a key out, so splitting the
-  // products later (their own prefixes) is a change here. `prefix` is what isOurKey() matches on.
+  // products later (their own prefixes) is a change here. `prefixes` is what isOurKey() matches on.
   const KEYS = {
-    prefix: 'debugg-',
+    // Every prefix a save key can start with; isOurKey() matches any. Each product that moves to its
+    // own prefix adds it here.
+    prefixes: ['debugg-', 'debuggit-ltd-'],
     daily: { xp: 'debugg-xp', streak: 'debugg-streak', dayPrefix: 'debugg-day', practicePrefix: 'debugg-practice-day',
              demoSeen: 'debugg-demo-seen', seen: 'debugg-seen-version' },
-    ltd:   { save: 'debugg-ltd', seen: 'debugg-seen-ltd-version' },
+    ltd:   { save: 'debuggit-ltd-save', seen: 'debuggit-ltd-seen-version' },
     learn: { save: 'debugg-learn', session: 'debugg-learn-session', collapsed: 'debugg-learn-collapsed',
              lang: 'debugg-lang', sandboxPrefix: 'debugg-sandbox-', seen: 'debugg-seen-learn-version' },
     shared: { version: 'debugg-version', epoch: 'debugg-epoch', oldLtd: 'contract-debugger-state-v3' }
   };
   const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // A saved day: the current key, or the older per-language form (debugg-python-day3).
-  const DAY_KEY_RE = new RegExp('^(?:' + escapeRe(KEYS.daily.dayPrefix) + '|' + escapeRe(KEYS.prefix) + '\\w+-day)-?\\d+$');
-  function isOurKey(k){ return k.startsWith(KEYS.prefix); }
+  const DAY_KEY_RE = new RegExp('^(?:' + escapeRe(KEYS.daily.dayPrefix) + '|' + 'debugg-\\w+-day)-?\\d+$');
+  function isOurKey(k){ return KEYS.prefixes.some(p => k.startsWith(p)); }
   const EPOCH_KEY = KEYS.shared.epoch;
 
   // Save versions. Every save is marked with the version that made it (`debugg-version`). Saves from

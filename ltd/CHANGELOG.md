@@ -10,6 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **Your company is saved under a new name.** Debuggit Ltd now keeps its save apart from the daily puzzle and Learn. A company started in an earlier demo version won't carry over; this is a demo, and you start a fresh one.
 - **Your desk is a window, opened by clicking yourself.** The desk is no longer in the main layout: click yourself in the office (or press **Your desk** in the Studio box) to open it. While a desk job is waiting, an amber badge with the number of jobs pulses over your head. Your name, look and languages are under **Your details** in the desk window.
 - **Developers can take hotfixes.** Hotfixes are no longer your intern's alone: any developer who knows the language can take one solo, and with managers they repeat like other contracts and idle developers are put on them. Your intern still takes them with you.
 - **SLOC/min is now an income figure too.** Under the SLOC/min number in the stats bar is what that code earns per minute (for example "+¤14/min"): everyday work paid per line as it's written, plus your running contracts' payouts spread over their length (counted at their success chance). Hover it for the breakdown and what's left after payroll and rent.

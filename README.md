@@ -77,7 +77,7 @@ A **Next step** card walks a new company through its intern's first hotfix (and 
 
 **Notice:** now and then someone hands in their notice (far more often in a cramped office). They stay a day; free up a desk, or agree the pay rise on their card, and they'll stay. Business units and bigger premises come next (see `ideas/company-growth-roadmap.md`).
 
-The studio's code (`ltd/ltd.js`, `ltd/desk.js`, `ltd/ltd.css`) only loads on the Ltd tab. It reads your puzzle XP for the Director's languages; nothing flows the other way. The company is saved under `debugg-ltd`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
+The studio's code (`ltd/ltd.js`, `ltd/desk.js`, `ltd/ltd.css`) only loads on the Ltd tab. It reads your puzzle XP for the Director's languages; nothing flows the other way. The company is saved under `debuggit-ltd-save`. The old `/studio/` page now redirects to the main page with the studio on, and a company saved there before the merge is imported automatically.
 
 `ideas/debugg-ltd-merge-plan.md` is the plan this was built from, `ltd/CLAUDE.md` has the studio's design and `ideas/roadmap.md` its roadmap.
 

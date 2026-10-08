@@ -7,7 +7,7 @@ const path = require('path');
 const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
 
 const at = (h, m = 0) => new Date(2026, 9, 7, h, m, 0);  // Day 3, a Wednesday
-const ltd = page => readJson(page, 'debugg-ltd');
+const ltd = page => readJson(page, 'debuggit-ltd-save');
 
 // Opens the Ltd tab and starts a company there.
 async function found(page){
@@ -39,10 +39,10 @@ async function openDesk(page){
 async function setDeskJob(page, questions){
   await page.evaluate(ids => {
     if(window.DebuggLtd) window.DebuggLtd.stop();
-    const s = JSON.parse(localStorage.getItem('debugg-ltd'));
+    const s = JSON.parse(localStorage.getItem('debuggit-ltd-save'));
     s.desk.jobs = [{ id: 'dj1', size: ids.length, questions: ids, answered: [], expiresAt: Date.now() + 3600000 }];
     s.desk.nextAt = Date.now() + 3600000;
-    localStorage.setItem('debugg-ltd', JSON.stringify(s));
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify(s));
   }, questions.map(q => q.id));
   await page.reload();
   await openDesk(page);
@@ -65,9 +65,9 @@ async function hireGrad(page, cost = 180){
 async function editCompany(page, fn, arg){
   await page.evaluate(([src, arg]) => {
     if(window.DebuggLtd) window.DebuggLtd.stop();  // so the running page can't save over the edit
-    const s = JSON.parse(localStorage.getItem('debugg-ltd'));
+    const s = JSON.parse(localStorage.getItem('debuggit-ltd-save'));
     new Function('s', 'arg', src)(s, arg);
-    localStorage.setItem('debugg-ltd', JSON.stringify(s));
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify(s));
   }, ['(' + fn.toString() + ')(s, arg)', arg === undefined ? null : arg]);
   await page.reload();
   await expect(page.locator('#statMoney')).toBeVisible();
@@ -616,7 +616,7 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
   await page.clock.setFixedTime(at(12));
   await found(page);
   // Some offers are rolled risky; the board has every level over time.
-  const risks = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-ltd')).board.map(o => o.risk));
+  const risks = await page.evaluate(() => JSON.parse(localStorage.getItem('debuggit-ltd-save')).board.map(o => o.risk));
   expect(risks.every(r => ['standard', 'risky', 'high'].includes(r))).toBe(true);
   await editCompany(page, s => {
     s.guideDone = true;

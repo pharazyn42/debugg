@@ -18,7 +18,7 @@ the daily puzzle; **Debuggit Ltd**, the studio game; and **Debuggit Learn**. Eac
   (`PRODUCTS` in `shared.js` says which changelog each reads). The Daily tab's footer (and the
   privacy page's) shows "v0.0.4 demo", the Ltd tab's "Ltd v0.0.4 demo" and Learn's "Learn v0.0.5
   demo", each linking to its own What's new. Each has its own "· new" until the player has looked
-  (`debugg-seen-version`, `debugg-seen-ltd-version`, `debugg-seen-learn-version`).
+  (`debugg-seen-version`, `debuggit-ltd-seen-version`, `debugg-seen-learn-version`).
 - **Its own tags and GitHub Releases:** `v0.0.5` / "Debuggit v0.0.5", `ltd-v0.0.5` / "Debuggit Ltd
   v0.0.5", and `learn-v0.0.5` / "Debuggit Learn v0.0.5". Only the daily's releases are marked the
   repository's "latest".
