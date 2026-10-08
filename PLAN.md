@@ -1,7 +1,7 @@
 # Plan: Split Daily, Learn and Ltd into separate repos
 **Idea:** none yet (this came from a design discussion, October 2026). Add a short `ideas/repo-split.md` if the owner wants a roadmap ref.
 **Requirement(s):** none named.
-**Status:** Draft — not approved
+**Status:** Approved
 
 *Replaces the "Phase 1 foundations" plan, which is still in git history (`git log -p PLAN.md`). Re-add it if that work is still wanted.*
 
