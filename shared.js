@@ -16,12 +16,12 @@ window.Debugg = (function(){
   const KEYS = {
     // Every prefix a save key can start with; isOurKey() matches any. Each product that moves to its
     // own prefix adds it here.
-    prefixes: ['debugg-', 'debuggit-ltd-'],
+    prefixes: ['debugg-', 'debuggit-ltd-', 'debuggit-learn-'],
     daily: { xp: 'debugg-xp', streak: 'debugg-streak', dayPrefix: 'debugg-day', practicePrefix: 'debugg-practice-day',
              demoSeen: 'debugg-demo-seen', seen: 'debugg-seen-version' },
     ltd:   { save: 'debuggit-ltd-save', seen: 'debuggit-ltd-seen-version' },
-    learn: { save: 'debugg-learn', session: 'debugg-learn-session', collapsed: 'debugg-learn-collapsed',
-             lang: 'debugg-lang', sandboxPrefix: 'debugg-sandbox-', seen: 'debugg-seen-learn-version' },
+    learn: { save: 'debuggit-learn-save', session: 'debuggit-learn-session', collapsed: 'debuggit-learn-collapsed',
+             lang: 'debuggit-learn-lang', sandboxPrefix: 'debuggit-learn-sandbox-', seen: 'debuggit-learn-seen-version' },
     shared: { version: 'debugg-version', epoch: 'debugg-epoch', oldLtd: 'contract-debugger-state-v3' }
   };
   const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

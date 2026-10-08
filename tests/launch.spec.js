@@ -116,7 +116,7 @@ test('saves from a reset version are wiped, apart from sandbox drafts, and so ar
     localStorage.setItem('debugg-xp', JSON.stringify({ python: 500 }));
     localStorage.setItem('debugg-day3', JSON.stringify({ attempts: ['x'], solved: true, revealed: true, hintLevel: 0 }));
     localStorage.setItem('debuggit-ltd-save', JSON.stringify({ enabled: false, pausedAt: 1, money: 500 }));
-    localStorage.setItem('debugg-sandbox-python', 'print(1)');
+    localStorage.setItem('debuggit-learn-sandbox-python', 'print(1)');
   });
   const oldCode = await page.evaluate(() => window.DebuggBackup.makeCode());
   await page.addInitScript(() => { window.DEBUGG_WIPED_VERSIONS = ['']; });
@@ -124,7 +124,7 @@ test('saves from a reset version are wiped, apart from sandbox drafts, and so ar
   await expect(page.locator('#feedback')).not.toContainText('Solved');
   const left = await page.evaluate(() => ({
     xp: localStorage.getItem('debugg-xp'), day: localStorage.getItem('debugg-day3'), company: localStorage.getItem('debuggit-ltd-save'),
-    draft: localStorage.getItem('debugg-sandbox-python'), version: localStorage.getItem('debugg-version')
+    draft: localStorage.getItem('debuggit-learn-sandbox-python'), version: localStorage.getItem('debugg-version')
   }));
   expect(left).toEqual({ xp: null, day: null, company: null, draft: 'print(1)', version: 'demo' });
 

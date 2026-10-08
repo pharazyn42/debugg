@@ -29,7 +29,7 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
 - **Learn XP** (per language) and the **Learn streak** are separate from the daily puzzles':
   10 XP for finishing a lesson the first time, 5 per star (new stars only), 30 for first passing a
   checkpoint. The streak counts days with a lesson finished, a checkpoint passed or a review round done.
-- Everything is saved under `debugg-learn` (backed up with the rest, reset with the demo at v0.1,
+- Everything is saved under `debuggit-learn-save` (backed up with the rest, reset with the demo at v0.1,
   and kept by the daily page's "reset puzzles").
 
 ## Playing

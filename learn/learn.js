@@ -7,8 +7,8 @@
 // Every question missed, in a lesson or a checkpoint, also joins the review queue: it comes back in a
 // short Review round a day later, then after 3 days and 7 days, until it's been right three times running.
 //
-// Learn keeps its own XP and streak, separate from the daily puzzles, in one save: debugg-learn.
-// The lesson, checkpoint or review in progress is kept in debugg-learn-session, so a trip to the
+// Learn keeps its own XP and streak, separate from the daily puzzles, in one save: debuggit-learn-save.
+// The lesson, checkpoint or review in progress is kept in debuggit-learn-session, so a trip to the
 // sandbox and back (or a reload) carries on where it was.
 window.DebuggLearn = (function(){
   const D = window.Debugg;

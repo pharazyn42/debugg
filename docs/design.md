@@ -104,7 +104,7 @@ it's safe to add them before they're due.
 
 **Saves.** Puzzle progress is `debugg-day<N>` (one per day, whatever
 the language), plus `debugg-xp`, `debugg-streak` and the sandbox's
-`debugg-lang` and `debugg-sandbox-<lang>` drafts.
+`debuggit-learn-lang` and `debuggit-learn-sandbox-<lang>` drafts.
 The company is `debuggit-ltd-save`. Pre-merge studio saves
 (`contract-debugger-state-v3`) are imported once into `debuggit-ltd-save` (dropping
 the old desk's `activeContract`), then removed. The boot sequence in

@@ -9,7 +9,7 @@
 - [x] Rename Ltd's keys to `debuggit-ltd-*` (`debugg-ltd` and anything Ltd-only). Bump `SAVE_VERSION` for the demo wipe, no migration. Check: `npm test` green, `grep -rn "debugg-ltd" --include=*.js --include=*.html --include=*.md . ` finds only old-name mentions in docs. Ltd changelog line under `## Unreleased`.
 
 ## Next
-- [ ] Rename Learn's keys to `debuggit-learn-*` (`debugg-learn*`, `debugg-sandbox-*`, `debugg-lang` if Learn-only). Check: `npm test` green. Learn changelog line.
+- [x] Rename Learn's keys to `debuggit-learn-*` (`debugg-learn*`, `debugg-sandbox-*`, `debugg-lang` if Learn-only). Check: `npm test` green. Learn changelog line.
 - [ ] Rename the daily's keys to `debuggit-daily-*` (`debugg-xp`, `debugg-streak`, `debugg-day*`, `debugg-practice-*`, `debugg-demo-seen`, `debugg-seen-*`). Check: `npm test` green, and `grep -rn "debugg-xp" ltd/` finds nothing. Daily changelog line.
 - [ ] Make `backup.js` collect all three prefixes (or each product backs up its own). Check: `tests/launch.spec.js` and the backup tests pass.
 - [ ] Ltd stops reading daily/Learn state (`ltd/ltd.js` ~lines 1000 and 1793, `ltd/desk.js`): needs the languages decision below.

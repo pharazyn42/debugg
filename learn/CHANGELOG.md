@@ -7,6 +7,7 @@ one for fixes.
 
 ## Unreleased
 
+- **Your Learn progress and sandbox drafts are saved under new names.** Learn now keeps its save apart from the daily puzzle and Debuggit Ltd. Progress and sandbox code from an earlier demo version won't carry over; this is a demo, so you start fresh.
 Nothing yet.
 
 ## 0.0.17 — 5 October 2026

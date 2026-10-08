@@ -40,7 +40,7 @@ test('Learn’s What’s new lists only Learn, and its "new" is separate from th
   await fresh(page);
   await page.click('[data-action=lesson][data-lesson=print]');
   // A returning Learn player who last saw an older Learn version sees "new" on Learn only.
-  await page.evaluate(() => { localStorage.setItem('debugg-seen-learn-version', '0.0.0'); localStorage.setItem('debugg-learn', '{}'); });
+  await page.evaluate(() => { localStorage.setItem('debuggit-learn-seen-version', '0.0.0'); localStorage.setItem('debuggit-learn-save', '{}'); });
   await page.goto('learn/');
   await expect(page.locator('.version-link')).toHaveText('Learn v' + LEARN_VERSION + ' demo · new');
   await page.goto('index.html');

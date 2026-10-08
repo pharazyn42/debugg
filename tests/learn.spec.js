@@ -4,7 +4,7 @@ const { test, expect } = require('@playwright/test');
 const { dayDate, openAt, fresh, readJson } = require('./helpers');
 
 const current = page => page.evaluate(() => window.DebuggLearn.current());
-const learnSave = page => readJson(page, 'debugg-learn');
+const learnSave = page => readJson(page, 'debuggit-learn-save');
 
 async function pickOption(page, text){
   await page.evaluate(t => [...document.querySelectorAll('#step .option')].find(b => b.dataset.text === t).click(), text);
@@ -85,10 +85,10 @@ test('the Continue card starts the next lesson or checkpoint in one tap', async 
   await expect(card.locator('button')).toHaveText('Continue →');
   // With every lesson in a unit done, it's the checkpoint.
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('debugg-learn'));
+    const s = JSON.parse(localStorage.getItem('debuggit-learn-save'));
     s.lessons['python/values/numbers'] = { stars: 3 };
     s.lessons['python/values/variables'] = { stars: 2 };
-    localStorage.setItem('debugg-learn', JSON.stringify(s));
+    localStorage.setItem('debuggit-learn-save', JSON.stringify(s));
   });
   await page.reload();
   await expect(card.locator('h2')).toHaveText('Checkpoint');
@@ -100,14 +100,14 @@ test('the Continue card starts the next lesson or checkpoint in one tap', async 
   await expect(card).toContainText('Unit 2: Strings · Lesson 1 of 4');
   // Testing out of a unit skips its lessons; with every unit passed, you're caught up.
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('debugg-learn'));
+    const s = JSON.parse(localStorage.getItem('debuggit-learn-save'));
     s.checkpoints['python/strings'] = { passed: true, best: 8 };
     s.checkpoints['python/lists'] = { passed: true, best: 8 };
     s.checkpoints['python/conditions'] = { passed: true, best: 8 };
     s.checkpoints['python/loops'] = { passed: true, best: 8 };
     s.checkpoints['python/functions'] = { passed: true, best: 8 };
     s.checkpoints['python/dictionaries'] = { passed: true, best: 8 };
-    localStorage.setItem('debugg-learn', JSON.stringify(s));
+    localStorage.setItem('debuggit-learn-save', JSON.stringify(s));
   });
   await page.reload();
   await expect(card.locator('.continue-label')).toHaveText('All caught up');
@@ -173,9 +173,9 @@ test('missed questions come back in review rounds: tomorrow, then after 3 and 7 
   expect(save.review.every(r => r.lesson === null && r.due === 19)).toBe(true);
   // A question that's since been reworded or removed is dropped from the round.
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('debugg-learn'));
+    const s = JSON.parse(localStorage.getItem('debuggit-learn-save'));
     s.review.push({ lang: 'python', unit: 'values', lesson: 'print', q: 'a question that no longer exists', box: 0, due: 10 });
-    localStorage.setItem('debugg-learn', JSON.stringify(s));
+    localStorage.setItem('debuggit-learn-save', JSON.stringify(s));
   });
   await openAt(page, 'learn/', 19);
   await expect(page.locator('#reviewDue')).toContainText('8 questions you missed before');
@@ -183,7 +183,7 @@ test('missed questions come back in review rounds: tomorrow, then after 3 and 7 
 });
 
 test('lessons play from the keyboard, and the summary celebrates stars, level-ups and the streak', async ({ page }) => {
-  await page.evaluate(() => localStorage.setItem('debugg-learn', JSON.stringify({ xp: { python: 95 } })));
+  await page.evaluate(() => localStorage.setItem('debuggit-learn-save', JSON.stringify({ xp: { python: 95 } })));
   await page.reload();
   await page.locator('#continue button').click();
   // 1–9 pick an option (in the order shown) or a line of code; Enter continues.
@@ -620,7 +620,7 @@ test('a lesson in progress carries on after a trip to the sandbox and back', asy
   while(!(await page.locator('#summary').count())) later.push(await answer(page));
   expect(later[later.length - 1]).toEqual(missed);
   await expect(page.locator('#summary .big-stars')).toHaveText('★★☆');
-  expect(await page.evaluate(() => localStorage.getItem('debugg-learn-session'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('debuggit-learn-session'))).toBeNull();
   // Once it's over, a reload shows the course.
   await page.reload();
   await expect(page.locator('#continue')).toBeVisible();
@@ -637,7 +637,7 @@ test('leaving a lesson for the course, or following a unit link, drops it', asyn
   await page.goto('learn/#python/strings');
   await page.reload();
   await expect(page.locator('.unit.focus')).toHaveAttribute('data-unit', 'strings');
-  expect(await page.evaluate(() => localStorage.getItem('debugg-learn-session'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('debuggit-learn-session'))).toBeNull();
 });
 
 test('a review round in progress carries on after a reload', async ({ page }) => {
@@ -668,19 +668,19 @@ async function pickOrType(page, s){
 }
 
 test('a repeated checkpoint draws a different set from the unit\'s pool', async ({ page }) => {
-  const asked = async () => page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs);
+  const asked = async () => page.evaluate(() => JSON.parse(localStorage.getItem('debuggit-learn-session')).qs);
   await page.click('[data-action=checkpoint][data-unit=values]');
   const first = await asked();
   expect(first).toHaveLength(8);
   expect(new Set(first).size).toBe(8);
   // Quit the attempt, then start again: the 8 questions not yet asked come first.
-  await page.evaluate(() => localStorage.removeItem('debugg-learn-session'));
+  await page.evaluate(() => localStorage.removeItem('debuggit-learn-session'));
   await openAt(page, 'learn/');
   await page.click('[data-action=checkpoint][data-unit=values]');
   const second = await asked();
   expect(second).toHaveLength(8);
   expect(second.filter(h => first.includes(h))).toHaveLength(0);
-  const counts = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn')).asked['python/values']);
+  const counts = await page.evaluate(() => JSON.parse(localStorage.getItem('debuggit-learn-save')).asked['python/values']);
   expect(Object.keys(counts)).toHaveLength(16);
   expect(Object.values(counts).every(n => n === 1)).toBe(true);
   // Reloading mid-attempt keeps the same questions.
@@ -693,9 +693,9 @@ test('a passed unit offers practice: wrong answers come back until right, and jo
   // Not offered until the checkpoint is passed.
   await expect(page.locator('.lesson-row.practice')).toHaveCount(0);
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    const s = JSON.parse(localStorage.getItem('debuggit-learn-save') || '{}');
     s.checkpoints = { 'python/values': { passed: true, best: 8 } };
-    localStorage.setItem('debugg-learn', JSON.stringify(s));
+    localStorage.setItem('debuggit-learn-save', JSON.stringify(s));
   });
   await openAt(page, 'learn/');
   const row = page.locator('.unit[data-unit=values] .lesson-row.practice');
@@ -723,21 +723,21 @@ test('a passed unit offers practice: wrong answers come back until right, and jo
 test('mixed practice draws across the passed units, and a reload keeps the set', async ({ page }) => {
   await expect(page.locator('#mixedPractice')).toHaveCount(0);
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    const s = JSON.parse(localStorage.getItem('debuggit-learn-save') || '{}');
     s.checkpoints = { 'python/values': { passed: true, best: 8 }, 'python/strings': { passed: true, best: 8 } };
-    localStorage.setItem('debugg-learn', JSON.stringify(s));
+    localStorage.setItem('debuggit-learn-save', JSON.stringify(s));
   });
   await openAt(page, 'learn/');
   await expect(page.locator('#mixedPractice')).toContainText('10 questions from the 2 units');
   await page.click('#mixedBtn');
   await expect(page.locator('#title')).toHaveText('Mixed practice');
-  const qs = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs);
+  const qs = await page.evaluate(() => JSON.parse(localStorage.getItem('debuggit-learn-session')).qs);
   expect(qs).toHaveLength(10);
   // Five from each unit, turn and turn about.
   expect(qs.filter(q => q.startsWith('values:'))).toHaveLength(5);
   expect(qs.filter(q => q.startsWith('strings:'))).toHaveLength(5);
   await page.reload();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-learn-session')).qs)).toEqual(qs);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('debuggit-learn-session')).qs)).toEqual(qs);
   await expect(page.locator('#title')).toHaveText('Mixed practice');
   // A miss comes back before the end and joins the review queue.
   let answered = 0;
@@ -752,9 +752,9 @@ test('units fold away, Collapse all / Expand all work, and the choice is remembe
   // With one open unit there is nothing to fold all of.
   await expect(page.locator('#foldAll')).toHaveCount(0);
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('debugg-learn') || '{}');
+    const s = JSON.parse(localStorage.getItem('debuggit-learn-save') || '{}');
     s.checkpoints = { 'python/values': { passed: true, best: 8 }, 'python/strings': { passed: true, best: 8 } };
-    localStorage.setItem('debugg-learn', JSON.stringify(s));
+    localStorage.setItem('debuggit-learn-save', JSON.stringify(s));
   });
   await openAt(page, 'learn/');
   const values = page.locator('.unit[data-unit=values]');
