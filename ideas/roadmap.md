@@ -1397,6 +1397,8 @@ Big systems that depend on the earlier phases.
   make sense (reuse or extend `PAIRINGS`)?
 
 ### 17f. AI agents (the player-owner's idea, September 2026; not started)
+- **The build plan is `ideas/ai-agents-plan.md`** (October 2026): the systems it touches, the
+  steps in order, starting numbers and the open questions.
 - **AI agents do the coding, and a developer looks after them.** The studio can put AI agents
   on a contract. They write code like a team does (SLOC/min towards the target), but they
   can't work on their own: **at least one dev must be assigned to look after them**. That dev is
