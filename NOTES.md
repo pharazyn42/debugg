@@ -23,9 +23,34 @@
 - `tools/check-scope.js` fails a PR that touches more than one product. This plan is Ltd + shared files.
 - Playwright tests fake time by editing the save; that seam does not work for unit tests. Needs a real RNG/clock seam.
 
+## Save-key inventory (2026-10-08, for PLAN.md Phase 1)
+Owner = who should hold it after the split. "Where" = file:line where the name is written.
+
+| Key | Owner | Where |
+|---|---|---|
+| `debugg-xp` | daily | `index.html:527`, `shared.js:316` (read by the shared level code; Ltd's language rule also depends on it) |
+| `debugg-streak` | daily | `index.html:526`, `daily/stats.js:24`, `shared.js:65` |
+| `debugg-day<N>` (`stateKey()`) | daily | `shared.js:292`, `daily/stats.js:13` |
+| `debugg-practice-day<N>` | daily | `index.html:541`, `daily/archive.js:41` |
+| `debugg-demo-seen` | daily (page-level) | `index.html:1360` |
+| `debugg-seen-version` | daily | `shared.js:31` |
+| `debugg-seen-ltd-version` | ltd | `shared.js:33` |
+| `debugg-seen-learn-version` | learn | `shared.js:35` |
+| `debugg-ltd` | ltd | `ltd/ltd.js:465`, `index.html:1258`, `shared.js:34,66,69` |
+| `debugg-learn` | learn | `learn/learn.js:16`, `shared.js:36` |
+| `debugg-learn-session`, `debugg-learn-collapsed` | learn | `learn/learn.js:17,18` |
+| `debugg-lang` | learn (sandbox language) | `learn/sandbox.html:305` |
+| `debugg-sandbox-<lang>` | learn (sandbox drafts) | `learn/sandbox.html:306` |
+| `debugg-version`, `debugg-epoch` | shared today; one pair per product after the split | `shared.js:13,39`, `backup.js:42` |
+| `contract-debugger-state-v3`, `debugg-<lang>-day<N>` | legacy; delete with the rename (no players) | `shared.js:47,62,65`, `index.html:1258` |
+
+Things that scan by the `debugg-` prefix and must change together with the rename:
+`backup.js:10` (`isOurs`), `shared.js:47` (wipe), `shared.js:32,34,36` (`returning:` regexes),
+`shared.js:62-69` (old epoch migration, touches Ltd's save: delete it), `index.html:1200` (reset list).
+
 ## Last session handoff
-- Branch / worktree: `main` (clean at 2026-10-05 e8cd235, PR #105 released daily 0.0.11 / Ltd 0.0.16 / Learn 0.0.17)
-- Finished: the planning convention wired into the team — `/develop` now requires an idea-file path and reads that doc (plus its framing) before the code; roadmap cuts the idea into pieces or a phase ladder; plan-writer's header gained `**Idea:**`; the three workers flip the idea's status tag. Files: `.pi/prompts/develop.md`, `.claude/agents/{plan-writer,daily-worker,learn-worker,ltd-worker}.md`, this file
-- In progress: nothing in code. `PLAN.md` still holds the **old** Draft (roadmap item 1, the Ltd engine seam) and has no `**Idea:**` line — it predates the convention
-- Next: `/develop ideas/daily-learn-quality-ideas.md 12` (the doc's own top-ranked idea) to replace that Draft. The earlier attempt died at step 2 (roadmap aborted); Explore's findings from it are reusable
-- Tests: not run — no code touched · Uncommitted changes: yes (`PLAN.md`, `TODO.md`, `NOTES.md`, `CLAUDE.md`, `ideas/roadmap.md`, `ideas/daily-learn-quality-ideas.md`, `.claude/`, `.pi/`)
+- Branch: `claude/jolly-davinci-dfihk5`. `PLAN.md` is now the **repo-split plan** (Approved 2026-10-08); the old foundations plan is in git history, its TODO items are under "Parked" in `TODO.md`.
+- Finished: re-split `TODO.md` from the new plan (`todo-curator` agent failed to start, its tools list uses lowercase names this environment does not recognise, so it was done by hand); item 1, the key inventory, above. No code touched.
+- Next: "Central key map" in `TODO.md` (one `KEYS` object, behaviour unchanged, `npm test` green). Then the three renames. Decisions still open: Ltd XP values and Ltd languages, in `TODO.md` "Blocked".
+- Note: `check-scope.js` allows multi-product PRs when each touched product gets a changelog line, so the renames need not be split by repo.
+- Tests: not run, no code touched · Uncommitted changes: `TODO.md`, `NOTES.md`
