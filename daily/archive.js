@@ -1,5 +1,5 @@
 // Past puzzles: every earlier day, newest first, with how you did on the day and a link to play it
-// again as practice (index.html?day=N). Practice games are saved apart (debugg-practice-day<N>) and
+// again as practice (index.html?day=N). Practice games are saved apart (debuggit-daily-practice-day<N>) and
 // earn no XP, streak or company pay. Before Day 1 it lists the last two weeks of preview days.
 window.DebuggArchive = (function(){
   const D = window.Debugg;

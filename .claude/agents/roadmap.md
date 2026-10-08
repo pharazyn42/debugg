@@ -21,7 +21,7 @@ and return ranked proposals another agent will turn into PLAN.md.
   say "shared" and note every product's changelog they'd touch.
 - Order by what unlocks the most later work for the least risk, not by how interesting it sounds.
   Phase 1 (tests, releases) gates everything else — say so when a proposal depends on it.
-- Flag proposals that touch save keys (`debugg-*`): those are live in players' browsers and need a
+- Flag proposals that touch save keys (`debuggit-*`): those are live in players' browsers and need a
   migration, not a rename.
 
 ## Output

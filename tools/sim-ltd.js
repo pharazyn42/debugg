@@ -385,9 +385,9 @@ async function run(opts, seed){
   const playerRng = mulberry32(seed * 104729 + 3);
   const clock = { now: START };
   const world = { storage: makeStorage(), rng, Date: fakeDate(clock), full: opts.full, desk: fakeDesk(playerRng, opts.hit) };
-  world.storage.setItem('debugg-version', 'demo');
-  world.storage.setItem('debugg-epoch', String(DAY1));
-  if(opts.xp) world.storage.setItem('debugg-xp', JSON.stringify({ python: opts.xp }));
+  world.storage.setItem('debuggit-version', 'demo');
+  world.storage.setItem('debuggit-daily-epoch', String(DAY1));
+  if(opts.xp) world.storage.setItem('debuggit-daily-xp', JSON.stringify({ python: opts.xp }));
 
   const events = {};
   const log = key => { if(!(key in events)) events[key] = { at: clock.now - START, active: activeMs }; };

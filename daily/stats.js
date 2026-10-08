@@ -1,5 +1,5 @@
 // The daily puzzle's stats, Wordle-style: played, win rate, current and best streak, and how many
-// guesses the solves took. Worked out from the saved days (debugg-day<N>), so nothing extra is kept.
+// guesses the solves took. Worked out from the saved days (debuggit-daily-day<N>), so nothing extra is kept.
 // Practice games from the archive have their own saves and don't count.
 window.DebuggStats = (function(){
   const D = window.Debugg;

@@ -456,8 +456,8 @@ test('a perfect lesson earns 3 stars and Learn XP, and opens the next lesson', a
   await expect(page.locator('#learnStreak')).toHaveText('1');
   expect(await learnSave(page)).toMatchObject({ lessons: { 'python/values/print': { stars: 3 } }, xp: { python: 25 } });
   // Learn keeps its own XP and streak: the daily puzzles' are untouched.
-  expect(await readJson(page, 'debugg-xp')).toBeNull();
-  expect(await readJson(page, 'debugg-streak')).toBeNull();
+  expect(await readJson(page, 'debuggit-daily-xp')).toBeNull();
+  expect(await readJson(page, 'debuggit-daily-streak')).toBeNull();
 
   await page.click('#summary [data-action=quit]');
   await expect(page.locator('.lesson-row').nth(0)).toContainText('★★★');

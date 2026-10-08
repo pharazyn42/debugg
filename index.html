@@ -1197,7 +1197,7 @@
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => { const K = window.Debugg.KEYS; return window.Debugg.isOurKey(k) && ![K.ltd.save, K.learn.save, K.daily.demoSeen, K.daily.seen, K.ltd.seen, K.learn.seen].includes(k); }).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => { const K = window.Debugg.KEYS.daily; return k.startsWith(K.prefix) && ![K.demoSeen, K.seen].includes(k); }).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });

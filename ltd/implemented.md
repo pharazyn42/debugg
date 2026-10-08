@@ -55,7 +55,7 @@ Moved out of `ltd/CLAUDE.md` to keep that always-loaded file small. Read the sec
 - **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026) plus a
   founder's bonus of ¤1 per puzzle XP already earned, up to ¤1,000.
 - **The Director's languages are the player's puzzle levels** (read live
-  from `debugg-xp`). Each level above 1 adds 1% success chance to contracts
+  from `debuggit-daily-xp`). Each level above 1 adds 1% success chance to contracts
   in that language, up to +10%, shown on the Director's card and in the
   team picker. Only languages with puzzles (Python, JavaScript) count.
 - **Pause / Close**: pausing stores `pausedAt` and reloads without the

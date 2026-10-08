@@ -30,7 +30,7 @@ bridge that already exists), `README.md`.
   stored and sent (GoatCounter page views and named events), and no identifying data with sandbox code
   or wrong answers.
 - A native app changes the save model: `localStorage` becomes a file or IndexedDB. Treat that as a
-  save-shape migration, with the same care as a `debugg-*` rename.
+  save-shape migration, with the same care as a `debuggit-*` rename.
 - Keep the web version working while an app exists — one product, one distribution, no forks yet.
 
 ## Output

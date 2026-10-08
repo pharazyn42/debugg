@@ -33,7 +33,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await expect(other.locator('#streak')).toHaveText('1');
   await other.click('#ltdNote a');
   await expect(other.locator('#statMoney')).toHaveText('¤350');
-  expect((await readJson(other, 'debugg-xp')).python).toBe(100);
+  expect((await readJson(other, 'debuggit-daily-xp')).python).toBe(100);
 });
 
 test('feedback links open a prefilled GitHub issue for the puzzle', async ({ page }) => {
@@ -112,9 +112,9 @@ test('saves from a reset version are wiped, apart from sandbox drafts, and so ar
   await fresh(page);
   // A save from before versions were marked, as v0.1 will treat demo saves.
   await page.evaluate(() => {
-    localStorage.removeItem('debugg-version');
-    localStorage.setItem('debugg-xp', JSON.stringify({ python: 500 }));
-    localStorage.setItem('debugg-day3', JSON.stringify({ attempts: ['x'], solved: true, revealed: true, hintLevel: 0 }));
+    localStorage.removeItem('debuggit-version');
+    localStorage.setItem('debuggit-daily-xp', JSON.stringify({ python: 500 }));
+    localStorage.setItem('debuggit-daily-day3', JSON.stringify({ attempts: ['x'], solved: true, revealed: true, hintLevel: 0 }));
     localStorage.setItem('debuggit-ltd-save', JSON.stringify({ enabled: false, pausedAt: 1, money: 500 }));
     localStorage.setItem('debuggit-learn-sandbox-python', 'print(1)');
   });
@@ -123,8 +123,8 @@ test('saves from a reset version are wiped, apart from sandbox drafts, and so ar
   await page.reload();
   await expect(page.locator('#feedback')).not.toContainText('Solved');
   const left = await page.evaluate(() => ({
-    xp: localStorage.getItem('debugg-xp'), day: localStorage.getItem('debugg-day3'), company: localStorage.getItem('debuggit-ltd-save'),
-    draft: localStorage.getItem('debuggit-learn-sandbox-python'), version: localStorage.getItem('debugg-version')
+    xp: localStorage.getItem('debuggit-daily-xp'), day: localStorage.getItem('debuggit-daily-day3'), company: localStorage.getItem('debuggit-ltd-save'),
+    draft: localStorage.getItem('debuggit-learn-sandbox-python'), version: localStorage.getItem('debuggit-version')
   }));
   expect(left).toEqual({ xp: null, day: null, company: null, draft: 'print(1)', version: 'demo' });
 

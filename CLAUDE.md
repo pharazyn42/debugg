@@ -4,8 +4,8 @@
 
 **Agent team** lives in `.claude/agents/`: `roadmap` `plan-writer` `todo-curator` (planning, no code) · `daily-worker` `ltd-worker` `learn-worker` (one product each, CI-enforced scope) · `verifier` (runs tests, changes nothing) · `ship-web` `ship-phone` (distribution). Drive them with `/develop`, `/implement`, `/review`, `/status`, `/distribute` from `.pi/prompts/` (mirrored in `.claude/commands/`); `PROCESS.md` has the stages, gates, check commands and token rules. Project agents load only for a trusted project.
 
-The game is called **Debuggit** (September 2026; see item 2c). The code, the repository, the
-`debugg-*` save keys and `window.Debugg` keep the old spelling, and "Debugg" below means the
+The game is called **Debuggit** (September 2026; see item 2c).
+The code, the repository and `window.Debugg` keep the old spelling (save keys are `debuggit-*`), and "Debugg" below means the
 same game. Its wordmark is "debug it" as a line of code in the day's puzzle language
 (`wordmarkFor()` in `shared.js`). Each app's header has its title beside the kiwi, the same as
 its button at the top: `debuggit.daily()`, `debuggit.learn()`, `debuggit.ltd()`, and the sandbox's
@@ -46,7 +46,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `learn/` | Debugg Learn, its own section of the site (`/learn/`): the page (`learn/index.html`), the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. `learn.html` redirects to `learn/` (its old address). |
 | `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
 | `learn/sandbox.html` | The sandbox, part of Debuggit Learn (moved there September 2026, the player-owner's call): write and run Python (Pyodide) or JavaScript in Web Workers, replay finished daily puzzles (`?lang=python&day=3`), or open a lesson's example (`?lang=python&code=…`). `sandbox.html` redirects there (its old address). |
-| `backup.js` | The save backup window: all `debugg-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
+| `backup.js` | The save backup window: all `debuggit-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
 | `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
 | `privacy.html` | What's stored and sent, for players. Keep it in step with `analytics.js`. |
 | `CHANGELOG.md`, `ltd/CHANGELOG.md`, `learn/CHANGELOG.md`, `whatsnew.html` | The lists of changes, by release, written for players: the daily puzzle's, Debuggit Ltd's and Debuggit Learn's. The What's new page shows the daily's, Ltd's with `?ltd`, or Learn's with `?learn` (without "Unreleased"). |
@@ -65,7 +65,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
 
 ## Hard rules (the ones that break silently)
-- **Saves are live.** Never rename a `debugg-*` key or a state key; a shape change needs a boot-sequence guard in `ltd.js`. `SAVE_VERSION` only changes for the v0.1 reset.
+- **Saves are live.** Never rename a `debuggit-*` key or a state key; a shape change needs a boot-sequence guard in `ltd.js`. `SAVE_VERSION` only changes for the v0.1 reset.
 - **Don't move Day 1** (`LAUNCH` in `shared.js`) once players have progress; saves are keyed by day number.
 - **One product per branch** (daily, Ltd, Learn). Shared files count for none. `tools/check-scope.js` fails a PR otherwise.
 - **Every change players notice** adds a line under `## Unreleased` in that product's changelog, in the same PR.

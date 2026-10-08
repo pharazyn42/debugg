@@ -124,7 +124,7 @@ test('What’s new shows the changelog, and a returning player sees "new" until 
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
   await guess(page, (await puzzleFor(page, 3)).display);
   // A returning player who last saw an older version is.
-  await page.evaluate(() => localStorage.setItem('debugg-seen-version', '0.0.0'));
+  await page.evaluate(() => localStorage.setItem('debuggit-daily-seen-version', '0.0.0'));
   await page.reload();
   await expect(page.locator('.version-link')).toHaveClass(/new/);
   await expect(page.locator('.version-link')).toHaveText('v' + APP_VERSION + ' demo · new');

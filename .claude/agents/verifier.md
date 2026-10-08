@@ -21,7 +21,7 @@ If a command doesn't exist in `package.json`, say "not wired" — don't improvis
 - **Scope:** does the diff stay inside one product per `tools/check-scope.js`? Quote the rule it broke.
 - **Changelog:** if the diff changes something players see, is there a line under `## Unreleased`
   in that product's changelog in the same diff? If not, that's a failure.
-- **Save shape:** did the diff touch a `debugg-*` key, `SAVE_VERSION`, or a state key? If yes, is there
+- **Save shape:** did the diff touch a `debuggit-*` key, `SAVE_VERSION`, or a state key? If yes, is there
   a boot-sequence guard? No guard = flag it, that's the one thing that bricks live players' saves.
 - **Untested:** list diff'd files with no test touching them.
 

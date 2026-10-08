@@ -84,7 +84,7 @@ test('a Rust day shows Rust, links to the Rust Playground and earns Rust XP', as
   const href = new URL(await link.getAttribute('href'));
   expect(href.origin).toBe('https://play.rust-lang.org');
   expect(href.searchParams.get('code')).toBe(p.code);
-  expect(await readJson(page, 'debugg-xp')).toEqual({ rust: 60 });
+  expect(await readJson(page, 'debuggit-daily-xp')).toEqual({ rust: 60 });
 });
 
 test("a C day has no run link, since C doesn't run in the browser yet", async ({ page }) => {
@@ -196,15 +196,15 @@ test('a weekend puzzle solved on Saturday is still solved on Sunday', async ({ p
   await fresh(page);
   await expect(page.locator('#kicker')).toHaveText('Days 6–7 · Weekend · hard · Python');
   await guess(page, (await puzzleFor(page, 6)).display);
-  expect((await readJson(page, 'debugg-xp')).python).toBe(200);
+  expect((await readJson(page, 'debuggit-daily-xp')).python).toBe(200);
   await page.clock.setFixedTime(dayDate(7));
   await page.reload();
   await expect(page.locator('#feedback')).toContainText('Solved');
-  expect((await readJson(page, 'debugg-xp')).python).toBe(200);
+  expect((await readJson(page, 'debuggit-daily-xp')).python).toBe(200);
 });
 
 test('XP depends on the day, guesses and hints, and is only awarded once', async ({ page }) => {
-  const xp = () => readJson(page, 'debugg-xp');
+  const xp = () => readJson(page, 'debuggit-daily-xp');
   await openAt(page, 'index.html', 3);  // Wednesday: 100
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);
@@ -243,7 +243,7 @@ test('XP is kept per language, with an overall level above them', async ({ page 
   await page.reload();
   await expect(page.locator('#kicker')).toContainText('JavaScript');
   await page.click('#revealBtn');
-  expect(await readJson(page, 'debugg-xp')).toEqual({ python: 100, javascript: 10 });
+  expect(await readJson(page, 'debuggit-daily-xp')).toEqual({ python: 100, javascript: 10 });
   // Overall first, then today's language, then the others.
   const rows = page.locator('.xp-row');
   await expect(rows.locator('.xp-lang')).toHaveText(['Overall', 'JavaScript', 'Python']);
@@ -258,15 +258,15 @@ test('saves from before XP still load', async ({ page }) => {
   await openAt(page, 'index.html', 2);
   await fresh(page);
   await withStorage(page, {
-    'debugg-streak': '3',
-    'debugg-day2': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 2 }
+    'debuggit-daily-streak': '3',
+    'debuggit-daily-day2': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 2 }
   });
   await expect(page.locator('#streak')).toHaveText('3');
   await expect(page.locator('#feedback')).toContainText('Solved');
   // Tuesday (80), 2nd guess with 2 hints: 80 × 0.75 × 0.5 = 30, awarded once.
-  expect((await readJson(page, 'debugg-xp')).python).toBe(30);
+  expect((await readJson(page, 'debuggit-daily-xp')).python).toBe(30);
   await page.reload();
-  expect((await readJson(page, 'debugg-xp')).python).toBe(30);
+  expect((await readJson(page, 'debuggit-daily-xp')).python).toBe(30);
 });
 
 test('works at phone width', async ({ page }) => {
@@ -284,7 +284,7 @@ test('days before Day 1 are previews with their own saves', async ({ page }) => 
   await expect(page.locator('#filename')).toHaveText('preview.py');
   await guess(page, (await puzzleFor(page, -2)).display);
   await expect(page.locator('#feedback')).toHaveClass(/correct/);
-  expect(await readJson(page, 'debugg-day-2')).toMatchObject({ solved: true });
+  expect(await readJson(page, 'debuggit-daily-day-2')).toMatchObject({ solved: true });
 
   // Day 1 is a fresh puzzle.
   await page.clock.setFixedTime(dayDate(1));
@@ -297,23 +297,20 @@ test('moving Day 1 clears progress saved under the old day numbers', async ({ pa
   await openAt(page, 'index.html', 1);
   await page.evaluate(() => {
     localStorage.clear();  // no remembered calendar, as for saves made before it existed
-    localStorage.setItem('debugg-day1', JSON.stringify({ attempts: ['correct'], solved: true, revealed: true, hintLevel: 0, xp: 100 }));
-    localStorage.setItem('debugg-javascript-day1', JSON.stringify({ attempts: ['wrong'], solved: false, revealed: false, hintLevel: 0 }));
-    localStorage.setItem('debugg-streak', JSON.stringify({ count: 1, lastDay: 1 }));
-    localStorage.setItem('debugg-xp', JSON.stringify({ python: 100 }));
+    localStorage.setItem('debuggit-daily-day1', JSON.stringify({ attempts: ['correct'], solved: true, revealed: true, hintLevel: 0, xp: 100 }));
+    localStorage.setItem('debuggit-daily-streak', JSON.stringify({ count: 1, lastDay: 1 }));
+    localStorage.setItem('debuggit-daily-xp', JSON.stringify({ python: 100 }));
     localStorage.setItem('debuggit-ltd-save', JSON.stringify({ enabled: false, pausedAt: 1, money: 500, paid: { 'python-1': true } }));
   });
   await page.reload();
   await expect(page.locator('#feedback')).not.toHaveClass(/correct/);
   const kept = await page.evaluate(() => ({
-    day1: localStorage.getItem('debugg-day1'),
-    js: localStorage.getItem('debugg-javascript-day1'),
-    streak: localStorage.getItem('debugg-streak'),
-    xp: JSON.parse(localStorage.getItem('debugg-xp')),
+    day1: localStorage.getItem('debuggit-daily-day1'),
+    streak: localStorage.getItem('debuggit-daily-streak'),
+    xp: JSON.parse(localStorage.getItem('debuggit-daily-xp')),
     company: JSON.parse(localStorage.getItem('debuggit-ltd-save'))
   }));
   expect(kept.day1).toBeNull();
-  expect(kept.js).toBeNull();
   expect(kept.streak).toBeNull();
   expect(kept.xp).toEqual({ python: 100 });
   expect(kept.company).toMatchObject({ money: 500, paid: {} });
@@ -411,12 +408,12 @@ test('a missed puzzle links to Debuggit Learn: the unit it names, or the course'
 test('the stats panel counts games played, the win rate, streaks and guesses, Wordle-style', async ({ page }) => {
   await openAt(page, 'index.html', 5);
   await withStorage(page, {
-    'debugg-day1': { attempts: ['correct'], solved: true, revealed: true, hintLevel: 0 },
-    'debugg-day2': { attempts: ['wrong', 'wrong', 'correct'], solved: true, revealed: true, hintLevel: 1 },
-    'debugg-day3': { attempts: ['wrong', 'wrong', 'wrong', 'wrong'], solved: false, revealed: true, hintLevel: 0 },
-    'debugg-day4': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 0 },
-    'debugg-practice-day2': { attempts: ['correct'], solved: true, revealed: true, hintLevel: 0 },  // practice doesn't count
-    'debugg-streak': { count: 1, lastDay: 4 }
+    'debuggit-daily-day1': { attempts: ['correct'], solved: true, revealed: true, hintLevel: 0 },
+    'debuggit-daily-day2': { attempts: ['wrong', 'wrong', 'correct'], solved: true, revealed: true, hintLevel: 1 },
+    'debuggit-daily-day3': { attempts: ['wrong', 'wrong', 'wrong', 'wrong'], solved: false, revealed: true, hintLevel: 0 },
+    'debuggit-daily-day4': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 0 },
+    'debuggit-daily-practice-day2': { attempts: ['correct'], solved: true, revealed: true, hintLevel: 0 },  // practice doesn't count
+    'debuggit-daily-streak': { count: 1, lastDay: 4 }
   });
   await page.click('#statsLink');
   const d = page.locator('#statsDialog');
@@ -464,9 +461,9 @@ test('the result can be shared as a picture, with no spoilers', async ({ page })
 test('past puzzles can be played again as practice, for no XP, streak or company pay', async ({ page }) => {
   await openAt(page, 'index.html', 5);
   await withStorage(page, {
-    'debugg-day2': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 0, xp: 60 },
-    'debugg-streak': { count: 1, lastDay: 2 },
-    'debugg-xp': { python: 60 }
+    'debuggit-daily-day2': { attempts: ['wrong', 'correct'], solved: true, revealed: true, hintLevel: 0, xp: 60 },
+    'debuggit-daily-streak': { count: 1, lastDay: 2 },
+    'debuggit-daily-xp': { python: 60 }
   });
   await page.click('#archiveLink');
   const rows = page.locator('#archiveList .archive-row');
@@ -489,10 +486,10 @@ test('past puzzles can be played again as practice, for no XP, streak or company
   expect(await page.evaluate(() => !!window.__finished)).toBe(false);
   await expect(page.locator('#shareRow')).toBeHidden();
   await expect(page.locator('#playAgain')).toBeVisible();
-  expect(await readJson(page, 'debugg-xp')).toEqual({ python: 60 });
-  expect(await readJson(page, 'debugg-streak')).toEqual({ count: 1, lastDay: 2 });
-  expect((await readJson(page, 'debugg-day2')).attempts).toEqual(['wrong', 'correct']);
-  expect((await readJson(page, 'debugg-practice-day2')).solved).toBe(true);
+  expect(await readJson(page, 'debuggit-daily-xp')).toEqual({ python: 60 });
+  expect(await readJson(page, 'debuggit-daily-streak')).toEqual({ count: 1, lastDay: 2 });
+  expect((await readJson(page, 'debuggit-daily-day2')).attempts).toEqual(['wrong', 'correct']);
+  expect((await readJson(page, 'debuggit-daily-practice-day2')).solved).toBe(true);
   // The archive shows the practice result, and it can be played again.
   await page.click('#archiveLink');
   await expect(rows.nth(2)).toContainText('practice: solved in 1');

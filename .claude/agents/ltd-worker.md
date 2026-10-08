@@ -21,7 +21,7 @@ other files are all Ltd's.
 (`money`, `roster`, `board`, `jobs`, `desk`, `applicants`, `market`, `office`, `log`, …) stored in
 `debuggit-ltd-save`. Rules live as constants at the top: `TIERS`, `ROLES`, `PROMOTION`, `RISKS`, `EXPERT`,
 `DESK_PAY`, `COWORK_*`, `STAGES`.
-- **Never rename a state key or a `debugg-*` storage key** — saves are live in players' browsers.
+- **Never rename a state key or a `debuggit-*` storage key** — saves are live in players' browsers.
   A shape change needs a boot-sequence guard in `ltd.js` (the pattern already used for tier renames).
 - **Never change a balance number** (salary, payout, SLOC, timing) without its source value. Flag it.
 

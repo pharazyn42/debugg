@@ -56,7 +56,7 @@ gets Monday and Tuesday. `LANGS` is the languages that have joined by today
 Tests set the rotation with `openAt(page, path, day, { rotation })`
 (`window.DEBUGG_ROTATION`); left out, tests see what players see.
 
-**XP.** Kept per language in `debugg-xp` (`{ python: 120, rust: 40 }`);
+**XP.** Kept per language in `debuggit-daily-xp` (`{ python: 120, rust: 40 }`);
 the overall XP is their total (`totalXp()`), shown as an "Overall" row
 above the languages, with the same level curve. Level-ups fire
 `level/<lang>/<n>` and `level/overall/<n>` analytics events.
@@ -71,8 +71,8 @@ types, and premises beyond the small business unit, show as "coming in v0.1". Pa
 and running jobs they have, but their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with
-`debugg-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
-version is in `WIPED_VERSIONS` loses everything under `debugg-*` (and the
+`debuggit-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
+version is in `WIPED_VERSIONS` loses everything under `debuggit-*` (and the
 pre-merge studio save) except sandbox drafts, and backup codes from those
 versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
 `'0.1'`, `WIPED_VERSIONS` to `['demo', '']` (`''` = saved before the
@@ -83,7 +83,7 @@ marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
 before it are preview days (0, -1, …), labelled "Preview", each with its
 own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
 once players have real progress**. If it does move, `shared.js` notices
-(it remembers the date in `debugg-epoch`) and clears per-day progress, the
+(it remembers the date in `debuggit-daily-epoch`) and clears per-day progress, the
 streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
 drafts.
 
@@ -102,8 +102,8 @@ weekend counts once. XP for a perfect solve follows the day (`BASE_XP`:
 to the end only changes future days (and days that had fallen back), so
 it's safe to add them before they're due.
 
-**Saves.** Puzzle progress is `debugg-day<N>` (one per day, whatever
-the language), plus `debugg-xp`, `debugg-streak` and the sandbox's
+**Saves.** Puzzle progress is `debuggit-daily-day<N>` (one per day, whatever
+the language), plus `debuggit-daily-xp`, `debuggit-daily-streak` and the sandbox's
 `debuggit-learn-lang` and `debuggit-learn-sandbox-<lang>` drafts.
 The company is `debuggit-ltd-save`. Pre-merge studio saves
 (`contract-debugger-state-v3`) are imported once into `debuggit-ltd-save` (dropping

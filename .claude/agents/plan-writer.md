@@ -39,7 +39,7 @@ whole; grep `ideas/roadmap.md` (88 KB).
   (`index.html` counts as Ltd's on a branch whose other files are all Ltd's).
   If the work spans products, say so in Out of scope and stop — don't plan a multi-product change.
 - Name real paths you verified exist. If unsure, write "verify:" instead of guessing.
-- Never plan a rename of a `debugg-*` save key or a change to `SAVE_VERSION` without a migration line:
+- Never plan a rename of a `debuggit-*` save key or a change to `SAVE_VERSION` without a migration line:
   saves are live in players' browsers.
 - Never plan a numeric constant (balance, XP, timing) change without its source value — flag it as an
   open question instead.

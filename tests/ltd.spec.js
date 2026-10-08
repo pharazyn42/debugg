@@ -97,13 +97,13 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
 });
 
 test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 450, javascript: 120 } });
+  await withStorage(page, { 'debuggit-daily-xp': { python: 450, javascript: 120 } });
   await found(page);
   await expect(page.locator('#statMoney')).toHaveText('¤820');
   await expect(page.locator('#welcomeToast')).toContainText('¤570 founder’s bonus');
 
   await page.click('#ltdClose');
-  await withStorage(page, { 'debugg-xp': { python: 5000 } });
+  await withStorage(page, { 'debuggit-daily-xp': { python: 5000 } });
   await found(page);
   await expect(page.locator('#statMoney')).toHaveText('¤1,250');
 });
@@ -197,7 +197,7 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
 });
 
 test("the Director's puzzle levels boost contract success in that language", async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 450 } }); // Python level 3: +2%
+  await withStorage(page, { 'debuggit-daily-xp': { python: 450 } }); // Python level 3: +2%
   await found(page);
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody')).toContainText('Python Lv 3 (+2% success)');
@@ -217,7 +217,7 @@ test("the Director's puzzle levels boost contract success in that language", asy
 
 test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debugg-xp': { python: 100 } });  // a ¤100 founder's bonus
+  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });  // a ¤100 founder's bonus
   await found(page);
   // ¤250 and the ¤100 bonus, less a graduate's ¤180.
   await expect(page.locator('#statMoney')).toHaveText('¤350');
@@ -242,7 +242,7 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
 });
 
 test('hiring costs only go up, with inflation and competition', async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 300 } });
+  await withStorage(page, { 'debuggit-daily-xp': { python: 300 } });
   await found(page);
   await page.click('[data-action=open-jobs]');
   const post = page.locator('[data-action=post-job][data-role=Manager]');
@@ -315,7 +315,7 @@ test('developers apply now and then, graduates too, once the studio has some rep
 });
 
 test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 100 } });
+  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });
   await found(page);
   await expect(page.locator('h1')).toHaveText('Debuggit Ltd');
   await expect(page).toHaveTitle('Debuggit Ltd');
@@ -1070,7 +1070,7 @@ test('board groups fold, and stay folded', async ({ page }) => {
 
 test('a company saved with domains is converted to languages only', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debugg-xp': { python: 100 } });
+  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });
   await found(page);
   await hireGrad(page);
   await editCompany(page, s => {
@@ -1113,7 +1113,7 @@ test('promotion needs contract time and a language level only', async ({ page })
 
 test('pausing stops the clock until the company is resumed', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debugg-xp': { python: 100 } });
+  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });
   await found(page);
   await hireGrad(page);
   await editCompany(page, s => {
@@ -1143,7 +1143,7 @@ test('closing the company keeps puzzle progress; resetting puzzles keeps the com
   await page.click('#resetLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   expect(await ltd(page)).not.toBeNull();
-  expect(await readJson(page, 'debugg-xp')).toBeNull();
+  expect(await readJson(page, 'debuggit-daily-xp')).toBeNull();
 
   await page.click('#dailyTab');
   await expect(page.locator('#ltdNote')).toBeVisible();
@@ -1152,7 +1152,7 @@ test('closing the company keeps puzzle progress; resetting puzzles keeps the com
   await page.click('#ltdClose');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await ltd(page)).toBeNull();
-  expect((await readJson(page, 'debugg-xp')).python).toBe(100);
+  expect((await readJson(page, 'debuggit-daily-xp')).python).toBe(100);
 });
 
 test('a company saved on the old /studio/ page is imported', async ({ page }) => {
