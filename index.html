@@ -272,7 +272,7 @@
   }
   .found .btn-ghost{ margin-top: 4px; }
 
-  /* Debuggit Ltd (the Ltd tab): the company, with the Director's desk beside the studio. The daily
+  /* Debuggit Ltd (the Ltd tab): the company, with the studio beside the contract board. The daily
      puzzle is its own game, on the Daily tab. */
   body.ltd-view main.desk, body.ltd-view #kicker{ display: none; }
   body.ltd-on .wrap{ max-width: 1080px; }
@@ -291,7 +291,7 @@
     body.ltd-view .sub{ display: none; }
     body.ltd-view h1{ font-size: 26px; margin-bottom: 4px; }
   }
-  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk{ display: none !important; }
+  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk, body:not(.ltd-on) #ltdOffice{ display: none !important; }
   .ltd-intro{
     background: var(--panel);
     border: 1px solid var(--line);
@@ -380,6 +380,7 @@
   <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). On the
        Daily tab a running company is loaded but hidden, so the puzzle still pays it. -->
   <div id="ltdStats" hidden></div>
+  <div id="ltdOffice" hidden></div>
 
   <div class="columns">
   <main class="desk">
@@ -457,11 +458,10 @@
     </div>
   </div>
   </main>
-  <div id="ltdDesk" hidden></div>
   <div id="ltdStudio" hidden></div>
-  </div>
-
   <div id="ltdBoard" hidden></div>
+  </div>
+  <div id="ltdDesk" hidden></div>
 
   <footer>
     <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span> · <a href="#" id="archiveLink">past puzzles</a></div>
@@ -1296,21 +1296,40 @@
     loading = true;
     document.body.classList.add('ltd-running');
     showView();
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'ltd/ltd.css';
-    document.head.appendChild(css);
-    // The desk's questions (ltd/desk.js) first, then, once they're in, the studio.
+    if(!document.querySelector('link[href="ltd/ltd.css"]')){
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'ltd/ltd.css';
+      document.head.appendChild(css);
+    }
+    // The desk's questions (ltd/desk.js), the office view (ltd/office.js) and the founding step
+    // (ltd/founding.js) first, then, once they're in, the studio. The office is only a picture: if
+    // it fails to load, the studio starts without it (and without the founding step, which draws with it).
     const deskJs = document.createElement('script');
     deskJs.src = 'ltd/desk.js';
+    const officeJs = document.createElement('script');
+    officeJs.src = 'ltd/office.js';
+    const foundingJs = document.createElement('script');
+    foundingJs.src = 'ltd/founding.js';
     const js = document.createElement('script');
     js.src = 'ltd/ltd.js';
-    js.onload = () => {
+    const giveUp = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
+    const start = founding => {
       document.body.classList.add('ltd-on');
-      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk') });
+      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk'), office: $('ltdOffice'), founding });
     };
-    js.onerror = deskJs.onerror = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
-    deskJs.onload = () => document.body.appendChild(js);
+    // A new company is named first, with its Director (tests skip it with window.DEBUGG_FOUNDING = false).
+    js.onload = () => {
+      if(!saved && !importing && window.DebuggFounding && window.DebuggOffice && window.DEBUGG_FOUNDING !== false)
+        window.DebuggFounding.open({ onDone: start, onCancel: giveUp });
+      else start(null);
+    };
+    // Back again after cancelling the founding step: everything's loaded already.
+    if(window.DebuggLtd){ js.onload(); return; }
+    js.onerror = deskJs.onerror = giveUp;
+    foundingJs.onload = foundingJs.onerror = () => document.body.appendChild(js);
+    officeJs.onload = officeJs.onerror = () => document.body.appendChild(foundingJs);
+    deskJs.onload = () => document.body.appendChild(officeJs);
     document.body.appendChild(deskJs);
   }
 

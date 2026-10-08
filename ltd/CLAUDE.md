@@ -64,7 +64,10 @@ state = {
   guideDone, showUnknownOffers,                   // the first-steps guide is over; the board shows every offer
   stage,                                          // the business stage last announced ('startup', 'small', …)
   market: { prices: { Graduate: 1.08, … }, nextAt }, // hire-cost multipliers, and when the market next moves
-  office: { cowork },                             // co-working desks rented beyond the spare room's 4
+  office: { premises, owned },                    // 'spare-room' | 'unit-s'; owned = bought rather than rented
+  showOffice,                                     // false once the player hides the office view
+  contractsOpen, firstClient, nextFeatureAt,      // features: open once the spare room is full; the first client offered; the next arrival
+  companyName,                                    // the founding step's name (null: "Debuggit Ltd")
   nextNoticeAt                                    // when the next hourly notice roll is due
 }
 ```

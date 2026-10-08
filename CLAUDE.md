@@ -57,11 +57,12 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `tools/trace-puzzles.js`, `tools/trace.py`, `tools/probe.py` | `npm run traces` records every Python puzzle's step-by-step trace with real Python into `puzzles/traces-python.js`; `probe.py` counts line runs and tries line orders for the checker. |
 | `tools/sim-ltd.js` | `npm run sim`: the Debuggit Ltd pacing simulator. Plays the real `ltd/ltd.js` headless (fake clock, seeded randomness, a stand-in page) as a keen, casual or always-open player, and prints when the milestones in `ideas/ltd-pacing-targets.md` happen. `--ltd` plays a modified copy, to try a balance change. |
 | `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
+| `ltd/office.js` | The office view (item 21b): the studio drawn on a canvas from a read-only snapshot `ltd.js` hands it. Optional: the studio plays the same without it. |
+| `ltd/founding.js` | Founding a company: naming it and its Director, and choosing the Director's look (drawn by `office.js`). The loader opens it for a new company; tests skip it (`DEBUGG_FOUNDING`). |
 | `ltd/CLAUDE.md` | Debugg Ltd's design notes: data model, what's implemented, known gaps. |
 | `ideas/` | The roadmap (`roadmap.md`), detailed plans for some of its items, and separate game concepts. |
 | `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
-
 
 ## Hard rules (the ones that break silently)
 - **Saves are live.** Never rename a `debugg-*` key or a state key; a shape change needs a boot-sequence guard in `ltd.js`. `SAVE_VERSION` only changes for the v0.1 reset.

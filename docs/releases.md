@@ -3,6 +3,7 @@
 The full routine, moved out of `CLAUDE.md` (which keeps a summary under "Releases"). Code comments and CI refer to "Releases" in `CLAUDE.md`; this is the detail behind it.
 
 **Releases.** Three products, released separately (the player-owner's calls, September 2026: Learn
+**Releases.** Three products, released separately (the player-owner's calls, September 2026: Learn
 first, since the Ltd game changes far more often than Learn, then the daily and Ltd): **Debuggit**,
 the daily puzzle; **Debuggit Ltd**, the studio game; and **Debuggit Learn**. Each has:
 - **Its own semantic version:** `APP_VERSION` (the daily), `LTD_VERSION` or `LEARN_VERSION` in
@@ -71,4 +72,3 @@ The routine:
   Release with that version's notes. Tests failing means no release.
 - Until item 2d, `main` still deploys straight to GitHub Pages, so a release is a label and a
   changelog entry; with 2d the public site will follow releases and `main` will go to a dev site.
-

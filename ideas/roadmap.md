@@ -880,6 +880,49 @@ dark theme only, mostly text, and Debugg Ltd in particular is dense.
     first impression and share card could come first; Debugg Ltd can
     follow.
 
+### 10c. The studio panel, notifications and the job board (the player-owner's brief, October 2026; all four steps built)
+The Studio box is named for the company, and the office view carries the people. Decided with the
+player-owner:
+- **The Studio panel** is titled with the company's name (`state.companyName`, "Debuggit Ltd" if
+  none) and keeps the next-step guide and the headcount overview by type (Managers, Principals…
+  Devs, Desks). It gains a **Premises** list: every premises as a row (the current one marked "You
+  are here") saying what it is, its desks and floors, what it adds (kitchens, meeting rooms, a
+  server room, room for managers), and its rent and buy prices with upkeep, or why it can't be
+  taken yet (cash, who won't fit, "coming in v0.1"). Moving back is a button on the smaller one.
+  The Director card and the roster tree go.
+- **People are reached through the office view**, which is always shown (the hide option goes).
+  Clicking someone, the Director included, opens their panel, which takes over everything the cards
+  held: skills, assignment, the promotion checklist, Keep and the raise, and for the Director the
+  languages and Edit (name and look).
+- **Notices**: a **notifications bar**, separate from the contract board's "Recent" log, takes the
+  "handed in their notice" alerts (the reason, the hours left, a **Keep** button, the name opening
+  their panel) and unresolved ones stay pinned at the top. The person also gets a **speech bubble
+  above their head** in the office view with the same message, until they leave or are kept.
+  The bar could carry other alerts later (cash below zero, a stuck contract).
+- **Hiring is done in the interview room**: clicking an applicant opens a candidate card (level,
+  skills, asking price, time left, Hire, with the desk or squeezed-in warning). The Applicants list
+  and the hire buttons leave the Studio panel.
+- **The job board**, a job-posting site for the people who don't turn up in the interview room:
+  **managers** and **work-from-home applicants** (WFH people no longer come to the interview room),
+  and **specialists** once item 16 brings them (none yet; leave room). Opened from a monitor in the
+  interview room and from a button in the Studio panel. You choose a role, pay a **posting fee**, and
+  after a delay candidates turn up on the board, each with a price and an expiry; you pick one.
+  - **Posting fee, to decide**: options are (a) a fixed fee per role, (b) a share of the role's
+    hire cost (say 10%), which keeps up with inflation and competition, (c) a fee that grows
+    with how many postings are open. Leaning to (b) and a delay of an hour or so, so a posting is a
+    deliberate spend; test with the sim.
+  - Managers can't be hired in the spare room (`hireProblem()`), so the board says so there.
+- **Build in steps** (all done, October 2026): (1) the panel, premises and people panels; (2) the notifications bar and
+  bubbles; (3) interview-room hiring; (4) the job board (posting fee 10% of the hire cost, replies in an hour, offers open a day).
+  **Sim pass (October 2026, `npm run sim`, 5 seeds):** the milestones up to the first manager
+  barely moved against the interview-room-only version. The fee is small next to a manager (¤90 of
+  ¤900; ¤20 for a work-from-home graduate). The hour's wait costs a keen player about 4 hours, a
+  casual one about a check-in (12 hours), and an always-open one about an hour: with a 6-minute
+  wait the keen and casual players gain only 4 and 12 hours, because they still hire at their next
+  visit, so the wait isn't what holds them back and the 1 hour, 10% and 24 hours stay. The sim's
+  player posts the manager job once it has half the price, so the reply is waiting when it can
+  pay; a player who waits until they can pay in full hires a check-in later.
+
 ## Phase 3 — Retention and mid-game growth
 
 The first progression layers beyond hiring. (Daily/weekly/monthly desk puzzles moved up to 3b; writing the puzzle bank is content work that can start in parallel with anything.)
@@ -1003,7 +1046,8 @@ here means commercial premises, a small office unit like one on a business park 
 player-owner's meaning), not a division of the company.
 - **Desks** cap on-site headcount alongside supervision ("Devs 5/16 · Desks 5/8"); an Office
   line in the Studio panel.
-- **Working from home** (the player-owner's idea): about 1 in 4 applicants are **WFH** and need
+- **Working from home** (the player-owner's idea; a first version built October 2026: in the spare room any
+  applicant can be hired to work from home, at 80% productivity, coming in once there are desks): about 1 in 4 applicants are **WFH** and need
   no desk ("Desks 5/8 · +2 WFH"); they keep working when the office is closed, but, decided,
   they learn a little slower (−25% XP) and can't be learners, so WFH stays a trade-off. They still count towards supervision. They
   replace item 15's separate contractors.
@@ -1018,7 +1062,10 @@ player-owner's meaning), not a division of the company.
   tenants on leases (Large); rent depends on quality and reputation; upgrades as a money sink;
   tenant events via 15b.
 - **Phase 1 is built** (September 2026): desks, co-working and managers in the demo (see "The
-  office" above). Decided then: the Director takes no desk; a full office is cramped (slower,
+  office" above). **October 2026, the player-owner's calls:** co-working desks are gone, and each
+  premises after the spare room is a choice of **renting or buying outright**. The small business
+  unit is built (2 floors × 5 desks; rent ¤4/min, or buy for ¤60,000 then ¤1/min upkeep, selling
+  for 90% on moving out); leases, deposits, moving time, listings and the large unit are to do. Decided then: the Director takes no desk; a full office is cramped (slower,
   and people hand in their notice) and takes up to 2 more squeezed in, rather than blocking
   hiring. WFH applicants weren't in it and are still to come.
 - **Phases:** (1) desks and co-working, with managers in the demo, as the demo's money sink;
@@ -1139,6 +1186,47 @@ roster.
     with others, or a leaderboard?
   - Does "Close company" keep a summary of past companies (a hall of
     fame), which prestige (item 19) could build on?
+
+### 15f. Perks and the kitchen: buy efficiency and happiness (the player-owner's idea, October 2026; not started)
+- A way to spend money to make the whole company write more code. Three kinds:
+  - **Boosts (temporary, with a cooldown).** Buy one, the whole company writes more SLOC/min for a
+    limited time, then it can't be bought again until its cooldown ends. Ice creams on a hot day,
+    better-quality coffee beans for the week, pizza at lunch.
+  - **Morale treats (temporary, a trade-off).** They cost efficiency for a while but keep happiness
+    up, e.g. **bring your dog to work day**, a team lunch, an early finish. Needs a happiness
+    stat to exist (nothing has one yet; it could also feed notices, item 15c's sick days and
+    the "better offer" resignations, so a happy office keeps its people).
+  - **Permanent upgrades, in stages.** Each stage replaces the last, **costs more to run** (a
+    running cost per minute, drawn with payroll) and gives **a higher SLOC/min to everyone**. The
+    coffee ladder: instant coffee, then a filter machine, a pod machine, a bean-to-cup machine and
+    a barista station. Other ladders to try: chairs and desks, monitors, snacks.
+- **Where it shows.** The kitchen in the office view (`ltd/office.js`) already has a coffee machine
+  and a couch, so the current stage should be visible there (a different machine at each stage, the
+  dog in the office, ice-cream tubs); the new **SLOC/min** stat in the stats bar shows the effect.
+  A "Perks" card in the Studio panel lists what's on offer, its price, effect, time left and
+  cooldown.
+- **Decided with the player-owner (October 2026).**
+  - **Boosts speed up contracts by the same amount as the SLOC/min boost, but only for the part
+    of the contract done while the boost is on.** A contract that runs 10 minutes of its 30 under
+    a +20% boost does that stretch 20% faster, so it finishes 1 min 40 s sooner, not 20% sooner
+    overall. Work is the SLOC written, so each contract's finish time follows from its progress at the
+    boost's start and end (as `job.slow` already does for a snagged contract), and stacked boosts
+    add their rates over the time they overlap.
+  - **Boosts stack** (several at once, each with its own timer and cooldown).
+  - **Some upgrades need bigger premises.** A barista station needs the space, and a barista, so it
+    can't go in the spare room; the Perks card says why ("no room in the spare room"), as hiring
+    does for a full office. Which stage needs which premises is open.
+- **Design questions.**
+  - Size of the boosts (+10–30%?), durations (minutes to hours), cooldowns (hours). Price them
+    against the extra code they bring, so that using a boost is a good deal but not a no-brainer,
+    and the permanent stages are worth their running cost (target: each stage pays for its
+    running cost with the SLOC it adds at a company of the size that can afford it, and a bit more).
+  - How far should stacked boosts go (a cap, or diminishing returns)? Do they run while the page is closed (within the 4-hour
+    offline cap)? Does pausing stop them? (Pausing shifts every clock, so the same rule as jobs.)
+  - Tie into the events system (item 15b): a hot day makes ice cream worth more.
+  - Which upgrades need which premises or business stage (the unit has more kitchens than the spare
+    room).
+  - Balance with the sim (`npm run sim`), and the pacing targets in `ideas/ltd-pacing-targets.md`.
 
 ## Phase 4 — Late game
 
@@ -1310,6 +1398,8 @@ Big systems that depend on the earlier phases.
   make sense (reuse or extend `PAIRINGS`)?
 
 ### 17f. AI agents (the player-owner's idea, September 2026; not started)
+- **The build plan is `ideas/ai-agents-plan.md`** (October 2026): the systems it touches, the
+  steps in order, starting numbers and the open questions.
 - **AI agents do the coding, and a developer looks after them.** The studio can put AI agents
   on a contract. They write code like a team does (SLOC/min towards the target), but they
   can't work on their own: **at least one dev must be assigned to look after them**. That dev is
@@ -1370,6 +1460,7 @@ Big systems that depend on the earlier phases.
     size, price and running cost. That's for the balance pass.
   - How the picker shows it, e.g. "AI model 3 (acts as 4) · supervised by Grace (principal) ·
     −8% success".
+  - How they look: the agent office (21b) could give them their own floor.
 
 ### 18. Multiple sites, rooms and buildings
 - Phase 6 of `ideas/company-growth-roadmap.md` (item 15e): campuses, and premises in more than
@@ -1401,6 +1492,48 @@ Big systems that depend on the earlier phases.
   rooms/buildings, grouped by team or level. It could show who's working
   on what and empty desks. It would pair naturally with the office-space
   mechanic.
+- A worked-out version of this is the agent office (21b).
+
+### 21b. The agent office (the player-owner's idea, October 2026; step 1, the spare room, built)
+- **Chosen (October 2026): the graphics version, from the start of the game.** The plan to build
+  it is `ideas/ltd-office-view-plan.md`, with a working prototype in `ideas/ltd-office-demo.html`:
+  a building per premises (the spare room is one floor; bigger premises add floors and desks per
+  floor), an interview room where applicants wait, and a break room and a meeting room on every
+  floor. Breaks are only a picture and cost no work (the player-owner's call, October 2026).
+- **Where it comes from.** The player-owner's "Agent HQ" (claude-pet, in the `pharazyn42/claude`
+  repository, on its `claude/creature-animation-ideas-o53x86` branch): a side-on office building
+  drawn on a canvas, with no dependencies, showing real Claude Code agents at work. One floor per
+  team, an elevator on the left, one desk per agent and a break room on the right. Each agent is
+  a small creature with a name and its team's colour; its monitor shows what it's doing (code
+  typing in, a terminal scrolling, a test bar filling, a big ✓ or ✗); idle ones go for coffee or
+  nap on the couch; new ones arrive by elevator and finished ones leave the same way; one that
+  needs you flashes its screen; helpers it spawns sit beside it; tap one to see who it is. It
+  already runs as a single HTML file that works on a phone.
+- **Two ways it could come to Debuggit Ltd** (not chosen yet):
+  - **As the better graphics version of the studio** (this item and 21): the office drawn the
+    same way, with the studio's people instead of agents. A floor per team or per premises
+    (15e: the spare room, the co-working desks, a business unit, office floors; 18: a building
+    per site), a desk per desk the company has, so empty desks show. Each person's monitor shows
+    their contract: SLOC typing in (item 20's animation), a ✓ or ✗ when it ends. The bench and
+    absences (15c) go to the break room; hires and leavers use the elevator; a notice or a stuck
+    intern (4c) flashes like an agent that needs you. Tapping a person opens their panel.
+  - **As the late-game AI addition** (with 17f): the office's own subject, AI agents, joins the
+    game when the studio buys its first licence. The agents get their own floor (the server
+    room, or an "AI floor"), since they need no desks; each sits beside the dev supervising it,
+    the way spawned helpers sit beside their agent. A model's look improves with each new model
+    (17f's news items could show the next one), early models' monitors show more ✗s, and
+    "the AI service is down" (17d) sends them all to sleep.
+  - The two fit together: the graphics version first, and the AI floor added when 17f is built.
+- **What to keep from Agent HQ:** the canvas renderer and creature drawing (`web/office.js`,
+  `web/creature.js`), redrawn in the kiwi's style (10b) and the site's theme, scoped under
+  `.ltd`. Not its hooks, server or Claude Code plumbing: the studio's own state drives it.
+- **Rules for the site:** optional and off the main path (a view on the Ltd tab, beside the text
+  panels, never replacing them, so the studio still plays on a phone and with a screen reader);
+  cheap when idle (no drawing while the tab is hidden; offline progress just redraws the end
+  state); works in light and dark themes.
+- **Still open:** which way first; whether it's always shown or a toggle; how a big studio fits
+  (scroll the building, or one floor at a time); and whether a demo-sized office (the spare room
+  and co-working desks) is worth showing in the demo.
 
 ### 22. Skill gain through supervision
 - XP is currently a flat rate per contract minute. The design intent is

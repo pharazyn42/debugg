@@ -3,6 +3,7 @@
 Moved out of `CLAUDE.md` to keep the always-loaded file small. Read the section you need (`grep -n "^\*\*" docs/design.md`), not the whole file.
 
 **How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
+**How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
 player-owner's call: the daily is its own game). The studio reads puzzle XP through
 `Debugg.readXp()` for the Director's skills and the founder's bonus, and its desk jobs reuse past
 daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
@@ -33,7 +34,9 @@ founds a company by itself. The loader at the bottom of `index.html` loads `ltd/
 card on the Ltd tab or the one under a finished puzzle, which moves to the Ltd tab), or when an
 old pre-merge save exists (which opens the Ltd tab). On the Daily tab a running company isn't
 loaded; a one-line note says how many desk jobs are waiting (read from the save) and links to Ltd.
-`DebuggLtd.start({ stats, studio, board, desk })` renders into the four slots and either resumes
+`DebuggLtd.start({ stats, studio, board, desk, office })` renders into the five slots (`office` is
+optional, as is `ltd/office.js`; the loader loads `desk.js`, `office.js`, `founding.js`, then `ltd.js`, and for a
+new company opens the founding step first, passing its answers in as `founding`) and either resumes
 the saved company, imports an old one, or founds a new one. `body.ltd-on` shows the desk and the
 studio in the two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title).
 The desk used to be the daily puzzle itself, which folded to its tiles once done; that went with
@@ -63,8 +66,8 @@ visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
 since managers came to the demo in September 2026, with desks, as its money sink). The locked
-types, and premises beyond co-working desks, show as "coming in v0.1". Patches need more than
-10 staff (see the contract board), so a manager and co-working desks. Old saves keep any staff
+types, and premises beyond the small business unit, show as "coming in v0.1". Patches need more than
+10 staff (see the contract board), so a manager and the unit. Old saves keep any staff
 and running jobs they have, but their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with
@@ -75,7 +78,6 @@ versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
 `'0.1'`, `WIPED_VERSIONS` to `['demo', '']` (`''` = saved before the
 marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
 `window.DEBUGG_WIPED_VERSIONS`.
-
 
 **The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `shared.js`). Days
 before it are preview days (0, -1, …), labelled "Preview", each with its

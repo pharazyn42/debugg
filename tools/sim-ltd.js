@@ -200,14 +200,16 @@ async function openPage(world){
 
 // Numbers the strategy needs, mirrored from ltd/ltd.js (the game still enforces its own rules:
 // a click the game refuses does nothing).
-const SPARE_ROOM_DESKS = 4, COWORK_MAX = 8, DIRECTOR_SPAN = 4, MANAGER_SPAN = 12;
+const PREMISES = { 'spare-room': { desks: 4, rent: 0 }, 'unit-s': { desks: 10, rent: 4 } }, DIRECTOR_SPAN = 4, MANAGER_SPAN = 12;
+const premisesOf = s => PREMISES[(s.office && s.office.premises) || 'spare-room'] || PREMISES['spare-room'];
+// The strategy rents; buying (¤60,000, then ¤1/min upkeep) isn't modelled yet.
 const DEV_ROLES = ['Graduate', 'Junior', 'Senior', 'Principal'];
 const SALARY = { Manager: 8, Graduate: 2, Junior: 5, Senior: 12, Principal: 28 };
-const COST = { Manager: 900, Graduate: 180 };
+const COST = { Manager: 900, Graduate: 180 };   // hire costs; a job-board posting is a tenth of one
 const skillLevel = xp => { const t = [10, 50, 150, 400, 1000]; let lv = 0;
   while((xp || 0) >= (lv < 5 ? t[lv] : 1000 + 400 * (lv - 4) * (lv - 3))) lv++; return lv; };
 
-function payroll(s){ return s.roster.reduce((n, p) => n + (SALARY[p.role] || 0) + (p.raise || 0), 0) + ((s.office && s.office.cowork) || 0); }
+function payroll(s){ return s.roster.reduce((n, p) => n + (SALARY[p.role] || 0) + (p.raise || 0), 0) + (s.office && s.office.owned ? 1 : premisesOf(s).rent); }
 function priceOf(s, role){ return Math.round(COST[role] * ((s.market && s.market.prices[role]) || 1) / 5) * 5; }
 function devs(s){ return s.roster.filter(p => DEV_ROLES.includes(p.role)); }
 // Headcount as the game counts it: the intern isn't in it.
@@ -239,37 +241,57 @@ function play(page, log, now, opts){
     }
   }
 
-  // Hiring. Room for one more on-site person, renting a co-working desk if needed.
-  // Returns 'free', 'rented' (a co-working desk just now) or null (no room).
+  // Hiring. Room for one more on-site person, moving from the spare room into the small business
+  // unit when it's full (and staying there). Returns 'free' or null (no room).
   const deskFor = () => {
-    const used = s.roster.filter(p => p.role !== 'Director' && p.role !== 'Intern').length;
-    const cowork = (s.office && s.office.cowork) || 0;
-    if(used < SPARE_ROOM_DESKS + cowork) return 'free';
-    if(cowork >= COWORK_MAX) return null;
-    act(page.click, { action: 'cowork-add' });
-    return 'rented';
+    const used = s.roster.filter(p => p.role !== 'Intern' && !p.wfh).length;   // the Director takes a desk too
+    if(used < premisesOf(s).desks) return 'free';
+    if(premisesOf(s) !== PREMISES['spare-room']) return null;
+    act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' });
+    if(premisesOf(s) === PREMISES['spare-room']) return null;
+    log('moved/unit-s');
+    return 'free';
   };
-  const hire = (role, dataset, cost) => {
+  // `wfh`: a work-from-home hire needs no desk.
+  const hire = (role, dataset, cost, wfh) => {
     if(spendable() < cost) return false;
-    const desk = deskFor();
+    const desk = wfh ? 'free' : deskFor();
     if(!desk) return false;
     const n = s.roster.length;
     act(page.click, dataset);
     if(s.roster.length > n){ log('hired/' + role.toLowerCase()); return true; }
-    if(desk === 'rented') act(page.click, { action: 'cowork-drop' });   // the game refused the hire
     return false;
   };
-  // Applicants first: they're the only way to hire above graduate.
+  // Applicants first: they're the only way to hire above graduate (hired at a desk).
   for(const a of (s.applicants || []).slice().sort((x, y) => DEV_ROLES.indexOf(y.role) - DEV_ROLES.indexOf(x.role)))
     hire(a.role, { action: 'hire-applicant', id: a.id }, a.cost);
-  // A manager when the developers are at the Director's and managers' span.
+  // The job board: whoever has replied is hired (managers, and in a full spare room people who work
+  // from home); a job is posted when none is out, and its candidate comes at a later check-in.
+  const spare = () => premisesOf(s) === PREMISES['spare-room'];
+  for(const c of (s.candidates || []).slice()) hire(c.role, { action: 'hire-candidate', id: c.id }, c.cost, c.wfh && spare());
+  const post = (role, wfh) => {
+    if((s.postings || []).some(p => p.role === role && !!p.wfh === !!wfh) || (s.candidates || []).some(c => c.role === role && !!c.wfh === !!wfh)) return;
+    const fee = Math.max(5, Math.round(priceOf(s, role) * 0.1 / 5) * 5);
+    if(spendable() < fee) return;
+    act(page.click, wfh ? { action: 'post-job', role, wfh: '1' } : { action: 'post-job', role });
+    log('posted/' + role.toLowerCase() + (wfh ? '/wfh' : ''));
+  };
+  // A full spare room: more people can only come from home (graduates, the cheap way).
+  if(spare() && s.roster.filter(p => p.role !== 'Intern' && !p.wfh).length >= premisesOf(s).desks && (s.reputation || 0) >= 5) post('Graduate', true);
+  // A manager when the developers are at the Director's and managers' span. Managers need an office,
+  // so the player rents the unit first.
   const managers = s.roster.filter(p => p.role === 'Manager').length;
-  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers) hire('Manager', { action: 'hire', role: 'Manager' }, priceOf(s, 'Manager'));
+  // The player posts when they're about half way to the price, so the reply is waiting when they can pay.
+  if(devs(s).length >= DIRECTOR_SPAN + MANAGER_SPAN * managers && spendable() >= priceOf(s, 'Manager') * 0.5){
+    if(spare()){ act(page.click, { action: 'move', premises: 'unit-s', tenure: 'rent' }); if(!spare()) log('moved/unit-s'); }
+    if(!spare()) post('Manager', false);
+  }
 
   // The intern: a free Python hotfix with the Director alongside whenever they're idle, helped with
   // a puzzle (answered right at the desk's hit rate) when they're stuck.
   const intern = s.roster.find(p => p.role === 'Intern');
-  for(const j of s.jobs.filter(j => j.status === 'stuck')) act(page.click, { action: 'intern-help', job: j.id });
+  // Stuck: the intern's hotfix (stalled), or a start-up team's contract (at half speed).
+  for(const j of s.jobs.filter(j => j.status === 'stuck' || j.slow)) act(page.click, { action: 'intern-help', job: j.id });
   if(intern && !s.jobs.some(j => j.team.includes(intern.id))){
     const offer = s.board.find(o => o.tier === 0 && o.lang === 'Python' && (o.risk || 'standard') === 'standard' && !o.expert);
     if(offer){
@@ -281,16 +303,16 @@ function play(page, log, now, opts){
       if(s.jobs.length === n) act(page.picker, { action: 'pick-cancel' });
     }
   }
-  // Staffing: in a start-up the player puts each idle developer on a hotfix they know, on repeat
-  // (from a small business on, the managers do it every tick).
+  // Staffing: in a start-up the player puts idle developers on features as they turn up (first
+  // client first; no repeats before managers, so each one is a fresh decision). From a small
+  // business on, the managers do it every tick. Idle developers do everyday work meanwhile.
   if(!s.roster.some(p => p.role === 'Manager')){
     for(let k = 0; k < 10; k++){
       const busy = new Set(s.jobs.flatMap(j => j.team));
       const idle = devs(s).filter(p => !busy.has(p.id));
-      // A repeat keeps its contract's risk for good, so a steady player takes standard offers.
-      const offer = s.board.filter(o => o.tier === 0 && (o.risk || 'standard') === 'standard' &&
+      const offer = s.board.filter(o => TIER_KEYS[o.tier] === 'feature' && (o.risk || 'standard') !== 'high' &&
                                         idle.some(d => skillLevel(d.lang[o.lang]) > 0 && skillLevel(d.lang[o.lang]) >= (o.expert || 0)))
-        .sort((a, b) => (b.expert || 0) - (a.expert || 0))[0];
+        .sort((a, b) => (b.first ? 1 : 0) - (a.first ? 1 : 0) || (a.expert || 0) - (b.expert || 0))[0];
       if(!offer) break;
       const n = s.jobs.length;
       act(page.click, { action: 'staff', offer: offer.id });
@@ -334,6 +356,8 @@ function nextHour(t, hour){
 
 const MILESTONES = [
   ['hired/graduate', 'First grad hired'],
+  ['devs/3', 'Spare room full: contracts open'],
+  ['job/feature', 'First contract (your first client)'],
   ['devs/4', "Director's span full: 4 devs"],
   ['hired/junior', 'First junior hired (applicant)'],
   ['stage/small', 'First manager: Small business'],
@@ -353,7 +377,7 @@ const MILESTONES = [
   ['stage/multinational', 'Multinational: 12 managers, 150 staff']
 ];
 const STAGE_KEYS = ['startup', 'small', 'midsize', 'large', 'multinational'];
-const TIER_KEYS = ['hotfix', 'patch', 'minor', 'major'];
+const TIER_KEYS = ['hotfix', 'feature', 'patch', 'minor', 'major'];
 
 async function run(opts, seed){
   loadLtd(opts.ltd ? path.resolve(opts.ltd) : path.join(ROOT, 'ltd/ltd.js'));
@@ -373,6 +397,7 @@ async function run(opts, seed){
   const end = START + opts.days * DAY;
   const schedule = PROFILES[opts.profile](playerRng);
   const note = s => {
+    if(devs(s).length >= 3) log('devs/3');
     if(devs(s).length >= 4) log('devs/4');
     if(heads(s) > 10) log('heads/11');
     if(s.stage && s.stage !== 'startup') STAGE_KEYS.slice(1, STAGE_KEYS.indexOf(s.stage) + 1).forEach(k => log('stage/' + k));

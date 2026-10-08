@@ -56,6 +56,8 @@
 .ltd .stat .value.money.neg{ color: var(--red); }
 .ltd .stat .value.rep{ color: var(--blue); }
 .ltd .stat .value.rate{ color: var(--red); font-size: 14px; }
+.ltd .stat .sub{ font-family: var(--mono); font-size: 11px; color: var(--green); margin-top: 1px; }
+.ltd #statSloc{ color: var(--text); }
 /* The business's stage: a step track, its name, what it means and what's next. */
 .ltd .stage-bar{
   display: grid;
@@ -77,9 +79,9 @@
 .ltd .stage-text{ grid-area: text; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .ltd .stage-next{ color: var(--text-faint); }
 
-/* Phones: the four stats in one row. */
+/* Phones: the five stats in one row. */
 @media (max-width: 560px){
-  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
+  .ltd .stat-bar{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 10px 0 14px; }
   .ltd .stat{ min-width: 0; padding: 7px 4px; }
   .ltd .stat .label{ font-size: 8.5px; letter-spacing: 0.04em; }
   .ltd .stat .value{ font-size: 14px; }
@@ -159,6 +161,23 @@
 .ltd .office .cramped{ color: var(--amber); margin-top: 3px; }
 .ltd .card-foot.notice{ margin-top: 6px; gap: 8px; }
 .ltd .office-actions{ display: flex; gap: 6px; flex-wrap: wrap; }
+.ltd .premises{ margin-bottom: 12px; }
+.ltd .premises-title{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-bottom: 6px; }
+.ltd .premises-row{ border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; color: var(--text-dim); }
+.ltd .premises-row.here{ border-color: var(--text-faint); }
+.ltd .premises-row b{ color: var(--text); font-weight: 600; }
+.ltd .premises-top{ display: flex; gap: 8px; align-items: center; }
+.ltd .premises-facts{ margin-top: 2px; }
+.ltd .premises-facts .full{ color: var(--amber); }
+.ltd .premises-blurb{ margin: 3px 0 6px; color: var(--text-faint); }
+.ltd .premises-row .cramped{ color: var(--amber); margin-bottom: 6px; }
+.ltd .premises-row .office-actions{ margin-top: 4px; }
+.ltd .people-list{ margin-bottom: 14px; font-size: 12.5px; }
+.ltd .people-list summary{ cursor: pointer; color: var(--text-dim); }
+.ltd .people-list .roster{ margin: 8px 0 0; max-height: 220px; }
+.ltd .person-link{ display: flex; justify-content: space-between; gap: 8px; text-align: left; background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; }
+.ltd .person-actions{ margin: 8px 0 4px; }
 
 .ltd .roster{
   display: flex;
@@ -601,3 +620,84 @@
 .ltd .desk-done img.hop{ animation: desk-hop 0.55s ease 2; }
 @keyframes desk-hop{ 50%{ transform: translateY(-6px) rotate(-6deg); } }
 @media (prefers-reduced-motion: reduce){ .ltd .desk-done img.hop{ animation: none; } }
+
+/* The office view (ltd/office.js): the studio drawn as a building, above the desk and the studio.
+   Its colours are here so a light theme (roadmap item 10b) only has to override them. */
+.ltd .office-view{
+  --office-sky-top: #1c2540;
+  --office-sky-bottom: #33456b;
+  --office-ground: #24302a;
+  --office-wall-top: #24262c;
+  --office-wall-bottom: #2b2e35;
+  --office-slab: #3a3d46;
+  --office-slab-text: #c9ccd4;
+  --office-brick: #6b4436;
+  --office-cladding: #4a5566;
+  --office-street: #2a2d33;
+  --office-roof: #2c2f37;
+  margin-bottom: 18px;
+}
+.ltd .office-view h2{ margin-bottom: 10px; }
+.ltd .office-toggle{ margin-left: auto; }
+/* On a phone the building scales down to a point, then scrolls sideways inside its box. */
+.ltd .office-box{ overflow-x: auto; border-radius: 8px; border: 1px solid var(--line); }
+.ltd .office-box[hidden]{ display: none; }
+.ltd .office-canvas{ display: block; }
+/* An applicant tapped in the office: their card flashes. */
+.ltd .applicant.office-picked{ animation: office-pick 1.6s ease-out; }
+@keyframes office-pick{ 0%, 40%{ outline: 2px solid var(--amber); outline-offset: 2px; } 100%{ outline: 2px solid transparent; outline-offset: 2px; } }
+@media (prefers-reduced-motion: reduce){ .ltd .applicant.office-picked{ animation: none; outline: 2px solid var(--amber); outline-offset: 2px; } }
+
+/* Founding a company (ltd/founding.js): names, and the Director's look with a live preview. */
+.ltd .founding .found-intro{ color: var(--text-dim); font-size: 13px; margin: 0 0 12px; }
+.ltd .found-grid{ display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 520px){ .ltd .found-grid{ grid-template-columns: minmax(0, 1fr); } }
+.ltd .found-preview{ background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; display: flex; justify-content: center; position: sticky; top: 0; }
+.ltd .found-preview canvas{ width: 130px; height: 190px; display: block; }
+.ltd .found-name{ display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 10px; }
+.ltd .found-name input{
+  display: block; width: 100%; margin-top: 4px; box-sizing: border-box;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+  padding: 8px 10px; font: inherit; font-size: 14px;
+}
+.ltd .found-row{ border: 0; margin: 0 0 10px; padding: 0; min-width: 0; }
+.ltd .found-row legend{ font-size: 12.5px; color: var(--text-dim); padding: 0; margin-bottom: 5px; }
+.ltd .found-opts{ display: flex; flex-wrap: wrap; gap: 6px; }
+.ltd .found-opt{ position: relative; cursor: pointer; }
+.ltd .found-opt input{ position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ltd .found-opt > span:not(.sr){
+  display: inline-block; font-size: 12px; padding: 4px 9px; border-radius: 6px;
+  border: 1.5px solid var(--line); background: var(--panel-2); color: var(--text-dim);
+}
+.ltd .found-opt.swatch .chip{ width: 24px; height: 24px; padding: 0; border-radius: 50%; }
+.ltd .found-opt input:checked + span{ border-color: var(--amber); color: var(--text); }
+.ltd .found-opt input:focus-visible + span{ outline: 2px solid var(--amber); outline-offset: 2px; }
+.ltd .found-opt .sr{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ltd .found-actions{ display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.ltd .found-spacer{ flex: 1; }
+.ltd .card.director .card-level .btn-small{ margin-left: 6px; padding: 2px 7px; font-size: 10.5px; }
+
+/* Notifications bar, at the top of the contract board */
+.ltd .notifications{ margin-bottom: 12px; }
+.ltd .notifications .alert{ display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.ltd .link-btn{ background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* Job board */
+.ltd .job-entry{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.ltd .job-entry .why{ font-size: 12px; color: var(--text-faint); }
+.ltd .modal.jobs{ max-width: 460px; }
+.ltd .job-post{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ltd .job-post .why{ font-size: 12px; color: var(--amber); }
+.ltd .job-wait{ font-size: 12.5px; color: var(--text-dim); margin-bottom: 4px; }
+.ltd .candidate{ border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+
+/* Contracts someone could take, in their panel */
+.ltd .contract-list{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.ltd .contract-row{ display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-dim);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.ltd .contract-row b{ color: var(--text); font-weight: 600; }
+
+/* The desk, in a window */
+.ltd .modal.desk-modal{ max-width: 520px; }
+.ltd .desk-modal .panel{ border: 0; padding: 0; background: none; box-shadow: none; margin: 0; }
+.ltd .desk-modal .panel h2{ display: flex; align-items: center; gap: 8px; }

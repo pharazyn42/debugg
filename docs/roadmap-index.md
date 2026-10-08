@@ -32,6 +32,7 @@ new ideas there. Index (status in brackets):
 - 9 Show what the desk pays
 - 10 Balance pass (first pass done)
 - 10b Look and feel (a kiwi mascot idea, light theme, accessibility)
+- 10c The studio panel, notifications bar and the job board (built)
 
 **Phase 3, retention and mid-game**
 - 11 (Moved into 3b)
@@ -43,15 +44,15 @@ new ideas there. Index (status in brackets):
 - 15c Absences: sick days and holidays
 - 15d Company stats and records
 - 15e Business units, property and rentals (phase 1 built; detail in `ideas/company-growth-roadmap.md`)
+- 15f Perks and the kitchen: boosts with cooldowns, morale treats, permanent coffee-style upgrades (idea)
 
 **Phase 4, late game**
 - 16 Domains return with specialist hires
 - 17 In-house products and maintenance teams
 - 17b Tech Debt · 17c Merge Conflict · 17d Disruptive events
 - 17e Multi-language contracts
-- 17f AI agents
+- 17f AI agents (planned; detail in `ideas/ai-agents-plan.md`)
 - 18 Multiple sites
 - 19 Prestige
 
-**Polish:** 20 SLOC animation · 21 Visualise the office · 22 Skill gain through supervision
-
+**Polish:** 20 SLOC animation · 21 Visualise the office · 21b The agent office (step 1 built: `ideas/ltd-office-view-plan.md`) · 22 Skill gain through supervision

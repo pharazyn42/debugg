@@ -13,13 +13,15 @@ function dayDate(n){
 // The demo notice that opens on a first visit is off unless { notice: true }.
 // Puzzle formats are off unless { formats: true }: every day is "what does this print?", so tests
 // about other things can type the answer. Format tests switch them on and answer with solve()/miss().
-async function openAt(page, path, day = 3, { rotation = null, notice = false, formats = false } = {}){
+async function openAt(page, path, day = 3, { rotation = null, notice = false, formats = false, founding = false } = {}){
   await page.clock.setFixedTime(dayDate(day));
   if(rotation) await page.addInitScript(r => { window.DEBUGG_ROTATION = r; }, rotation);
   if(!formats) await page.addInitScript(() => {
     window.DEBUGG_WEEK_FORMATS = { 1: ['output'], 2: ['output'], 3: ['output'], 4: ['output'], 5: ['output'], weekend: ['output'] };
   });
   if(!notice) await page.addInitScript(() => { window.DEBUGG_DEMO_NOTICE = false; });
+  // Founding a company skips naming it and choosing the Director's look unless { founding: true }.
+  if(!founding) await page.addInitScript(() => { window.DEBUGG_FOUNDING = false; });
   // Tests never count as real visits (the analytics test switches it on against a stand-in).
   await page.addInitScript(() => { if(!('DEBUGG_GOATCOUNTER' in window)) window.DEBUGG_GOATCOUNTER = ''; });
   if(process.env.PYODIDE_DIR){
