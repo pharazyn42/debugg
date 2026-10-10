@@ -96,16 +96,12 @@ test('off by default: the studio code is not even loaded', async ({ page }) => {
   await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
 });
 
-test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
-  await withStorage(page, { 'debuggit-daily-xp': { python: 450, javascript: 120 } });
+test("a new company starts with ¤250 and no XP, whatever the daily puzzle has paid out", async ({ page }) => {
+  await withStorage(page, { 'debuggit-daily-xp': { python: 5000, javascript: 120 } });
   await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤820');
-  await expect(page.locator('#welcomeToast')).toContainText('¤570 founder’s bonus');
-
-  await page.click('#ltdClose');
-  await withStorage(page, { 'debuggit-daily-xp': { python: 5000 } });
-  await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤1,250');
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
+  await expect(page.locator('#welcomeToast')).not.toContainText('founder');
+  expect((await ltd(page)).xp).toEqual({});
 });
 
 test('the daily puzzle is its own game: it pays the company nothing, and the Ltd tab shows the desk instead', async ({ page }) => {
@@ -226,12 +222,11 @@ test("the Director's puzzle levels boost contract success in that language", asy
 
 test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });  // a ¤100 founder's bonus
   await found(page);
-  // ¤250 and the ¤100 bonus, less a graduate's ¤180.
-  await expect(page.locator('#statMoney')).toHaveText('¤350');
+  // ¤250, less a graduate's ¤180.
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
   await hireGrad(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤170');
+  await expect(page.locator('#statMoney')).toHaveText('¤70');
   await expect(page.locator('#statHeads')).toHaveText('2');
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
@@ -245,13 +240,12 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.reload();
   // 30 minutes of a ¤2/min salary, plus the ¤20 contract, plus the intern's everyday work
   // (0.2 SLOC/min × ¤0.54 × 30 minutes = ¤3.24).
-  await expect(page.locator('#statMoney')).toHaveText('¤133');
+  await expect(page.locator('#statMoney')).toHaveText('¤33');
   await expect(page.locator('#welcomeToast')).toContainText('1 contract wrapped up while you were away');
   await expect(page.locator('#log')).toContainText('delivered');
 });
 
 test('hiring costs only go up, with inflation and competition', async ({ page }) => {
-  await withStorage(page, { 'debuggit-daily-xp': { python: 300 } });
   await found(page);
   await page.click('[data-action=open-jobs]');
   const post = page.locator('[data-action=post-job][data-role=Manager]');
@@ -324,7 +318,6 @@ test('developers apply now and then, graduates too, once the studio has some rep
 });
 
 test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', async ({ page }) => {
-  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });
   await found(page);
   await expect(page.locator('h1')).toHaveText('Debuggit Ltd');
   await expect(page).toHaveTitle('Debuggit Ltd');
@@ -1081,7 +1074,6 @@ test('board groups fold, and stay folded', async ({ page }) => {
 
 test('a company saved with domains is converted to languages only', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });
   await found(page);
   await hireGrad(page);
   await editCompany(page, s => {
@@ -1124,7 +1116,6 @@ test('promotion needs contract time and a language level only', async ({ page })
 
 test('pausing stops the clock until the company is resumed', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debuggit-daily-xp': { python: 100 } });
   await found(page);
   await hireGrad(page);
   await editCompany(page, s => {
@@ -1143,7 +1134,7 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.reload();
   await page.click('#ltdLink');
   await expect(page.locator('#welcomeToast')).toContainText('paused for 2h');
-  await expect(page.locator('#statMoney')).toHaveText('¤170');
+  await expect(page.locator('#statMoney')).toHaveText('¤70');
   const job = (await ltd(page)).jobs[0];
   expect(job.endsAt - Date.parse(at(14))).toBe(60000);
 });

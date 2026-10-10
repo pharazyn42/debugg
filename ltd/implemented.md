@@ -52,8 +52,8 @@ Moved out of `ltd/CLAUDE.md` to keep that always-loaded file small. Read the sec
   languages the pool has puzzles for (`hasPuzzles()`; Python for now). Decided with the
   player-owner, after a first version where every hotfix waited for a review puzzle: getting stuck
   keeps the writing time as the limit, so puzzles can't be farmed for money.
-- **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026) plus a
-  founder's bonus of ¤1 per puzzle XP already earned, up to ¤1,000.
+- **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026). There is no
+  founder's bonus any more (it was ¤1 per daily-puzzle XP, up to ¤1,000, until October 2026).
 - **The Director's languages are the player's puzzle levels** (read live
   from `debuggit-daily-xp`). Each level above 1 adds 1% success chance to contracts
   in that language, up to +10%, shown on the Director's card and in the

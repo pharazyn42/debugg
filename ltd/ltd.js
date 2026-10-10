@@ -24,9 +24,9 @@ window.DebuggLtd = (function(){
   const DESK_BOOST = { 1: 1, 2: 1.25, 3: 1.5 };
   const DESK_REP = 1;
   const DESK_SEEN = 40;  // questions recently asked, kept out of new jobs
-  // A new company starts with ¤150, plus ¤1 per puzzle XP already earned (up to ¤1,000).
+  // A new company starts with ¤250 (¤150 until October 2026). The founder's bonus, ¤1 per daily-puzzle XP,
+  // went when Ltd's XP became its own: nothing carries in from the daily any more.
   const START_CASH = 250;
-  const FOUNDER_BONUS_CAP = 1000;
   // Puzzle levels boost contract success in that language: +1% per level above 1, up to +10%.
   // The Director's XP is Ltd's own (October 2026, the player-owner's call): earned only from right desk
   // and intern-help answers, LTD_XP_PER_DIFFICULTY × the question's difficulty (Learn questions count
@@ -1402,13 +1402,6 @@ window.DebuggLtd = (function(){
       if(e.target.closest('[data-action=close-toast]')) welcomeToast.className = 'toast';
     });
 
-    // Founder's bonus: ¤1 per puzzle XP earned before the company existed, up to ¤1,000.
-    function founderBonus(){
-      const xp = D.readXp();
-      const total = Object.keys(xp).reduce((s, k) => s + (xp[k] || 0), 0);
-      return Math.min(FOUNDER_BONUS_CAP, Math.floor(total));
-    }
-
     // Shifts every clock in the save forward by `ms`, so time spent paused never happened.
     function skipTime(ms){
       if(!(ms > 0)) return;
@@ -1453,11 +1446,9 @@ window.DebuggLtd = (function(){
       track('imported');
       opening = 'Your company has moved in. Your desk has jobs for you: questions that pay the company.';
     }else{
-      const bonus = founderBonus();
-      state = freshState(START_CASH + bonus, founding);
+      state = freshState(START_CASH, founding);
       track('founded');
       opening = 'You’ve founded ' + companyName() + ' with ' + fmt(state.money) +
-        (bonus ? ' (' + fmt(START_CASH) + ' plus a ' + fmt(bonus) + ' founder’s bonus for your puzzle XP)' : '') +
         '. Debuggit Ltd is in beta, so its numbers may change.' +
         (DEMO ? ' In the demo it runs hotfixes, and patches once you have more than ' + PATCH_HEADCOUNT + ' staff; it will be reset when v0.1 comes out.' : '');
     }
@@ -1810,7 +1801,7 @@ window.DebuggLtd = (function(){
         return { key: 'intern', offerId: offer && offer.id,
           text: '<b>Put your intern, ' + esc(intern.name) + ', to work.</b> On the contract board, press <b>Staff a team</b> on the ' +
             esc(offer ? offer.lang : 'highlighted') + ' hotfix, tick them and yourself, and start it. Interns are free, and you help them ' +
-            'in any language you know: Python, and any you’ve earned daily puzzle XP in. Now and then they get stuck, and need you to answer a puzzle.' };
+            'in any language you know: Python, and any you’ve earned XP in at the desk. Now and then they get stuck, and need you to answer a puzzle.' };
       }
       if(!(state.desk && state.desk.done)){
         return { key: 'desk', text: '<b>Take a desk job.</b> Click yourself in the office (or press Your desk), then answer a question or two from past daily puzzles ' +

@@ -17,7 +17,7 @@
 // Profiles (ideas/ltd-pacing-targets.md §1): keen checks in every 2–4 hours from 7am to 11pm for
 // 5–10 minutes; casual at about 8am and 8pm for 10 minutes; always keeps the page open.
 // --full plays the whole game (DEMO off); the default is the demo, as players have it today.
-// --hit is how often the player answers a desk question right; --xp is puzzle XP before founding.
+// --hit is how often the player answers a desk question right; --xp is the Director's Ltd XP in Python from the start (Ltd's XP is its own, earned at the desk).
 // --step is the game minutes between ticks and looks while the page is open (default 1; 5 makes the
 // always profile about five times faster, at a little accuracy). --ltd plays a copy of ltd/ltd.js
 // instead, e.g. with a balance change to try before making it.
@@ -387,7 +387,6 @@ async function run(opts, seed){
   const world = { storage: makeStorage(), rng, Date: fakeDate(clock), full: opts.full, desk: fakeDesk(playerRng, opts.hit) };
   world.storage.setItem('debuggit-version', 'demo');
   world.storage.setItem('debuggit-daily-epoch', String(DAY1));
-  if(opts.xp) world.storage.setItem('debuggit-daily-xp', JSON.stringify({ python: opts.xp }));
 
   const events = {};
   const log = key => { if(!(key in events)) events[key] = { at: clock.now - START, active: activeMs }; };
@@ -414,10 +413,20 @@ async function run(opts, seed){
 
   let next = { start: START, length: PROFILES[opts.profile] === PROFILES.always ? Infinity : 10 * MIN };
   let lastClose = null;
+  let seededXp = false;
   while(next.start < end){
     if(lastClose !== null) activeMs += Math.min(4 * HOUR, next.start - lastClose);
     clock.now = next.start;
-    const page = await openPage(world);
+    let page = await openPage(world);
+    if(opts.xp && !seededXp){
+      // The company exists once the page has started; give the Director XP, then play on from that save.
+      seededXp = true;
+      page.close();
+      const saved = JSON.parse(world.storage.getItem('debuggit-ltd-save'));
+      saved.xp = { python: opts.xp };
+      world.storage.setItem('debuggit-ltd-save', JSON.stringify(saved));
+      page = await openPage(world);
+    }
     const closeAt = Math.min(end, next.start + next.length);
     for(;;){
       note(page.state());   // before the player acts, so an applicant hired on sight still counts
@@ -456,7 +465,7 @@ function report(opts, runs){
   const lines = [];
   const n = runs.length;
   lines.push('Debuggit Ltd pacing · ' + opts.profile + ' · ' + (opts.full ? 'full game' : 'demo') + ' · ' + opts.days + ' days · ' +
-             n + ' seed' + (n > 1 ? 's' : '') + (opts.ltd ? ' · ' + opts.ltd : '') + ' · desk hit rate ' + Math.round(opts.hit * 100) + '%' + (opts.xp ? ' · ' + opts.xp + ' puzzle XP' : ''));
+             n + ' seed' + (n > 1 ? 's' : '') + (opts.ltd ? ' · ' + opts.ltd : '') + ' · desk hit rate ' + Math.round(opts.hit * 100) + '%' + (opts.xp ? ' · ' + opts.xp + ' Ltd XP' : ''));
   lines.push('Real time is from founding (day 1, 9am). Game time is time that counted: the page open, plus up to 4h caught up each time away.');
   lines.push('');
   lines.push(pad('Milestone', 40) + pad('Real time (median)', 20) + pad('Game time', 11) + 'Reached');

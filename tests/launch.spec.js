@@ -8,8 +8,8 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#foundBtn');
-  // ¤250 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
-  await expect(page.locator('#statMoney')).toHaveText('¤350');
+  // ¤250: solving the puzzle first adds nothing to a new company.
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
   // Learn's save and a sandbox draft ride along too: one prefix per product, all backed up.
   await page.evaluate(() => {
     localStorage.setItem('debuggit-learn-save', JSON.stringify({ xp: { python: 30 } }));
@@ -37,7 +37,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await expect(other.locator('#feedback')).toContainText('Solved');
   await expect(other.locator('#streak')).toHaveText('1');
   await other.click('#ltdNote a');
-  await expect(other.locator('#statMoney')).toHaveText('¤350');
+  await expect(other.locator('#statMoney')).toHaveText('¤250');
   expect((await readJson(other, 'debuggit-daily-xp')).python).toBe(100);
   expect((await readJson(other, 'debuggit-learn-save')).xp.python).toBe(30);
   expect(await other.evaluate(() => localStorage.getItem('debuggit-learn-sandbox-python'))).toBe('print(2)');
