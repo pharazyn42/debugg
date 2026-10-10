@@ -28,7 +28,7 @@ Moved out of `ltd/CLAUDE.md` to keep that always-loaded file small. Read the sec
   65% reliability, and only on hotfixes, which they take **with the Director as a second person**
   (so one intern job at a time), in a language the intern knows or the Director is comfortable in
   (`directorKnows()`: Python always, which was the player-owner's open question and is a
-  placeholder, plus any language with daily-puzzle XP). No desk, not in the headcount, the
+  placeholder, plus any language the Director has earned Ltd XP in at the desk). No desk, not in the headcount, the
   supervision structure, notices or odd jobs, and never auto-staffed by managers. "Suggest a team"
   picks the pair when nobody else can take a hotfix; the guide's first step is now staffing them.
   After 7 days (company time) they finish their hotfix (and its review), leave, and apply as a
@@ -54,10 +54,12 @@ Moved out of `ltd/CLAUDE.md` to keep that always-loaded file small. Read the sec
   keeps the writing time as the limit, so puzzles can't be farmed for money.
 - **Founding**: a new company gets ¤250 (enough for a ¤180 grad; ¤150 until October 2026). There is no
   founder's bonus any more (it was ¤1 per daily-puzzle XP, up to ¤1,000, until October 2026).
-- **The Director's languages are the player's puzzle levels** (read live
-  from `debuggit-daily-xp`). Each level above 1 adds 1% success chance to contracts
-  in that language, up to +10%, shown on the Director's card and in the
-  team picker. Only languages with puzzles (Python, JavaScript) count.
+- **The Director's languages are levelled by desk answers** (October 2026: Ltd's XP is its own,
+  `state.xp` per puzzle language in the Ltd save; the daily's XP counts for nothing). A right desk or
+  intern/team-help answer adds `LTD_XP_PER_DIFFICULTY` (6) × the question's difficulty; wrong adds
+  nothing. Level n starts at 50·n·(n−1) XP. Each level above 1 adds 1% success chance to contracts
+  in that language, up to +10%, shown on the Director's card (with XP to the next level) and in
+  the team picker. Only languages in the puzzle rotation count (Python for now).
 - **Pause / Close**: pausing stores `pausedAt` and reloads without the
   studio; resuming shifts every clock in the save (`lastTick`, jobs,
   offers, `since`) forward by the paused time, so nothing happens while

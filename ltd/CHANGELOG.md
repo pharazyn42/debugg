@@ -10,6 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **The Director's card shows your XP.** Under Languages, each level now shows your XP and where the next level starts (for example "Python Lv 3 (+2% success) 450 / 600 XP"), with a line on how to earn it: right desk answers, and helping your intern.
 - **No more founder's bonus.** A new company always starts with ¤250: the daily puzzle's XP no longer adds cash when you found it, as it no longer counts for anything in Debuggit Ltd.
 - **You level up by answering at the desk.** The Director's language levels now come from Ltd alone: every right desk answer, and every right answer when you help a stuck intern, earns 6 XP times the question's difficulty in that question's language. Wrong answers earn nothing. The daily puzzle's XP no longer counts here. Levels still add 1% success chance each (up to +10%), and a language you've earned XP in is one you can help your intern with.
 - **Your company is saved under a new name.** Debuggit Ltd now keeps its save apart from the daily puzzle and Learn. A company started in an earlier demo version won't carry over; this is a demo, and you start a fresh one.

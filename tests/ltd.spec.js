@@ -201,11 +201,13 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
   await expect(page.locator('#deskCount')).toHaveText(desk.jobs.length + ' waiting');
 });
 
-test("the Director's puzzle levels boost contract success in that language", async ({ page }) => {
+test("the Director's levels boost contract success in that language", async ({ page }) => {
   await found(page);
   await editCompany(page, s => { s.xp = { python: 450 }; });  // Python level 3: +2%
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody')).toContainText('Python Lv 3 (+2% success)');
+  await expect(page.locator('#personModalBody')).toContainText('450 / 600 XP');   // level 4 starts at 600
+  await expect(page.locator('#personModalBody')).toContainText('Answer a language’s desk questions right');
   await page.keyboard.press('Escape');
   await editCompany(page, s => {
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });

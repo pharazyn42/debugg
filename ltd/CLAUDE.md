@@ -15,7 +15,7 @@ DESK_BOOST = { 1: ×1, 2: ×1.25, 3: ×1.5 }                 // when every answe
 DESK_REP = 1, DESK_SEEN = 40                               // reputation per right answer; recent questions kept out
 START_CASH = 250                                       // no founder's bonus (gone October 2026: Ltd's XP is its own)
 LTD_XP_PER_DIFFICULTY = 6                              // Director XP per right desk/help answer, per language (state.xp)
-DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance per puzzle level above 1
+DIRECTOR_BOOST_PER_LEVEL = 0.01, DIRECTOR_BOOST_CAP = 0.10   // success chance per Director level above 1
 
 LANGS   = ['Python', 'C/C++', 'JavaScript', 'Rust']   // Assembly dropped; old saves fold it into C/C++
 // Languages only: domains were removed (item 3) and are planned to return later (item 16).

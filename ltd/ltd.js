@@ -27,7 +27,7 @@ window.DebuggLtd = (function(){
   // A new company starts with ¤250 (¤150 until October 2026). The founder's bonus, ¤1 per daily-puzzle XP,
   // went when Ltd's XP became its own: nothing carries in from the daily any more.
   const START_CASH = 250;
-  // Puzzle levels boost contract success in that language: +1% per level above 1, up to +10%.
+  // The Director's level in a language boosts contract success in it: +1% per level above 1, up to +10%.
   // The Director's XP is Ltd's own (October 2026, the player-owner's call): earned only from right desk
   // and intern-help answers, LTD_XP_PER_DIFFICULTY × the question's difficulty (Learn questions count
   // as 1), kept per puzzle language in `state.xp`. Level n starts at 50·n·(n−1) XP: 0, 100, 300, 600…
@@ -1111,7 +1111,7 @@ window.DebuggLtd = (function(){
     }
 
     // An intern's hotfix: the intern and the Director, in a language one of them knows. Only the
-    // intern writes code; the Director's puzzle level adds its usual success boost.
+    // intern writes code; the Director's level in the language adds its usual success boost.
     function evaluateInternTeam(tier, offer, members){
       const intern = members.find(isIntern);
       const director = members.find(p => p.role === 'Director');
@@ -1945,14 +1945,17 @@ window.DebuggLtd = (function(){
                 'Ends in ' + fmtDuration(Math.max(0, internEnds(p) - now)) + ', when they’ll ask to stay on as a graduate for half the usual cost.</div></div>';
       }else if(p.role === 'Director'){
         const c0 = headcounts(state.roster);
-        body += '<div class="skill-section-title">Languages (your puzzle levels)</div><div class="req-list"><div class="no">' + Object.keys(D.LANGS).map(k => {
+        body += '<div class="skill-section-title">Languages (levels from your desk answers)</div><div class="req-list"><div class="no">' + Object.keys(D.LANGS).map(k => {
           const boost = directorBoost(D.LANGS[k].studio);
           const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[k];
           const name = course && !course.soon
             ? '<a class="learn-lang" href="learn/#' + k + '" title="Learn ' + esc(D.LANGS[k].name) + ' in Debuggit Learn">' + esc(D.LANGS[k].name) + '</a>'
             : esc(D.LANGS[k].name);
-          return name + ' Lv ' + directorLevel(k) + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '');
-        }).join(' · ') + '</div></div>' +
+          const xp = state.xp[k] || 0, lv = directorLevel(k);
+          return name + ' Lv ' + lv + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '') +
+            ' <span class="xp-note">' + xp + ' / ' + xpLevelStart(lv + 1) + ' XP</span>';
+        }).join(' · ') + '<br>Answer a language’s desk questions right, or help your intern with them, to earn XP in it: ' +
+          LTD_XP_PER_DIFFICULTY + ' per point of difficulty.</div></div>' +
           '<div class="skill-section-title">Role</div><div class="req-list"><div class="no">' +
           (jobFor(p.id) ? 'Helping on a hotfix with your intern, and taking desk jobs. ' : '') +
           (c0.Manager ? 'Taking desk jobs. Your managers look after the team.'

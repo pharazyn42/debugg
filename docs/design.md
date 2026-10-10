@@ -4,9 +4,9 @@ Moved out of `CLAUDE.md` to keep the always-loaded file small. Read the section 
 
 **How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
 **How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
-player-owner's call: the daily is its own game). The studio reads puzzle XP through
-`Debugg.readXp()` for the Director's skills and the founder's bonus, and its desk jobs reuse past
-daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
+player-owner's call: the daily is its own game). The studio reads no daily
+progress: the Director's XP is Ltd's own (`state.xp`, earned from right desk and help answers; the
+founder's bonus is gone), and its desk jobs reuse past daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
 `index.html` still fires `debugg:puzzle-finished` (`{ lang, day, solved, guesses, hintLevel, xp,
 streak }`) when a game ends, but nothing listens to it now.
 
