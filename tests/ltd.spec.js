@@ -148,10 +148,15 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   await page.click('[data-action=desk-start][data-job=dj1]');
   await expect(page.locator('.desk-q-num')).toHaveText('Question 2 of 2');
   await answerDesk(page, learn, true);
-  await expect(page.locator('#deskDone')).toContainText('Desk job: 2 of 2 right, ¤138 (with the ×1.25 bonus for getting them all) and +2 reputation.');
+  await expect(page.locator('#deskDone')).toContainText('Desk job: 2 of 2 right, ¤138 (with the ×1.25 bonus for getting them all) and +2 reputation, +24 XP.');
   expect((await ltd(page)).money).toBe(250 + 138);
+  // 6 XP × difficulty (3 and 1), kept per language.
+  const gained = {};
+  [daily, learn].forEach(q => { gained[q.lang] = (gained[q.lang] || 0) + 6 * q.difficulty; });
+  expect((await ltd(page)).xp).toEqual(gained);
   expect((await ltd(page)).desk).toMatchObject({ jobs: [], done: 1 });
   expect((await ltd(page)).desk.seen).toEqual([daily.id, learn.id]);
+  const xpBefore = JSON.stringify((await ltd(page)).xp);
 
   // One wrong: only the right one pays, with no bonus.
   await setDeskJob(page, [daily, learn]);
@@ -159,7 +164,11 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   await page.click('[data-action=desk-start][data-job=dj1]');
   await answerDesk(page, daily, false);
   await answerDesk(page, learn, true);
-  await expect(page.locator('#deskDone')).toContainText('Desk job: 1 of 2 right, ¤40 and +1 reputation.');
+  await expect(page.locator('#deskDone')).toContainText('Desk job: 1 of 2 right, ¤40 and +1 reputation, +6 XP.');
+  // A wrong answer earns no XP: only the right Learn question added its 6.
+  const after = (await ltd(page)).xp;
+  expect(after[learn.lang] - JSON.parse(xpBefore)[learn.lang]).toBe(6);
+  expect(after[daily.lang] - JSON.parse(xpBefore)[daily.lang]).toBe(daily.lang === learn.lang ? 6 : 0);
   // Every kind of question plays: typed, choice and tap the line.
   for(const kind of ['typed', 'line']){
     const q = qs.find(x => x.kind === kind);
@@ -197,8 +206,8 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
 });
 
 test("the Director's puzzle levels boost contract success in that language", async ({ page }) => {
-  await withStorage(page, { 'debuggit-daily-xp': { python: 450 } }); // Python level 3: +2%
   await found(page);
+  await editCompany(page, s => { s.xp = { python: 450 }; });  // Python level 3: +2%
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody')).toContainText('Python Lv 3 (+2% success)');
   await page.keyboard.press('Escape');
@@ -463,6 +472,7 @@ test('the intern sometimes gets stuck, and the hotfix stalls until you help with
   const pay = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 }[q.difficulty];
   expect(s.money).toBe(250 + pay);
   expect(s.reputation).toBe(1);
+  expect(s.xp).toEqual({ python: 6 * q.difficulty });  // helping earns XP like a desk answer
   expect(s.jobs[0].status).toBe('running');
   expect(await minutesLeft(page)).toBeCloseTo(5, 1);
   expect(s.desk.seen).toContain(q.id);
@@ -486,6 +496,7 @@ test('a wrong answer loses the intern some progress, and they can get stuck agai
   const s = await ltd(page);
   expect(s.money).toBe(250);
   expect(s.reputation).toBe(0);
+  expect(s.xp).toEqual({});
   expect(s.jobs[0].status).toBe('running');
   expect(await minutesLeft(page)).toBeCloseTo(15, 1);
   await expect(page.locator('#log')).toContainText('loses some progress');
@@ -1542,3 +1553,50 @@ test('clicking yourself in the office opens your desk, and a badge over your hea
   await expect(page.locator('[data-action=open-desk]')).toHaveText('Your desk');
 }
 );
+
+test("the Director's XP is Ltd's own: the daily's XP counts for nothing, and desk answers level you up", async ({ page }) => {
+  // Lots of daily XP, but none of it is Ltd's.
+  await withStorage(page, { 'debuggit-daily-xp': { python: 5000, javascript: 5000 } });
+  await found(page);
+  expect((await ltd(page)).xp).toEqual({});
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 1');
+  await page.keyboard.press('Escape');
+
+  // 96 XP is just short of level 2; a right difficulty-1 answer adds 6 and tips it over.
+  await editCompany(page, s => { s.xp = { python: 96 }; });
+  const learn = (await deskQuestions(page)).find(q => q.source === 'learn' && q.kind === 'choice');
+  await setDeskJob(page, [learn]);
+  await openDesk(page);
+  await page.click('[data-action=desk-start][data-job=dj1]');
+  await answerDesk(page, learn, true);
+  expect((await ltd(page)).xp.python).toBe(102);
+  await page.click('[data-action=desk-close]');
+  await page.keyboard.press('Escape');
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 2 (+1% success)');
+});
+
+test('the Director knows a language once Ltd XP has been earned in it, never from the daily; Python is always known', async ({ page }) => {
+  // JavaScript is in the rotation, so it's a language the Director could know.
+  await page.addInitScript(() => { window.DEBUGG_ROTATION = [{ lang: 'python' }, { lang: 'javascript' }]; });
+  await withStorage(page, { 'debuggit-daily-xp': { javascript: 500 } });  // the daily's JavaScript XP counts for nothing here
+  await found(page);
+  const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  const js = (await ltd(page)).board.find(o => o.tier === 0 && !o.expert && o.lang === 'JavaScript');
+  const knowCheck = page.locator('#teamModal .check', { hasText: 'know JavaScript' });
+  const pickPair = async () => {
+    await page.click('[data-action=staff][data-offer="' + js.id + '"]');
+    await page.click('[data-pick="' + intern.id + '"]');
+    await page.click('[data-pick="director"]');
+  };
+  await pickPair();
+  await expect(knowCheck).toHaveClass(/no/);
+  await expect(knowCheck).toHaveText('✕ you or ' + intern.name + ' know JavaScript');
+  await page.click('[data-action=pick-cancel]');
+
+  // With JavaScript XP in the Ltd save (a right JavaScript answer gives it), the Director is comfortable in it.
+  await editCompany(page, s => { s.xp = { javascript: 6 }; });
+  await pickPair();
+  await expect(knowCheck).not.toHaveClass(/no/);
+});

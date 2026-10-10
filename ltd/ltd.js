@@ -28,6 +28,16 @@ window.DebuggLtd = (function(){
   const START_CASH = 250;
   const FOUNDER_BONUS_CAP = 1000;
   // Puzzle levels boost contract success in that language: +1% per level above 1, up to +10%.
+  // The Director's XP is Ltd's own (October 2026, the player-owner's call): earned only from right desk
+  // and intern-help answers, LTD_XP_PER_DIFFICULTY × the question's difficulty (Learn questions count
+  // as 1), kept per puzzle language in `state.xp`. Level n starts at 50·n·(n−1) XP: 0, 100, 300, 600…
+  const LTD_XP_PER_DIFFICULTY = 6;
+  function xpLevelStart(n){ return 50 * n * (n - 1); }
+  function xpLevelFor(xp){
+    let n = 1;
+    while(xp >= xpLevelStart(n + 1)) n++;
+    return n;
+  }
   const DIRECTOR_BOOST_PER_LEVEL = 0.01;
   const DIRECTOR_BOOST_CAP = 0.10;
 
@@ -473,6 +483,7 @@ window.DebuggLtd = (function(){
       return {
         money,
         reputation: 0,
+        xp: {},               // the Director's XP per puzzle language, from right desk and help answers
         companyName: (named && named.company) || null,  // null: "Debuggit Ltd"
         roster: [director, makeIntern(now)],
         internGiven: true,    // the starting intern (see INTERN_DAYS); older saves get one on load
@@ -994,16 +1005,16 @@ window.DebuggLtd = (function(){
       return Object.keys(D.LANGS).find(k => D.LANGS[k].studio === langName) || null;
     }
     function directorLevel(key){
-      return D.levelFor(D.readXp()[key] || 0);
+      return xpLevelFor(state.xp[key] || 0);
     }
     // The languages the Director is comfortable enough in to help an intern: Python, the first
-    // puzzle language, always, and any other with daily-puzzle XP.
+    // puzzle language, always, and any other once a right desk or help answer has earned XP in it.
     function directorKnows(langName){
       if(langName === 'Python') return true;
       const key = puzzleKey(langName);
-      return !!key && (D.readXp()[key] || 0) > 0;
+      return !!key && (state.xp[key] || 0) > 0;
     }
-    // Every puzzle level above 1 in a language adds 1% success chance to contracts
+    // Every level above 1 in a language adds 1% success chance to contracts
     // in it (up to +10%): the better you know a language, the better your company is at it.
     function directorBoost(langName){
       const key = puzzleKey(langName);
@@ -1502,6 +1513,12 @@ window.DebuggLtd = (function(){
       return changed || desk.jobs.length !== before;
     }
     function deskQuestions(job){ return job.questions.map(id => deskPool && deskPool.get(id)).filter(Boolean); }
+    // XP for a right answer, added to the question's language. Returns what was added.
+    function earnXp(q){
+      const gain = LTD_XP_PER_DIFFICULTY * (q.difficulty || 1);
+      if(q.lang){ state.xp[q.lang] = (state.xp[q.lang] || 0) + gain; }
+      return gain;
+    }
     // What a job pays, with every answer right (the most it can pay).
     function deskMax(job){
       const qs = deskQuestions(job);
@@ -1530,6 +1547,7 @@ window.DebuggLtd = (function(){
       const cut = stage().desk;
       const cash = Math.round(right.reduce((n, q) => n + DESK_PAY[q.difficulty], 0) * boost * cut);
       const rep = right.length * DESK_REP;
+      const xpGain = right.reduce((n, q) => n + earnXp(q), 0);
       state.money += cash;
       state.reputation += rep;
       state.desk.jobs = state.desk.jobs.filter(j => j !== job);
@@ -1539,7 +1557,7 @@ window.DebuggLtd = (function(){
       const text = 'Desk job: ' + right.length + ' of ' + qs.length + ' right, ' + fmt(cash) +
         (all && boost > 1 ? ' (with the ×' + boost + ' bonus for getting them all)' : '') +
         (cut < 1 && cash ? ' (a ' + stage().name.toLowerCase() + ' gets ' + Math.round(cut * 100) + '% of desk pay)' : '') +
-        (rep ? ' and +' + rep + ' reputation.' : '.');
+        (rep ? ' and +' + rep + ' reputation' : '') + (xpGain ? (rep ? ', +' : ' and +') + xpGain + ' XP.' : '.');
       addLog(right.length ? 'ok' : 'info', '✓ ' + text);
       track('desk/done/' + qs.length + '/' + right.length);
       const box = document.getElementById('deskPlay');
@@ -1617,7 +1635,8 @@ window.DebuggLtd = (function(){
         const cash = helpPay(q.difficulty);
         state.money += cash;
         state.reputation += DESK_REP;
-        text = 'Right: ' + name + '’s ' + job.lang + ' hotfix jumps ahead, and your help earns ' + fmt(cash) + ' and +' + DESK_REP + ' reputation.';
+        const xpGain = earnXp(q);
+        text = 'Right: ' + name + '’s ' + job.lang + ' hotfix jumps ahead, and your help earns ' + fmt(cash) + ', +' + DESK_REP + ' reputation and +' + xpGain + ' XP.';
         addLog('ok', '✓ ' + text);
       }else{
         text = 'Not quite: ' + name + ' went the wrong way, and the ' + job.lang + ' hotfix loses some progress.';
@@ -1648,7 +1667,8 @@ window.DebuggLtd = (function(){
         const cash = helpPay(q.difficulty);
         state.money += cash;
         state.reputation += DESK_REP;
-        text = 'Right: the team is unstuck, ' + what + ' jumps ahead at full speed again, and your help earns ' + fmt(cash) + ' and +' + DESK_REP + ' reputation.';
+        const xpGain = earnXp(q);
+        text = 'Right: the team is unstuck, ' + what + ' jumps ahead at full speed again, and your help earns ' + fmt(cash) + ', +' + DESK_REP + ' reputation and +' + xpGain + ' XP.';
         addLog('ok', '✓ ' + text);
       }else{
         text = 'Not quite: the team is back at full speed, but went the wrong way, and ' + what + ' loses some progress.';
@@ -2925,6 +2945,9 @@ window.DebuggLtd = (function(){
       state.board = makeBoard();
       state.boardVersion = BOARD_VERSION;
     }
+
+    // The Director's XP is Ltd's own now; older saves start with none.
+    if(!state.xp || typeof state.xp !== 'object') state.xp = {};
 
     // Companies from before interns get one, once.
     if(!state.internGiven){
