@@ -10,6 +10,11 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await page.click('#foundBtn');
   // ¤250 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
   await expect(page.locator('#statMoney')).toHaveText('¤350');
+  // Learn's save and a sandbox draft ride along too: one prefix per product, all backed up.
+  await page.evaluate(() => {
+    localStorage.setItem('debuggit-learn-save', JSON.stringify({ xp: { python: 30 } }));
+    localStorage.setItem('debuggit-learn-sandbox-python', 'print(2)');
+  });
   await page.click('#backupLink');
   const code = await page.inputValue('#backupCode');
   expect(code.startsWith('DEBUGG1.')).toBe(true);
@@ -34,6 +39,8 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await other.click('#ltdNote a');
   await expect(other.locator('#statMoney')).toHaveText('¤350');
   expect((await readJson(other, 'debuggit-daily-xp')).python).toBe(100);
+  expect((await readJson(other, 'debuggit-learn-save')).xp.python).toBe(30);
+  expect(await other.evaluate(() => localStorage.getItem('debuggit-learn-sandbox-python'))).toBe('print(2)');
 });
 
 test('feedback links open a prefilled GitHub issue for the puzzle', async ({ page }) => {

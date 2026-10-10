@@ -50,9 +50,7 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 
 ## Last session handoff
 - Branch: `claude/jolly-davinci-dfihk5` (repo-split plan, Phase 1).
-- Finished: the daily's keys renamed to `debuggit-daily-*` (`xp`, `streak`, `day<N>`, `practice-day<N>`, `demo-seen`, `seen-version`, `epoch`). The shared version marker is now `debuggit-version`. `KEYS.prefixes` is now just `['debuggit-']`, so no `debugg-*` key is written or recognised any more. Old browsers keep orphaned `debugg-*` keys; nothing reads or deletes them (no players). Dropped the legacy `debugg-<lang>-day<N>` branch from `DAY_KEY_RE`. The daily's "reset puzzles" now removes only `KEYS.daily.prefix` keys (except `demo-seen` and `seen-version`), so it no longer touches Learn's session or sandbox drafts. Tests, `tools/sim-ltd.js`, docs and agent prompts updated (`debugg-*` to `debuggit-*`). Changelog lines in all three products.
-- Phase 1 key renames are done for all three products. `grep -rn "debugg-xp" ltd/` finds nothing.
-- Tests: `npx playwright test --workers=2` 148 passed. `tools/sim-ltd.js` runs.
-- Next in `TODO.md`: "Make `backup.js` collect all three prefixes". It already does, through `isOurKey()` and `KEYS.prefixes`, so that item is probably just a check: confirm with `tests/launch.spec.js` and the backup tests, then tick it. After that the Ltd items need the two open decisions (Ltd XP scale, Ltd languages).
-- `tools/check-scope.js` passes only once the changelog edits are committed (it compares commits, not the working tree).
+- Finished: `backup.js` needed no code change. It goes through `isOurKey()`, which matches `KEYS.prefixes` (`['debuggit-']`), so it already covers the daily, Ltd and Learn. The backup test in `tests/launch.spec.js` now also checks Learn's save and a sandbox draft survive a backup and restore (before, it covered only the daily and Ltd).
+- Tests: `tests/launch.spec.js` 6 passed. The last full run (148 passed) was before this test-only change.
+- Next: nothing left that is unblocked in Phase 1. Both remaining Phase 1 items need an owner decision (`TODO.md` "Blocked"): Ltd languages, then Ltd XP scale values. Phase 2 (split `shared.js` by owner) needs neither, but Ltd still reads the shared XP and levels until those two land.
 - Uncommitted changes: none after this commit.
