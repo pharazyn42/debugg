@@ -48,9 +48,12 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 `backup.js:10` (`isOurs`), `shared.js:47` (wipe), `shared.js:32,34,36` (`returning:` regexes),
 `shared.js:62-69` (old epoch migration, touches Ltd's save: delete it), `index.html:1200` (reset list).
 
+## Decisions
+- 2026-10-10: Ltd XP is its own scale, earned only from right desk and intern-help answers: 6 XP × difficulty, per language, kept in the Ltd save. Languages unlock by earning XP in them (Python always known). The founder's bonus goes. Details and the sim numbers behind the 6 are in `PLAN.md` Phase 1.
+
 ## Last session handoff
 - Branch: `claude/jolly-davinci-dfihk5` (repo-split plan, Phase 1).
-- Finished: `backup.js` needed no code change. It goes through `isOurKey()`, which matches `KEYS.prefixes` (`['debuggit-']`), so it already covers the daily, Ltd and Learn. The backup test in `tests/launch.spec.js` now also checks Learn's save and a sandbox draft survive a backup and restore (before, it covered only the daily and Ltd).
-- Tests: `tests/launch.spec.js` 6 passed. The last full run (148 passed) was before this test-only change.
-- Next: nothing left that is unblocked in Phase 1. Both remaining Phase 1 items need an owner decision (`TODO.md` "Blocked"): Ltd languages, then Ltd XP scale values. Phase 2 (split `shared.js` by owner) needs neither, but Ltd still reads the shared XP and levels until those two land.
+- Finished: the Ltd XP scale and the languages rule are decided and written into `PLAN.md` (Phase 1) and split into three `TODO.md` items (store and earn; cut the last daily links; wording). No code changed this session.
+- Next: "Ltd XP, part 1: store and earn" in `TODO.md`. Gotchas: `ltd/ltd.js` reads daily XP at ~997 (`directorLevel`), ~1004 (`directorKnows`) and ~1396 (`founderBonus`); desk answers are paid in the desk's right-answer handler and intern help at ~1551-1640 (`INTERN_NUDGE` code). `directorKnows` must keep Python always known. The ltd tests set levels with `debuggit-daily-xp` in `withStorage(...)`; move those to the Ltd save.
+- Tests: no code touched, none run. Last full run: 148 passed.
 - Uncommitted changes: none after this commit.

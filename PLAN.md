@@ -41,11 +41,23 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
      The key inventory comes from `grep` over `*.js` and `*.html`: `debugg-xp`, `debugg-streak`, `debugg-day*`,
      `debugg-practice-*`, `debugg-learn*`, `debugg-ltd`, `debugg-sandbox-*`, `debugg-lang`, `debugg-epoch`,
      `debugg-version`, `debugg-seen-*`, `debugg-demo-seen`.
-   - Ltd stops reading daily and Learn state. Where it does today (verify: `ltd/ltd.js` around lines 1000 and 1793, where
-     "any language with daily-puzzle XP" decides which languages a studio member knows), it gets its own source,
-     for example languages chosen or unlocked inside Ltd.
-   - Ltd gets its own XP scale. Define it in `ltd/` and do not reuse `shared.js` `BASE_XP` or the level table. The
-     numbers are an open question (below).
+   - **Ltd XP (decided with the owner, 2026-10-10).** Ltd's XP comes only from right answers to desk-job and
+     intern-help questions, never from the daily or Learn. Stored per language in the Ltd save (`state.xp`, a
+     boot-sequence guard `state.xp ||= {}`, no migration). **6 XP × the question's difficulty** per right answer
+     (6 / 12 / 18 / 24 / 30; Learn questions count as difficulty 1; wrong answers 0, no penalty). One constant,
+     `LTD_XP_PER_DIFFICULTY = 6`, in `ltd/ltd.js`. The level curve keeps its shape and is copied into `ltd/` so it does
+     not depend on `shared.js`: level n starts at 50·n·(n−1) XP (0, 100, 300, 600, 1000 … 5500 at level 11). A level's
+     effect is unchanged: +1% contract success per level above 1, capped at +10% (`DIRECTOR_BOOST_*`).
+     Source for 6: `tools/sim-ltd.js` over 30 days, 2 seeds, 80% hit rate: a keen player answers about 20 questions
+     right a day (average difficulty 1.47, about 180 XP a day), a casual one about 6 (about 53 XP a day). That puts a keen
+     player at level 5 on day 6 and the +10% cap on day 31, and a casual one at level 5 on day 19. Re-check with
+     `npm run sim` once built (the sim pool is 81% difficulty 1; the real pool is smaller).
+   - **Ltd's languages (decided):** Python is always known; any other language becomes known once the Director has Ltd
+     XP in it, which a right desk answer in that language gives. Nothing else unlocks languages.
+   - **Founder's bonus goes** (¤1 per puzzle XP before founding, up to ¤1,000): there is no pre-company XP any more, so a
+     new company starts on a flat ¤250, as the pacing doc already assumes.
+   - Ltd stops reading daily and Learn state: `ltd/ltd.js` lines ~997, ~1004 and ~1396 (`D.readXp`) are the only
+     reads of `shared.js` XP today (verify with `grep -nE "D\.(readXp|totalXp|levelFor|readState|isFinished)" ltd/`).
    - Because there are no players, skip migrations. Bump `SAVE_VERSION` and the demo wipe once so any stale saves are cleared.
 2. **Split `shared.js` by owner** (still one repo). Move what is product-specific into that product's folder:
    the calendar, rotation and `FORMATS` to daily; `LANG_INFO` and the highlighter to learn (copied where
@@ -81,11 +93,6 @@ anything their screens show).
 - **One product per branch.** This plan is multi-product by nature (shared `shared.js`, `tests/`, `tools/`), so
   Phases 1–2 will fail `tools/check-scope.js`. Decide: relax the check for this series, or order the work so each PR is
   one product (Ltd's key and XP change first, then Learn, then daily, then shared).
-- **Ltd XP scale values.** What are the levels and the XP per action? Per the "no unsourced numbers" rule, this needs the
-  owner's call or a start from the existing source values in `ltd/ltd.js` (`tier.xpPerMin`) and
-  `ideas/ltd-pacing-targets.md`. Check with `npm run sim`.
-- **Ltd's languages.** What replaces "languages you've earned daily-puzzle XP in"? Options: all languages are
-  available, languages are unlocked inside Ltd, or the owner picks.
 - **Content tag cadence.** Pinned copies mean a new puzzle needs a content tag and a bump in each consumer. Is
   that acceptable, or should the daily consume `main` of the content repo on a schedule?
 - **Heavy CI.** `check-puzzles` needs python, gcc, clang and rustc, so it lives in the content repo only. Confirm

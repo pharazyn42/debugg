@@ -12,8 +12,9 @@
 - [x] Rename Learn's keys to `debuggit-learn-*` (`debugg-learn*`, `debugg-sandbox-*`, `debugg-lang` if Learn-only). Check: `npm test` green. Learn changelog line.
 - [x] Rename the daily's keys to `debuggit-daily-*` (`debugg-xp`, `debugg-streak`, `debugg-day*`, `debugg-practice-*`, `debugg-demo-seen`, `debugg-seen-*`). Check: `npm test` green, and `grep -rn "debugg-xp" ltd/` finds nothing. Daily changelog line.
 - [x] Make `backup.js` collect all three prefixes (or each product backs up its own). Check: `tests/launch.spec.js` and the backup tests pass.
-- [ ] Ltd stops reading daily/Learn state (`ltd/ltd.js` ~lines 1000 and 1793, `ltd/desk.js`): needs the languages decision below.
-- [ ] Ltd's own XP scale in `ltd/`: needs the values decision below.
+- [ ] Ltd XP, part 1: store and earn. Add `state.xp` (guard `||= {}`), `LTD_XP_PER_DIFFICULTY = 6`, and Ltd's own `levelStart`/`levelFor` (level n starts at 50·n·(n−1)) in `ltd/`. A right desk answer and a right intern-help answer add 6 × difficulty to the question's language (Learn = difficulty 1); wrong adds 0. `directorLevel()` and `directorKnows()` read `state.xp` (Python always known; other languages once XP > 0). Update the ~8 `tests/ltd.spec.js` spots that seed `debuggit-daily-xp` to seed the Ltd save, and add tests: right answer earns, wrong earns nothing, intern help earns, a JS answer unlocks JS. Check: `npx playwright test tests/ltd.spec.js` green. Ltd changelog line.
+- [ ] Ltd XP, part 2: cut the last daily links. Remove `founderBonus()` (a new company starts on ¤250) and every `D.readXp`/`D.totalXp`/`D.levelFor` use in `ltd/`; make `tools/sim-ltd.js --xp` seed Ltd XP. Check: `grep -nE "D\.(readXp|totalXp|levelFor|readState|isFinished)" ltd/` finds nothing, `npm test` green, and `npm run sim` keen/casual milestones match `ideas/ltd-pacing-targets.md` (flag any that move).
+- [ ] Ltd XP, part 3: wording. The Director card, team picker and welcome text still say "puzzle level"/"puzzle XP"; `README.md`, `ltd/implemented.md` and `docs/design.md` describe the old rule. Check: `grep -rn "puzzle XP\|puzzle level" ltd/ README.md docs/` shows only intended mentions.
 - [ ] Phase 2: split `shared.js` by owner (calendar/rotation/`FORMATS` to daily; `LANG_INFO` and the highlighter to learn; versions and `PRODUCTS` to each product). Check: no product file imports another product's folder.
 - [ ] Phase 3: define the content boundary (question-pool file for Ltd's desk jobs, generator in `tools/`, test).
 - [ ] Phase 4: create `debuggit-content` (puzzles, Learn units and courses, `check-puzzles`, trace tools), tag `v0.1.0`, copy step in each product.
@@ -36,8 +37,6 @@
 - [x] Releases cut with `tools/release.js`, tags + GitHub Releases
 
 ## Blocked / questions
-- [ ] **Ltd XP scale values.** Levels and XP per action? Start from `tier.xpPerMin` in `ltd/ltd.js` and `ideas/ltd-pacing-targets.md`, check with `npm run sim`. Blocks "Ltd's own XP scale".
-- [ ] **Ltd languages.** What replaces "languages you've earned daily-puzzle XP in"? All available, unlocked inside Ltd, or owner's pick. Blocks "Ltd stops reading daily/Learn state".
 - [ ] Multi-product PRs: `tools/check-scope.js` allows them if each touched product gets a changelog line. Is that enough for the key renames, or relax the check for this series?
 - [ ] Content tag cadence: pinned tag per new puzzle, or daily follows content `main`? (Phase 4)
 - [ ] Hosting and domains: three Pages URLs or custom domains; share card, old links, GoatCounter. (Phase 5)
