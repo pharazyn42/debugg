@@ -314,7 +314,8 @@ test('moving Day 1 clears progress saved under the old day numbers', async ({ pa
   expect(kept.day1).toBeNull();
   expect(kept.streak).toBeNull();
   expect(kept.xp).toEqual({ python: 100 });
-  expect(kept.company).toMatchObject({ money: 500, paid: {} });
+  // The daily only clears its own saves: Ltd's company is left exactly as it was.
+  expect(kept.company).toEqual({ enabled: false, pausedAt: 1, money: 500, paid: { 'python-1': true } });
 
   // Once the calendar is remembered, nothing else is cleared.
   await guess(page, (await puzzleFor(page, 1)).display);

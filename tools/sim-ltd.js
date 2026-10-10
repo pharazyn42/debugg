@@ -27,7 +27,8 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const SHARED = new vm.Script(fs.readFileSync(path.join(ROOT, 'shared.js'), 'utf8'), { filename: 'shared.js' });
+// What Ltd's page loads before ltd/ltd.js: the site kit, then the calendar (the desk borrows its puzzle lookups).
+const SHARED = ['shared.js', 'calendar.js'].map(f => new vm.Script(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 let LTD = null;   // ltd/ltd.js, or the --ltd copy
 function loadLtd(file){ LTD = new vm.Script(fs.readFileSync(file, 'utf8'), { filename: file }); }
 
@@ -168,7 +169,7 @@ async function openPage(world){
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  SHARED.runInContext(sandbox);
+  SHARED.forEach(s => s.runInContext(sandbox));
   if(world.full) sandbox.Debugg.DEMO = false;
   sandbox.DebuggDesk = world.desk;
   LTD.runInContext(sandbox);
