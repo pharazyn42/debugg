@@ -63,6 +63,30 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
    the calendar, rotation and `FORMATS` to daily; `LANG_INFO` and the highlighter to learn (copied where
    daily needs them); `APP_VERSION`, `LTD_VERSION`, `LEARN_VERSION` and `PRODUCTS` to each product's own
    version file. Verify: no product file imports another product's folder.
+   Known couplings to cut here (found by grep, 2026-10-10):
+   - Learn uses the daily's level curve (`D.levelFor`, `D.levelStart` in `learn/learn.js`): give Learn its own copy
+     (same shape, Learn's own XP), as Ltd did.
+   - The sandbox (`learn/sandbox.html`) reads daily saves (`D.isFinished`) to keep today's puzzle locked until the
+     player has finished it. That is a cross-product read. Recommended: the sandbox replays past days only and never
+     today's (open question below).
+   - `index.html` loads `learn/courses.js`. Verify why; the daily should not load Learn files.
+   - Ltd's desk reaches into `shared.js` for the calendar and puzzle lookups (`puzzleFor`, `codeId`, `previousSlot`,
+     `formatOf`, `today`); that is Phase 3's boundary, not this phase's.
+2b. **Standalone product pages and cross-product navigation** (still one repo; this is what makes the later peel possible).
+   Today only Learn has its own page. Ltd runs as a tab inside the daily's `index.html` (the loader, the studio, board
+   and desk slots, the "Start your own company" button, pause/resume/close, the welcome toast: roughly lines 1250-1370
+   and the Ltd markup). Do this:
+   - Give Ltd its own entry page (`ltd/index.html`) that holds the loader and slots, and make `index.html?ltd` and
+     `studio/index.html` redirect to it. The daily's `index.html` drops the Ltd slots, the tab switching and the
+     company-start button, keeping only a link to Ltd.
+   - Turn the three-tab bar (`debuggit.learn()` / `debuggit.daily()` / `debuggit.ltd()`) into plain links, one small
+     header snippet copied into each product. Each target URL is one constant per product (relative today:
+     `../learn/`, `../`, `../ltd/`), so the hosting decision becomes a one-line change later.
+   - Tests that open the Ltd tab from the daily page (`#ltdTab`, `#ltdLink` in `tests/ltd.spec.js` and the like) move to
+     the new page. Cross-links are checked by a test per product page.
+2c. **Per-product release tooling and What's new.** `whatsnew.html` shows all three changelogs and `tools/release.js`
+   cuts all three releases (`PRODUCTS` in `shared.js`). Give each product its own What's new page and make
+   `tools/release.js` work for a single product with no product argument, so each repo can copy it as is.
 3. **Define the content boundary.** Decide the interface Ltd's desk jobs use (`ltd/desk.js` loads Learn
    unit files on demand and reads past dailies). Prefer a derived question-pool file (`prompt`, `answer`,
    `language`, `difficulty`) over the full puzzle format. Add a generator in `tools/` and a test that checks it.
@@ -76,7 +100,8 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
    one-product-per-branch rule, which the repos now enforce. Update `.claude/agents/` and `.pi/prompts/` per repo.
 
 **Files touched by phase.** Phases 1–2 touch `shared.js`, `ltd/ltd.js`, `index.html`, `learn/*`, `backup.js`, `tests/*`
-and `tools/release.js`. Phase 3 touches `ltd/desk.js` and `tools/`. Phases 4–6 are mostly moves plus per-repo CI.
+and `tools/release.js`. Phase 3 touches `ltd/desk.js` and `tools/`. Phases 4–6 are mostly moves plus per-repo CI. Phase 2b touches `index.html`, `ltd/` (new `ltd/index.html`), `studio/`, the nav in every product page and
+`tests/ltd.spec.js`/`tests/launch.spec.js`; 2c touches `whatsnew.html`, `tools/release.js` and `shared.js`.
 
 **Players' notice.** Phase 1 and the Ltd XP change are player-visible, so each product gets a line under
 `## Unreleased` in its changelog in the same PR (Ltd's for the XP and language change, the daily's and Learn's for
@@ -93,6 +118,12 @@ anything their screens show).
 - **One product per branch.** This plan is multi-product by nature (shared `shared.js`, `tests/`, `tools/`), so
   Phases 1–2 will fail `tools/check-scope.js`. Decide: relax the check for this series, or order the work so each PR is
   one product (Ltd's key and XP change first, then Learn, then daily, then shared).
+- **Sandbox replay lock.** Today's puzzle stays locked in the sandbox until the player finishes it in the daily. Separate
+  saves mean Learn cannot know. Recommended: the sandbox lists past days only. Alternative: a link back to the daily.
+- **Navigation URLs.** The cross-product links use one constant per product (2b). Final values wait on the hosting decision.
+- **Where What's new lives.** One page per product (recommended, in 2c) or one shared page that links to all three.
+- **The Ltd entry point.** Players find Ltd today through the daily's tab. After 2b it is a link; check the first-visit
+  explanation ("Start your own company") still reaches a new player.
 - **Content tag cadence.** Pinned copies mean a new puzzle needs a content tag and a bump in each consumer. Is
   that acceptable, or should the daily consume `main` of the content repo on a schedule?
 - **Heavy CI.** `check-puzzles` needs python, gcc, clang and rustc, so it lives in the content repo only. Confirm

@@ -15,7 +15,11 @@
 - [x] Make `backup.js` collect all three prefixes (or each product backs up its own). Check: `tests/launch.spec.js` and the backup tests pass.
 - [x] Ltd XP, part 2: cut the last daily links. Remove `founderBonus()` (a new company starts on ¤250) and every `D.readXp`/`D.totalXp`/`D.levelFor` use in `ltd/`; make `tools/sim-ltd.js --xp` seed Ltd XP. Check: `grep -nE "D\.(readXp|totalXp|levelFor|readState|isFinished)" ltd/` finds nothing, `npm test` green, and `npm run sim` keen/casual milestones match `ideas/ltd-pacing-targets.md` (flag any that move).
 - [ ] Ltd XP, part 3: wording. The Director card, team picker and welcome text still say "puzzle level"/"puzzle XP"; `README.md`, `ltd/implemented.md` and `docs/design.md` describe the old rule. Check: `grep -rn "puzzle XP\|puzzle level" ltd/ README.md docs/` shows only intended mentions.
-- [ ] Phase 2: split `shared.js` by owner (calendar/rotation/`FORMATS` to daily; `LANG_INFO` and the highlighter to learn; versions and `PRODUCTS` to each product). Check: no product file imports another product's folder.
+- [ ] Phase 2a: Learn stops using the daily's XP curve and saves. Give `learn/` its own `levelStart`/`levelFor` (same shape, Learn's own XP); the sandbox stops reading `D.isFinished` (needs the sandbox replay decision below; recommended: past days only). Verify why `index.html` loads `learn/courses.js` and remove it if unneeded. Check: `grep -nE "D\.(levelFor|levelStart|isFinished|readState|stateKey)" learn/` finds nothing and `npx playwright test tests/learn.spec.js tests/sandbox.spec.js` is green. Learn changelog line.
+- [ ] Phase 2b-i: standalone Ltd page. Add `ltd/index.html` with the loader, slots, "Start your own company", pause/resume/close and welcome toast; `index.html?ltd` and `studio/index.html` redirect to it; remove the Ltd slots and tab switching from the daily's `index.html`. Check: `npx playwright test` green with `tests/ltd.spec.js` and `tests/launch.spec.js` opening the new page, and `tests/daily.spec.js` having no Ltd steps. Changelog lines in Ltd and the daily.
+- [ ] Phase 2b-ii: cross-product navigation as links. Replace the three-tab bar with a small header snippet in each product page; one URL constant per product (relative today). Check: a test per product page that the other two links resolve; `grep -rn "ltdTab\|learnTab\|dailyTab" --include=*.html --include=*.js .` finds only the snippet.
+- [ ] Phase 2c: per-product What's new and release tooling. One What's new page per product (or the shared-page decision below) and `tools/release.js` working on one product with no product argument. Check: `tests/release.spec.js` green and a dry-run bump for each product.
+- [ ] Phase 2d: split what is left of `shared.js` by owner (calendar/rotation/`FORMATS` to daily; `LANG_INFO` and the highlighter to learn; versions and `PRODUCTS` to each product). Check: no product file imports another product's folder.
 - [ ] Phase 3: define the content boundary (question-pool file for Ltd's desk jobs, generator in `tools/`, test).
 - [ ] Phase 4: create `debuggit-content` (puzzles, Learn units and courses, `check-puzzles`, trace tools), tag `v0.1.0`, copy step in each product.
 - [ ] Phase 5: peel off Ltd, then Learn, then Daily (filter-repo, tests, workflows, Pages deploy, redirects, own `CLAUDE.md`).
@@ -37,6 +41,8 @@
 - [x] Releases cut with `tools/release.js`, tags + GitHub Releases
 
 ## Blocked / questions
+- [ ] **Sandbox replay lock.** Today's puzzle is locked in the sandbox until it is finished in the daily; separate saves mean Learn cannot know. Recommended: past days only. Blocks Phase 2a.
+- [ ] **Where What's new lives:** one page per product (recommended) or one shared page. Blocks Phase 2c.
 - [ ] Multi-product PRs: `tools/check-scope.js` allows them if each touched product gets a changelog line. Is that enough for the key renames, or relax the check for this series?
 - [ ] Content tag cadence: pinned tag per new puzzle, or daily follows content `main`? (Phase 4)
 - [ ] Hosting and domains: three Pages URLs or custom domains; share card, old links, GoatCounter. (Phase 5)
