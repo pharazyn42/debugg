@@ -104,8 +104,9 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
 5. **Peel off Ltd**, then **Learn**, then **Daily**, in that order. Ltd is the most self-contained. Each peel: filter-repo
    with history, move its tests and workflows, set up its own Pages deploy, update links and redirects (`studio/`,
    `learn.html`, `sandbox.html`), and give it its own `CLAUDE.md`, changelog and release workflow.
-   **Ltd peel, status (2026-10-10):** the new repo is built and tested locally but **not yet on GitHub**: the integration
-   in this session cannot create repositories (403), so the empty `pharazyn42/debuggit-ltd` has to be created by the owner.
+   **Ltd peel, status (2026-10-10):** the new repo `pharazyn42/debuggit-ltd` (private; it will deploy to Cloudflare, not
+   GitHub Pages) is built, tested and pushed (`main`; the tags still need pushing from outside this session). The owner
+   created the empty repo, since this session's integration cannot create repositories (403).
    What was decided and done: history kept (`git filter-repo` on a fresh clone, paths `ltd/`, `tests/ltd.spec.js`,
    `tools/sim-ltd.js`, `ltd/` flattened to the repo root; 115 commits plus one new one); tags `ltd-v0.0.5`..`ltd-v0.0.18`
    kept and the `ltd-v` prefix continues; the kit (`shared.js`, `calendar.js`, `base.css`, `backup.js`, `analytics.js`,
