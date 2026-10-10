@@ -54,7 +54,7 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 - 2026-10-10: sandbox replays past days only (never today's), so Learn reads no daily saves; What's new is one page per product. Both written into `PLAN.md` Phase 2 and unblock Phases 2a and 2c.
 
 ## Decisions
-- 2026-10-10: Ltd is split into its own repo with its history kept; the content is a vendored copy until `debuggit-content`; cross-links are absolute URLs; the `ltd-v` tag prefix continues. Details in `PLAN.md` Phase 5.
+- 2026-10-10: Ltd is split into its own repo with its history kept; the content is a vendored copy until `debuggit-content`; cross-links are absolute URLs; the old `ltd-v` tags are discarded and Ltd restarts at 0.0.1 (tags `v0.0.1`…). Details in `PLAN.md` Phase 5.
 
 ## Last session handoff
 - Branch: `claude/jolly-davinci-dfihk5`; PR https://github.com/pharazyn42/debugg/pull/117 (Phases 1-2 plus review fixes; 158 tests green).
