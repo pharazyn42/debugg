@@ -9,9 +9,8 @@ const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./he
 const at = (h, m = 0) => new Date(2026, 9, 7, h, m, 0);  // Day 3, a Wednesday
 const ltd = page => readJson(page, 'debuggit-ltd-save');
 
-// Opens the Ltd tab and starts a company there.
+// Starts a company on the Ltd page.
 async function found(page){
-  await page.click('#ltdTab');
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
 }
@@ -75,25 +74,27 @@ async function editCompany(page, fn, arg){
 
 test.beforeEach(async ({ page }) => {
   page.on('dialog', d => d.accept());
-  await openAt(page, 'index.html#python');
+  await openAt(page, 'ltd/index.html');
   await fresh(page);
 });
 
 test('off by default: the studio code is not even loaded', async ({ page }) => {
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  // The header's title is the studio's, the same as its button at the top.
+  await expect(page.locator('#wordmark')).toHaveText('debuggit.ltd()');
+  await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
+  await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
+  // The daily offers it once a puzzle is over, as a link to this page (no company is started there).
+  await page.goto('index.html#python');
   await expect(page.locator('#foundCard')).toBeHidden();
   await page.click('#revealBtn');
   await expect(page.locator('#foundCard')).toBeVisible();
   await page.click('#foundBtn');
-  await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  // Starting it here moves to the Ltd tab.
-  await expect(page).toHaveURL(/index\.html\?ltd#python$/);
-  await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
-  // The header's title is the studio's, the same as its button at the top.
-  await expect(page.locator('#wordmark')).toHaveText('debuggit.ltd()');
-  await expect(page.locator('#wordmark')).toHaveAttribute('href', 'index.html?ltd');
-  await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
+  await expect(page).toHaveURL(/\/ltd\/$/);
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  expect(await ltd(page)).toBeNull();
 });
 
 test("a new company starts with ¤250 and no XP, whatever the daily puzzle has paid out", async ({ page }) => {
@@ -104,7 +105,7 @@ test("a new company starts with ¤250 and no XP, whatever the daily puzzle has p
   expect((await ltd(page)).xp).toEqual({});
 });
 
-test('the daily puzzle is its own game: it pays the company nothing, and the Ltd tab shows the desk instead', async ({ page }) => {
+test('the daily puzzle is its own game: it pays the company nothing, and the Ltd page shows the desk instead', async ({ page }) => {
   await found(page);
   await expect(page.locator('main.desk')).toBeHidden();
   // The desk is a window now, opened from the Studio box or by clicking yourself in the office.
@@ -115,10 +116,9 @@ test('the daily puzzle is its own game: it pays the company nothing, and the Ltd
   await expect(page.locator('#deskModal')).toBeHidden();
   // A new company's first desk job is waiting straight away.
   await expect(page.locator('.desk-job')).toHaveCount(1);
-  // On the Daily tab the company isn't loaded, and a solve pays it nothing.
-  await page.click('#dailyTab');
+  // The daily page doesn't load the company, and a solve pays it nothing.
+  await page.goto('index.html#python');
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
-  await expect(page.locator('#ltdNote')).toHaveText('Your company is running, with 1 desk job waiting. Open Ltd →');
   await guess(page, (await puzzleFor(page, 3)).display);
   expect((await ltd(page)).money).toBe(250);
   expect((await ltd(page)).paid).toBeUndefined();
@@ -1142,17 +1142,16 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
 });
 
 test('closing the company keeps puzzle progress; resetting puzzles keeps the company', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 3)).display);
   await found(page);
+  await page.goto('index.html#python');
+  await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#resetLink');
-  await expect(page.locator('body')).toHaveClass(/ltd-on/);
   expect(await ltd(page)).not.toBeNull();
   expect(await readJson(page, 'debuggit-daily-xp')).toBeNull();
 
-  await page.click('#dailyTab');
-  await expect(page.locator('#ltdNote')).toBeVisible();
   await guess(page, (await puzzleFor(page, 3)).display);
-  await page.click('#ltdNote a');
+  await page.goto('ltd/index.html');
+  await expect(page.locator('body')).toHaveClass(/ltd-on/);
   await page.click('#ltdClose');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await ltd(page)).toBeNull();
@@ -1176,48 +1175,40 @@ test('a company saved on the old /studio/ page is imported', async ({ page }) =>
   expect(await page.evaluate(() => localStorage.getItem('contract-debugger-state-v3'))).toBeNull();
 });
 
-test('/studio/ redirects to the main page with the studio on', async ({ page }) => {
+test('/studio/ and the daily\'s ?ltd redirect to the Ltd page', async ({ page }) => {
   await page.goto('studio/');
-  await expect(page).toHaveURL(/\/index\.html\?ltd$/);
+  await expect(page).toHaveURL(/\/ltd\/$/);
   await expect(page.locator('#ltdIntro')).toBeVisible();
   await page.click('#ltdLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   await expect(page.locator('#statMoney')).toHaveText('¤250');
+  await page.goto('index.html?ltd');
+  await expect(page).toHaveURL(/\/ltd\/$/);
 });
 
-test('Daily and Ltd are tabs; on the Daily tab a running company is a note linking to it', async ({ page }) => {
+test('the top buttons link the three products; the Ltd page links to Learn and the daily', async ({ page }) => {
   await expect(page.locator('.modes .lang-tab')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
-  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('#ltdIntro')).toBeHidden();
-  await page.click('#ltdTab');
   await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#ltdIntro')).toBeVisible();
-  // Opening the tab doesn't start a company by itself.
+  // Opening the page doesn't start a company by itself.
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
   expect(await ltd(page)).toBeNull();
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toHaveText('¤250');
   await expect(page.locator('#ltdIntro')).toBeHidden();
 
-  await page.click('#dailyTab');
-  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('#ltdNote')).toBeVisible();
-  await expect(page.locator('#ltdStats')).toBeHidden();
-  await expect(page.locator('#ltdBoard')).toBeHidden();
-  await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
-  await page.click('#ltdNote a');
-  await expect(page.locator('#statMoney')).toHaveText('¤250');
-
-  // The top buttons name each page: Learn (its own section, also linked from the
-  // Director's languages, and it links back), then the daily and Ltd, both demos for now.
-  await expect(page.locator('.modes a')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
+  // Learn is also linked from the Director's languages, and links back.
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody a.learn-lang')).toHaveText('Python');
-  await expect(page.locator('#personModalBody a.learn-lang')).toHaveAttribute('href', 'learn/#python');
+  await expect(page.locator('#personModalBody a.learn-lang')).toHaveAttribute('href', '../learn/#python');
   await page.click('#personModalBody a.learn-lang');
   await expect(page.locator('h1')).toHaveText('Learn Python');
   await page.click('#ltdTab');
+  await expect(page).toHaveURL(/\/ltd\/$/);
   await expect(page.locator('#statMoney')).toBeVisible();
+  await page.click('#dailyTab');
+  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
 });
 
 test('works at phone width with the studio on', async ({ page }) => {
@@ -1281,11 +1272,6 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
   expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'jobs:jobs', 'person:g1', 'person:g2',
                          'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
-  // The Daily tab doesn't load the company, so there's no office there.
-  await page.click('#dailyTab');
-  await expect(page.locator('#ltdNote')).toBeVisible();
-  await expect(page.locator('.office-canvas')).toHaveCount(0);
-  await expect(page.locator('#ltdOffice')).toBeHidden();
 });
 
 test('tapping the office: a person opens their panel, an applicant opens their card, a stuck intern asks for help', async ({ page }) => {
@@ -1364,7 +1350,7 @@ test('a small business unit has two floors, each with a meeting room and a kitch
 test('a new company is named, with its Director, who chooses how they look', async ({ page }) => {
   // On for this test (beforeEach opened the page with it off, as tests have it).
   await page.addInitScript(() => { window.DEBUGG_FOUNDING = true; });
-  await page.goto('index.html?ltd');
+  await page.goto('ltd/index.html');
   await page.click('#ltdLink');
   await expect(page.locator('#foundingModal')).toBeVisible();
   // Cancelling goes back to the card, with no company.

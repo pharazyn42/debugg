@@ -19,7 +19,7 @@ window.Debugg = (function(){
     prefixes: ['debuggit-'],
     daily: { prefix: 'debuggit-daily-', xp: 'debuggit-daily-xp', streak: 'debuggit-daily-streak', dayPrefix: 'debuggit-daily-day',
              practicePrefix: 'debuggit-daily-practice-day', demoSeen: 'debuggit-daily-demo-seen', seen: 'debuggit-daily-seen-version' },
-    ltd:   { save: 'debuggit-ltd-save', seen: 'debuggit-ltd-seen-version' },
+    ltd:   { save: 'debuggit-ltd-save', seen: 'debuggit-ltd-seen-version', demoSeen: 'debuggit-ltd-demo-seen' },
     learn: { save: 'debuggit-learn-save', session: 'debuggit-learn-session', collapsed: 'debuggit-learn-collapsed',
              lang: 'debuggit-learn-lang', sandboxPrefix: 'debuggit-learn-sandbox-', seen: 'debuggit-learn-seen-version' },
     shared: { version: 'debuggit-version', epoch: 'debuggit-daily-epoch', oldLtd: 'contract-debugger-state-v3' }

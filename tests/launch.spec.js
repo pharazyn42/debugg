@@ -8,6 +8,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#foundBtn');
+  await page.click('#ltdLink');
   // ¤250: solving the puzzle first adds nothing to a new company.
   await expect(page.locator('#statMoney')).toHaveText('¤250');
   // Learn's save and a sandbox draft ride along too: one prefix per product, all backed up.
@@ -36,7 +37,7 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await other.click('#restoreBtn');
   await expect(other.locator('#feedback')).toContainText('Solved');
   await expect(other.locator('#streak')).toHaveText('1');
-  await other.click('#ltdNote a');
+  await other.click('#foundBtn');  // the restored company is already running on its page
   await expect(other.locator('#statMoney')).toHaveText('¤250');
   expect((await readJson(other, 'debuggit-daily-xp')).python).toBe(100);
   expect((await readJson(other, 'debuggit-learn-save')).xp.python).toBe(30);
@@ -72,14 +73,18 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
   }));
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);  // 100 XP: level 2
+  // The daily's events are sent on its page; the link to Ltd leaves it.
+  await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
+    'level/python/2',
+    'level/overall/2',
+    'puzzle/python/day-3/solved-in-1'
+  ]);
   await page.click('#foundBtn');
+  await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
   await page.click('[data-action=move][data-tenure=rent]');
   await page.click('#backupLink');
   await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
-    'level/python/2',
-    'level/overall/2',
-    'puzzle/python/day-3/solved-in-1',
     'ltd/founded',
     'ltd/office/rent/unit-s',
     'backup/opened'
@@ -87,14 +92,13 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
 });
 
 test('Debuggit Ltd is labelled beta, and the privacy page is linked', async ({ page }) => {
-  await openAt(page, 'index.html#python');
+  await openAt(page, 'ltd/index.html');
   await fresh(page);
-  await page.click('#ltdTab');
   await expect(page.locator('#ltdIntro .beta')).toHaveText('beta');
   await page.click('#ltdLink');
   await expect(page.locator('.company-controls .beta')).toHaveText('beta');
   await expect(page.locator('#welcomeToast')).toContainText('in beta');
-  await page.click('a[href="privacy.html"]');
+  await page.click('a[href="../privacy.html"]');
   await expect(page.locator('h1')).toHaveText('Privacy');
 });
 

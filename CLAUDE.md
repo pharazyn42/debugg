@@ -56,12 +56,12 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `daily/` | The daily page's parts: `formats.js` (each puzzle format's question and answer text), `stats.js` (the stats panel), `sharecard.js` (the share picture), `archive.js` (past puzzles, played as practice at `index.html?day=N`), `trace.js` (Step through it) and `runner.js` (runs the weekend code challenges' tests on Pyodide). |
 | `tools/trace-puzzles.js`, `tools/trace.py`, `tools/probe.py` | `npm run traces` records every Python puzzle's step-by-step trace with real Python into `puzzles/traces-python.js`; `probe.py` counts line runs and tries line orders for the checker. |
 | `tools/sim-ltd.js` | `npm run sim`: the Debuggit Ltd pacing simulator. Plays the real `ltd/ltd.js` headless (fake clock, seeded randomness, a stand-in page) as a keen, casual or always-open player, and prints when the milestones in `ideas/ltd-pacing-targets.md` happen. `--ltd` plays a modified copy, to try a balance change. |
-| `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
+| `ltd/index.html`, `ltd/ltd.js`, `ltd/ltd.css` | Debugg Ltd: its own page (with the loader) and code. Loaded only when the studio is on. CSS is scoped under `.ltd`. |
 | `ltd/office.js` | The office view (item 21b): the studio drawn on a canvas from a read-only snapshot `ltd.js` hands it. Optional: the studio plays the same without it. |
 | `ltd/founding.js` | Founding a company: naming it and its Director, and choosing the Director's look (drawn by `office.js`). The loader opens it for a new company; tests skip it (`DEBUGG_FOUNDING`). |
 | `ltd/CLAUDE.md` | Debugg Ltd's design notes: data model, what's implemented, known gaps. |
 | `ideas/` | The roadmap (`roadmap.md`), detailed plans for some of its items, and separate game concepts. |
-| `studio/index.html` | Redirect to `../index.html?ltd`, the studio's old address. |
+| `studio/index.html` | Redirect to `../ltd/`, the studio's old address. |
 | `tests/` | Playwright tests, run by `npm test` and GitHub Actions. |
 
 ## Hard rules (the ones that break silently)

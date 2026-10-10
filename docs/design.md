@@ -24,21 +24,19 @@ checker fails a `learn` tag that isn't a written unit. The **sandbox** belongs t
 (`learn/sandbox.html`, showing Learn's version); the game links to it from its footer and from a
 finished puzzle's "Run it yourself", and lessons link to it from every step with code.
 
-**Tabs and switching on.** The game's pages have **Daily | Ltd** tabs (inside the shared top row, which
-also holds the Learn button; `.modes` in `base.css`). The
-Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
-there): the company, with its desk beside the studio and no daily puzzle (`main.desk` is hidden),
-or, with no running company, a card (`#ltdIntro`) to start or resume one. Opening the tab never
-founds a company by itself. The loader at the bottom of `index.html` loads `ltd/desk.js` and then
-`ltd/ltd.js` only on the Ltd tab (for a running company, or one being started or resumed, from the
-card on the Ltd tab or the one under a finished puzzle, which moves to the Ltd tab), or when an
-old pre-merge save exists (which opens the Ltd tab). On the Daily tab a running company isn't
-loaded; a one-line note says how many desk jobs are waiting (read from the save) and links to Ltd.
+**Pages and switching on.** Each product has its own page; the top row (`.modes` in `base.css`) links
+the three: `debuggit.learn()` (`learn/`), `debuggit.daily()` (`index.html`) and `debuggit.ltd()` (`ltd/`).
+Ltd's page is `ltd/index.html`: the company, with its desk beside the studio, or, with no running
+company, a card (`#ltdIntro`) to start or resume one. Opening the page never founds a company by itself.
+The loader at the bottom of `ltd/index.html` loads `desk.js`, `office.js`, `founding.js` and then `ltd.js`
+only for a running company, or one being started or resumed, or when an old pre-merge save exists (which
+is imported). The daily page does not load or read the company; a finished puzzle only offers a link
+to `ltd/`, and `index.html?ltd` and `studio/` redirect there.
 `DebuggLtd.start({ stats, studio, board, desk, office })` renders into the five slots (`office` is
 optional, as is `ltd/office.js`; the loader loads `desk.js`, `office.js`, `founding.js`, then `ltd.js`, and for a
 new company opens the founding step first, passing its answers in as `founding`) and either resumes
 the saved company, imports an old one, or founds a new one. `body.ltd-on` shows the desk and the
-studio in the two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title).
+studio in the two-column layout. The Ltd page's header reads **Debuggit Ltd** (and the page title).
 The desk used to be the daily puzzle itself, which folded to its tiles once done; that went with
 the separation.
 

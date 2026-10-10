@@ -21,8 +21,8 @@ test('every page shows its product’s version, linking to its What’s new', as
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('v' + APP_VERSION + ' demo');
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', 'whatsnew.html');
   }
-  // Debuggit Ltd has its own, on the Ltd tab.
-  for(const [p, href] of [['index.html?ltd', 'whatsnew.html?ltd'], ['whatsnew.html?ltd', 'whatsnew.html?ltd']]){
+  // Debuggit Ltd has its own, on its page.
+  for(const [p, href] of [['ltd/', '../whatsnew.html?ltd'], ['whatsnew.html?ltd', 'whatsnew.html?ltd']]){
     await page.goto(p);
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('Ltd v' + LTD_VERSION + ' demo');
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', href);
@@ -70,13 +70,13 @@ test('Learn’s What’s new lists only Learn, and its "new" is separate from th
 test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the daily’s', async ({ page }) => {
   await openAt(page, 'index.html');
   await fresh(page);
-  // A returning company that last saw an older Ltd version sees "new" on the Ltd tab only.
+  // A returning company that last saw an older Ltd version sees "new" on the Ltd page only.
   await page.evaluate(() => { localStorage.setItem('debuggit-ltd-seen-version', '0.0.0'); localStorage.setItem('debuggit-ltd-save', '{}'); });
-  await page.goto('index.html?ltd');
+  await page.goto('ltd/');
   await expect(page.locator('.version-link')).toHaveText('Ltd v' + LTD_VERSION + ' demo · new');
   await page.goto('index.html');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
-  await page.goto('index.html?ltd');
+  await page.goto('ltd/');
   await page.click('.version-link');
   await expect(page.locator('h1')).toHaveText('What’s new in Ltd');
   await expect(page).toHaveTitle('What’s new in Debuggit Ltd');
@@ -85,8 +85,8 @@ test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the da
   await expect(page.locator('#notes')).toContainText('Managers are in the demo');
   await expect(page.locator('#notes')).not.toContainText('Share your result');
   await expect(page.locator('#notes')).not.toContainText('Unreleased');
-  await expect(page.locator('#backLink')).toHaveAttribute('href', 'index.html?ltd');
-  await page.goto('index.html?ltd');
+  await expect(page.locator('#backLink')).toHaveAttribute('href', 'ltd/');
+  await page.goto('ltd/');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
   // The daily's What's new doesn't list Ltd, and Ltd's doesn't start with the note about version numbers.
   await page.goto('whatsnew.html');

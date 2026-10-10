@@ -10,6 +10,7 @@ for new things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
+- **Debuggit Ltd has its own page.** It now opens at `ltd/` instead of as a tab on the daily puzzle's page, and the daily no longer shows a note about your company. Old links (`index.html?ltd`, `studio/`) still lead there.
 - **The Director's card shows your XP.** Under Languages, each level now shows your XP and where the next level starts (for example "Python Lv 3 (+2% success) 450 / 600 XP"), with a line on how to earn it: right desk answers, and helping your intern.
 - **No more founder's bonus.** A new company always starts with ¤250: the daily puzzle's XP no longer adds cash when you found it, as it no longer counts for anything in Debuggit Ltd.
 - **You level up by answering at the desk.** The Director's language levels now come from Ltd alone: every right desk answer, and every right answer when you help a stuck intern, earns 6 XP times the question's difficulty in that question's language. Wrong answers earn nothing. The daily puzzle's XP no longer counts here. Levels still add 1% success chance each (up to +10%), and a language you've earned XP in is one you can help your intern with.

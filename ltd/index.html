@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debuggit Ltd</title>
+<meta name="description" content="Debuggit Ltd: an idle software-studio game. Hire developers, staff contracts that keep running while you're away, and take desk jobs that pay the company.">
+<meta property="og:title" content="Debuggit Ltd">
+<meta property="og:description" content="Run a software studio. Hire developers, staff contracts, take desk jobs.">
+<meta property="og:image" content="https://pharazyn42.github.io/debugg/img/share.png?v=2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#131417">
+<link rel="icon" href="../img/kiwi.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../img/kiwi-180.png">
+<link rel="stylesheet" href="../base.css">
+<style>
+  .beta{
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid var(--amber-dim);
+    border-radius: 4px;
+    padding: 0 4px;
+    vertical-align: 1px;
+  }
+  .demo-badge{
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: none;
+    border: 1px solid var(--amber-dim);
+    border-radius: 4px;
+    padding: 0 4px;
+    margin-left: 4px;
+    vertical-align: 1px;
+    cursor: pointer;
+  }
+  .demo-badge:hover{ border-color: var(--amber); }
+  .dialog-kiwi{ display: block; margin: 0 auto 6px; }
+  footer .footer-links{ margin-top: 6px; line-height: 1.8; }
+  footer a{ color: inherit; text-decoration: underline; }
+  .section-label{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  /* The company: the studio beside the contract board, with the Director's desk jobs below. */
+  body.ltd-on .wrap{ max-width: 1080px; }
+  body.ltd-on .columns{
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 800px){
+    body.ltd-on .columns{ grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 700px){
+    .sub{ display: none; }
+    h1{ font-size: 26px; margin-bottom: 4px; }
+  }
+  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk, body:not(.ltd-on) #ltdOffice{ display: none !important; }
+  .ltd-intro{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin: 0 0 18px;
+  }
+  .ltd-intro p{ margin: 0 0 12px; color: var(--text-dim); line-height: 1.5; }
+  .ltd-intro .section-label{ margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="../learn/" id="learnTab" title="Learn to code">debuggit.learn()</a><a class="lang-tab" href="../index.html" id="dailyTab" title="The daily puzzle">debuggit.daily() <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="./" id="ltdTab" aria-current="page" title="The studio game">debuggit.ltd() <span class="demo-tag">(demo)</span></a></nav>
+    <div class="brand"><img class="mascot-logo" src="../img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="./" aria-label="Debuggit Ltd">debuggit.ltd()</a></div>
+    <p class="kicker"><button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
+    <h1 id="title">Debuggit Ltd</h1>
+    <p class="sub" id="sub">Your software studio. Hire developers and put them on contracts that keep running while you’re away, and take the desk jobs that turn up for you, the Director.</p>
+  </header>
+
+  <!-- Without a running company: what it is, and a button to start (or resume) one. -->
+  <section class="ltd-intro" id="ltdIntro" hidden>
+    <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
+    <p id="ltdIntroText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and take desk jobs that pay the company.</p>
+    <button class="btn-primary" id="ltdLink">Start your own company</button>
+  </section>
+
+  <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). -->
+  <div id="ltdStats" hidden></div>
+  <div id="ltdOffice" hidden></div>
+
+  <div class="columns">
+    <div id="ltdStudio" hidden></div>
+    <div id="ltdBoard" hidden></div>
+  </div>
+  <div id="ltdDesk" hidden></div>
+
+  <footer>
+    <div class="footer-actions">
+      <button class="btn-ghost" id="backupLink" type="button" title="Get a code that saves your progress, or paste one to bring it back on any device">Save/restore progress</button>
+      <a class="btn-ghost" href="https://github.com/pharazyn42/debugg/issues/new" id="feedbackLink" target="_blank" rel="noopener" title="Opens a public GitHub issue">Feedback</a>
+    </div>
+    <div class="footer-links"><a href="../privacy.html">privacy</a></div>
+    <div class="app-version" id="appVersion"></div>
+  </footer>
+</div>
+
+<dialog id="demoNotice" aria-labelledby="demoTitle">
+  <img class="dialog-kiwi" src="../img/kiwi.svg" alt="" width="56" height="56">
+  <h2 id="demoTitle">This is the Debuggit demo</h2>
+  <p>Thanks for trying Debuggit early. Debuggit Ltd, the company you can start, is a cut-down version for now: hotfixes, and patches once you have more than 10 staff (with managers and co-working desks). Bigger contracts and premises come in v0.1.</p>
+  <p><b>All progress will be reset when v0.1 comes out</b>: your puzzles, XP, streak, company and Learn progress. Sandbox drafts are kept. There's no release date yet.</p>
+  <p>Found something wrong, or have an idea? The feedback link at the bottom of the page opens a GitHub issue.</p>
+  <div class="backup-actions"><button class="btn-primary" id="demoOk" type="button">Got it</button></div>
+</dialog>
+
+<script src="../puzzles/python.js"></script>
+<script src="../puzzles/javascript.js"></script>
+<script src="../puzzles/c.js"></script>
+<script src="../puzzles/rust.js"></script>
+<script src="../shared.js"></script>
+<script src="../analytics.js"></script>
+<script src="../backup.js"></script>
+<script src="../learn/courses.js"></script>
+<script>
+// Debuggit Ltd loader. The company, with the Director's desk jobs beside the studio, or, with no
+// running company, a card to start or resume one. The studio's code only loads for a running
+// company, or one being started or resumed (or a save from before the merge, which is imported).
+(function(){
+  const KEY = window.Debugg.KEYS.ltd.save, OLD_KEY = window.Debugg.KEYS.shared.oldLtd;
+  function read(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+  const $ = id => document.getElementById(id);
+
+  const saved = read(KEY);
+  const running = !!(saved && saved.enabled);
+  const importing = !saved && !!read(OLD_KEY);
+
+  // Debuggit Ltd has its own version and What's new (see "Releases" in CLAUDE.md).
+  window.Debugg.renderVersion($('appVersion'), '../', 'ltd');
+  const showIntro = () => { $('ltdIntro').hidden = document.body.classList.contains('ltd-running'); };
+
+  if(saved && !saved.enabled){
+    $('ltdIntroText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
+    $('ltdLink').textContent = 'Resume Debuggit Ltd';
+  }
+
+  let loading = false;
+  function switchOn(){
+    if(loading) return;
+    loading = true;
+    document.body.classList.add('ltd-running');
+    showIntro();
+    if(!document.querySelector('link[href="ltd.css"]')){
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'ltd.css';
+      document.head.appendChild(css);
+    }
+    // The desk's questions (desk.js), the office view (office.js) and the founding step
+    // (founding.js) first, then, once they're in, the studio. The office is only a picture: if
+    // it fails to load, the studio starts without it (and without the founding step, which draws with it).
+    const deskJs = document.createElement('script');
+    deskJs.src = 'desk.js';
+    const officeJs = document.createElement('script');
+    officeJs.src = 'office.js';
+    const foundingJs = document.createElement('script');
+    foundingJs.src = 'founding.js';
+    const js = document.createElement('script');
+    js.src = 'ltd.js';
+    const giveUp = () => { loading = false; document.body.classList.remove('ltd-running'); showIntro(); };
+    const start = founding => {
+      document.body.classList.add('ltd-on');
+      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk'), office: $('ltdOffice'), founding });
+    };
+    // A new company is named first, with its Director (tests skip it with window.DEBUGG_FOUNDING = false).
+    js.onload = () => {
+      if(!saved && !importing && window.DebuggFounding && window.DebuggOffice && window.DEBUGG_FOUNDING !== false)
+        window.DebuggFounding.open({ onDone: start, onCancel: giveUp });
+      else start(null);
+    };
+    // Back again after cancelling the founding step: everything's loaded already.
+    if(window.DebuggLtd){ js.onload(); return; }
+    js.onerror = deskJs.onerror = giveUp;
+    foundingJs.onload = foundingJs.onerror = () => document.body.appendChild(js);
+    officeJs.onload = officeJs.onerror = () => document.body.appendChild(foundingJs);
+    deskJs.onload = () => document.body.appendChild(officeJs);
+    document.body.appendChild(deskJs);
+  }
+
+  showIntro();
+  if(running || importing) switchOn();
+  $('ltdLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    switchOn();
+  });
+
+  // The demo notice: shown on the first visit, and again from the "demo" badge in the header.
+  // Tests switch the automatic one off with window.DEBUGG_DEMO_NOTICE = false.
+  if(window.Debugg.DEMO){
+    const notice = $('demoNotice');
+    const badge = $('demoBadge');
+    badge.hidden = false;
+    badge.addEventListener('click', () => notice.showModal());
+    $('demoOk').addEventListener('click', () => notice.close());
+    let seen = true;
+    try{ seen = !!localStorage.getItem(window.Debugg.KEYS.ltd.demoSeen); localStorage.setItem(window.Debugg.KEYS.ltd.demoSeen, '1'); }catch(e){}
+    if(!seen && window.DEBUGG_DEMO_NOTICE !== false) notice.showModal();
+  }
+
+  $('backupLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.DebuggBackup.open();
+  });
+  $('feedbackLink').addEventListener('click', () => window.DebuggAnalytics.event('feedback/feedback'));
+})();
+</script>
+</body>
+</html>

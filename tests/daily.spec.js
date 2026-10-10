@@ -728,10 +728,10 @@ test('the weekend is a code challenge: make it pass, with hidden tests and 4 sub
 });
 
 test('weekend code challenges stay out of Debuggit Ltd’s desk jobs', async ({ page }) => {
-  await openAt(page, 'index.html?ltd', 8, { formats: true });
+  await openAt(page, 'ltd/index.html', 8, { formats: true });
   const r = await page.evaluate(() => new Promise(resolve => {
     const s = document.createElement('script');
-    s.src = 'ltd/desk.js';
+    s.src = 'desk.js';
     s.onload = () => resolve({ challenge: Debugg.puzzleFor(6).format,
       ids: [...DebuggDesk.all(8).keys()], id: 'd:' + Debugg.codeId(Debugg.puzzleFor(6).code) });
     if(window.DebuggDesk) s.onload(); else document.head.appendChild(s);

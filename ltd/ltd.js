@@ -1,6 +1,6 @@
 // Debuggit Ltd: the studio, team, contract board and the Director's desk.
 //
-// Loaded by index.html on the Ltd tab, when the studio is switched on (see the loader there).
+// Loaded by ltd/index.html when the studio is switched on (see the loader there).
 // The daily puzzle is its own game and pays nothing here. The Director's desk is desk jobs:
 // questions from past dailies and Debuggit Learn that turn up over time (see "The desk" below,
 // and ltd/desk.js for the questions).
@@ -1552,7 +1552,7 @@ window.DebuggLtd = (function(){
       addLog(right.length ? 'ok' : 'info', '✓ ' + text);
       track('desk/done/' + qs.length + '/' + right.length);
       const box = document.getElementById('deskPlay');
-      box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/kiwi.svg" alt="" width="36" height="36" class="' + (all ? 'hop' : '') + '"><p>' + esc(text) + '</p>' +
+      box.innerHTML = '<div class="desk-done" id="deskDone"><img src="../img/kiwi.svg" alt="" width="36" height="36" class="' + (all ? 'hop' : '') + '"><p>' + esc(text) + '</p>' +
         '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
       save();
       renderAll();
@@ -1596,7 +1596,7 @@ window.DebuggLtd = (function(){
         onAnswer: right => { text = finishHelp(job, q, right); },
         onDone: () => {
           helpActive = null;
-          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="img/kiwi.svg" alt="" width="36" height="36" class="hop"><p>' + esc(text) + '</p>' +
+          box.innerHTML = '<div class="desk-done" id="deskDone"><img src="../img/kiwi.svg" alt="" width="36" height="36" class="hop"><p>' + esc(text) + '</p>' +
             '<button type="button" class="btn-ghost btn-small" data-action="desk-close">Back to the desk</button></div>';
           renderAll();
         }
@@ -1949,7 +1949,7 @@ window.DebuggLtd = (function(){
           const boost = directorBoost(D.LANGS[k].studio);
           const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[k];
           const name = course && !course.soon
-            ? '<a class="learn-lang" href="learn/#' + k + '" title="Learn ' + esc(D.LANGS[k].name) + ' in Debuggit Learn">' + esc(D.LANGS[k].name) + '</a>'
+            ? '<a class="learn-lang" href="../learn/#' + k + '" title="Learn ' + esc(D.LANGS[k].name) + ' in Debuggit Learn">' + esc(D.LANGS[k].name) + '</a>'
             : esc(D.LANGS[k].name);
           const xp = state.xp[k] || 0, lv = directorLevel(k);
           return name + ' Lv ' + lv + (boost ? ' (+' + Math.round(boost * 100) + '% success)' : '') +
