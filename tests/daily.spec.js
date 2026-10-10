@@ -8,6 +8,7 @@ const NAME = { python: 'Python', javascript: 'JavaScript', c: 'C', rust: 'Rust' 
 // Each language on its own, so every one of its puzzles comes up in turn.
 for(const lang of Object.keys(EXT)){
   test(`every ${NAME[lang]} puzzle is scheduled, shows its code and accepts its answer`, async ({ page }) => {
+    test.slow();  // the Python run alone takes ~50 s of the 60 s limit, and times out when the machine is busy
     await openAt(page, 'index.html', 1, { rotation: [{ lang }], formats: true });
     const count = await page.evaluate(l => window.Debugg.puzzlesFor(l).length, lang);
     expect(count).toBeGreaterThan(5);
