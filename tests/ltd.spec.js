@@ -1579,3 +1579,11 @@ test('the Director knows a language once Ltd XP has been earned in it, never fro
   await pickPair();
   await expect(knowCheck).not.toHaveClass(/no/);
 });
+
+test('a company saved before Ltd had its own XP loads with none', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => { delete s.xp; });
+  expect((await ltd(page)).xp).toEqual({});
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 1');
+});

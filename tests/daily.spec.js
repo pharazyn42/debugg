@@ -802,3 +802,22 @@ test('the daily page loads no code from Learn or Ltd', async ({ page }) => {
   expect(scripts.length).toBeGreaterThan(5);
   expect(scripts.filter(src => /(^|\/)(learn|ltd)\//.test(src))).toEqual([]);
 });
+
+test('resetting puzzles clears only the daily’s saves: Learn’s progress, lesson and sandbox drafts stay', async ({ page }) => {
+  page.on('dialog', d => d.accept());
+  await openAt(page, 'index.html#python');
+  await fresh(page);
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await page.evaluate(() => {
+    localStorage.setItem('debuggit-learn-save', JSON.stringify({ xp: { python: 30 } }));
+    localStorage.setItem('debuggit-learn-session', JSON.stringify({ qs: [] }));
+    localStorage.setItem('debuggit-learn-sandbox-python', 'print(3)');
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify({ money: 99 }));
+  });
+  await Promise.all([page.waitForNavigation(), page.click('#resetLink')]);  // it reloads the page
+  expect(await readJson(page, 'debuggit-daily-xp')).toBeNull();
+  expect(await readJson(page, 'debuggit-learn-save')).toEqual({ xp: { python: 30 } });
+  expect(await readJson(page, 'debuggit-learn-session')).toEqual({ qs: [] });
+  expect(await page.evaluate(() => localStorage.getItem('debuggit-learn-sandbox-python'))).toBe('print(3)');
+  expect(await readJson(page, 'debuggit-ltd-save')).toEqual({ money: 99 });
+});

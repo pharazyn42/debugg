@@ -1506,8 +1506,9 @@ window.DebuggLtd = (function(){
     function deskQuestions(job){ return job.questions.map(id => deskPool && deskPool.get(id)).filter(Boolean); }
     // XP for a right answer, added to the question's language. Returns what was added.
     function earnXp(q){
+      if(!q.lang) return 0;  // nowhere to keep it, so none is claimed
       const gain = LTD_XP_PER_DIFFICULTY * (q.difficulty || 1);
-      if(q.lang){ state.xp[q.lang] = (state.xp[q.lang] || 0) + gain; }
+      state.xp[q.lang] = (state.xp[q.lang] || 0) + gain;
       return gain;
     }
     // What a job pays, with every answer right (the most it can pay).
