@@ -330,7 +330,17 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="learn/" id="learnTab" title="Learn to code">debuggit.learn()</a><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page" title="The daily puzzle">debuggit.daily() <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="ltd/" id="ltdTab" title="The studio game">debuggit.ltd() <span class="demo-tag">(demo)</span></a></nav>
+    <nav class="modes" id="productNav" aria-label="Debuggit"></nav>
+    <script>
+    // The links to the three products. One URL each, relative to this page: the only place to change if they move.
+    (function(){
+      const URLS = { learn: 'learn/', daily: 'index.html', ltd: 'ltd/' }, HERE = 'daily';
+      const TABS = [['learn', 'debuggit.learn()', 'Learn to code', ''], ['daily', 'debuggit.daily()', 'The daily puzzle', ' <span class="demo-tag">(demo)</span>'],
+                    ['ltd', 'debuggit.ltd()', 'The studio game', ' <span class="demo-tag">(demo)</span>']];
+      document.getElementById('productNav').innerHTML = TABS.map(([k, name, title, tag]) =>
+        '<a class="lang-tab" href="' + URLS[k] + '" id="' + k + 'Tab"' + (k === HERE ? ' aria-current="page"' : '') + ' title="' + title + '">' + name + tag + '</a>').join('');
+    })();
+    </script>
     <div class="brand"><img class="mascot-logo" src="img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debuggit.daily()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1 id="title">What does this print?</h1>

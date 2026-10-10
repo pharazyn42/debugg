@@ -1145,9 +1145,9 @@ test('closing the company keeps puzzle progress; resetting puzzles keeps the com
   await found(page);
   await page.goto('index.html#python');
   await guess(page, (await puzzleFor(page, 3)).display);
-  await page.click('#resetLink');
-  expect(await ltd(page)).not.toBeNull();
+  await Promise.all([page.waitForNavigation(), page.click('#resetLink')]);  // it reloads the page
   expect(await readJson(page, 'debuggit-daily-xp')).toBeNull();
+  expect(await ltd(page)).not.toBeNull();
 
   await guess(page, (await puzzleFor(page, 3)).display);
   await page.goto('ltd/index.html');
