@@ -167,7 +167,7 @@
     <p class="note" id="note"></p>
   </div>
 
-  <footer><div class="footer-links"><a href="./">Debuggit Learn</a> · <a href="../index.html">daily puzzle</a> · <a href="../index.html?ltd">Debuggit Ltd</a></div><div class="app-version" id="appVersion"></div></footer>
+  <footer><div class="footer-links"><a href="./">Debuggit Learn</a> · <a href="../index.html">daily puzzle</a> · <a href="../ltd/">Debuggit Ltd</a></div><div class="app-version" id="appVersion"></div></footer>
 </div>
 
 <!-- Python worker: loads Pyodide on the first run and keeps it for later runs.
@@ -294,6 +294,8 @@ def _debugg_run(src):
 <script src="../puzzles/c.js"></script>
 <script src="../puzzles/rust.js"></script>
 <script src="../shared.js"></script>
+<script src="../learn/version.js"></script>
+<script src="../calendar.js"></script>
 <script src="../analytics.js"></script>
 <script>
 (function(){
@@ -302,8 +304,8 @@ def _debugg_run(src):
   Object.keys(window.Debugg.LANGS).forEach(k => { if(window.Debugg.LANGS[k].runnable) LANGS[k] = window.Debugg.LANGS[k]; });
   const { highlight } = window.Debugg;
   const DAY = window.Debugg.today();
-  const LANG_KEY = 'debugg-lang';
-  const DRAFT_KEY = l => 'debugg-sandbox-' + l;
+  const LANG_KEY = window.Debugg.KEYS.learn.lang;
+  const DRAFT_KEY = l => window.Debugg.KEYS.learn.sandboxPrefix + l;
 
   // Python runs on Pyodide (CPython compiled to WebAssembly), loaded from a CDN on the first Python run.
   // window.DEBUGG_PYODIDE_URL lets tests point this at a local copy.
@@ -535,8 +537,8 @@ def _debugg_run(src):
     return STARTERS[l];
   }
 
-  // Puzzles you can load: any from an earlier day, plus today's once you've finished it,
-  // so the sandbox can't spoil today's answer. Each puzzle is listed once, at its latest day.
+  // Puzzles you can load: any from an earlier day, never today's, so the sandbox can't spoil
+  // today's answer (and Learn doesn't read the daily's saves). Each puzzle is listed once, at its latest day.
   function unlockedPuzzles(l){
     const D = window.Debugg;
     const today = D.slotDay(DAY);
@@ -547,7 +549,7 @@ def _debugg_run(src):
       const slot = D.slotDay(d);  // a weekend's two days share one puzzle
       if(seenDays.has(slot)) continue;
       seenDays.add(slot);
-      if(slot === today && !D.isFinished(slot)) continue;
+      if(slot === today) continue;
       const puzzle = D.puzzleFor(slot);
       if(puzzle.lang !== l || D.formatOf(puzzle) === 'pass') continue;  // code challenges don't open here yet
       if(seenPuzzles.has(puzzle)) continue;

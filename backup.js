@@ -7,7 +7,7 @@
 window.DebuggBackup = (function(){
   const PREFIX = 'DEBUGG1.';
 
-  function isOurs(key){ return key.startsWith('debugg-'); }
+  function isOurs(key){ return window.Debugg.isOurKey(key); }
 
   function toBase64(text){
     const bytes = new TextEncoder().encode(text);
@@ -39,7 +39,7 @@ window.DebuggBackup = (function(){
       if(!isOurs(k) || typeof data[k] !== 'string') throw new Error('That backup code is damaged.');
     });
     // Progress from a version that's been reset (the demo, once v0.1 is out) stays reset.
-    if(window.Debugg.isWipedVersion(data['debugg-version'])){
+    if(window.Debugg.isWipedVersion(data[window.Debugg.KEYS.shared.version])){
       throw new Error('That backup is from the Debuggit demo. Demo progress was reset when v0.1 came out, so it can’t be restored.');
     }
     return data;

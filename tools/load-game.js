@@ -17,7 +17,9 @@ function loadGame(){
     removeItem: k => { delete store[k]; }
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'shared.js'), 'utf8'), ctx, { filename: 'shared.js' });
+  for(const f of ['shared.js', 'calendar.js', 'daily/core.js']){
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
+  }
   for(const f of ctx.Debugg.PUZZLE_FILES){
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
   }

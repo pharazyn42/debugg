@@ -4,9 +4,9 @@ Moved out of `CLAUDE.md` to keep the always-loaded file small. Read the section 
 
 **How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
 **How the puzzle page and the studio connect.** Hardly at all, since September 2026 (the
-player-owner's call: the daily is its own game). The studio reads puzzle XP through
-`Debugg.readXp()` for the Director's skills and the founder's bonus, and its desk jobs reuse past
-daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
+player-owner's call: the daily is its own game). The studio reads no daily
+progress: the Director's XP is Ltd's own (`state.xp`, earned from right desk and help answers; the
+founder's bonus is gone), and its desk jobs reuse past daily puzzles and Learn's questions (`ltd/desk.js`). The daily page never depends on the studio.
 `index.html` still fires `debugg:puzzle-finished` (`{ lang, day, solved, guesses, hintLevel, xp,
 streak }`) when a game ends, but nothing listens to it now.
 
@@ -24,26 +24,24 @@ checker fails a `learn` tag that isn't a written unit. The **sandbox** belongs t
 (`learn/sandbox.html`, showing Learn's version); the game links to it from its footer and from a
 finished puzzle's "Run it yourself", and lessons link to it from every step with code.
 
-**Tabs and switching on.** The game's pages have **Daily | Ltd** tabs (inside the shared top row, which
-also holds the Learn button; `.modes` in `base.css`). The
-Ltd tab is `index.html?ltd` (`body.ltd-view`; the `?ltd` stays in the address so reloads stay
-there): the company, with its desk beside the studio and no daily puzzle (`main.desk` is hidden),
-or, with no running company, a card (`#ltdIntro`) to start or resume one. Opening the tab never
-founds a company by itself. The loader at the bottom of `index.html` loads `ltd/desk.js` and then
-`ltd/ltd.js` only on the Ltd tab (for a running company, or one being started or resumed, from the
-card on the Ltd tab or the one under a finished puzzle, which moves to the Ltd tab), or when an
-old pre-merge save exists (which opens the Ltd tab). On the Daily tab a running company isn't
-loaded; a one-line note says how many desk jobs are waiting (read from the save) and links to Ltd.
+**Pages and switching on.** Each product has its own page; the top row (`.modes` in `base.css`) links
+the three: `debuggit.learn()` (`learn/`), `debuggit.daily()` (`index.html`) and `debuggit.ltd()` (`ltd/`).
+Ltd's page is `ltd/index.html`: the company, with its desk beside the studio, or, with no running
+company, a card (`#ltdIntro`) to start or resume one. Opening the page never founds a company by itself.
+The loader at the bottom of `ltd/index.html` loads `desk.js`, `office.js`, `founding.js` and then `ltd.js`
+only for a running company, or one being started or resumed, or when an old pre-merge save exists (which
+is imported). The daily page does not load or read the company; a finished puzzle only offers a link
+to `ltd/`, and `index.html?ltd` and `studio/` redirect there.
 `DebuggLtd.start({ stats, studio, board, desk, office })` renders into the five slots (`office` is
 optional, as is `ltd/office.js`; the loader loads `desk.js`, `office.js`, `founding.js`, then `ltd.js`, and for a
 new company opens the founding step first, passing its answers in as `founding`) and either resumes
 the saved company, imports an old one, or founds a new one. `body.ltd-on` shows the desk and the
-studio in the two-column layout. The Ltd tab's header reads **Debuggit Ltd** (and the page title).
+studio in the two-column layout. The Ltd page's header reads **Debuggit Ltd** (and the page title).
 The desk used to be the daily puzzle itself, which folded to its tiles once done; that went with
 the separation.
 
 **Languages and the rotation.** There's one puzzle a day, and the
-languages take turns. `LANG_INFO` in `shared.js` describes every language
+languages take turns. `LANG_INFO` in `calendar.js` describes every language
 with puzzles (Python, JavaScript, C, Rust: name, extension, whether the
 sandbox can run it, its Debugg Ltd name, e.g. C is the studio's `C/C++`,
 and a playground link for Rust). `ROTATION` lists the languages in play and
@@ -56,12 +54,12 @@ gets Monday and Tuesday. `LANGS` is the languages that have joined by today
 Tests set the rotation with `openAt(page, path, day, { rotation })`
 (`window.DEBUGG_ROTATION`); left out, tests see what players see.
 
-**XP.** Kept per language in `debugg-xp` (`{ python: 120, rust: 40 }`);
+**XP.** Kept per language in `debuggit-daily-xp` (`{ python: 120, rust: 40 }`);
 the overall XP is their total (`totalXp()`), shown as an "Overall" row
 above the languages, with the same level curve. Level-ups fire
 `level/<lang>/<n>` and `level/overall/<n>` analytics events.
 
-**The demo.** `DEMO` in `shared.js` is on. It shows a notice on the first
+**The demo.** `DEMO` in `shared.js` (the site kit) is on. It shows a notice on the first
 visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
@@ -71,19 +69,19 @@ types, and premises beyond the small business unit, show as "coming in v0.1". Pa
 and running jobs they have, but their bigger offers go and their repeats stop.
 
 **Save versions and the v0.1 reset.** Every save is marked with
-`debugg-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
-version is in `WIPED_VERSIONS` loses everything under `debugg-*` (and the
+`debuggit-version` (`SAVE_VERSION`, `'demo'` now). On load, a save whose
+version is in `WIPED_VERSIONS` loses everything under `debuggit-*` (and the
 pre-merge studio save) except sandbox drafts, and backup codes from those
 versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
 `'0.1'`, `WIPED_VERSIONS` to `['demo', '']` (`''` = saved before the
 marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
 `window.DEBUGG_WIPED_VERSIONS`.
 
-**The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `shared.js`). Days
+**The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `calendar.js`). Days
 before it are preview days (0, -1, …), labelled "Preview", each with its
 own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
-once players have real progress**. If it does move, `shared.js` notices
-(it remembers the date in `debugg-epoch`) and clears per-day progress, the
+once players have real progress**. If it does move, `daily/core.js` notices
+(it remembers the date in `debuggit-daily-epoch`) and clears per-day progress, the
 streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
 drafts.
 
@@ -102,11 +100,11 @@ weekend counts once. XP for a perfect solve follows the day (`BASE_XP`:
 to the end only changes future days (and days that had fallen back), so
 it's safe to add them before they're due.
 
-**Saves.** Puzzle progress is `debugg-day<N>` (one per day, whatever
-the language), plus `debugg-xp`, `debugg-streak` and the sandbox's
-`debugg-lang` and `debugg-sandbox-<lang>` drafts.
-The company is `debugg-ltd`. Pre-merge studio saves
-(`contract-debugger-state-v3`) are imported once into `debugg-ltd` (dropping
+**Saves.** Puzzle progress is `debuggit-daily-day<N>` (one per day, whatever
+the language), plus `debuggit-daily-xp`, `debuggit-daily-streak` and the sandbox's
+`debuggit-learn-lang` and `debuggit-learn-sandbox-<lang>` drafts.
+The company is `debuggit-ltd-save`. Pre-merge studio saves
+(`contract-debugger-state-v3`) are imported once into `debuggit-ltd-save` (dropping
 the old desk's `activeContract`), then removed. The boot sequence in
 `ltd.js` also carries the older shape guards (tier renames, Assembly,
 SLOC targets); add a similar guard if the state shape changes again.

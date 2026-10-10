@@ -16,6 +16,7 @@
 <link rel="icon" href="img/kiwi.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="img/kiwi-180.png">
 <link rel="stylesheet" href="base.css">
+<script>if(/[?&]ltd\b/.test(location.search)) location.replace("ltd/" + location.hash);</script>
 <style>
   .tiles{
     display: flex;
@@ -226,7 +227,6 @@
   /* Practice (an earlier day, from daily/archive.js) */
   .practice-note{ background: var(--amber-dim); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; }
   .practice-note a{ color: var(--amber); white-space: nowrap; }
-  body.practice .ltd-note{ display: none; }
   #practiceRow:has(> [hidden]:only-child){ display: none; }
   /* Past puzzles (daily/archive.js) */
   dialog.archive{ width: min(480px, calc(100vw - 32px)); }
@@ -271,38 +271,6 @@
     border-top: 1px dashed var(--line);
   }
   .found .btn-ghost{ margin-top: 4px; }
-
-  /* Debuggit Ltd (the Ltd tab): the company, with the studio beside the contract board. The daily
-     puzzle is its own game, on the Daily tab. */
-  body.ltd-view main.desk, body.ltd-view #kicker{ display: none; }
-  body.ltd-on .wrap{ max-width: 1080px; }
-  body.ltd-on .columns{
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    gap: 18px;
-    align-items: start;
-    margin-bottom: 18px;
-  }
-  @media (max-width: 800px){
-    body.ltd-on .columns{ grid-template-columns: minmax(0, 1fr); }
-  }
-  body.ltd-running .found, body.ltd-view .found{ display: none; }
-  @media (max-width: 700px){
-    body.ltd-view .sub{ display: none; }
-    body.ltd-view h1{ font-size: 26px; margin-bottom: 4px; }
-  }
-  body:not(.ltd-on) #ltdStats, body:not(.ltd-on) #ltdStudio, body:not(.ltd-on) #ltdBoard, body:not(.ltd-on) #ltdDesk, body:not(.ltd-on) #ltdOffice{ display: none !important; }
-  .ltd-intro{
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 16px 18px;
-    margin: 0 0 18px;
-  }
-  .ltd-intro p{ margin: 0 0 12px; color: var(--text-dim); line-height: 1.5; }
-  .ltd-intro .section-label{ margin-bottom: 6px; }
-  .ltd-note{ text-align: center; font-size: 13px; color: var(--text-faint); margin: -6px 0 16px; }
-  .ltd-note a{ color: var(--amber); }
 
   .section-label{
     font-family: var(--mono);
@@ -362,27 +330,23 @@
 
 <div class="wrap">
   <header>
-    <nav class="modes" aria-label="Debuggit"><a class="lang-tab" href="learn/" id="learnTab" title="Learn to code">debuggit.learn()</a><a class="lang-tab" href="index.html" id="dailyTab" aria-current="page" title="The daily puzzle">debuggit.daily() <span class="demo-tag">(demo)</span></a><a class="lang-tab" href="index.html?ltd" id="ltdTab" title="The studio game">debuggit.ltd() <span class="demo-tag">(demo)</span></a></nav>
+    <nav class="modes" id="productNav" aria-label="Debuggit"></nav>
+    <script>
+    // The links to the three products. One URL each, relative to this page: the only place to change if they move.
+    (function(){
+      const URLS = { learn: 'learn/', daily: 'index.html', ltd: 'ltd/' }, HERE = 'daily';
+      const TABS = [['learn', 'debuggit.learn()', 'Learn to code', ''], ['daily', 'debuggit.daily()', 'The daily puzzle', ' <span class="demo-tag">(demo)</span>'],
+                    ['ltd', 'debuggit.ltd()', 'The studio game', ' <span class="demo-tag">(demo)</span>']];
+      document.getElementById('productNav').innerHTML = TABS.map(([k, name, title, tag]) =>
+        '<a class="lang-tab" href="' + URLS[k] + '" id="' + k + 'Tab"' + (k === HERE ? ' aria-current="page"' : '') + ' title="' + title + '">' + name + tag + '</a>').join('');
+    })();
+    </script>
     <div class="brand"><img class="mascot-logo" src="img/kiwi.svg" alt="" width="34" height="34"><a class="wordmark" id="wordmark" href="index.html" aria-label="Debuggit">debuggit.daily()</a></div>
     <p class="kicker"><span id="kicker"></span> <button class="demo-badge" id="demoBadge" type="button" title="About the demo" hidden>demo</button></p>
     <h1 id="title">What does this print?</h1>
     <p class="sub" id="sub">Read the snippet, then guess what it prints. You've got 4 guesses. Fewer guesses and hints earn more XP.</p>
   </header>
 
-  <!-- The Ltd tab without a running company: what it is, and a button to start (or resume) one. -->
-  <section class="ltd-intro" id="ltdIntro" hidden>
-    <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
-    <p id="ltdIntroText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and take desk jobs that pay the company.</p>
-    <button class="btn-primary" id="ltdLink">Start your own company</button>
-  </section>
-  <p class="ltd-note" id="ltdNote" hidden><span id="ltdNoteText">Your company is running.</span> <a href="index.html?ltd">Open Ltd →</a></p>
-
-  <!-- Debuggit Ltd fills these slots when the studio is switched on (see the loader below). On the
-       Daily tab a running company is loaded but hidden, so the puzzle still pays it. -->
-  <div id="ltdStats" hidden></div>
-  <div id="ltdOffice" hidden></div>
-
-  <div class="columns">
   <main class="desk">
 
   <p class="practice-note" id="practiceNote" hidden><span id="practiceText"></span> <a href="index.html">Back to today →</a></p>
@@ -453,15 +417,11 @@
       <div class="found" id="foundCard">
         <p class="section-label">Debuggit Ltd <span class="beta">beta</span></p>
         <p id="foundText">Turn your puzzle skills into a software studio: hire developers, staff contracts that keep running while you’re away, and take desk jobs that pay the company.</p>
-        <button class="btn-ghost" id="foundBtn">Start your own company</button>
+        <a class="btn-ghost" id="foundBtn" href="ltd/">Start your own company</a>
       </div>
     </div>
   </div>
   </main>
-  <div id="ltdStudio" hidden></div>
-  <div id="ltdBoard" hidden></div>
-  </div>
-  <div id="ltdDesk" hidden></div>
 
   <footer>
     <div>bug streak: <span id="streak">0</span><span id="nextWrap" hidden> · next bug in <span id="nextIn"></span></span> · <a href="#" id="archiveLink">past puzzles</a></div>
@@ -489,6 +449,9 @@
 <script src="puzzles/c.js"></script>
 <script src="puzzles/rust.js"></script>
 <script src="shared.js"></script>
+<script src="daily/version.js"></script>
+<script src="calendar.js"></script>
+<script src="daily/core.js"></script>
 <script src="analytics.js"></script>
 <script src="backup.js"></script>
 <script src="daily/stats.js"></script>
@@ -498,7 +461,6 @@
 <script src="daily/runner.js"></script>
 <script src="puzzles/traces-python.js"></script>
 <script src="daily/trace.js"></script>
-<script src="learn/courses.js"></script>
 <script>
 (function(){
   const { LANG_INFO, highlight: highlightIn } = window.Debugg;
@@ -523,8 +485,8 @@
   const resetLink = document.getElementById('resetLink');
   const xpEl = document.getElementById('xp');
 
-  const STREAK_KEY = 'debugg-streak';
-  const XP_KEY = 'debugg-xp';
+  const STREAK_KEY = window.Debugg.KEYS.daily.streak;
+  const XP_KEY = window.Debugg.KEYS.daily.xp;
 
   // There's one puzzle a day, and the languages take turns (see the rotation in shared.js).
   // index.html?day=N plays an earlier day again as practice (see daily/archive.js): saved apart,
@@ -538,7 +500,7 @@
   const puzzle = window.Debugg.puzzleFor(DAY);
   const lang = puzzle.lang;
   const LANG = LANG_INFO[lang];
-  const STATE_KEY = PRACTICE ? 'debugg-practice-day' + SLOT : window.Debugg.stateKey(DAY);
+  const STATE_KEY = PRACTICE ? window.Debugg.KEYS.daily.practicePrefix + SLOT : window.Debugg.stateKey(DAY);
   // How the puzzle is asked and answered (shared.js FORMATS, daily/formats.js).
   const FORMAT = window.Debugg.formatOf(puzzle);
   const MAX_GUESSES = window.Debugg.FORMATS[FORMAT].guesses;
@@ -758,7 +720,9 @@
     if((PRACTICE && !window.Debugg.isFinished(SLOT)) || CHALLENGE){
       tryLink.parentElement.hidden = true;  // the sandbox only opens puzzles finished on the day, and not code challenges yet
     }else if(LANG.runnable){
-      tryLink.href = 'learn/sandbox.html?lang=' + lang + '&day=' + SLOT;
+      // Today's puzzle isn't listed in the sandbox (it never reads the daily's saves), so it opens by its code.
+      tryLink.href = 'learn/sandbox.html?lang=' + lang + (SLOT === window.Debugg.slotDay(TODAY)
+        ? '&code=' + encodeURIComponent(puzzle.code) : '&day=' + SLOT);
     }else if(LANG.playground){
       const pg = LANG.playground(puzzle.code);
       tryLink.href = pg.url;
@@ -856,14 +820,16 @@
 
   // After a missed puzzle (a wrong guess, or revealed), a link to Debuggit Learn: the unit that teaches
   // this (the puzzle's `learn` tag), or the language's course from the start. Not after a first-guess solve.
+  // The languages Debuggit Learn has a course for. The daily keeps its own list rather than loading Learn's
+  // course files: add a language here when Learn gets its course.
+  const LEARN_COURSES = ['python'];
   function showLearnMore(){
-    const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[lang];
     const el = document.getElementById('learnMore');
-    el.hidden = !course || course.soon || (state.solved && state.attempts.length <= 1);
+    el.hidden = !LEARN_COURSES.includes(lang) || (state.solved && state.attempts.length <= 1);
     if(el.hidden) return;
     const a = document.getElementById('learnMoreLink');
     a.href = 'learn/#' + lang + (puzzle.learn ? '/' + puzzle.learn : '');
-    a.textContent = puzzle.learn ? 'Brush up on this in Debuggit Learn →' : 'Learn ' + course.name + ' from the start in Debuggit Learn →';
+    a.textContent = puzzle.learn ? 'Brush up on this in Debuggit Learn →' : 'Learn ' + LANG.name + ' from the start in Debuggit Learn →';
   }
 
   // The spoiler-free result, Wordle-style: the daily's name as its button at the top shows it, the day
@@ -1197,7 +1163,7 @@
     e.preventDefault();
     if(!confirm('Reset your puzzle progress, XP and streak? Your company and your Learn progress are kept.')) return;
     try{
-      Object.keys(localStorage).filter(k => k.startsWith('debugg-') && !['debugg-ltd', 'debugg-learn', 'debugg-demo-seen', 'debugg-seen-version', 'debugg-seen-ltd-version', 'debugg-seen-learn-version'].includes(k)).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => { const K = window.Debugg.KEYS.daily; return k.startsWith(K.prefix) && ![K.demoSeen, K.seen].includes(k); }).forEach(k => localStorage.removeItem(k));
     }catch(err){}
     location.reload();
   });
@@ -1249,105 +1215,8 @@
 </script>
 
 <script>
-// Debuggit Ltd loader. The Ltd tab is index.html?ltd: the company, with the Director's desk jobs
-// beside the studio, or, with no running company, a card to start or resume one. The daily puzzle is
-// its own game and pays nothing to the company, so the studio's code only loads on the Ltd tab (for
-// a running company, or one being started or resumed), or when a save from before the merge exists
-// (the old /studio/ page, which opens the Ltd tab). On the Daily tab a running company gets a note.
+// The demo notice and the footer's links. Debuggit Ltd is its own page (ltd/index.html).
 (function(){
-  const KEY = 'debugg-ltd', OLD_KEY = 'contract-debugger-state-v3';
-  function read(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
-  const $ = id => document.getElementById(id);
-
-  const saved = read(KEY);
-  const running = !!(saved && saved.enabled);
-  const importing = !saved && !!read(OLD_KEY);
-  let ltdView = new URLSearchParams(location.search).has('ltd') || importing;
-
-  // Marks the current tab, and on the Ltd tab keeps ?ltd in the address so a reload stays there.
-  function showView(){
-    document.body.classList.toggle('ltd-view', ltdView);
-    $('dailyTab').removeAttribute('aria-current');
-    $('ltdTab').removeAttribute('aria-current');
-    (ltdView ? $('ltdTab') : $('dailyTab')).setAttribute('aria-current', 'page');
-    if(ltdView){
-      if(!new URLSearchParams(location.search).has('ltd'))
-        history.replaceState(null, '', location.pathname + (location.search ? location.search + '&ltd' : '?ltd') + location.hash);
-      window.Debugg.renderWordmark($('wordmark'), 'ltd');
-      $('wordmark').href = 'index.html?ltd';
-      $('title').textContent = 'Debuggit Ltd';
-      $('sub').textContent = 'Your software studio. Hire developers and put them on contracts that keep running while you’re away, ' +
-        'and take the desk jobs that turn up for you, the Director.';
-      document.title = 'Debuggit Ltd';
-      // Debuggit Ltd has its own version and What's new (see "Releases" in CLAUDE.md).
-      window.Debugg.renderVersion($('appVersion'), '', 'ltd');
-    }
-    $('ltdIntro').hidden = !ltdView || document.body.classList.contains('ltd-running');
-  }
-
-  if(saved && !saved.enabled){
-    $('ltdIntroText').textContent = $('foundText').textContent = 'Debuggit Ltd is paused: no salaries and no contract progress until you switch it back on.';
-    $('ltdLink').textContent = $('foundBtn').textContent = 'Resume Debuggit Ltd';
-  }
-
-  let loading = false;
-  function switchOn(){
-    if(loading) return;
-    loading = true;
-    document.body.classList.add('ltd-running');
-    showView();
-    if(!document.querySelector('link[href="ltd/ltd.css"]')){
-      const css = document.createElement('link');
-      css.rel = 'stylesheet';
-      css.href = 'ltd/ltd.css';
-      document.head.appendChild(css);
-    }
-    // The desk's questions (ltd/desk.js), the office view (ltd/office.js) and the founding step
-    // (ltd/founding.js) first, then, once they're in, the studio. The office is only a picture: if
-    // it fails to load, the studio starts without it (and without the founding step, which draws with it).
-    const deskJs = document.createElement('script');
-    deskJs.src = 'ltd/desk.js';
-    const officeJs = document.createElement('script');
-    officeJs.src = 'ltd/office.js';
-    const foundingJs = document.createElement('script');
-    foundingJs.src = 'ltd/founding.js';
-    const js = document.createElement('script');
-    js.src = 'ltd/ltd.js';
-    const giveUp = () => { loading = false; document.body.classList.remove('ltd-running'); showView(); };
-    const start = founding => {
-      document.body.classList.add('ltd-on');
-      window.DebuggLtd.start({ stats: $('ltdStats'), studio: $('ltdStudio'), board: $('ltdBoard'), desk: $('ltdDesk'), office: $('ltdOffice'), founding });
-    };
-    // A new company is named first, with its Director (tests skip it with window.DEBUGG_FOUNDING = false).
-    js.onload = () => {
-      if(!saved && !importing && window.DebuggFounding && window.DebuggOffice && window.DEBUGG_FOUNDING !== false)
-        window.DebuggFounding.open({ onDone: start, onCancel: giveUp });
-      else start(null);
-    };
-    // Back again after cancelling the founding step: everything's loaded already.
-    if(window.DebuggLtd){ js.onload(); return; }
-    js.onerror = deskJs.onerror = giveUp;
-    foundingJs.onload = foundingJs.onerror = () => document.body.appendChild(js);
-    officeJs.onload = officeJs.onerror = () => document.body.appendChild(foundingJs);
-    deskJs.onload = () => document.body.appendChild(officeJs);
-    document.body.appendChild(deskJs);
-  }
-
-  showView();
-  // The company only runs on the Ltd tab. On the Daily tab, a running company gets a one-line note.
-  if((running && ltdView) || importing) switchOn();
-  else if(running){
-    const waiting = ((saved.desk && saved.desk.jobs) || []).filter(j => j.expiresAt > Date.now()).length;
-    $('ltdNoteText').textContent = 'Your company is running' + (waiting ? ', with ' + waiting + ' desk job' + (waiting > 1 ? 's' : '') + ' waiting.' : '.');
-    $('ltdNote').hidden = false;
-  }
-  // Starting or resuming the company, from the Ltd tab's card or the one under a finished puzzle.
-  [$('ltdLink'), $('foundBtn')].forEach(el => el.addEventListener('click', (e) => {
-    e.preventDefault();
-    ltdView = true;
-    switchOn();
-  }));
-
   // The demo notice: shown on the first visit, and again from the "demo" badge in the header.
   // Tests switch the automatic one off with window.DEBUGG_DEMO_NOTICE = false.
   if(window.Debugg.DEMO){
@@ -1357,7 +1226,7 @@
     badge.addEventListener('click', () => notice.showModal());
     document.getElementById('demoOk').addEventListener('click', () => notice.close());
     let seen = true;
-    try{ seen = !!localStorage.getItem('debugg-demo-seen'); localStorage.setItem('debugg-demo-seen', '1'); }catch(e){}
+    try{ seen = !!localStorage.getItem(window.Debugg.KEYS.daily.demoSeen); localStorage.setItem(window.Debugg.KEYS.daily.demoSeen, '1'); }catch(e){}
     if(!seen && window.DEBUGG_DEMO_NOTICE !== false) notice.showModal();
   }
 

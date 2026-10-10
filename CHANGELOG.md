@@ -9,7 +9,10 @@ things to play and the last one for fixes and balance changes.
 
 ## Unreleased
 
-Nothing yet.
+- **Resetting your puzzles now leaves Learn alone.** "Reset puzzles" clears the daily's days, XP and streak only. Your Learn progress, the lesson you were in and your sandbox code are kept, as is your company.
+- **Debuggit Ltd moved to its own page.** The daily puzzle's page no longer carries the company; the "debuggit.ltd()" button and the link under a finished puzzle open it.
+- **Your daily puzzle progress is saved under new names.** The daily puzzle now keeps its saves (days, XP, streak) apart from Learn and Debuggit Ltd. Progress from an earlier demo version won't carry over; this is a demo, so you start fresh.
+- **"Run it yourself" opens today's code in the sandbox directly.** The sandbox no longer lists today's puzzle, so the link carries the code with it.
 
 ## 0.0.11 — 5 October 2026
 

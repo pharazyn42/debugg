@@ -29,7 +29,7 @@ engine, `learn/courses.js` the list of courses, and each unit is its own file, e
 - **Learn XP** (per language) and the **Learn streak** are separate from the daily puzzles':
   10 XP for finishing a lesson the first time, 5 per star (new stars only), 30 for first passing a
   checkpoint. The streak counts days with a lesson finished, a checkpoint passed or a review round done.
-- Everything is saved under `debugg-learn` (backed up with the rest, reset with the demo at v0.1,
+- Everything is saved under `debuggit-learn-save` (backed up with the rest, reset with the demo at v0.1,
   and kept by the daily page's "reset puzzles").
 
 ## Playing
@@ -104,7 +104,7 @@ When a new unit covers what some puzzles are about, tag them.
 ## Versions and releases
 
 Debuggit Learn is versioned and released on its own, separate from the game (see "Releases" in
-`CLAUDE.md`): `LEARN_VERSION` in `shared.js`, `learn/CHANGELOG.md`, `learn-v…` tags, and its own
-What's new (`whatsnew.html?learn`). A branch that changes Learn shouldn't change the game too; the
+`CLAUDE.md`): `learn/version.js`, `learn/CHANGELOG.md`, `learn-v…` tags, and its own
+What's new (`learn/whatsnew.html`). A branch that changes Learn shouldn't change the game too; the
 **scope** CI check stops it, unless both changelogs get notes. Add a line under `## Unreleased` in
 `learn/CHANGELOG.md` for anything players will notice, such as a new unit.

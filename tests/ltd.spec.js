@@ -7,11 +7,10 @@ const path = require('path');
 const { openAt, fresh, withStorage, puzzleFor, guess, readJson } = require('./helpers');
 
 const at = (h, m = 0) => new Date(2026, 9, 7, h, m, 0);  // Day 3, a Wednesday
-const ltd = page => readJson(page, 'debugg-ltd');
+const ltd = page => readJson(page, 'debuggit-ltd-save');
 
-// Opens the Ltd tab and starts a company there.
+// Starts a company on the Ltd page.
 async function found(page){
-  await page.click('#ltdTab');
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
 }
@@ -39,10 +38,10 @@ async function openDesk(page){
 async function setDeskJob(page, questions){
   await page.evaluate(ids => {
     if(window.DebuggLtd) window.DebuggLtd.stop();
-    const s = JSON.parse(localStorage.getItem('debugg-ltd'));
+    const s = JSON.parse(localStorage.getItem('debuggit-ltd-save'));
     s.desk.jobs = [{ id: 'dj1', size: ids.length, questions: ids, answered: [], expiresAt: Date.now() + 3600000 }];
     s.desk.nextAt = Date.now() + 3600000;
-    localStorage.setItem('debugg-ltd', JSON.stringify(s));
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify(s));
   }, questions.map(q => q.id));
   await page.reload();
   await openDesk(page);
@@ -65,9 +64,9 @@ async function hireGrad(page, cost = 180){
 async function editCompany(page, fn, arg){
   await page.evaluate(([src, arg]) => {
     if(window.DebuggLtd) window.DebuggLtd.stop();  // so the running page can't save over the edit
-    const s = JSON.parse(localStorage.getItem('debugg-ltd'));
+    const s = JSON.parse(localStorage.getItem('debuggit-ltd-save'));
     new Function('s', 'arg', src)(s, arg);
-    localStorage.setItem('debugg-ltd', JSON.stringify(s));
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify(s));
   }, ['(' + fn.toString() + ')(s, arg)', arg === undefined ? null : arg]);
   await page.reload();
   await expect(page.locator('#statMoney')).toBeVisible();
@@ -75,40 +74,38 @@ async function editCompany(page, fn, arg){
 
 test.beforeEach(async ({ page }) => {
   page.on('dialog', d => d.accept());
-  await openAt(page, 'index.html#python');
+  await openAt(page, 'ltd/index.html');
   await fresh(page);
 });
 
 test('off by default: the studio code is not even loaded', async ({ page }) => {
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  // The header's title is the studio's, the same as its button at the top.
+  await expect(page.locator('#wordmark')).toHaveText('debuggit.ltd()');
+  await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
+  await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
+  // The daily offers it once a puzzle is over, as a link to this page (no company is started there).
+  await page.goto('index.html#python');
   await expect(page.locator('#foundCard')).toBeHidden();
   await page.click('#revealBtn');
   await expect(page.locator('#foundCard')).toBeVisible();
   await page.click('#foundBtn');
-  await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  // Starting it here moves to the Ltd tab.
-  await expect(page).toHaveURL(/index\.html\?ltd#python$/);
-  await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
-  // The header's title is the studio's, the same as its button at the top.
-  await expect(page.locator('#wordmark')).toHaveText('debuggit.ltd()');
-  await expect(page.locator('#wordmark')).toHaveAttribute('href', 'index.html?ltd');
-  await expect(page.locator('#ltdTab')).toHaveText('debuggit.ltd() (demo)');
+  await expect(page).toHaveURL(/\/ltd\/$/);
+  await expect(page.locator('#ltdIntro')).toBeVisible();
+  expect(await ltd(page)).toBeNull();
 });
 
-test("founding pays a founder's bonus for puzzle XP, capped at ¤1,000", async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 450, javascript: 120 } });
+test("a new company starts with ¤250 and no XP, whatever the daily puzzle has paid out", async ({ page }) => {
+  await withStorage(page, { 'debuggit-daily-xp': { python: 5000, javascript: 120 } });
   await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤820');
-  await expect(page.locator('#welcomeToast')).toContainText('¤570 founder’s bonus');
-
-  await page.click('#ltdClose');
-  await withStorage(page, { 'debugg-xp': { python: 5000 } });
-  await found(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤1,250');
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
+  await expect(page.locator('#welcomeToast')).not.toContainText('founder');
+  expect((await ltd(page)).xp).toEqual({});
 });
 
-test('the daily puzzle is its own game: it pays the company nothing, and the Ltd tab shows the desk instead', async ({ page }) => {
+test('the daily puzzle is its own game: it pays the company nothing, and the Ltd page shows the desk instead', async ({ page }) => {
   await found(page);
   await expect(page.locator('main.desk')).toBeHidden();
   // The desk is a window now, opened from the Studio box or by clicking yourself in the office.
@@ -119,10 +116,9 @@ test('the daily puzzle is its own game: it pays the company nothing, and the Ltd
   await expect(page.locator('#deskModal')).toBeHidden();
   // A new company's first desk job is waiting straight away.
   await expect(page.locator('.desk-job')).toHaveCount(1);
-  // On the Daily tab the company isn't loaded, and a solve pays it nothing.
-  await page.click('#dailyTab');
+  // The daily page doesn't load the company, and a solve pays it nothing.
+  await page.goto('index.html#python');
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
-  await expect(page.locator('#ltdNote')).toHaveText('Your company is running, with 1 desk job waiting. Open Ltd →');
   await guess(page, (await puzzleFor(page, 3)).display);
   expect((await ltd(page)).money).toBe(250);
   expect((await ltd(page)).paid).toBeUndefined();
@@ -148,10 +144,15 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   await page.click('[data-action=desk-start][data-job=dj1]');
   await expect(page.locator('.desk-q-num')).toHaveText('Question 2 of 2');
   await answerDesk(page, learn, true);
-  await expect(page.locator('#deskDone')).toContainText('Desk job: 2 of 2 right, ¤138 (with the ×1.25 bonus for getting them all) and +2 reputation.');
+  await expect(page.locator('#deskDone')).toContainText('Desk job: 2 of 2 right, ¤138 (with the ×1.25 bonus for getting them all) and +2 reputation, +24 XP.');
   expect((await ltd(page)).money).toBe(250 + 138);
+  // 6 XP × difficulty (3 and 1), kept per language.
+  const gained = {};
+  [daily, learn].forEach(q => { gained[q.lang] = (gained[q.lang] || 0) + 6 * q.difficulty; });
+  expect((await ltd(page)).xp).toEqual(gained);
   expect((await ltd(page)).desk).toMatchObject({ jobs: [], done: 1 });
   expect((await ltd(page)).desk.seen).toEqual([daily.id, learn.id]);
+  const xpBefore = JSON.stringify((await ltd(page)).xp);
 
   // One wrong: only the right one pays, with no bonus.
   await setDeskJob(page, [daily, learn]);
@@ -159,7 +160,11 @@ test('desk jobs pay for each right answer, with a bonus for getting them all', a
   await page.click('[data-action=desk-start][data-job=dj1]');
   await answerDesk(page, daily, false);
   await answerDesk(page, learn, true);
-  await expect(page.locator('#deskDone')).toContainText('Desk job: 1 of 2 right, ¤40 and +1 reputation.');
+  await expect(page.locator('#deskDone')).toContainText('Desk job: 1 of 2 right, ¤40 and +1 reputation, +6 XP.');
+  // A wrong answer earns no XP: only the right Learn question added its 6.
+  const after = (await ltd(page)).xp;
+  expect(after[learn.lang] - JSON.parse(xpBefore)[learn.lang]).toBe(6);
+  expect(after[daily.lang] - JSON.parse(xpBefore)[daily.lang]).toBe(daily.lang === learn.lang ? 6 : 0);
   // Every kind of question plays: typed, choice and tap the line.
   for(const kind of ['typed', 'line']){
     const q = qs.find(x => x.kind === kind);
@@ -180,11 +185,12 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
     s.desk.jobs = [{ id: 'old', size: 1, questions: s.desk.jobs[0].questions, answered: [], expiresAt: Date.now() - 6 * h }];
     s.desk.nextAt = Date.now() - 5 * h;
   });
-  // Every 45–90 minutes, each lasting 4 hours, so 2 or 3 are waiting.
+  // Every 45–90 minutes, each lasting 4 hours, so usually 2 or 3 are waiting. Not always: no job turns up while 3
+  // are alive, so a run of short gaps can skip one and leave only a single job waiting (about 1 run in 20).
   await openDesk(page);
-  await expect(page.locator('.desk-job').nth(1)).toBeVisible();
+  await expect(page.locator('.desk-job').first()).toBeVisible();
   const desk = (await ltd(page)).desk;
-  expect(desk.jobs.length).toBeGreaterThanOrEqual(2);
+  expect(desk.jobs.length).toBeGreaterThanOrEqual(1);
   expect(desk.jobs.length).toBeLessThanOrEqual(3);
   expect(desk.jobs.map(j => j.id)).not.toContain('old');
   const now = await page.evaluate(() => Date.now());   // the page's fixed clock, not this process's
@@ -196,11 +202,13 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
   await expect(page.locator('#deskCount')).toHaveText(desk.jobs.length + ' waiting');
 });
 
-test("the Director's puzzle levels boost contract success in that language", async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 450 } }); // Python level 3: +2%
+test("the Director's levels boost contract success in that language", async ({ page }) => {
   await found(page);
+  await editCompany(page, s => { s.xp = { python: 450 }; });  // Python level 3: +2%
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody')).toContainText('Python Lv 3 (+2% success)');
+  await expect(page.locator('#personModalBody')).toContainText('450 / 600 XP');   // level 4 starts at 600
+  await expect(page.locator('#personModalBody')).toContainText('Answer a language’s desk questions right');
   await page.keyboard.press('Escape');
   await editCompany(page, s => {
     s.roster.push({ id: 'g1', name: 'Ada L.', role: 'Graduate', since: Date.now(), lang: { Python: 10 } });
@@ -217,12 +225,11 @@ test("the Director's puzzle levels boost contract success in that language", asy
 
 test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debugg-xp': { python: 100 } });  // a ¤100 founder's bonus
   await found(page);
-  // ¤250 and the ¤100 bonus, less a graduate's ¤180.
-  await expect(page.locator('#statMoney')).toHaveText('¤350');
+  // ¤250, less a graduate's ¤180.
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
   await hireGrad(page);
-  await expect(page.locator('#statMoney')).toHaveText('¤170');
+  await expect(page.locator('#statMoney')).toHaveText('¤70');
   await expect(page.locator('#statHeads')).toHaveText('2');
   await editCompany(page, s => {
     const g = s.roster.find(p => p.role === 'Graduate');
@@ -236,13 +243,12 @@ test('hiring, and contracts finishing while you are away', async ({ page }) => {
   await page.reload();
   // 30 minutes of a ¤2/min salary, plus the ¤20 contract, plus the intern's everyday work
   // (0.2 SLOC/min × ¤0.54 × 30 minutes = ¤3.24).
-  await expect(page.locator('#statMoney')).toHaveText('¤133');
+  await expect(page.locator('#statMoney')).toHaveText('¤33');
   await expect(page.locator('#welcomeToast')).toContainText('1 contract wrapped up while you were away');
   await expect(page.locator('#log')).toContainText('delivered');
 });
 
 test('hiring costs only go up, with inflation and competition', async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 300 } });
   await found(page);
   await page.click('[data-action=open-jobs]');
   const post = page.locator('[data-action=post-job][data-role=Manager]');
@@ -315,7 +321,6 @@ test('developers apply now and then, graduates too, once the studio has some rep
 });
 
 test('the Ltd tab is Debuggit Ltd, and a guide walks through the first steps', async ({ page }) => {
-  await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
   await expect(page.locator('h1')).toHaveText('Debuggit Ltd');
   await expect(page).toHaveTitle('Debuggit Ltd');
@@ -463,6 +468,7 @@ test('the intern sometimes gets stuck, and the hotfix stalls until you help with
   const pay = { 1: 40, 2: 55, 3: 70, 4: 85, 5: 100 }[q.difficulty];
   expect(s.money).toBe(250 + pay);
   expect(s.reputation).toBe(1);
+  expect(s.xp).toEqual({ python: 6 * q.difficulty });  // helping earns XP like a desk answer
   expect(s.jobs[0].status).toBe('running');
   expect(await minutesLeft(page)).toBeCloseTo(5, 1);
   expect(s.desk.seen).toContain(q.id);
@@ -486,6 +492,7 @@ test('a wrong answer loses the intern some progress, and they can get stuck agai
   const s = await ltd(page);
   expect(s.money).toBe(250);
   expect(s.reputation).toBe(0);
+  expect(s.xp).toEqual({});
   expect(s.jobs[0].status).toBe('running');
   expect(await minutesLeft(page)).toBeCloseTo(15, 1);
   await expect(page.locator('#log')).toContainText('loses some progress');
@@ -616,7 +623,7 @@ test('risky contracts pay more, succeed less often, and cost more reputation whe
   await page.clock.setFixedTime(at(12));
   await found(page);
   // Some offers are rolled risky; the board has every level over time.
-  const risks = await page.evaluate(() => JSON.parse(localStorage.getItem('debugg-ltd')).board.map(o => o.risk));
+  const risks = await page.evaluate(() => JSON.parse(localStorage.getItem('debuggit-ltd-save')).board.map(o => o.risk));
   expect(risks.every(r => ['standard', 'risky', 'high'].includes(r))).toBe(true);
   await editCompany(page, s => {
     s.guideDone = true;
@@ -1070,7 +1077,6 @@ test('board groups fold, and stay folded', async ({ page }) => {
 
 test('a company saved with domains is converted to languages only', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
   await hireGrad(page);
   await editCompany(page, s => {
@@ -1113,7 +1119,6 @@ test('promotion needs contract time and a language level only', async ({ page })
 
 test('pausing stops the clock until the company is resumed', async ({ page }) => {
   await page.clock.setFixedTime(at(12));
-  await withStorage(page, { 'debugg-xp': { python: 100 } });
   await found(page);
   await hireGrad(page);
   await editCompany(page, s => {
@@ -1132,27 +1137,26 @@ test('pausing stops the clock until the company is resumed', async ({ page }) =>
   await page.reload();
   await page.click('#ltdLink');
   await expect(page.locator('#welcomeToast')).toContainText('paused for 2h');
-  await expect(page.locator('#statMoney')).toHaveText('¤170');
+  await expect(page.locator('#statMoney')).toHaveText('¤70');
   const job = (await ltd(page)).jobs[0];
   expect(job.endsAt - Date.parse(at(14))).toBe(60000);
 });
 
 test('closing the company keeps puzzle progress; resetting puzzles keeps the company', async ({ page }) => {
-  await guess(page, (await puzzleFor(page, 3)).display);
   await found(page);
-  await page.click('#resetLink');
-  await expect(page.locator('body')).toHaveClass(/ltd-on/);
-  expect(await ltd(page)).not.toBeNull();
-  expect(await readJson(page, 'debugg-xp')).toBeNull();
-
-  await page.click('#dailyTab');
-  await expect(page.locator('#ltdNote')).toBeVisible();
+  await page.goto('index.html#python');
   await guess(page, (await puzzleFor(page, 3)).display);
-  await page.click('#ltdNote a');
+  await Promise.all([page.waitForNavigation(), page.click('#resetLink')]);  // it reloads the page
+  expect(await readJson(page, 'debuggit-daily-xp')).toBeNull();
+  expect(await ltd(page)).not.toBeNull();
+
+  await guess(page, (await puzzleFor(page, 3)).display);
+  await page.goto('ltd/index.html');
+  await expect(page.locator('body')).toHaveClass(/ltd-on/);
   await page.click('#ltdClose');
   await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
   expect(await ltd(page)).toBeNull();
-  expect((await readJson(page, 'debugg-xp')).python).toBe(100);
+  expect((await readJson(page, 'debuggit-daily-xp')).python).toBe(100);
 });
 
 test('a company saved on the old /studio/ page is imported', async ({ page }) => {
@@ -1172,48 +1176,40 @@ test('a company saved on the old /studio/ page is imported', async ({ page }) =>
   expect(await page.evaluate(() => localStorage.getItem('contract-debugger-state-v3'))).toBeNull();
 });
 
-test('/studio/ redirects to the main page with the studio on', async ({ page }) => {
+test('/studio/ and the daily\'s ?ltd redirect to the Ltd page', async ({ page }) => {
   await page.goto('studio/');
-  await expect(page).toHaveURL(/\/index\.html\?ltd$/);
+  await expect(page).toHaveURL(/\/ltd\/$/);
   await expect(page.locator('#ltdIntro')).toBeVisible();
   await page.click('#ltdLink');
   await expect(page.locator('body')).toHaveClass(/ltd-on/);
   await expect(page.locator('#statMoney')).toHaveText('¤250');
+  await page.goto('index.html?ltd');
+  await expect(page).toHaveURL(/\/ltd\/$/);
 });
 
-test('Daily and Ltd are tabs; on the Daily tab a running company is a note linking to it', async ({ page }) => {
+test('the top buttons link the three products; the Ltd page links to Learn and the daily', async ({ page }) => {
   await expect(page.locator('.modes .lang-tab')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
-  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('#ltdIntro')).toBeHidden();
-  await page.click('#ltdTab');
   await expect(page.locator('#ltdTab')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#ltdIntro')).toBeVisible();
-  // Opening the tab doesn't start a company by itself.
+  // Opening the page doesn't start a company by itself.
   expect(await page.evaluate(() => typeof window.DebuggLtd)).toBe('undefined');
   expect(await ltd(page)).toBeNull();
   await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toHaveText('¤250');
   await expect(page.locator('#ltdIntro')).toBeHidden();
 
-  await page.click('#dailyTab');
-  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('#ltdNote')).toBeVisible();
-  await expect(page.locator('#ltdStats')).toBeHidden();
-  await expect(page.locator('#ltdBoard')).toBeHidden();
-  await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
-  await page.click('#ltdNote a');
-  await expect(page.locator('#statMoney')).toHaveText('¤250');
-
-  // The top buttons name each page: Learn (its own section, also linked from the
-  // Director's languages, and it links back), then the daily and Ltd, both demos for now.
-  await expect(page.locator('.modes a')).toHaveText(['debuggit.learn()', 'debuggit.daily() (demo)', 'debuggit.ltd() (demo)']);
+  // Learn is also linked from the Director's languages, and links back.
   await openPerson(page, 'director');
   await expect(page.locator('#personModalBody a.learn-lang')).toHaveText('Python');
-  await expect(page.locator('#personModalBody a.learn-lang')).toHaveAttribute('href', 'learn/#python');
+  await expect(page.locator('#personModalBody a.learn-lang')).toHaveAttribute('href', '../learn/#python');
   await page.click('#personModalBody a.learn-lang');
   await expect(page.locator('h1')).toHaveText('Learn Python');
   await page.click('#ltdTab');
+  await expect(page).toHaveURL(/\/ltd\/$/);
   await expect(page.locator('#statMoney')).toBeVisible();
+  await page.click('#dailyTab');
+  await expect(page.locator('#dailyTab')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('body')).not.toHaveClass(/ltd-on/);
 });
 
 test('works at phone width with the studio on', async ({ page }) => {
@@ -1277,11 +1273,6 @@ test('the office is drawn on the Ltd tab, summed up for screen readers, and not 
   const kinds = await page.evaluate(() => DebuggOffice.targets().map(t => t.kind + ':' + t.id).sort());
   expect(kinds).toEqual(['applicant:a1', 'applicant:a2', 'director:director', 'jobs:jobs', 'person:g1', 'person:g2',
                          'person:' + (await ltd(page)).roster.find(p => p.role === 'Intern').id].sort());
-  // The Daily tab doesn't load the company, so there's no office there.
-  await page.click('#dailyTab');
-  await expect(page.locator('#ltdNote')).toBeVisible();
-  await expect(page.locator('.office-canvas')).toHaveCount(0);
-  await expect(page.locator('#ltdOffice')).toBeHidden();
 });
 
 test('tapping the office: a person opens their panel, an applicant opens their card, a stuck intern asks for help', async ({ page }) => {
@@ -1360,7 +1351,7 @@ test('a small business unit has two floors, each with a meeting room and a kitch
 test('a new company is named, with its Director, who chooses how they look', async ({ page }) => {
   // On for this test (beforeEach opened the page with it off, as tests have it).
   await page.addInitScript(() => { window.DEBUGG_FOUNDING = true; });
-  await page.goto('index.html?ltd');
+  await page.goto('ltd/index.html');
   await page.click('#ltdLink');
   await expect(page.locator('#foundingModal')).toBeVisible();
   // Cancelling goes back to the card, with no company.
@@ -1542,3 +1533,58 @@ test('clicking yourself in the office opens your desk, and a badge over your hea
   await expect(page.locator('[data-action=open-desk]')).toHaveText('Your desk');
 }
 );
+
+test("the Director's XP is Ltd's own: the daily's XP counts for nothing, and desk answers level you up", async ({ page }) => {
+  // Lots of daily XP, but none of it is Ltd's.
+  await withStorage(page, { 'debuggit-daily-xp': { python: 5000, javascript: 5000 } });
+  await found(page);
+  expect((await ltd(page)).xp).toEqual({});
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 1');
+  await page.keyboard.press('Escape');
+
+  // 96 XP is just short of level 2; a right difficulty-1 answer adds 6 and tips it over.
+  await editCompany(page, s => { s.xp = { python: 96 }; });
+  const learn = (await deskQuestions(page)).find(q => q.source === 'learn' && q.kind === 'choice');
+  await setDeskJob(page, [learn]);
+  await openDesk(page);
+  await page.click('[data-action=desk-start][data-job=dj1]');
+  await answerDesk(page, learn, true);
+  expect((await ltd(page)).xp.python).toBe(102);
+  await page.click('[data-action=desk-close]');
+  await page.keyboard.press('Escape');
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 2 (+1% success)');
+});
+
+test('the Director knows a language once Ltd XP has been earned in it, never from the daily; Python is always known', async ({ page }) => {
+  // JavaScript is in the rotation, so it's a language the Director could know.
+  await page.addInitScript(() => { window.DEBUGG_ROTATION = [{ lang: 'python' }, { lang: 'javascript' }]; });
+  await withStorage(page, { 'debuggit-daily-xp': { javascript: 500 } });  // the daily's JavaScript XP counts for nothing here
+  await found(page);
+  const intern = (await ltd(page)).roster.find(p => p.role === 'Intern');
+  const js = (await ltd(page)).board.find(o => o.tier === 0 && !o.expert && o.lang === 'JavaScript');
+  const knowCheck = page.locator('#teamModal .check', { hasText: 'know JavaScript' });
+  const pickPair = async () => {
+    await page.click('[data-action=staff][data-offer="' + js.id + '"]');
+    await page.click('[data-pick="' + intern.id + '"]');
+    await page.click('[data-pick="director"]');
+  };
+  await pickPair();
+  await expect(knowCheck).toHaveClass(/no/);
+  await expect(knowCheck).toHaveText('✕ you or ' + intern.name + ' know JavaScript');
+  await page.click('[data-action=pick-cancel]');
+
+  // With JavaScript XP in the Ltd save (a right JavaScript answer gives it), the Director is comfortable in it.
+  await editCompany(page, s => { s.xp = { javascript: 6 }; });
+  await pickPair();
+  await expect(knowCheck).not.toHaveClass(/no/);
+});
+
+test('a company saved before Ltd had its own XP loads with none', async ({ page }) => {
+  await found(page);
+  await editCompany(page, s => { delete s.xp; });
+  expect((await ltd(page)).xp).toEqual({});
+  await openPerson(page, 'director');
+  await expect(page.locator('#personModalBody')).toContainText('Python Lv 1');
+});

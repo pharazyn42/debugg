@@ -1,5 +1,5 @@
 // Past puzzles: every earlier day, newest first, with how you did on the day and a link to play it
-// again as practice (index.html?day=N). Practice games are saved apart (debugg-practice-day<N>) and
+// again as practice (index.html?day=N). Practice games are saved apart (debuggit-daily-practice-day<N>) and
 // earn no XP, streak or company pay. Before Day 1 it lists the last two weeks of preview days.
 window.DebuggArchive = (function(){
   const D = window.Debugg;
@@ -38,7 +38,7 @@ window.DebuggArchive = (function(){
     if(!dialog) build();
     const rows = slots(today).map(day => {
       const p = D.puzzleFor(day);
-      const real = result(D.readState(day)), practice = result(read('debugg-practice-day' + day));
+      const real = result(D.readState(day)), practice = result(read(window.Debugg.KEYS.daily.practicePrefix + day));
       const when = dateOf(day).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       const name = (D.isPreview(day) ? 'Preview' : D.dayLabel(day)) + ' · ' + when;
       const status = real ? (real === 'missed' ? 'Missed on the day' : 'Solved on the day in ' + real.split(' ').pop())

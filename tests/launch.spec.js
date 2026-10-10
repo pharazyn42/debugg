@@ -8,8 +8,14 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);
   await page.click('#foundBtn');
-  // ¤250 plus a ¤100 founder's bonus (the puzzle was solved before the company existed).
-  await expect(page.locator('#statMoney')).toHaveText('¤350');
+  await page.click('#ltdLink');
+  // ¤250: solving the puzzle first adds nothing to a new company.
+  await expect(page.locator('#statMoney')).toHaveText('¤250');
+  // Learn's save and a sandbox draft ride along too: one prefix per product, all backed up.
+  await page.evaluate(() => {
+    localStorage.setItem('debuggit-learn-save', JSON.stringify({ xp: { python: 30 } }));
+    localStorage.setItem('debuggit-learn-sandbox-python', 'print(2)');
+  });
   await page.click('#backupLink');
   const code = await page.inputValue('#backupCode');
   expect(code.startsWith('DEBUGG1.')).toBe(true);
@@ -31,9 +37,11 @@ test('a backup code restores everything in another browser', async ({ page, brow
   await other.click('#restoreBtn');
   await expect(other.locator('#feedback')).toContainText('Solved');
   await expect(other.locator('#streak')).toHaveText('1');
-  await other.click('#ltdNote a');
-  await expect(other.locator('#statMoney')).toHaveText('¤350');
-  expect((await readJson(other, 'debugg-xp')).python).toBe(100);
+  await other.click('#foundBtn');  // the restored company is already running on its page
+  await expect(other.locator('#statMoney')).toHaveText('¤250');
+  expect((await readJson(other, 'debuggit-daily-xp')).python).toBe(100);
+  expect((await readJson(other, 'debuggit-learn-save')).xp.python).toBe(30);
+  expect(await other.evaluate(() => localStorage.getItem('debuggit-learn-sandbox-python'))).toBe('print(2)');
 });
 
 test('feedback links open a prefilled GitHub issue for the puzzle', async ({ page }) => {
@@ -65,14 +73,18 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
   }));
   await fresh(page);
   await guess(page, (await puzzleFor(page, 3)).display);  // 100 XP: level 2
+  // The daily's events are sent on its page; the link to Ltd leaves it.
+  await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
+    'level/python/2',
+    'level/overall/2',
+    'puzzle/python/day-3/solved-in-1'
+  ]);
   await page.click('#foundBtn');
+  await page.click('#ltdLink');
   await expect(page.locator('#statMoney')).toBeVisible();
   await page.click('[data-action=move][data-tenure=rent]');
   await page.click('#backupLink');
   await expect.poll(() => page.evaluate(() => window.__sent || [])).toEqual([
-    'level/python/2',
-    'level/overall/2',
-    'puzzle/python/day-3/solved-in-1',
     'ltd/founded',
     'ltd/office/rent/unit-s',
     'backup/opened'
@@ -80,14 +92,13 @@ test('analytics sends named events, and nothing when it is off', async ({ page }
 });
 
 test('Debuggit Ltd is labelled beta, and the privacy page is linked', async ({ page }) => {
-  await openAt(page, 'index.html#python');
+  await openAt(page, 'ltd/index.html');
   await fresh(page);
-  await page.click('#ltdTab');
   await expect(page.locator('#ltdIntro .beta')).toHaveText('beta');
   await page.click('#ltdLink');
   await expect(page.locator('.company-controls .beta')).toHaveText('beta');
   await expect(page.locator('#welcomeToast')).toContainText('in beta');
-  await page.click('a[href="privacy.html"]');
+  await page.click('a[href="../privacy.html"]');
   await expect(page.locator('h1')).toHaveText('Privacy');
 });
 
@@ -112,19 +123,19 @@ test('saves from a reset version are wiped, apart from sandbox drafts, and so ar
   await fresh(page);
   // A save from before versions were marked, as v0.1 will treat demo saves.
   await page.evaluate(() => {
-    localStorage.removeItem('debugg-version');
-    localStorage.setItem('debugg-xp', JSON.stringify({ python: 500 }));
-    localStorage.setItem('debugg-day3', JSON.stringify({ attempts: ['x'], solved: true, revealed: true, hintLevel: 0 }));
-    localStorage.setItem('debugg-ltd', JSON.stringify({ enabled: false, pausedAt: 1, money: 500 }));
-    localStorage.setItem('debugg-sandbox-python', 'print(1)');
+    localStorage.removeItem('debuggit-version');
+    localStorage.setItem('debuggit-daily-xp', JSON.stringify({ python: 500 }));
+    localStorage.setItem('debuggit-daily-day3', JSON.stringify({ attempts: ['x'], solved: true, revealed: true, hintLevel: 0 }));
+    localStorage.setItem('debuggit-ltd-save', JSON.stringify({ enabled: false, pausedAt: 1, money: 500 }));
+    localStorage.setItem('debuggit-learn-sandbox-python', 'print(1)');
   });
   const oldCode = await page.evaluate(() => window.DebuggBackup.makeCode());
   await page.addInitScript(() => { window.DEBUGG_WIPED_VERSIONS = ['']; });
   await page.reload();
   await expect(page.locator('#feedback')).not.toContainText('Solved');
   const left = await page.evaluate(() => ({
-    xp: localStorage.getItem('debugg-xp'), day: localStorage.getItem('debugg-day3'), company: localStorage.getItem('debugg-ltd'),
-    draft: localStorage.getItem('debugg-sandbox-python'), version: localStorage.getItem('debugg-version')
+    xp: localStorage.getItem('debuggit-daily-xp'), day: localStorage.getItem('debuggit-daily-day3'), company: localStorage.getItem('debuggit-ltd-save'),
+    draft: localStorage.getItem('debuggit-learn-sandbox-python'), version: localStorage.getItem('debuggit-version')
   }));
   expect(left).toEqual({ xp: null, day: null, company: null, draft: 'print(1)', version: 'demo' });
 

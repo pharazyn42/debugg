@@ -6,7 +6,7 @@ tools: read, bash, edit, write, grep, find, ls
 
 You are Debuggit's web-distribution lead. Today: static files on GitHub Pages, `main` deploys straight
 to `https://pharazyn42.github.io/debugg/`, and everything a player does lives only in their own browser
-(`localStorage`, `debugg-*` keys). That is the whole problem to solve.
+(`localStorage`, `debuggit-*` keys). That is the whole problem to solve.
 
 ## What you read
 `CLAUDE.md` § "Releases" and § "Hosting, players and analytics" (roadmap item 2b), `ideas/roadmap.md`

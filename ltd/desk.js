@@ -13,7 +13,7 @@ window.DebuggDesk = (function(){
 
   // --- Loading Learn's units -------------------------------------------------------------------
   let loading = null;
-  function load(root = ''){
+  function load(root = '../'){  // the site's top folder, from ltd/index.html
     if(loading) return loading;
     const L = window.DEBUGG_LEARN;
     const files = L ? Object.values(L.courses).flatMap(c => c.files || []) : [];

@@ -1,5 +1,5 @@
 // The daily puzzle's stats, Wordle-style: played, win rate, current and best streak, and how many
-// guesses the solves took. Worked out from the saved days (debugg-day<N>), so nothing extra is kept.
+// guesses the solves took. Worked out from the saved days (debuggit-daily-day<N>), so nothing extra is kept.
 // Practice games from the archive have their own saves and don't count.
 window.DebuggStats = (function(){
   const D = window.Debugg;
@@ -10,7 +10,7 @@ window.DebuggStats = (function(){
     let keys = [];
     try{ keys = Object.keys(localStorage); }catch(e){}
     keys.forEach(k => {
-      const m = /^debugg-day(-?\d+)$/.exec(k);
+      const m = new RegExp('^' + window.Debugg.KEYS.daily.dayPrefix + '(-?\\d+)$').exec(k);
       if(!m) return;
       const s = D.readState(+m[1]);
       if(!s || !(s.solved || s.revealed)) return;
@@ -21,7 +21,7 @@ window.DebuggStats = (function(){
 
   function readStreak(){
     try{
-      const s = JSON.parse(localStorage.getItem('debugg-streak'));
+      const s = JSON.parse(localStorage.getItem(window.Debugg.KEYS.daily.streak));
       if(s && typeof s.count === 'number') return s;
     }catch(e){}
     return { count: 0, lastDay: 0 };

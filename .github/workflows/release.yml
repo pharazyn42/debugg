@@ -2,7 +2,7 @@ name: Release
 
 # Publishes a version of Debuggit (the daily puzzle: product "daily"), Debuggit Ltd (product "ltd")
 # or Debuggit Learn (product "learn"), which are released separately. It runs every test, checks
-# shared.js and that product's changelog are at that version, then creates the tag (v<version>,
+# that product's version file (daily/version.js, ltd/version.js or learn/version.js) and its changelog are at that version, then creates the tag (v<version>,
 # ltd-v<version> or learn-v<version>) and a GitHub Release with that version's notes. Start it from
 # the Actions tab ("Run workflow", with the product and version), or by pushing the tag yourself.
 # See "Releases" in CLAUDE.md.
@@ -15,7 +15,7 @@ on:
         options: [daily, ltd, learn]
         default: daily
       version:
-        description: 'Version to release, e.g. 0.0.3 (must match shared.js and that product''s changelog)'
+        description: 'Version to release, e.g. 0.0.3 (must match that product''s version file and changelog)'
         required: true
   push:
     tags: ['v*', 'ltd-v*', 'learn-v*']

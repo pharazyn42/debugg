@@ -17,8 +17,9 @@ Shared and allowed but must not change behaviour for other products: `shared.js`
 `index.html` also holds the Ltd tab — if you touch it, change only daily parts.
 
 ## How the daily works (verify before relying on it)
-`shared.js` holds `LANG_INFO`, `ROTATION`, `LAUNCH` (demo Day 1 = Mon 5 Oct 2026), `DEMO`, `APP_VERSION`,
-`BASE_XP`, the day calendar and the highlighter. `puzzles/<lang>.js` is the bank; `daily/formats.js` the
+`calendar.js` holds `LANG_INFO`, `ROTATION`, `LAUNCH` (demo Day 1 = Mon 5 Oct 2026), `BASE_XP` and the day
+calendar; `shared.js` is the site kit (`DEMO`, save keys, the highlighter); `daily/core.js` the daily's saves and XP;
+`daily/version.js` its version. `puzzles/<lang>.js` is the bank; `daily/formats.js` the
 question/answer text; `daily/archive.js` past puzzles; `daily/trace.js` step-through.
 One puzzle a day, languages rotate, weekday = difficulty 1–5, weekend shares one slot.
 

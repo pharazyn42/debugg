@@ -23,9 +23,45 @@
 - `tools/check-scope.js` fails a PR that touches more than one product. This plan is Ltd + shared files.
 - Playwright tests fake time by editing the save; that seam does not work for unit tests. Needs a real RNG/clock seam.
 
+## Save-key inventory (2026-10-08, for PLAN.md Phase 1)
+Owner = who should hold it after the split. "Where" = file:line where the name is written.
+
+| Key | Owner | Where |
+|---|---|---|
+| `debugg-xp` | daily | `index.html:527`, `shared.js:316` (read by the shared level code; Ltd's language rule also depends on it) |
+| `debugg-streak` | daily | `index.html:526`, `daily/stats.js:24`, `shared.js:65` |
+| `debugg-day<N>` (`stateKey()`) | daily | `shared.js:292`, `daily/stats.js:13` |
+| `debugg-practice-day<N>` | daily | `index.html:541`, `daily/archive.js:41` |
+| `debugg-demo-seen` | daily (page-level) | `index.html:1360` |
+| `debugg-seen-version` | daily | `shared.js:31` |
+| `debugg-seen-ltd-version` | ltd | `shared.js:33` |
+| `debugg-seen-learn-version` | learn | `shared.js:35` |
+| `debugg-ltd` | ltd | `ltd/ltd.js:465`, `index.html:1258`, `shared.js:34,66,69` |
+| `debugg-learn` | learn | `learn/learn.js:16`, `shared.js:36` |
+| `debugg-learn-session`, `debugg-learn-collapsed` | learn | `learn/learn.js:17,18` |
+| `debugg-lang` | learn (sandbox language) | `learn/sandbox.html:305` |
+| `debugg-sandbox-<lang>` | learn (sandbox drafts) | `learn/sandbox.html:306` |
+| `debugg-version`, `debugg-epoch` | shared today; one pair per product after the split | `shared.js:13,39`, `backup.js:42` |
+| `contract-debugger-state-v3`, `debugg-<lang>-day<N>` | legacy; delete with the rename (no players) | `shared.js:47,62,65`, `index.html:1258` |
+
+Things that scan by the `debugg-` prefix and must change together with the rename:
+`backup.js:10` (`isOurs`), `shared.js:47` (wipe), `shared.js:32,34,36` (`returning:` regexes),
+`shared.js:62-69` (old epoch migration, touches Ltd's save: delete it), `index.html:1200` (reset list).
+
+## Decisions
+- 2026-10-10: Ltd XP is its own scale, earned only from right desk and intern-help answers: 6 XP × difficulty, per language, kept in the Ltd save. Languages unlock by earning XP in them (Python always known). The founder's bonus goes. Details and the sim numbers behind the 6 are in `PLAN.md` Phase 1.
+
+- 2026-10-10: sandbox replays past days only (never today's), so Learn reads no daily saves; What's new is one page per product. Both written into `PLAN.md` Phase 2 and unblock Phases 2a and 2c.
+
+## Decisions
+- 2026-10-10: Ltd is split into its own repo with its history kept; the content is a vendored copy until `debuggit-content`; cross-links are absolute URLs; the old `ltd-v` tags are discarded and Ltd restarts at 0.0.1 (tags `v0.0.1`…). Details in `PLAN.md` Phase 5.
+
 ## Last session handoff
-- Branch / worktree: `main` (clean at 2026-10-05 e8cd235, PR #105 released daily 0.0.11 / Ltd 0.0.16 / Learn 0.0.17)
-- Finished: the planning convention wired into the team — `/develop` now requires an idea-file path and reads that doc (plus its framing) before the code; roadmap cuts the idea into pieces or a phase ladder; plan-writer's header gained `**Idea:**`; the three workers flip the idea's status tag. Files: `.pi/prompts/develop.md`, `.claude/agents/{plan-writer,daily-worker,learn-worker,ltd-worker}.md`, this file
-- In progress: nothing in code. `PLAN.md` still holds the **old** Draft (roadmap item 1, the Ltd engine seam) and has no `**Idea:**` line — it predates the convention
-- Next: `/develop ideas/daily-learn-quality-ideas.md 12` (the doc's own top-ranked idea) to replace that Draft. The earlier attempt died at step 2 (roadmap aborted); Explore's findings from it are reusable
-- Tests: not run — no code touched · Uncommitted changes: yes (`PLAN.md`, `TODO.md`, `NOTES.md`, `CLAUDE.md`, `ideas/roadmap.md`, `ideas/daily-learn-quality-ideas.md`, `.claude/`, `.pi/`)
+- Branch: `claude/jolly-davinci-dfihk5`; PR https://github.com/pharazyn42/debugg/pull/117 (Phases 1-2 plus review fixes; 158 tests green).
+- Finished: the Ltd repo is built, tested and **pushed** to `pharazyn42/debuggit-ltd` (private; the owner will deploy it on Cloudflare, so GitHub Pages is not used). `main` is at `a2ce5ed`: Ltd's history (115 commits), the standalone-repo commit, a merge of GitHub's stub "Initial commit", and a docs commit. Its suite is green (58 tests; simulator and release.js run). A working copy and the bundle are in this session's scratchpad (`ltdsplit/src`, `debuggit-ltd.bundle`) and will be gone when the session ends; the repo itself is the record.
+- **Tags discarded, numbering restarted (owner's call, 2026-10-10):** none were ever pushed. The repo's `main` is at `01abdbf`: `version.js` says `0.0.0`, `CHANGELOG.md` has a single `## Unreleased` list holding all 59 notes from the old 0.0.1-0.0.18 sections plus the unreleased ones (newest first), and `tools/release.js bump 0.0.1` turns that into the one first release (tag `v0.0.1`, title "Debuggit Ltd v0.0.1"). The What's new page says "Nothing released yet" until then. Tests for this are in the repo's `tests/release.spec.js` and `tests/site.spec.js`.
+- Cloudflare: connect the private repo, no build command, publish directory `/` (the repo root). Cross-links to the daily and Learn are absolute URLs to `pharazyn42.github.io/debugg/...` (the `URLS` table in the repo's `index.html`; also the `og:image` in its `<head>`); change them when those products move. Saves on a Cloudflare domain are a different origin from the old GitHub Pages one, so a company saved at `pharazyn42.github.io/debugg/ltd/` will not carry over (no active players, so accepted).
+- **Ltd 0.0.1 released (2026-10-10):** `bump 0.0.1` in `pharazyn42/debuggit-ltd` (all 59 notes in one version), release PR #1, then the Release workflow, which tags `v0.0.1` and creates the GitHub Release. The old Ltd versions in this repo (`ltd/CHANGELOG.md`, `ltd-v` tags, `LTD_VERSION` 0.0.18) are not released any more; `ltd/` here goes in Phase 5b.
+- Not done on purpose: the umbrella still has `ltd/` and links to it. Deleting it before the new site serves would break the live Ltd link (Phase 5b in `TODO.md`).
+- Known limits of the new repo: the content is a vendored copy (it will drift from `debugg` until `debuggit-content`); `shared.js` still lists every product's save keys.
+- Uncommitted changes: none after this commit.

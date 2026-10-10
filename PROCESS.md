@@ -16,7 +16,7 @@ One screen. Design lives in `CLAUDE.md`; this file is only the workflow, gates a
 ## Gates — never cross without me
 - `PLAN.md` at `Status: Draft` (no code).
 - Commit, push, tag, `tools/release.js`, deploy, DNS, store submission.
-- Renaming a `debugg-*` key or state key, or changing `SAVE_VERSION` (live saves) without a boot-sequence guard.
+- Renaming a `debuggit-*` key or state key, or changing `SAVE_VERSION` (live saves) without a boot-sequence guard.
 - A balance number (salary, payout, SLOC, timing, XP) without its source value.
 - Bumping a minor version before I approve its `<!-- player -->` block.
 

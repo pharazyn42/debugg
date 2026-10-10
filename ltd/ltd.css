@@ -701,3 +701,5 @@
 .ltd .modal.desk-modal{ max-width: 520px; }
 .ltd .desk-modal .panel{ border: 0; padding: 0; background: none; box-shadow: none; margin: 0; }
 .ltd .desk-modal .panel h2{ display: flex; align-items: center; gap: 8px; }
+
+.ltd .xp-note{opacity:.7;font-size:.9em;white-space:nowrap}
