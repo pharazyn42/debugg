@@ -104,6 +104,16 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
 5. **Peel off Ltd**, then **Learn**, then **Daily**, in that order. Ltd is the most self-contained. Each peel: filter-repo
    with history, move its tests and workflows, set up its own Pages deploy, update links and redirects (`studio/`,
    `learn.html`, `sandbox.html`), and give it its own `CLAUDE.md`, changelog and release workflow.
+   **Ltd peel, status (2026-10-10):** the new repo is built and tested locally but **not yet on GitHub**: the integration
+   in this session cannot create repositories (403), so the empty `pharazyn42/debuggit-ltd` has to be created by the owner.
+   What was decided and done: history kept (`git filter-repo` on a fresh clone, paths `ltd/`, `tests/ltd.spec.js`,
+   `tools/sim-ltd.js`, `ltd/` flattened to the repo root; 115 commits plus one new one); tags `ltd-v0.0.5`..`ltd-v0.0.18`
+   kept and the `ltd-v` prefix continues; the kit (`shared.js`, `calendar.js`, `base.css`, `backup.js`, `analytics.js`,
+   `fonts/`, `img/`, `privacy.html`) is copied; the puzzle bank and Learn's course list/Python units are a **vendored
+   copy** until `debuggit-content` exists (Phases 3-4); the links to the daily and Learn are absolute URLs on this
+   site (`https://pharazyn42.github.io/debugg/...`); its own tests are 55 of Ltd's plus 3 site checks; `tools/release.js`
+   is a one-product version; CI is Playwright only. Left for after the new site is live: delete `ltd/` here and point
+   `ltd/` and the nav tables of the daily and Learn at the new URL (removing Ltd before it serves would break the live link).
 6. **Retire the umbrella repo.** Leave a README with links, or archive it. Remove `tools/check-scope.js` and the
    one-product-per-branch rule, which the repos now enforce. Update `.claude/agents/` and `.pi/prompts/` per repo.
 

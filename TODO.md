@@ -22,7 +22,9 @@
 - [x] Phase 2d: split what is left of `shared.js` by owner (calendar/rotation/`FORMATS` to daily; `LANG_INFO` and the highlighter to learn; versions and `PRODUCTS` to each product). Check: no product file imports another product's folder.
 - [ ] Phase 3: define the content boundary (question-pool file for Ltd's desk jobs, generator in `tools/`, test). Include: Ltd's `desk.js`/`index.html` load Learn's `courses.js` and unit files (`DEBUGG_LEARN`), `ltd.js` (~line 1950) reads `DEBUGG_LEARN.courses` to link a language to its course, and Ltd/Learn call `calendar.js` (`today`, `slotDay`, `puzzleFor`, `previousSlot`, `codeId`, `formatOf`). After this phase, `calendar.js` and these lookups belong to the content package.
 - [ ] Phase 4: create `debuggit-content` (puzzles, Learn units and courses, `check-puzzles`, trace tools), tag `v0.1.0`, copy step in each product.
-- [ ] Phase 5: peel off Ltd, then Learn, then Daily (filter-repo, tests, workflows, Pages deploy, redirects, own `CLAUDE.md`).
+- [ ] Phase 5a, Ltd: **you:** create the empty public repo `pharazyn42/debuggit-ltd` (no README, no .gitignore, no licence), then run the push commands in `NOTES.md`. Settings > Pages > "Deploy from a branch", `main`, `/ (root)`.
+- [ ] Phase 5b, after the new Ltd site is live: here, delete `ltd/`, `studio/`'s target, `tests/ltd.spec.js`, `tools/sim-ltd.js` and Ltd's release pieces; make `ltd/` a redirect page to the new site and change `URLS.ltd` in the daily and Learn nav tables; keep the umbrella's tests green. Check: `npx playwright test` green and `grep -rn "ltd/" index.html learn/` shows only the new URL.
+- [ ] Phase 5c, Learn then Daily: peel off the same way (the Ltd repo is the worked example).
 - [ ] Phase 6: retire the umbrella repo; remove `tools/check-scope.js`; update `.claude/agents/` and `.pi/prompts/` per repo.
 
 ## Parked (old foundations plan, replaced 2026-10-08)
