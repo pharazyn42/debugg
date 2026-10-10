@@ -72,6 +72,14 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
    - `index.html` loads `learn/courses.js`. Verify why; the daily should not load Learn files.
    - Ltd's desk reaches into `shared.js` for the calendar and puzzle lookups (`puzzleFor`, `codeId`, `previousSlot`,
      `formatOf`, `today`); that is Phase 3's boundary, not this phase's.
+   **Done (2026-10-10), with one change from the first draft:** `shared.js` is now the site kit only (save keys, versions
+   and footer link, wordmark, highlighter, answer matching). The calendar and puzzle front door moved to `calendar.js`, not
+   into the daily, because Learn's sandbox and Ltd's desk call it too (`today`, `slotDay`, `puzzleFor`, `previousSlot`,
+   `codeId`, `formatOf`); it travels with the content package in Phases 3-4. The daily's saves, XP and Day-1 reset are in
+   `daily/core.js`; each product's version is in its own `version.js` (`tools/release.js` bumps those). The daily page no
+   longer loads `learn/courses.js` (it keeps its own `LEARN_COURSES` list). Still importing across products, both for
+   Phase 3: Ltd's `desk.js` and `index.html` load Learn's course and unit files (`DEBUGG_LEARN`), and `ltd.js` reads
+   `DEBUGG_LEARN.courses` to link a language to its course. The `KEYS` table in the kit still lists every product's keys.
 2b. **Standalone product pages and cross-product navigation** (still one repo; this is what makes the later peel possible).
    Today only Learn has its own page. Ltd runs as a tab inside the daily's `index.html` (the loader, the studio, board
    and desk slots, the "Start your own company" button, pause/resume/close, the welcome toast: roughly lines 1250-1370

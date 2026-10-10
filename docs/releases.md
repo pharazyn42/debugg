@@ -6,8 +6,7 @@ The full routine, moved out of `CLAUDE.md` (which keeps a summary under "Release
 **Releases.** Three products, released separately (the player-owner's calls, September 2026: Learn
 first, since the Ltd game changes far more often than Learn, then the daily and Ltd): **Debuggit**,
 the daily puzzle; **Debuggit Ltd**, the studio game; and **Debuggit Learn**. Each has:
-- **Its own semantic version:** `APP_VERSION` (the daily), `LTD_VERSION` or `LEARN_VERSION` in
-  `shared.js`. All are separate from `SAVE_VERSION`, which only changes to reset saves. The daily
+- **Its own semantic version:** `daily/version.js`, `ltd/version.js` or `learn/version.js`. All are separate from `SAVE_VERSION`, which only changes to reset saves. The daily
   and Ltd shared one version up to 0.0.4, where Ltd's starts (its notes from 0.0.1 to 0.0.4 were
   moved into its own changelog); Learn split off at 0.0.2. They run 0.0.x through the demo;
   **0.1.0 is the launch** for each, since the v0.1 reset clears everything. After that, the middle
@@ -53,7 +52,7 @@ The routine:
   from the patch notes since the last minor, show it to the player-owner and get it approved**; for
   0.1.0 it is the launch summary of the product, and the 0.0.x demo sections drop out of the page
   automatically. A patch gets a block only for a critical fix players would notice, when the
-  player-owner agrees. The "· new" badge still follows `shared.js`'s version.
+  player-owner agrees. The "· new" badge still follows the product's version file.
 - The player-owner says **release**, optionally with the product and version ("release Learn",
   "release 0.1.0").
   - Which product: whichever they name. If they don't name one, release every product with
@@ -63,13 +62,13 @@ The routine:
     `node tools/release.js ltd bump <version>` for Ltd, or `node tools/release.js learn bump <version>`
     for Learn. That dates the Unreleased notes and
     sets the version. Then commit, PR (its scope check passes, since a release only touches
-    `shared.js` and that product's changelog) and merge.
+    that product's version file and changelog) and merge.
   - Then run the **Release** workflow on `main` with that product and version
     (`workflow_dispatch`). Claude starts it through the GitHub connection, since this session
     can't push tags, or the player-owner can from the Actions tab. Pushing a `v<version>`,
     `ltd-v<version>` or `learn-v<version>` tag also starts it.
-- `.github/workflows/release.yml` runs every test (it calls `tests.yml`), checks that `shared.js`
-  and that product's changelog agree with the version, then creates the tag and a GitHub
+- `.github/workflows/release.yml` runs every test (it calls `tests.yml`), checks that that product's version file
+  and changelog agree with the version, then creates the tag and a GitHub
   Release with that version's notes. Tests failing means no release.
 - Until item 2d, `main` still deploys straight to GitHub Pages, so a release is a label and a
   changelog entry; with 2d the public site will follow releases and `main` will go to a dev site.

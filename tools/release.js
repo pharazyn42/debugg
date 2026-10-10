@@ -2,9 +2,9 @@
 // Releases (see "Releases" in CLAUDE.md). Debuggit (the daily puzzle), Debuggit Ltd and Debuggit
 // Learn are released separately, each with its own version, changelog and tags:
 //
-//   daily  APP_VERSION in shared.js,   CHANGELOG.md,        tags v0.0.3
-//   ltd    LTD_VERSION in shared.js,   ltd/CHANGELOG.md,    tags ltd-v0.0.3
-//   learn  LEARN_VERSION in shared.js, learn/CHANGELOG.md,  tags learn-v0.0.3
+//   daily  daily/version.js,  CHANGELOG.md,        tags v0.0.3
+//   ltd    ltd/version.js,    ltd/CHANGELOG.md,    tags ltd-v0.0.3
+//   learn  learn/version.js,  learn/CHANGELOG.md,  tags learn-v0.0.3
 //
 //   node tools/release.js [ltd|learn] bump 0.0.3 [2026-10-12]  Dates the changelog's "Unreleased" notes as
 //                                                              0.0.3 and sets the version. Commit, merge, then
@@ -15,7 +15,7 @@
 // <!-- player --> … <!-- /player --> block (while the demo runs, 0.0.x, every section). A minor release
 // (0.1.0, 0.2.0…) must have one, so `bump` refuses without it; a patch only gets one when players would
 // notice the fix.
-//   node tools/release.js [ltd|learn] check 0.0.3              Fails unless shared.js and the changelog are at 0.0.3.
+//   node tools/release.js [ltd|learn] check 0.0.3              Fails unless the version file and the changelog are at 0.0.3.
 //   node tools/release.js [ltd|learn] tag 0.0.3                Prints the tag name (v0.0.3, ltd-v0.0.3 or learn-v0.0.3).
 //   node tools/release.js [ltd|learn] name 0.0.3               Prints the release's title.
 // With no product, it's the daily puzzle ("daily", or its old name "game") here; in a repo that holds just one
@@ -24,11 +24,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const SHARED = path.join(ROOT, 'shared.js');
 const PRODUCTS = {
-  daily: { constant: 'APP_VERSION',   changelog: 'CHANGELOG.md',       tag: 'v',       name: 'Debuggit' },
-  ltd:   { constant: 'LTD_VERSION',   changelog: 'ltd/CHANGELOG.md',   tag: 'ltd-v',   name: 'Debuggit Ltd' },
-  learn: { constant: 'LEARN_VERSION', changelog: 'learn/CHANGELOG.md', tag: 'learn-v', name: 'Debuggit Learn' }
+  daily: { file: 'daily/version.js', changelog: 'CHANGELOG.md',       tag: 'v',       name: 'Debuggit' },
+  ltd:   { file: 'ltd/version.js',   changelog: 'ltd/CHANGELOG.md',   tag: 'ltd-v',   name: 'Debuggit Ltd' },
+  learn: { file: 'learn/version.js', changelog: 'learn/CHANGELOG.md', tag: 'learn-v', name: 'Debuggit Learn' }
 };
 PRODUCTS.game = PRODUCTS.daily;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -67,12 +66,13 @@ const productKey = named === 'game' ? 'daily' : named;
 const P = PRODUCTS[productKey];
 const [cmd, version, dateArg] = args;
 const CHANGELOG = path.join(ROOT, P.changelog);
-const pattern = new RegExp("const " + P.constant + " = '([^']+)';");
-const shared = fs.readFileSync(SHARED, 'utf8');
+const VERSION_FILE = path.join(ROOT, P.file);
+const pattern = new RegExp("(PRODUCTS\\." + productKey + "\\.version = ')([^']+)(';)");
+const versionSource = fs.readFileSync(VERSION_FILE, 'utf8');
 function current(){
-  const m = pattern.exec(shared);
-  if(!m) fail('no ' + P.constant + ' in shared.js');
-  return m[1];
+  const m = pattern.exec(versionSource);
+  if(!m) fail('no PRODUCTS.' + productKey + '.version in ' + P.file);
+  return m[2];
 }
 const doc = sections(fs.readFileSync(CHANGELOG, 'utf8'));
 
@@ -92,7 +92,7 @@ if(cmd === 'bump'){
   doc.sections.splice(doc.sections.indexOf(unreleased) + 1, 0, { title, body: unreleased.body });
   unreleased.body = EMPTY;
   fs.writeFileSync(CHANGELOG, join(doc));
-  fs.writeFileSync(SHARED, shared.replace(pattern, "const " + P.constant + " = '" + version + "';"));
+  fs.writeFileSync(VERSION_FILE, versionSource.replace(pattern, '$1' + version + '$3'));
   console.log('Released ' + P.name + ' ' + was + ' → ' + title + '.\nNext: commit, merge to main, then run the Release workflow ' +
     '(product ' + productKey + ', version ' + version + '), which tags ' + P.tag + version + '.');
 }else if(cmd === 'notes'){
@@ -102,9 +102,9 @@ if(cmd === 'bump'){
   console.log(s.body.replace(MARKERS, ''));
 }else if(cmd === 'check'){
   parse(version);
-  if(current() !== version) fail('shared.js has ' + P.constant + ' at ' + current() + ', not ' + version);
+  if(current() !== version) fail(P.file + ' is at ' + current() + ', not ' + version);
   if(!findVersion(doc, version)) fail(P.changelog + ' has no ' + version);
-  console.log('shared.js and ' + P.changelog + ' are at ' + version + '.');
+  console.log(P.file + ' and ' + P.changelog + ' are at ' + version + '.');
 }else if(cmd === 'tag'){
   parse(version);
   console.log(P.tag + version);

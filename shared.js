@@ -30,22 +30,14 @@ window.Debugg = (function(){
   // SAVE_VERSION to '0.1' and WIPED_VERSIONS to ['demo', ''] ('' is a save from before the marker).
   // Sandbox drafts are kept. Backup codes from a wiped version are refused (backup.js).
   const SAVE_VERSION = 'demo';
-  // The versions players see (footer, What's new, releases), set by tools/release.js. Debuggit (the
-  // daily puzzle), Debuggit Ltd and Debuggit Learn are released separately, each with its own
-  // version, changelog and tags (see "Releases" in CLAUDE.md). Semantic versioning: 0.0.x during the
-  // demo, 0.1.0 for the launch (which resets demo saves). All are separate from SAVE_VERSION, which
-  // only changes when saves have to be reset.
-  const APP_VERSION = '0.0.11';
-  const LTD_VERSION = '0.0.18';
-  const LEARN_VERSION = '0.0.17';
-  // Per product: its version, where "seen" is kept, which saves mean a returning player, its What's
+  // Per product: its version (set by that product's version.js, which tools/release.js bumps), where "seen" is kept, which saves mean a returning player, its What's
   // new and its changelog. `game` is the daily's old name, kept for callers that still pass it.
   const PRODUCTS = {
-    daily: { version: APP_VERSION, seen: KEYS.daily.seen, name: 'Debuggit', label: '', page: 'whatsnew.html',
+    daily: { version: '', seen: KEYS.daily.seen, name: 'Debuggit', label: '', page: 'whatsnew.html',
              log: 'CHANGELOG.md', returning: new RegExp('^(?:' + escapeRe(KEYS.daily.dayPrefix) + '-?\\d+|' + escapeRe(KEYS.daily.xp) + '|' + escapeRe(KEYS.daily.streak) + ')$') },
-    ltd:   { version: LTD_VERSION, seen: KEYS.ltd.seen, name: 'Debuggit Ltd', label: 'Ltd ', page: 'ltd/whatsnew.html',
+    ltd:   { version: '', seen: KEYS.ltd.seen, name: 'Debuggit Ltd', label: 'Ltd ', page: 'ltd/whatsnew.html',
              log: 'ltd/CHANGELOG.md', returning: new RegExp('^' + escapeRe(KEYS.ltd.save) + '$') },
-    learn: { version: LEARN_VERSION, seen: KEYS.learn.seen, name: 'Debuggit Learn', label: 'Learn ', page: 'learn/whatsnew.html',
+    learn: { version: '', seen: KEYS.learn.seen, name: 'Debuggit Learn', label: 'Learn ', page: 'learn/whatsnew.html',
              log: 'learn/CHANGELOG.md', returning: new RegExp('^' + escapeRe(KEYS.learn.save) + '$') }
   };
   PRODUCTS.game = PRODUCTS.daily;
@@ -188,6 +180,6 @@ window.Debugg = (function(){
   }
   function markVersionSeen(product = 'daily'){ try{ localStorage.setItem(PRODUCTS[product].seen, PRODUCTS[product].version); }catch(e){} }
 
-  return { NAME, KEYS, isOurKey, APP_VERSION, LTD_VERSION, LEARN_VERSION, PRODUCTS, renderVersion, markVersionSeen,
+  return { NAME, KEYS, isOurKey, PRODUCTS, renderVersion, markVersionSeen,
            renderWordmark, wordmarkFor, DEMO, SAVE_VERSION, isWipedVersion, normaliseAnswer, highlight, escapeHtml };
 })();

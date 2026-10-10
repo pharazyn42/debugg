@@ -44,7 +44,9 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 | `puzzles/` | The puzzle bank, one file per language (`python.js`, `javascript.js`, `c.js`, `rust.js`), and a README on the fields and scheduling. |
 | `tools/check-puzzles.js` | Runs every puzzle and every Learn snippet with its real toolchain and checks it prints what it says (`npm run check-puzzles`; also a CI job). |
 | `learn/` | Debugg Learn, its own section of the site (`/learn/`): the page (`learn/index.html`), the engine (`learn/learn.js`), the course list (`learn/courses.js`) and one file per unit (`learn/python/01-values.js`). `learn/README.md` has the format and rules. `learn.html` redirects to `learn/` (its old address). |
-| `shared.js`, `base.css` | Shared by all pages: languages, the day calendar, XP levels, the highlighter, the base theme. |
+| `shared.js`, `base.css` | The site kit, loaded by every page: save keys, the products' versions and footer link, the wordmark, the highlighter, answer matching, the base theme. Knows nothing about the calendar or puzzles. |
+| `calendar.js` | The calendar and the puzzle bank's front door: day numbers, the language rotation, today's puzzle, puzzle formats. The daily uses all of it; Learn's sandbox and Ltd's desk borrow some (until Phase 3 of `PLAN.md`). Loads after `shared.js`. |
+| `daily/core.js`, `daily/version.js`, `ltd/version.js`, `learn/version.js` | What only the daily owns (its saved days, XP and levels, the Day-1 reset), and each product's version (`tools/release.js` bumps these). |
 | `learn/sandbox.html` | The sandbox, part of Debuggit Learn (moved there September 2026, the player-owner's call): write and run Python (Pyodide) or JavaScript in Web Workers, replay finished daily puzzles (`?lang=python&day=3`), or open a lesson's example (`?lang=python&code=…`). `sandbox.html` redirects there (its old address). |
 | `backup.js` | The save backup window: all `debuggit-*` storage as one code (`DEBUGG1.` + base64 JSON), and restoring from one. |
 | `analytics.js` | GoatCounter page views and named events, to https://debugg.goatcounter.com. `SITE_COUNT_URL = ''` switches it off; tests switch it off via `window.DEBUGG_GOATCOUNTER`. |
@@ -66,7 +68,7 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 
 ## Hard rules (the ones that break silently)
 - **Saves are live.** Never rename a `debuggit-*` key or a state key; a shape change needs a boot-sequence guard in `ltd.js`. `SAVE_VERSION` only changes for the v0.1 reset.
-- **Don't move Day 1** (`LAUNCH` in `shared.js`) once players have progress; saves are keyed by day number.
+- **Don't move Day 1** (`LAUNCH` in `calendar.js`) once players have progress; saves are keyed by day number.
 - **One product per branch** (daily, Ltd, Learn). Shared files count for none. `tools/check-scope.js` fails a PR otherwise.
 - **Every change players notice** adds a line under `## Unreleased` in that product's changelog, in the same PR.
 - No build step, no runtime dependencies. Plain ES modules and scripts only.
@@ -78,8 +80,8 @@ from jsDelivr in the sandbox). GitHub Pages deploys `main` to
 - `ltd/CLAUDE.md`: Ltd's data model and known gaps; `ltd/implemented.md`: everything built in Ltd.
 
 ## Releases
-Three products, released separately, each with its own version (`APP_VERSION`, `LTD_VERSION`,
-`LEARN_VERSION` in `shared.js`), changelog (`CHANGELOG.md`, `ltd/CHANGELOG.md`, `learn/CHANGELOG.md`),
+Three products, released separately, each with its own version (`daily/version.js`, `ltd/version.js`,
+`learn/version.js`), changelog (`CHANGELOG.md`, `ltd/CHANGELOG.md`, `learn/CHANGELOG.md`),
 What's new page and tags (`v…`, `ltd-v…`, `learn-v…`). The owner says **release** (optionally product and
 version); then `node tools/release.js [ltd|learn] bump <version>`, a PR, merge, and the **Release** workflow
 (`workflow_dispatch`). A minor version needs a player-facing `<!-- player -->` block approved by the owner

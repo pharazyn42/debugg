@@ -7,10 +7,10 @@ const path = require('path');
 const { openAt, fresh, guess, puzzleFor } = require('./helpers');
 
 const ROOT = path.join(__dirname, '..');
-const SHARED = fs.readFileSync(path.join(ROOT, 'shared.js'), 'utf8');
-const APP_VERSION = /const APP_VERSION = '([^']+)';/.exec(SHARED)[1];
-const LTD_VERSION = /const LTD_VERSION = '([^']+)';/.exec(SHARED)[1];
-const LEARN_VERSION = /const LEARN_VERSION = '([^']+)';/.exec(SHARED)[1];
+const versionIn = (file, key) => new RegExp("PRODUCTS\\." + key + "\\.version = '([^']+)'").exec(fs.readFileSync(path.join(ROOT, file), 'utf8'))[1];
+const APP_VERSION = versionIn('daily/version.js', 'daily');
+const LTD_VERSION = versionIn('ltd/version.js', 'ltd');
+const LEARN_VERSION = versionIn('learn/version.js', 'learn');
 const { check: checkScope } = require('../tools/check-scope');
 
 test('every page shows its product’s version, linking to its What’s new', async ({ page }) => {
@@ -148,7 +148,8 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
   fs.mkdirSync(path.join(dir, 'tools'));
   fs.mkdirSync(path.join(dir, 'learn'));
   fs.mkdirSync(path.join(dir, 'ltd'));
-  for(const f of ['shared.js', 'CHANGELOG.md', 'ltd/CHANGELOG.md', 'learn/CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+  fs.mkdirSync(path.join(dir, 'daily'));
+  for(const f of ['daily/version.js', 'ltd/version.js', 'learn/version.js', 'CHANGELOG.md', 'ltd/CHANGELOG.md', 'learn/CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   const run = (...args) => execFileSync('node', [path.join(dir, 'tools/release.js'), ...args], { encoding: 'utf8', stdio: 'pipe' });
   const fails = (...args) => { try{ run(...args); }catch(e){ return e.stderr; } throw new Error('expected a failure'); };
 
@@ -166,10 +167,10 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
   const md = fs.readFileSync(log, 'utf8');
   expect(md).toContain('## Unreleased\n\nNothing yet.\n\n## ' + next + ' — 12 October 2026\n\n- Spot the bug puzzles.\n');
   expect(md).toContain('## ' + APP_VERSION + ' — ');
-  expect(fs.readFileSync(path.join(dir, 'shared.js'), 'utf8')).toContain("const APP_VERSION = '" + next + "';");
+  expect(fs.readFileSync(path.join(dir, 'daily/version.js'), 'utf8')).toContain("PRODUCTS.daily.version = '" + next + "';");
   expect(run('check', next)).toContain('are at ' + next);
   expect(run('notes', next).trim()).toBe('- Spot the bug puzzles.');
-  expect(fails('check', APP_VERSION)).toContain('shared.js has APP_VERSION at ' + next);
+  expect(fails('check', APP_VERSION)).toContain('daily/version.js is at ' + next);
   expect(run('tag', next).trim()).toBe('v' + next);
   expect(run('name', next).trim()).toBe('Debuggit v' + next);
 
@@ -180,9 +181,9 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
   fs.writeFileSync(llog, fs.readFileSync(llog, 'utf8').replace(/## Unreleased\n[\s\S]*?(?=\n## )/, '## Unreleased\n\n- Unit 3, Lists.\n'));
   run('learn', 'bump', lnext, '2026-10-14');
   expect(fs.readFileSync(llog, 'utf8')).toContain('## ' + lnext + ' — 14 October 2026\n\n- Unit 3, Lists.\n');
-  const shared = fs.readFileSync(path.join(dir, 'shared.js'), 'utf8');
-  expect(shared).toContain("const LEARN_VERSION = '" + lnext + "';");
-  expect(shared).toContain("const APP_VERSION = '" + next + "';");
+  const at = f => fs.readFileSync(path.join(dir, f), 'utf8');
+  expect(at('learn/version.js')).toContain("PRODUCTS.learn.version = '" + lnext + "';");
+  expect(at('daily/version.js')).toContain("PRODUCTS.daily.version = '" + next + "';");
   expect(run('learn', 'check', lnext)).toContain('learn/CHANGELOG.md are at ' + lnext);
   expect(run('learn', 'notes', lnext).trim()).toBe('- Unit 3, Lists.');
   expect(run('learn', 'tag', lnext).trim()).toBe('learn-v' + lnext);
@@ -197,10 +198,9 @@ test('tools/release.js dates the unreleased notes and bumps the version', () => 
   fs.writeFileSync(tlog, fs.readFileSync(tlog, 'utf8').replace(/## Unreleased\n[\s\S]*?(?=\n## )/, '## Unreleased\n\n- Office floors.\n'));
   run('ltd', 'bump', tnext, '2026-10-15');
   expect(fs.readFileSync(tlog, 'utf8')).toContain('## ' + tnext + ' — 15 October 2026\n\n- Office floors.\n');
-  const shared2 = fs.readFileSync(path.join(dir, 'shared.js'), 'utf8');
-  expect(shared2).toContain("const LTD_VERSION = '" + tnext + "';");
-  expect(shared2).toContain("const APP_VERSION = '" + next + "';");
-  expect(shared2).toContain("const LEARN_VERSION = '" + lnext + "';");
+  expect(at('ltd/version.js')).toContain("PRODUCTS.ltd.version = '" + tnext + "';");
+  expect(at('daily/version.js')).toContain("PRODUCTS.daily.version = '" + next + "';");
+  expect(at('learn/version.js')).toContain("PRODUCTS.learn.version = '" + lnext + "';");
   expect(run('ltd', 'check', tnext)).toContain('ltd/CHANGELOG.md are at ' + tnext);
   expect(run('ltd', 'notes', tnext).trim()).toBe('- Office floors.');
   expect(run('ltd', 'tag', tnext).trim()).toBe('ltd-v' + tnext);
@@ -231,7 +231,8 @@ test('What’s new after launch shows only each minor release’s player entry, 
 test('tools/release.js refuses a minor release without a player entry, and strips the markers from the notes', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'debugg-release-'));
   fs.mkdirSync(path.join(dir, 'tools'));
-  for(const f of ['shared.js', 'CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+  fs.mkdirSync(path.join(dir, 'daily'));
+  for(const f of ['daily/version.js', 'CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   fs.mkdirSync(path.join(dir, 'learn')); fs.mkdirSync(path.join(dir, 'ltd'));
   for(const f of ['ltd/CHANGELOG.md', 'learn/CHANGELOG.md']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
   const run = (...args) => execFileSync('node', [path.join(dir, 'tools/release.js'), ...args], { encoding: 'utf8', stdio: 'pipe' });
@@ -266,13 +267,13 @@ test('each product has its own What’s new page, and the old ?ltd and ?learn ad
 test('tools/release.js in a repo with one product needs no product argument', () => {
   // As each product moves to its own repo, it keeps the same release.js: with only one changelog here,
   // that product is the default.
-  for(const [dir1, tag, constant] of [['ltd', 'ltd-v', 'LTD_VERSION'], ['learn', 'learn-v', 'LEARN_VERSION']]){
+  for(const [dir1, tag] of [['ltd', 'ltd-v'], ['learn', 'learn-v']]){
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'debugg-release-'));
     fs.mkdirSync(path.join(dir, 'tools'));
     fs.mkdirSync(path.join(dir, dir1));
-    for(const f of ['shared.js', dir1 + '/CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+    for(const f of [dir1 + '/version.js', dir1 + '/CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
     const run = (...args) => execFileSync('node', [path.join(dir, 'tools/release.js'), ...args], { encoding: 'utf8', stdio: 'pipe' });
-    const version = new RegExp(constant + " = '([^']+)'").exec(fs.readFileSync(path.join(dir, 'shared.js'), 'utf8'))[1];
+    const version = versionIn(dir1 + '/version.js', dir1);
     expect(run('tag', version).trim(), dir1).toBe(tag + version);
     expect(run('check', version), dir1).toContain('are at ' + version);
   }

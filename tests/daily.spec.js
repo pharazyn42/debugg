@@ -795,3 +795,10 @@ test('the Save/restore progress, Sandbox and Feedback buttons at the bottom all 
     }
   }
 });
+
+test('the daily page loads no code from Learn or Ltd', async ({ page }) => {
+  await openAt(page, 'index.html');
+  const scripts = await page.evaluate(() => [...document.scripts].map(s => s.getAttribute('src')).filter(Boolean));
+  expect(scripts.length).toBeGreaterThan(5);
+  expect(scripts.filter(src => /(^|\/)(learn|ltd)\//.test(src))).toEqual([]);
+});

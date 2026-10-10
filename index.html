@@ -449,6 +449,7 @@
 <script src="puzzles/c.js"></script>
 <script src="puzzles/rust.js"></script>
 <script src="shared.js"></script>
+<script src="daily/version.js"></script>
 <script src="calendar.js"></script>
 <script src="daily/core.js"></script>
 <script src="analytics.js"></script>
@@ -460,7 +461,6 @@
 <script src="daily/runner.js"></script>
 <script src="puzzles/traces-python.js"></script>
 <script src="daily/trace.js"></script>
-<script src="learn/courses.js"></script>
 <script>
 (function(){
   const { LANG_INFO, highlight: highlightIn } = window.Debugg;
@@ -820,14 +820,16 @@
 
   // After a missed puzzle (a wrong guess, or revealed), a link to Debuggit Learn: the unit that teaches
   // this (the puzzle's `learn` tag), or the language's course from the start. Not after a first-guess solve.
+  // The languages Debuggit Learn has a course for. The daily keeps its own list rather than loading Learn's
+  // course files: add a language here when Learn gets its course.
+  const LEARN_COURSES = ['python'];
   function showLearnMore(){
-    const course = window.DEBUGG_LEARN && window.DEBUGG_LEARN.courses[lang];
     const el = document.getElementById('learnMore');
-    el.hidden = !course || course.soon || (state.solved && state.attempts.length <= 1);
+    el.hidden = !LEARN_COURSES.includes(lang) || (state.solved && state.attempts.length <= 1);
     if(el.hidden) return;
     const a = document.getElementById('learnMoreLink');
     a.href = 'learn/#' + lang + (puzzle.learn ? '/' + puzzle.learn : '');
-    a.textContent = puzzle.learn ? 'Brush up on this in Debuggit Learn →' : 'Learn ' + course.name + ' from the start in Debuggit Learn →';
+    a.textContent = puzzle.learn ? 'Brush up on this in Debuggit Learn →' : 'Learn ' + LANG.name + ' from the start in Debuggit Learn →';
   }
 
   // The spoiler-free result, Wordle-style: the daily's name as its button at the top shows it, the day

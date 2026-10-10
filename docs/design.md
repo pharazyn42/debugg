@@ -41,7 +41,7 @@ The desk used to be the daily puzzle itself, which folded to its tiles once done
 the separation.
 
 **Languages and the rotation.** There's one puzzle a day, and the
-languages take turns. `LANG_INFO` in `shared.js` describes every language
+languages take turns. `LANG_INFO` in `calendar.js` describes every language
 with puzzles (Python, JavaScript, C, Rust: name, extension, whether the
 sandbox can run it, its Debugg Ltd name, e.g. C is the studio's `C/C++`,
 and a playground link for Rust). `ROTATION` lists the languages in play and
@@ -59,7 +59,7 @@ the overall XP is their total (`totalXp()`), shown as an "Overall" row
 above the languages, with the same level curve. Level-ups fire
 `level/<lang>/<n>` and `level/overall/<n>` analytics events.
 
-**The demo.** `DEMO` in `shared.js` is on. It shows a notice on the first
+**The demo.** `DEMO` in `shared.js` (the site kit) is on. It shows a notice on the first
 visit (again from the **demo** badge in the header; tests switch the
 automatic one off with `window.DEBUGG_DEMO_NOTICE = false`), and cuts Debugg
 Ltd down to hotfixes and patches (`DEMO_TIERS` in `ltd.js`; `DEMO_LOCKED_ROLES` is empty
@@ -77,10 +77,10 @@ versions are refused. For v0.1: set `DEMO` to false, `SAVE_VERSION` to
 marker existed), and `LAUNCH` to the real Day 1. Tests fake a reset with
 `window.DEBUGG_WIPED_VERSIONS`.
 
-**The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `shared.js`). Days
+**The calendar.** The demo's Day 1 is Monday 5 October 2026 (`LAUNCH` in `calendar.js`). Days
 before it are preview days (0, -1, …), labelled "Preview", each with its
 own puzzle and saves. Saves are keyed by day number, so **don't move Day 1
-once players have real progress**. If it does move, `shared.js` notices
+once players have real progress**. If it does move, `daily/core.js` notices
 (it remembers the date in `debuggit-daily-epoch`) and clears per-day progress, the
 streak and Debugg Ltd's `paid` ledger, keeping XP, the company and sandbox
 drafts.
