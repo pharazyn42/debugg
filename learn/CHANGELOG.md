@@ -8,7 +8,7 @@ one for fixes.
 ## Unreleased
 
 - **Your Learn progress and sandbox drafts are saved under new names.** Learn now keeps its save apart from the daily puzzle and Debuggit Ltd. Progress and sandbox code from an earlier demo version won't carry over; this is a demo, so you start fresh.
-Nothing yet.
+- **The sandbox lists earlier days' puzzles only.** Today's puzzle is no longer in its list, so Learn never reads your daily progress. The daily's "Run it yourself" link still opens today's code there. Learn's levels use their own curve.
 
 ## 0.0.17 — 5 October 2026
 

@@ -10,7 +10,7 @@ things to play and the last one for fixes and balance changes.
 ## Unreleased
 
 - **Your daily puzzle progress is saved under new names.** The daily puzzle now keeps its saves (days, XP, streak) apart from Learn and Debuggit Ltd. Progress from an earlier demo version won't carry over; this is a demo, so you start fresh.
-Nothing yet.
+- **"Run it yourself" opens today's code in the sandbox directly.** The sandbox no longer lists today's puzzle, so the link carries the code with it.
 
 ## 0.0.11 — 5 October 2026
 

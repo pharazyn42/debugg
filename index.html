@@ -758,7 +758,9 @@
     if((PRACTICE && !window.Debugg.isFinished(SLOT)) || CHALLENGE){
       tryLink.parentElement.hidden = true;  // the sandbox only opens puzzles finished on the day, and not code challenges yet
     }else if(LANG.runnable){
-      tryLink.href = 'learn/sandbox.html?lang=' + lang + '&day=' + SLOT;
+      // Today's puzzle isn't listed in the sandbox (it never reads the daily's saves), so it opens by its code.
+      tryLink.href = 'learn/sandbox.html?lang=' + lang + (SLOT === window.Debugg.slotDay(TODAY)
+        ? '&code=' + encodeURIComponent(puzzle.code) : '&day=' + SLOT);
     }else if(LANG.playground){
       const pg = LANG.playground(puzzle.code);
       tryLink.href = pg.url;

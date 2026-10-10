@@ -138,7 +138,7 @@ test('the editor indents, undoes and runs with Ctrl+Enter', async ({ page }) => 
   await expect(page.locator('#src')).toHaveValue('console.log(42)');
 });
 
-test("today's puzzle only unlocks once it's finished", async ({ page }) => {
+test("today's puzzle is never listed; the daily links to it by its code", async ({ page }) => {
   await openAt(page, 'learn/sandbox.html?lang=python&day=3');
   await fresh(page);
   await page.goto('learn/sandbox.html?lang=python&day=3');
@@ -152,8 +152,7 @@ test("today's puzzle only unlocks once it's finished", async ({ page }) => {
   await page.click('#tryLink');
   await expect(page).toHaveURL(/learn\/sandbox\.html/);
   await expect(page.locator('#src')).toHaveValue(/add_item/);
-  await expect(page.locator('#note')).toContainText('[1, 2]');
-  await expect(page.locator('#puzzlePick option', { hasText: 'Day 3 (today)' })).toHaveCount(1);
+  await expect(page.locator('#puzzlePick option', { hasText: '(today)' })).toHaveCount(0);
 });
 
 test('the sandbox lives in Debuggit Learn; its old address redirects, keeping the puzzle or language', async ({ page }) => {
@@ -180,7 +179,8 @@ test('a finished puzzle in another format loads with the right note', async ({ p
   await fresh(page);
   const p = await solve(page, 15);
   expect(p.format).toBe('value');
-  await page.goto('learn/sandbox.html?lang=python&day=15');
+  // Day 15 is only listed once it is an earlier day.
+  await openAt(page, 'learn/sandbox.html?lang=python&day=15', 16, { formats: true });
   await expect(page.locator('#src')).toHaveValue(p.code + '\nprint(repr(' + p.ask.name + '))\n');
   await expect(page.locator('#note')).toHaveText('Loaded Day 15. At the end, ' + p.ask.name + ' is ' + p.display + '. Try changing it and running it again.');
 });

@@ -23,6 +23,13 @@ window.DebuggLearn = (function(){
   const REVIEW_DAYS = [1, 3, 7];  // days until a missed question comes back, by how often it's been right since
   const MIXED_ROUND = 10;     // questions in a mixed practice round
   const REVIEW_ROUND = 8;     // questions in a review round at most
+  // Learn's own level curve (the same shape the daily uses): level n starts at 50·n·(n−1) XP.
+  function levelStart(n){ return 50 * n * (n - 1); }
+  function levelFor(xp){
+    let n = 1;
+    while(xp >= levelStart(n + 1)) n++;
+    return n;
+  }
   // Stars for a lesson, by mistakes made: 0 → 3 stars, 1–2 → 2 stars, more → 1 star.
   function starsFor(mistakes){ return mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1; }
 
@@ -149,9 +156,9 @@ window.DebuggLearn = (function(){
   // after a level-up.
   function renderStats(fromXp){
     const xp = save.xp[lang] || 0;
-    const lv = D.levelFor(xp), start = D.levelStart(lv), next = D.levelStart(lv + 1);
+    const lv = levelFor(xp), start = levelStart(lv), next = levelStart(lv + 1);
     const pct = x => Math.round((x - start) / (next - start) * 100);
-    const from = fromXp == null ? pct(xp) : D.levelFor(fromXp) < lv ? 0 : pct(fromXp);
+    const from = fromXp == null ? pct(xp) : levelFor(fromXp) < lv ? 0 : pct(fromXp);
     $('stats').innerHTML =
       '<div class="stat"><span class="stat-label">Learn streak</span><span class="stat-value" id="learnStreak">' + streak() + '</span></div>' +
       '<div class="stat grow"><span class="stat-label">' + esc(L.courses[lang].name) + ' · Learn Lv <span id="learnLevel">' + lv + '</span></span>' +
@@ -581,8 +588,8 @@ window.DebuggLearn = (function(){
   // --- Finishing ----------------------------------------------------------------------------------
   // What the summary celebrates: a new Learn level, and the streak going up today.
   function celebrate(xpBefore, streakBefore){
-    const lv = D.levelFor(save.xp[lang] || 0);
-    let html = D.levelFor(xpBefore) < lv
+    const lv = levelFor(save.xp[lang] || 0);
+    let html = levelFor(xpBefore) < lv
       ? '<p class="level-up" id="levelUp">Level up! ' + esc(L.courses[lang].name) + ' · Learn Lv ' + lv + '</p>' : '';
     html += '<p class="streak-line">' + (streak() > streakBefore
       ? '<span class="streak-up" id="streakUp">Learn streak: <b>' + streak() + '</b> day' + (streak() > 1 ? 's' : '') + ', +1 today</span>'

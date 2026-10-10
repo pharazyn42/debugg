@@ -54,9 +54,9 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 - 2026-10-10: sandbox replays past days only (never today's), so Learn reads no daily saves; What's new is one page per product. Both written into `PLAN.md` Phase 2 and unblock Phases 2a and 2c.
 
 ## Last session handoff
-- Branch: `claude/jolly-davinci-dfihk5` (repo-split plan). **Phase 1 is complete**: per-product save keys, Ltd's own XP, no daily/Learn reads in `ltd/`, all wording updated.
-- Finished: Ltd XP part 3. The Director's card now says "Languages (levels from your desk answers)", shows XP and where the next level starts ("Python Lv 3 (+2% success) 450 / 600 XP", `.xp-note` in `ltd/ltd.css`) and one line on how to earn XP. README, `ltd/implemented.md`, `ltd/CLAUDE.md`, `docs/design.md` and code comments no longer say the Director's skill comes from the daily's puzzle levels. What is left on purpose: history lines about the old founder's bonus and the old desk. Ltd changelog line added.
-- Also: `test.slow()` on the "every <language> puzzle" daily test. It had failed in three full runs on a 60 s timeout (the Python run takes ~51-54 s alone). A separate commit.
-- Tests: `npx playwright test --workers=2` 149 passed, 1 failed (that daily test, before the `test.slow()` fix; it passes alone in 54 s).
-- Next (Phase 2, unblocked): 2a Learn stops using the daily's level curve and `D.isFinished` (sandbox lists past days only; check why `index.html` loads `learn/courses.js`), then 2b-i the standalone Ltd page, 2b-ii nav as links, 2c per-product What's new and release tooling, 2d what is left of `shared.js`. Decisions already made are in `PLAN.md`. Still open for later phases: navigation URLs (hosting), content tag cadence, git history, shared test fixtures.
-- Uncommitted changes: none after these commits.
+- Branch: `claude/jolly-davinci-dfihk5` (repo-split plan). Phase 1 done; **Phase 2a done**.
+- Finished: Learn has its own `levelStart`/`levelFor` in `learn/learn.js` (50·n·(n−1), same shape as before, Learn's own XP). The sandbox lists earlier days only (`unlockedPuzzles` no longer calls `D.isFinished`). Because of that the daily's "Run it yourself" link (`index.html`, `renderReveal`) opens today's puzzle by `?code=`, past days by `?day=`. Tests: `tests/sandbox.spec.js` updated (today never listed; day 15 test replays from day 16). Changelog lines in Learn and the daily.
+- `index.html` loads `learn/courses.js` on purpose: `showLearnMore()` reads `window.DEBUGG_LEARN.courses` for the course name and `soon` flag behind the "Brush up in Learn" link. It is the daily reading Learn content, so deal with it in 2d or Phase 3 (give the daily a tiny link table instead). Not removed.
+- Tests: learn, sandbox and daily specs green (`--workers=2`); full suite not re-run this session.
+- Next: 2b-i, the standalone Ltd page (`ltd/index.html`), then 2b-ii, 2c, 2d.
+- Uncommitted changes: none after the commit.
