@@ -14,8 +14,9 @@ the daily puzzle; **Debuggit Ltd**, the studio game; and **Debuggit Learn**. Eac
   number is for new things to play (Learn: new units or courses) and the last for fixes and balance.
 - **Its own changelog:** `CHANGELOG.md` for the daily, `ltd/CHANGELOG.md` for Ltd,
   `learn/CHANGELOG.md` for Learn.
-- **Its own What's new:** `whatsnew.html`, `whatsnew.html?ltd` or `whatsnew.html?learn`
-  (`PRODUCTS` in `shared.js` says which changelog each reads). The Daily tab's footer (and the
+- **Its own What's new:** `whatsnew.html`, `ltd/whatsnew.html` or `learn/whatsnew.html` (each page names its
+  product and changelog; the reader is `whatsnew.js`, which a product's repo keeps a copy of; the old
+  `whatsnew.html?ltd` and `?learn` addresses redirect). The Daily tab's footer (and the
   privacy page's) shows "v0.0.4 demo", the Ltd tab's "Ltd v0.0.4 demo" and Learn's "Learn v0.0.5
   demo", each linking to its own What's new. Each has its own "· new" until the player has looked
   (`debuggit-daily-seen-version`, `debuggit-ltd-seen-version`, `debuggit-learn-seen-version`).
@@ -43,7 +44,7 @@ The routine:
 - **Every change players will notice adds a line under `## Unreleased`** in its product's
   changelog, in the same PR, written for players. The changelogs are the full developer log and
   stay in full.
-- **What's new shows players a curated view** (`playerView()` in `whatsnew.html`; the player-owner's
+- **What's new shows players a curated view** (`playerView()` in `whatsnew.js`; the player-owner's
   call, October 2026). While the demo runs (0.0.x, before any 0.1.0) every section is shown. After
   that a section shows only its `<!-- player -->` … `<!-- /player -->` block: 3 to 6 one-line bullets
   of what players will notice (new things to play, changes they'd see, fixes they'd have hit; not

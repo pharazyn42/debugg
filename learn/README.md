@@ -105,6 +105,6 @@ When a new unit covers what some puzzles are about, tag them.
 
 Debuggit Learn is versioned and released on its own, separate from the game (see "Releases" in
 `CLAUDE.md`): `LEARN_VERSION` in `shared.js`, `learn/CHANGELOG.md`, `learn-v…` tags, and its own
-What's new (`whatsnew.html?learn`). A branch that changes Learn shouldn't change the game too; the
+What's new (`learn/whatsnew.html`). A branch that changes Learn shouldn't change the game too; the
 **scope** CI check stops it, unless both changelogs get notes. Add a line under `## Unreleased` in
 `learn/CHANGELOG.md` for anything players will notice, such as a new unit.

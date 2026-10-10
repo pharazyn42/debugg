@@ -18,7 +18,8 @@
 //   node tools/release.js [ltd|learn] check 0.0.3              Fails unless shared.js and the changelog are at 0.0.3.
 //   node tools/release.js [ltd|learn] tag 0.0.3                Prints the tag name (v0.0.3, ltd-v0.0.3 or learn-v0.0.3).
 //   node tools/release.js [ltd|learn] name 0.0.3               Prints the release's title.
-// With no product, it's the daily puzzle ("daily", or its old name "game").
+// With no product, it's the daily puzzle ("daily", or its old name "game") here; in a repo that holds just one
+// product (once they are split), it's that product, so the same file works unchanged in each.
 const fs = require('fs');
 const path = require('path');
 
@@ -56,7 +57,12 @@ function join(doc){ return doc.head + doc.sections.map(s => '## ' + s.title + '\
 function findVersion(doc, v){ return doc.sections.find(s => s.title === v || s.title.startsWith(v + ' ')); }
 
 const args = process.argv.slice(2);
-const named = PRODUCTS[args[0]] ? args.shift() : 'daily';
+// The product present when only one of them has a changelog here; otherwise the daily puzzle.
+function onlyProduct(){
+  const here = ['daily', 'ltd', 'learn'].filter(k => fs.existsSync(path.join(ROOT, PRODUCTS[k].changelog)));
+  return here.length === 1 ? here[0] : 'daily';
+}
+const named = PRODUCTS[args[0]] ? args.shift() : onlyProduct();
 const productKey = named === 'game' ? 'daily' : named;
 const P = PRODUCTS[productKey];
 const [cmd, version, dateArg] = args;

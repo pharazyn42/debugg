@@ -48,9 +48,9 @@ window.Debugg = (function(){
   const PRODUCTS = {
     daily: { version: APP_VERSION, seen: KEYS.daily.seen, name: 'Debuggit', label: '', page: 'whatsnew.html',
              log: 'CHANGELOG.md', returning: new RegExp('^(?:' + escapeRe(KEYS.daily.dayPrefix) + '-?\\d+|' + escapeRe(KEYS.daily.xp) + '|' + escapeRe(KEYS.daily.streak) + ')$') },
-    ltd:   { version: LTD_VERSION, seen: KEYS.ltd.seen, name: 'Debuggit Ltd', label: 'Ltd ', page: 'whatsnew.html?ltd',
+    ltd:   { version: LTD_VERSION, seen: KEYS.ltd.seen, name: 'Debuggit Ltd', label: 'Ltd ', page: 'ltd/whatsnew.html',
              log: 'ltd/CHANGELOG.md', returning: new RegExp('^' + escapeRe(KEYS.ltd.save) + '$') },
-    learn: { version: LEARN_VERSION, seen: KEYS.learn.seen, name: 'Debuggit Learn', label: 'Learn ', page: 'whatsnew.html?learn',
+    learn: { version: LEARN_VERSION, seen: KEYS.learn.seen, name: 'Debuggit Learn', label: 'Learn ', page: 'learn/whatsnew.html',
              log: 'learn/CHANGELOG.md', returning: new RegExp('^' + escapeRe(KEYS.learn.save) + '$') }
   };
   PRODUCTS.game = PRODUCTS.daily;

@@ -22,13 +22,13 @@ test('every page shows its product’s version, linking to its What’s new', as
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', 'whatsnew.html');
   }
   // Debuggit Ltd has its own, on its page.
-  for(const [p, href] of [['ltd/', '../whatsnew.html?ltd'], ['whatsnew.html?ltd', 'whatsnew.html?ltd']]){
+  for(const [p, href] of [['ltd/', '../ltd/whatsnew.html'], ['ltd/whatsnew.html', '../ltd/whatsnew.html']]){
     await page.goto(p);
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('Ltd v' + LTD_VERSION + ' demo');
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', href);
   }
   // Debuggit Learn has its own version and What's new.
-  for(const [p, href] of [['learn/', '../whatsnew.html?learn'], ['learn/sandbox.html', '../whatsnew.html?learn'], ['whatsnew.html?learn', 'whatsnew.html?learn']]){
+  for(const [p, href] of [['learn/', '../learn/whatsnew.html'], ['learn/sandbox.html', '../learn/whatsnew.html'], ['learn/whatsnew.html', '../learn/whatsnew.html']]){
     await page.goto(p);
     await expect(page.locator('#appVersion .version-link'), p).toHaveText('Learn v' + LEARN_VERSION + ' demo');
     await expect(page.locator('#appVersion .version-link'), p).toHaveAttribute('href', href);
@@ -54,7 +54,7 @@ test('Learn’s What’s new lists only Learn, and its "new" is separate from th
   await expect(page.locator('#notes')).toContainText('Strings');
   await expect(page.locator('#notes')).not.toContainText('Managers are in the demo');
   await expect(page.locator('#notes')).not.toContainText('Unreleased');
-  await expect(page.locator('#backLink')).toHaveAttribute('href', 'learn/');
+  await expect(page.locator('#backLink')).toHaveAttribute('href', 'index.html');
   await page.goto('learn/');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
   // The daily's What's new doesn't list Learn. None of the lists starts with the changelog's note
@@ -62,7 +62,7 @@ test('Learn’s What’s new lists only Learn, and its "new" is separate from th
   await page.goto('whatsnew.html');
   await expect(page.locator('#notes')).not.toContainText('Strings');
   for(const intro of ['own version numbers', 'Versions go 0.0.1']) await expect(page.locator('#notes')).not.toContainText(intro);
-  await page.goto('whatsnew.html?learn');
+  await page.goto('learn/whatsnew.html');
   for(const intro of ['own version numbers', 'Versions go 0.0.1']) await expect(page.locator('#notes')).not.toContainText(intro);
   await expect(page.locator('#notes')).not.toContainText('0.1.0 is the launch');
 });
@@ -85,13 +85,13 @@ test('Ltd’s What’s new lists only Ltd, and its "new" is separate from the da
   await expect(page.locator('#notes')).toContainText('Managers are in the demo');
   await expect(page.locator('#notes')).not.toContainText('Share your result');
   await expect(page.locator('#notes')).not.toContainText('Unreleased');
-  await expect(page.locator('#backLink')).toHaveAttribute('href', 'ltd/');
+  await expect(page.locator('#backLink')).toHaveAttribute('href', 'index.html');
   await page.goto('ltd/');
   await expect(page.locator('.version-link')).not.toHaveClass(/new/);
   // The daily's What's new doesn't list Ltd, and Ltd's doesn't start with the note about version numbers.
   await page.goto('whatsnew.html');
   await expect(page.locator('#notes')).not.toContainText('Managers are in the demo');
-  await page.goto('whatsnew.html?ltd');
+  await page.goto('ltd/whatsnew.html');
   for(const intro of ['own version numbers', 'Versions go 0.0.1']) await expect(page.locator('#notes')).not.toContainText(intro);
 });
 
@@ -247,4 +247,33 @@ test('tools/release.js refuses a minor release without a player entry, and strip
   setUnreleased('- Lots of detail.\n<!-- player -->\n- Play the daily.\n<!-- /player -->');
   run('bump', '0.1.0', '2026-11-02');
   expect(run('notes', '0.1.0')).toBe('- Lots of detail.\n- Play the daily.\n\n');
+});
+
+test('each product has its own What’s new page, and the old ?ltd and ?learn addresses go to them', async ({ page }) => {
+  await openAt(page, 'index.html');
+  await page.goto('whatsnew.html?ltd');
+  await expect(page).toHaveURL(/\/ltd\/whatsnew\.html$/);
+  await expect(page.locator('h1')).toHaveText('What’s new in Ltd');
+  await page.goto('whatsnew.html?learn');
+  await expect(page).toHaveURL(/\/learn\/whatsnew\.html$/);
+  await expect(page.locator('h1')).toHaveText('What’s new in Learn');
+  // Each page lists only its own product, and links back to its own home.
+  await page.goto('whatsnew.html');
+  await expect(page.locator('h1')).toHaveText('What’s new');
+  await expect(page.locator('#backLink')).toHaveAttribute('href', 'index.html');
+});
+
+test('tools/release.js in a repo with one product needs no product argument', () => {
+  // As each product moves to its own repo, it keeps the same release.js: with only one changelog here,
+  // that product is the default.
+  for(const [dir1, tag, constant] of [['ltd', 'ltd-v', 'LTD_VERSION'], ['learn', 'learn-v', 'LEARN_VERSION']]){
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'debugg-release-'));
+    fs.mkdirSync(path.join(dir, 'tools'));
+    fs.mkdirSync(path.join(dir, dir1));
+    for(const f of ['shared.js', dir1 + '/CHANGELOG.md', 'tools/release.js']) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
+    const run = (...args) => execFileSync('node', [path.join(dir, 'tools/release.js'), ...args], { encoding: 'utf8', stdio: 'pipe' });
+    const version = new RegExp(constant + " = '([^']+)'").exec(fs.readFileSync(path.join(dir, 'shared.js'), 'utf8'))[1];
+    expect(run('tag', version).trim(), dir1).toBe(tag + version);
+    expect(run('check', version), dir1).toContain('are at ' + version);
+  }
 });
