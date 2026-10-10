@@ -67,8 +67,8 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
    - Learn uses the daily's level curve (`D.levelFor`, `D.levelStart` in `learn/learn.js`): give Learn its own copy
      (same shape, Learn's own XP), as Ltd did.
    - The sandbox (`learn/sandbox.html`) reads daily saves (`D.isFinished`) to keep today's puzzle locked until the
-     player has finished it. That is a cross-product read. Recommended: the sandbox replays past days only and never
-     today's (open question below).
+     player has finished it. That is a cross-product read. Decided: the sandbox replays past days only and never
+     today's.
    - `index.html` loads `learn/courses.js`. Verify why; the daily should not load Learn files.
    - Ltd's desk reaches into `shared.js` for the calendar and puzzle lookups (`puzzleFor`, `codeId`, `previousSlot`,
      `formatOf`, `today`); that is Phase 3's boundary, not this phase's.
@@ -118,10 +118,9 @@ anything their screens show).
 - **One product per branch.** This plan is multi-product by nature (shared `shared.js`, `tests/`, `tools/`), so
   Phases 1–2 will fail `tools/check-scope.js`. Decide: relax the check for this series, or order the work so each PR is
   one product (Ltd's key and XP change first, then Learn, then daily, then shared).
-- **Sandbox replay lock.** Today's puzzle stays locked in the sandbox until the player finishes it in the daily. Separate
-  saves mean Learn cannot know. Recommended: the sandbox lists past days only. Alternative: a link back to the daily.
+- ~~Sandbox replay lock~~ **Decided (owner, 2026-10-10):** the sandbox replays past days only and never today's, so Learn never reads daily saves.
 - **Navigation URLs.** The cross-product links use one constant per product (2b). Final values wait on the hosting decision.
-- **Where What's new lives.** One page per product (recommended, in 2c) or one shared page that links to all three.
+- ~~Where What's new lives~~ **Decided (owner, 2026-10-10):** one What's new page per product (Phase 2c).
 - **The Ltd entry point.** Players find Ltd today through the daily's tab. After 2b it is a link; check the first-visit
   explanation ("Start your own company") still reaches a new player.
 - **Content tag cadence.** Pinned copies mean a new puzzle needs a content tag and a bump in each consumer. Is

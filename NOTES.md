@@ -51,6 +51,8 @@ Things that scan by the `debugg-` prefix and must change together with the renam
 ## Decisions
 - 2026-10-10: Ltd XP is its own scale, earned only from right desk and intern-help answers: 6 XP × difficulty, per language, kept in the Ltd save. Languages unlock by earning XP in them (Python always known). The founder's bonus goes. Details and the sim numbers behind the 6 are in `PLAN.md` Phase 1.
 
+- 2026-10-10: sandbox replays past days only (never today's), so Learn reads no daily saves; What's new is one page per product. Both written into `PLAN.md` Phase 2 and unblock Phases 2a and 2c.
+
 ## Last session handoff
 - Branch: `claude/jolly-davinci-dfihk5` (repo-split plan, Phase 1).
 - Finished: Ltd XP part 2. The founder's bonus is gone (`founderBonus()`, `FOUNDER_BONUS_CAP`, the "founder's bonus" welcome text); a new company is always ¤250. `ltd/` now reads no daily or Learn save: `grep -nE "D\.(readXp|totalXp|levelFor|readState|isFinished)" ltd/` and `grep -n "debuggit-\(daily\|learn\)" ltd/*.js` find nothing. `tools/sim-ltd.js --xp N` now gives the Director N Ltd XP in Python (it founds, stops, patches `state.xp`, restarts). Tests: the founder test is now "starts with ¤250 and no XP, whatever the daily has paid out"; the hiring, pause and cash expectations that leaned on the bonus moved down by ¤100 (¤350→¤250, ¤170→¤70, ¤133→¤33); `launch.spec.js` expects ¤250. Docs: README, `ltd/CLAUDE.md`, `ltd/implemented.md` (founding) and the Ltd changelog.
