@@ -185,11 +185,12 @@ test('desk jobs turn up about every hour, while you’re away too, up to 3, and 
     s.desk.jobs = [{ id: 'old', size: 1, questions: s.desk.jobs[0].questions, answered: [], expiresAt: Date.now() - 6 * h }];
     s.desk.nextAt = Date.now() - 5 * h;
   });
-  // Every 45–90 minutes, each lasting 4 hours, so 2 or 3 are waiting.
+  // Every 45–90 minutes, each lasting 4 hours, so usually 2 or 3 are waiting. Not always: no job turns up while 3
+  // are alive, so a run of short gaps can skip one and leave only a single job waiting (about 1 run in 20).
   await openDesk(page);
-  await expect(page.locator('.desk-job').nth(1)).toBeVisible();
+  await expect(page.locator('.desk-job').first()).toBeVisible();
   const desk = (await ltd(page)).desk;
-  expect(desk.jobs.length).toBeGreaterThanOrEqual(2);
+  expect(desk.jobs.length).toBeGreaterThanOrEqual(1);
   expect(desk.jobs.length).toBeLessThanOrEqual(3);
   expect(desk.jobs.map(j => j.id)).not.toContain('old');
   const now = await page.evaluate(() => Date.now());   // the page's fixed clock, not this process's

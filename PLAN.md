@@ -108,8 +108,9 @@ build or deploy time. Runtime stays no-build, with plain scripts and modules. Th
    GitHub Pages) is built, tested and pushed (`main`; the tags still need pushing from outside this session). The owner
    created the empty repo, since this session's integration cannot create repositories (403).
    What was decided and done: history kept (`git filter-repo` on a fresh clone, paths `ltd/`, `tests/ltd.spec.js`,
-   `tools/sim-ltd.js`, `ltd/` flattened to the repo root; 115 commits plus one new one); tags `ltd-v0.0.5`..`ltd-v0.0.18`
-   kept and the `ltd-v` prefix continues; the kit (`shared.js`, `calendar.js`, `base.css`, `backup.js`, `analytics.js`,
+   `tools/sim-ltd.js`, `ltd/` flattened to the repo root; 115 commits plus the new ones); **the old `ltd-v` tags are discarded and
+   Ltd restarts at 0.0.1 as its own product**: `version.js` is 0.0.0 until then, every earlier changelog section is folded into one
+   `## Unreleased` list (the first release, 0.0.1, carries all of it), and tags are plain `v0.0.1`; the kit (`shared.js`, `calendar.js`, `base.css`, `backup.js`, `analytics.js`,
    `fonts/`, `img/`, `privacy.html`) is copied; the puzzle bank and Learn's course list/Python units are a **vendored
    copy** until `debuggit-content` exists (Phases 3-4); the links to the daily and Learn are absolute URLs on this
    site (`https://pharazyn42.github.io/debugg/...`); its own tests are 55 of Ltd's plus 3 site checks; `tools/release.js`
